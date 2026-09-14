@@ -83,6 +83,17 @@ class BrowserAdapter:
                 reason=f"OPERATOR_GENERATION_FENCED:{exc}",
                 observation={"side_effect": "NOT_ATTEMPTED", "reason": str(exc)},
             )
+        try:
+            # Recheck after the durable MAY_HAVE_SUBMITTED fence and directly
+            # before the external call. A pause/cancel committed in between
+            # must fail closed instead of sending a stale prompt.
+            self.store.assert_intent_generation(intent_id)
+        except StoreInvariantError as exc:
+            return self.store.block_intent(
+                intent_id,
+                reason=f"OPERATOR_GENERATION_FENCED:{exc}",
+                observation={"side_effect": "NOT_ATTEMPTED", "reason": str(exc)},
+            )
         self._crash("after_may_have_submitted")
         try:
             observation = self.engine.submit(self._engine_intent(persisted))

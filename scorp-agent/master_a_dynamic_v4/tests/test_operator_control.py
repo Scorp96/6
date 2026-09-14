@@ -45,6 +45,7 @@ class OperatorControlTests(unittest.TestCase):
         self.assertEqual("OK", first["status"])
         self.assertEqual(1, first["state_version"])
         self.assertEqual("PAUSED", self.store.get_operator_control("p1")["operator_state"])
+        self.assertEqual("operator", self.store.get_runtime_command_receipt("pause-1")["actor"])
         second = self.service.execute(request)
         self.assertEqual(first, second)
         self.assertEqual(1, self.store.get_project_state("p1")["state_version"])

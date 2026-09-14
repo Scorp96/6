@@ -153,6 +153,7 @@ class OperatorControlService:
                     request=request,
                     receipt_id=receipt_id,
                     state=state,
+                    actor=self.actor,
                     control={
                         "operator_generation": operator_generation,
                         "objective_generation": objective_generation,
@@ -173,6 +174,13 @@ class OperatorControlService:
             )
 
     def _reject_and_record(self, conn, request, receipt_id, state, control, reason, now):
+        if state is None:
+            return build_response(
+                request,
+                status="REJECTED",
+                daemon_epoch=self.daemon_epoch,
+                error={"code": reason},
+            )
         response = build_response(
             request,
             status="REJECTED",
@@ -186,6 +194,7 @@ class OperatorControlService:
             request=request,
             receipt_id=receipt_id,
             state=state,
+            actor=self.actor,
             control=control,
             status="REJECTED",
             reason=reason,
@@ -202,6 +211,7 @@ class OperatorControlService:
         request: RuntimeRequest,
         receipt_id: str,
         state,
+        actor: str,
         control,
         status: str,
         reason: str,
@@ -222,7 +232,7 @@ class OperatorControlService:
                 receipt_id,
                 request.project_id,
                 request.command,
-                "operator",
+                actor,
                 request.expected_state_version,
                 output_state_version,
                 request.expected_daemon_epoch,

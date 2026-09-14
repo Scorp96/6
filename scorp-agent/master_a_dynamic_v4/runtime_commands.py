@@ -110,12 +110,15 @@ class RuntimeCommandService:
                 "SELECT COUNT(*) FROM candidate_results WHERE project_id=? AND verification_state='PENDING'",
                 (project_id,),
             ).fetchone()[0])
+        master = self._master_status(project_id)
         return {
             "project_id": project_id,
             "project": snapshot["project"],
             "operator": snapshot["operator"],
             "observation": snapshot["observation"],
             "daemon": snapshot["daemon"],
+            "master": master["master"],
+            "last_decision": master["last_decision"],
             "workers": {"active": active_workers, "capacity": 2, "free": max(0, 2 - active_workers)},
             "tasks": {"queued": queued, "running": running},
             "reconciliation": {"ambiguous_intents": ambiguous, "pending_results": pending_results},
@@ -165,6 +168,26 @@ class RuntimeCommandService:
         unknown = set(payload) - allowed
         if unknown:
             raise StoreInvariantError("EVIDENCE_FILTER_UNKNOWN")
+        assignment_filter = str(payload.get("assignment_id") or "")
+        intent_filter = str(payload.get("intent_id") or "")
+        receipt_filter = str(payload.get("receipt_id") or "")
+        since = str(payload.get("since") or "")
+        until = str(payload.get("until") or "")
+
+        def matches(item: Mapping[str, Any], *, timestamp_key: str) -> bool:
+            timestamp = str(item.get(timestamp_key) or "")
+            if since and timestamp < since:
+                return False
+            if until and timestamp > until:
+                return False
+            if receipt_filter and str(item.get("receipt_id") or "") != receipt_filter:
+                return False
+            if intent_filter and str(item.get("intent_id") or "") != intent_filter:
+                return False
+            if assignment_filter and str(item.get("assignment_id") or "") != assignment_filter:
+                return False
+            return True
+
         items: list[dict[str, Any]] = []
         with self.store._connection() as conn:
             evidence = conn.execute(
@@ -175,7 +198,8 @@ class RuntimeCommandService:
                 item = dict(row)
                 item["kind"] = "evidence_receipt"
                 item["observed_state"] = json.loads(str(item.pop("observed_state_json")))
-                items.append(item)
+                if matches(item, timestamp_key="finished_at"):
+                    items.append(item)
             receipts = conn.execute(
                 "SELECT receipt_id,request_id,command,status,reason,created_at,response_json FROM runtime_command_receipts WHERE project_id=? ORDER BY created_at DESC LIMIT ?",
                 (project_id, limit),
@@ -184,6 +208,34 @@ class RuntimeCommandService:
                 item = dict(row)
                 item["kind"] = "runtime_command_receipt"
                 item["response"] = json.loads(str(item.pop("response_json")))
+                if matches(item, timestamp_key="created_at"):
+                    items.append(item)
+            intents = conn.execute(
+                "SELECT intent_id,action_kind,state,ambiguity_reason,created_at,updated_at,payload_json FROM action_intents WHERE project_id=? ORDER BY updated_at DESC LIMIT ?",
+                (project_id, limit),
+            ).fetchall()
+            for row in intents:
+                item = dict(row)
+                item["kind"] = "action_intent"
+                raw_payload = json.loads(str(item.pop("payload_json")))
+                item["payload"] = raw_payload
+                if not matches(item, timestamp_key="updated_at"):
+                    continue
+                if assignment_filter and str(raw_payload.get("assignment_id") or "") != assignment_filter:
+                    continue
+                if intent_filter and item["intent_id"] != intent_filter:
+                    continue
                 items.append(item)
+            results = conn.execute(
+                "SELECT result_id,assignment_id,master_epoch,verification_state,created_at,verified_at,payload_json FROM candidate_results WHERE project_id=? ORDER BY created_at DESC LIMIT ?",
+                (project_id, limit),
+            ).fetchall()
+            for row in results:
+                item = dict(row)
+                item["kind"] = "candidate_result"
+                item["payload"] = json.loads(str(item.pop("payload_json")))
+                if matches(item, timestamp_key="verified_at" if item.get("verified_at") else "created_at"):
+                    if not assignment_filter or str(item.get("assignment_id") or "") == assignment_filter:
+                        items.append(item)
         items.sort(key=lambda value: str(value.get("finished_at") or value.get("created_at") or ""), reverse=True)
         return {"project_id": project_id, "limit": limit, "items": items[:limit]}

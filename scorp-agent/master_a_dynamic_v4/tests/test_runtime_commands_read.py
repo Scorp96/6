@@ -61,6 +61,24 @@ class RuntimeReadCommandTests(unittest.TestCase):
         self.assertEqual("REJECTED", response["status"])
         self.assertEqual("EVIDENCE_LIMIT_INVALID", response["error"]["code"])
 
+    def test_evidence_query_applies_receipt_and_time_filters(self):
+        self.store.record_runtime_command_receipt(
+            request_id="evidence-r1", receipt_id="receipt-e1", project_id="p1",
+            command="project.pause", actor="operator", input_state_version=0,
+            output_state_version=1, daemon_epoch=1, master_epoch=0,
+            operator_generation=1, objective_generation=0, payload_sha256="a" * 64,
+            status="OK", reason="PAUSED", response={"status": "OK"},
+            created_at="2026-09-15T00:00:00Z",
+        )
+        selected = self.service.execute(
+            self.request("evidence.query", {
+                "receipt_id": "receipt-e1", "since": "2026-09-14T00:00:00Z",
+                "until": "2026-09-16T00:00:00Z", "limit": 10,
+            })
+        )
+        self.assertEqual("OK", selected["status"])
+        self.assertEqual(["receipt-e1"], [item["receipt_id"] for item in selected["result"]["items"]])
+
 
 if __name__ == "__main__":
     unittest.main()

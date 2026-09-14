@@ -16,6 +16,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 UTC = dt.timezone.utc
 SCHEMA_VERSION = 4
+_UNSET = object()
 
 
 class StoreInvariantError(RuntimeError):
@@ -238,7 +239,7 @@ class StateStore:
                         objective_sha256,updated_at
                     ) VALUES(?,?,?,?,?,?)
                     """,
-                    (project, "ACTIVE", 0, 0, root_hash, now),
+                    (project, "ACTIVE", 0, 0, str(root_value.get("objective_sha256") or root_hash), now),
                 )
                 conn.execute(
                     """
@@ -319,8 +320,8 @@ class StateStore:
         project_id: str,
         *,
         progress_state: str,
-        browser_semantic_state: str | None = None,
-        auth_host_blocker: str | None = None,
+        browser_semantic_state: str | None | object = _UNSET,
+        auth_host_blocker: str | None | object = _UNSET,
         observed_at: str | None = None,
         content_changed: bool = False,
         browser_succeeded: bool = False,
@@ -337,8 +338,8 @@ class StateStore:
             ).fetchone()
             if current is None:
                 raise StoreInvariantError("RUNTIME_OBSERVATION_NOT_FOUND")
-            semantic = browser_semantic_state if browser_semantic_state is not None else current["browser_semantic_state"]
-            blocker = auth_host_blocker if auth_host_blocker is not None else current["auth_host_blocker"]
+            semantic = current["browser_semantic_state"] if browser_semantic_state is _UNSET else browser_semantic_state
+            blocker = current["auth_host_blocker"] if auth_host_blocker is _UNSET else auth_host_blocker
             changed = (
                 str(current["progress_state"]) != str(progress_state)
                 or str(current["browser_semantic_state"]) != str(semantic)

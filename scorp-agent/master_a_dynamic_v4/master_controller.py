@@ -487,6 +487,9 @@ class MasterAController:
             raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_STATE_INVALID:{intent_state}")
         try:
             self.gateway.store.begin_possible_submit(intent_id)
+            assert_generation = getattr(self.gateway.store, "assert_intent_generation", None)
+            if callable(assert_generation):
+                assert_generation(intent_id)
             worktree_receipt = None
             if is_write:
                 worktree_receipt = self.git_worktree_manager.prepare(
@@ -496,6 +499,8 @@ class MasterAController:
                     base_commit=str(request["base_commit"]),
                     timeout_seconds=timeout_seconds,
                 )
+            if callable(assert_generation):
+                assert_generation(intent_id)
             receipt = self.execution_adapter.execute(
                 claim,
                 module=str(request.get("module") or ""),
