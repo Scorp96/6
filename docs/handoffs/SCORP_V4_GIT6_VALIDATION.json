@@ -122,7 +122,7 @@
     "The session lifecycle command now persists an atomic evidence JSON with artifact_sha256 for every listed or retired action when an evidence path is supplied.",
     "An isolated command smoke retired a named DIAGNOSTIC session without stopping Chrome and persisted C:\\\\ScorpAgent\\\\v4-lifecycle-demo\\\\retirement.json with artifact_sha256=88260899fa6510ec5df9b6c55cf0c61bafdedba2f3794afbce6c0803180fcadf.",
     "Chrome Use now exposes prepare_interactive() and the driver calls it before editor/send accessibility snapshots; this addresses background-tab visibility semantics offline and remains unverified in a fresh live send.",
-    "A fresh real-browser fill-only diagnostic on the current candidate found editor_ref=@e118 and send_ref=@e126 after visibility preparation, with click_performed=false and submit_actions=0; this is evidence for the composer/Send-control stage only, not a send or conversation promotion PASS.",
+    "A fresh real-browser fill-only diagnostic on the current candidate found editor_ref=@e119 and send_ref=@e121 after visibility preparation, with click_performed=false and submit_actions=0; this is evidence for the composer/Send-control stage only, not a send or conversation promotion PASS.",
     "The fill-only command now writes its own atomic self-hashing receipt; the current real-browser receipt has artifact_sha256=19e19bb52c3ee01967b42c3cbedb6f8ecb5da6794e737914c8bd7bbff6d650b3."
   ],
   "external_runtime_report": {
