@@ -17,7 +17,8 @@
       "owned fresh browser tabs and independent Worker reconciliation",
       "durable task context propagated into assignment recovery and Worker prompts",
       "CSV real-code workload with T1/T2 parallel and T3 dependency",
-      "bounded CSV CLI output for isolated worktree artifacts"
+      "bounded CSV CLI output for isolated worktree artifacts",
+      "真实入口认证门禁优先识别 ChatGPT rate-limit dialog，提交前阻塞"
     ],
     "MISSING": [
       "current-candidate live browser canary after external rate-limit clears",
@@ -25,7 +26,9 @@
       "production cutover authorization and scheduled-task registration",
       "long-duration unattended stability evidence"
     ],
-    "INCORRECT": [],
+    "INCORRECT": [
+      "旧认证探针在限流对话仍含 Plus 标记时可能误报 AUTHENTICATED，已由共享 BROWSER_RATE_LIMITED fail-closed 分类器修复"
+    ],
     "UNVERIFIED": [
       "live crash/restart recovery across every browser side-effect boundary",
       "ordinary web GPT direct local control without a local connector"
