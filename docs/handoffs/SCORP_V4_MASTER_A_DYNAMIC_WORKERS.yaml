@@ -107,7 +107,11 @@
     "result_authority": "CANDIDATE_ONLY"
   },
   "browser_adapter": {
-    "methods": ["submit_once", "reconcile", "rebind"],
+    "methods": [
+      "submit_once",
+      "reconcile",
+      "rebind"
+    ],
     "states": [
       "PREPARED",
       "MAY_HAVE_SUBMITTED",
@@ -171,20 +175,64 @@
     "fixed_success_strings_are_evidence": false
   },
   "acceptance": {
-    "AC01": {"title": "concurrent CAS", "status": "PASS", "evidence_scope": "UNIT_RACE_5_REPEATS"},
-    "AC02": {"title": "idempotency and fencing", "status": "PASS", "evidence_scope": "UNIT_AND_SQLITE"},
-    "AC03": {"title": "crash recovery", "status": "PASS", "evidence_scope": "REAL_STORE_FAKE_BROWSER"},
-    "AC04": {"title": "false completion rejection", "status": "PASS", "evidence_scope": "DETERMINISTIC_VALIDATOR"},
-    "AC05": {"title": "two-slot dynamic Workers and dependencies", "status": "PASS", "evidence_scope": "UNIT_AND_SHORT_SOAK"},
-    "AC06": {"title": "permission and path boundary", "status": "PASS", "evidence_scope": "UNIT_AND_PROTECTED_MANIFEST"},
-    "AC07": {"title": "browser rebind and no duplicate submit", "status": "PASS", "evidence_scope": "REAL_BROWSER_SINGLE_SUBMIT_PLUS_UNIT_RECOVERY"},
-    "AC08": {"title": "login and verification blocker", "status": "PASS", "evidence_scope": "REAL_CHATGPT_PLUS_LOGIN_GATE"},
-    "AC09": {"title": "review deadline and late counter-evidence", "status": "PASS", "evidence_scope": "UNIT_APPEND_ONLY_REVIEW"},
-    "AC10": {"title": "candidate and experimental install identity", "status": "PASS", "evidence_scope": "NAMED_LAB_INSTALL"},
-    "AC11": {"title": "full regression", "status": "PASS", "evidence_scope": "42_V4_PLUS_397_BRIDGE_PLUS_POWERSHELL"},
+    "AC01": {
+      "title": "concurrent CAS",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+    },
+    "AC02": {
+      "title": "idempotency and fencing",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+    },
+    "AC03": {
+      "title": "crash recovery",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+    },
+    "AC04": {
+      "title": "false completion rejection",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+    },
+    "AC05": {
+      "title": "two-slot dynamic Workers and dependencies",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78_AND_BRIDGE_419"
+    },
+    "AC06": {
+      "title": "permission and path boundary",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+    },
+    "AC07": {
+      "title": "browser rebind and no duplicate submit",
+      "status": "NOT_RUN",
+      "evidence_scope": "CURRENT_GIT6_REAL_BROWSER_NOT_REEXECUTED"
+    },
+    "AC08": {
+      "title": "login and verification blocker",
+      "status": "NOT_RUN",
+      "evidence_scope": "CURRENT_GIT6_REAL_BROWSER_NOT_REEXECUTED"
+    },
+    "AC09": {
+      "title": "review deadline and late counter-evidence",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+    },
+    "AC10": {
+      "title": "candidate and experimental install identity",
+      "status": "NOT_RUN",
+      "evidence_scope": "CURRENT_GIT6_LAB_INSTALL_NOT_RUN"
+    },
+    "AC11": {
+      "title": "full regression",
+      "status": "PASS",
+      "evidence_scope": "CURRENT_GIT6_78_V4_PLUS_419_BRIDGE_PLUS_29_BROKER_PLUS_COMPILE"
+    },
     "AC12": {
       "title": "short performance and recovery soak",
-      "status": "PASS",
+      "status": "NOT_RUN",
       "mode": "SHORT_SOAK_PERFORMANCE",
       "requested_duration_seconds": 10,
       "requires": [
@@ -196,7 +244,8 @@
         "ZERO_ERRORS",
         "MEASURED_THROUGHPUT_AND_ENVIRONMENT"
       ],
-      "long_duration_stability_proven": false
+      "long_duration_stability_proven": false,
+      "evidence_scope": "CURRENT_GIT6_SHORT_SOAK_NOT_RUN"
     }
   },
   "deprecation": {

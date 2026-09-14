@@ -49,7 +49,7 @@
       "observed": "T1/T2 parallel, T3 dependency continuation, independent acceptance PASS"
     }
   ],
-  "real_browser_canary": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION; see docs/handoffs/SCORP_V4_GIT6_TWO_WORKER_LIVE_CANARY.json",
+  "real_browser_canary": "HISTORICAL_PASS_NOT_BOUND_TO_VALIDATED_COMMIT; see docs/handoffs/SCORP_V4_GIT6_TWO_WORKER_LIVE_CANARY.json",
   "github_write_test": "NOT_RUN",
   "production_cutover": "NOT_AUTHORIZED_NOT_ATTEMPTED",
   "long_duration_stability_proven": false,
@@ -68,6 +68,7 @@
     "The built-in response decoder rejects prose and accepts only standalone or fenced JSON WORK_RESULT/1; run_cycles is capped and stops on BLOCKED, TERMINAL, or IDLE.",
     "MasterAController now routes an optional execution_request through a durable LOCAL_EXECUTION action_intent/outbox lifecycle; MAY_HAVE_SUBMITTED is committed before subprocess execution, receipts are captured and finalized, and unresolved local intents are never replayed automatically.",
     "The real V4 gateway integration now exercises a write-scoped Worker request: GitWorktreeManager verifies a clean temporary repository and detached base before LocalExecutionAdapter runs, and the resulting receipt is stored with the candidate result.",
-    "The operator-gated v4_master_controller_runtime.py is now the handoff entry point: without --send it performs no browser or SQLite action; with the gate it loads one plan, runs a bounded MasterAController loop, and stops on explicit blockers or the cycle cap."
+    "The operator-gated v4_master_controller_runtime.py is now the handoff entry point: without --send it performs no browser or SQLite action; with the gate it loads one plan, runs a bounded MasterAController loop, and stops on explicit blockers or the cycle cap.",
+    "The stored two-Worker browser record is historical evidence only: its side effects predate the current validated commit, so it is not counted as current-candidate AC07/AC08 PASS."
   ]
 }
