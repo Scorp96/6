@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "49b0647b0bce3d721f8245c9b9d1160ddad245f6",
+  "validated_commit": "75aa02fc3359c5c614b2a83a85cae4ac146ac971",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,8 +12,8 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 78,
-      "observed": "78 tests passed, including durable local execution recovery, assignment-scoped path checks, and verified Git worktree isolation for write assignments"
+      "tests_run": 82,
+      "observed": "82 tests passed, including durable local execution recovery, assignment-scoped path checks, verified Git worktree isolation for write assignments, and the explicit MasterSupervisor lease/rebind seam"
     },
     {
       "id": "bridge_full_regression",
@@ -69,6 +69,7 @@
     "MasterAController now routes an optional execution_request through a durable LOCAL_EXECUTION action_intent/outbox lifecycle; MAY_HAVE_SUBMITTED is committed before subprocess execution, receipts are captured and finalized, and unresolved local intents are never replayed automatically.",
     "The real V4 gateway integration now exercises a write-scoped Worker request: GitWorktreeManager verifies a clean temporary repository and detached base before LocalExecutionAdapter runs, and the resulting receipt is stored with the candidate result.",
     "The operator-gated v4_master_controller_runtime.py is now the handoff entry point: without --send it performs no browser or SQLite action; with the gate it loads one plan, runs a bounded MasterAController loop, and stops on explicit blockers or the cycle cap.",
-    "The stored two-Worker browser record is historical evidence only: its side effects predate the current validated commit, so it is not counted as current-candidate AC07/AC08 PASS."
+    "The stored two-Worker browser record is historical evidence only: its side effects predate the current validated commit, so it is not counted as current-candidate AC07/AC08 PASS.",
+    "MasterSupervisor is an explicit local monitor seam: it renews the durable lease, acquires a new epoch after expiry, and requires an injected physical browser rebind callback; it does not open Chrome or claim authentication recovery."
   ]
 }

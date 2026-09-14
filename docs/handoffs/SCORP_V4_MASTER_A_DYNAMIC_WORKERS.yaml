@@ -178,32 +178,32 @@
     "AC01": {
       "title": "concurrent CAS",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_82"
     },
     "AC02": {
       "title": "idempotency and fencing",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_82"
     },
     "AC03": {
       "title": "crash recovery",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_82"
     },
     "AC04": {
       "title": "false completion rejection",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_82"
     },
     "AC05": {
       "title": "two-slot dynamic Workers and dependencies",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78_AND_BRIDGE_419"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_82_AND_BRIDGE_419"
     },
     "AC06": {
       "title": "permission and path boundary",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_82"
     },
     "AC07": {
       "title": "browser rebind and no duplicate submit",
@@ -218,7 +218,7 @@
     "AC09": {
       "title": "review deadline and late counter-evidence",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_78"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_82"
     },
     "AC10": {
       "title": "candidate and experimental install identity",
@@ -228,7 +228,7 @@
     "AC11": {
       "title": "full regression",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_78_V4_PLUS_419_BRIDGE_PLUS_29_BROKER_PLUS_COMPILE"
+      "evidence_scope": "CURRENT_GIT6_82_V4_PLUS_419_BRIDGE_PLUS_29_BROKER_PLUS_COMPILE"
     },
     "AC12": {
       "title": "short performance and recovery soak",
@@ -290,6 +290,6 @@
     "UNEXPECTED_PRODUCTION_MUTATION",
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
-  "candidate_commit": "49b0647b0bce3d721f8245c9b9d1160ddad245f6",
+  "candidate_commit": "75aa02fc3359c5c614b2a83a85cae4ac146ac971",
   "evidence_commit": "RECORDED_EXTERNALLY_AFTER_EVIDENCE_COMMIT"
 }

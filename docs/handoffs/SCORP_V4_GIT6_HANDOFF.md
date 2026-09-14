@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `49b0647b0bce3d721f8245c9b9d1160ddad245f6`
+- Current candidate: `75aa02fc3359c5c614b2a83a85cae4ac146ac971`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is
@@ -38,6 +38,12 @@ The bridge facade exposes this lifecycle through `start_master_session()`,
 `end_master_session()`. `describe()` remains read-only; a monitor must call
 `watchdog_once()` explicitly when it wants to advance an expired lease to a
 resume decision.
+
+`master_a_dynamic_v4.MasterSupervisor` is the local monitor seam for this
+handoff. It renews a live lease, acquires a fresh epoch after expiry, and calls
+an injected physical-session rebind callback. It does not open Chrome or infer
+that ChatGPT authentication succeeded; missing or failed rebind remains
+`RESUME_REQUIRED` or `BLOCKED`.
 
 For dynamic browser work, the facade also exposes `prepare_worker_intent()` and
 `submit_worker_intent()`. Each live claim gets a deterministic intent and a
