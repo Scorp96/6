@@ -57,6 +57,22 @@ Pop-Location
 python -B -m compileall -q scorp-agent/master_a_dynamic_v4 scorp-agent/chatgpt-gui-bridge
 ```
 
+## First runtime probe (still browser-free)
+
+After offline validation, use the repository-relative V4 probe before wiring a
+real browser engine:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scorp-agent\chatgpt-gui-bridge\run-v4-candidate.ps1
+```
+
+The probe opens the local SQLite candidate and prints a JSON status record. It
+reports `browser_io: NOT_ATTEMPTED`, uses a fixed first-release capacity of two
+Workers, and never imports or starts the legacy JSON relay. It is a readiness
+check, not a browser canary and not a production daemon. Set `SCORP_PYTHON` to
+an existing Python executable when the `python` command is not on PATH.
+
 ## Candidate V4 sequence
 
 Use `scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py` as the explicit
@@ -95,6 +111,11 @@ That runtime path is machine-local and is deliberately not stored in this
 repository. The bridge may use either the existing Windows MCP transport or
 Chrome Use according to its explicit configuration. The repository source does
 not grant login, CAPTCHA, or arbitrary computer permissions.
+
+`scorp-agent/chatgpt-gui-bridge/run-bridge.ps1` is a legacy V3 compatibility
+launcher. It still points at the old JSON relay and `Scorp96/scorp-control-plane`;
+do not use it as proof that the V4 SQLite authority is running. A separate
+migration is required before that launcher can be replaced.
 
 ## Browser canary procedure
 
