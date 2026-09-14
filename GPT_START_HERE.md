@@ -4,6 +4,11 @@ This is the first file an ordinary GPT should read when opening repository
 `Scorp96/6`. It explains the complete action sequence and the boundary between
 offline code validation, a real browser canary, and production operation.
 
+**Model identity:** use GPT-5.6 Sol as the reasoning controller for Master A and
+for any dynamically assigned Worker conversation. The repository name `6` does
+not mean GPT-6. If the active host cannot verify GPT-5.6 Sol, record
+`BLOCKED`/`NOT_RUN` rather than silently substituting another model.
+
 ## What the system does
 
 The intended flow is:

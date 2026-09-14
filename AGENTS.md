@@ -2,6 +2,9 @@
 
 Read `GPT_START_HERE.md` first.
 
+- Reasoning model identity is GPT-5.6 Sol. The repository name `Scorp96/6` is
+  not a model selection and must never be interpreted as GPT-6.
+
 - Treat SQLite V4 state and the root contract as authoritative in candidate
   mode. Legacy JSON is import/read-only compatibility input.
 - Default queue: `Scorp96/666`. The historical

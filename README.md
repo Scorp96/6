@@ -4,6 +4,11 @@ This repository contains the source and operating instructions for the SCORP
 Master A + dynamic Worker system. Start with [GPT_START_HERE.md](GPT_START_HERE.md)
 before running anything.
 
+The reasoning controller for this design is **GPT-5.6 Sol**. `Scorp96/6` is the
+Git repository name; it is not a model identifier, and no GPT-6 runtime is
+required or implied. The local components are deterministic state, scheduling,
+execution, and evidence layers. They do not silently substitute another model.
+
 The repository includes two generations of the system:
 
 - `scorp-agent/chatgpt-gui-bridge/` is the existing ChatGPT browser bridge. It

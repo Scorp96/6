@@ -36,6 +36,7 @@ class V4RuntimeEntrypointTests(unittest.TestCase):
             self.assertEqual(0, completed.returncode, completed.stderr)
             payload = json.loads(completed.stdout)
             self.assertEqual("sqlite", payload["queue_authority"])
+            self.assertEqual("GPT-5.6 Sol", payload["reasoning_model"])
             self.assertEqual(2, payload["worker_capacity"])
             self.assertEqual("NOT_ATTEMPTED", payload["browser_io"])
             self.assertTrue(database.exists())
