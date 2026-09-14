@@ -92,16 +92,19 @@ class V4GatewayTests(unittest.TestCase):
                     'tasks': [
                         {'task_id': 'T1', 'objective_sha256': '1' * 64, 'resource_scope': [worktree / 'a.txt'], 'dependencies': [], 'acceptance_criteria_ids': ['AC-CONTROLLER']},
                         {'task_id': 'T2', 'objective_sha256': '2' * 64, 'resource_scope': [worktree / 'b.txt'], 'dependencies': [], 'acceptance_criteria_ids': ['AC-CONTROLLER']},
+                        {'task_id': 'T3', 'objective_sha256': '3' * 64, 'resource_scope': [worktree / 'report.json'], 'dependencies': ['T1', 'T2'], 'acceptance_criteria_ids': ['AC-CONTROLLER']},
                     ],
                 })
-                step = controller.step(
+                history = controller.run_cycles(
                     lambda claim: 'return WORK_RESULT/1 for ' + claim.task_id,
                     lambda row: json.loads(row['response_json']),
+                    max_cycles=4,
                 )
-                self.assertEqual('DISPATCHED', step.status)
-                self.assertEqual(2, len(step.outcomes))
-                self.assertEqual({'T1', 'T2'}, {item['task_id'] for item in step.outcomes})
-                self.assertEqual({'ACCEPTED'}, {gateway.scheduler.get_task(task)['state'] for task in ('T1', 'T2')})
+                self.assertEqual(['DISPATCHED', 'DISPATCHED', 'IDLE'], [item.status for item in history])
+                self.assertEqual(2, len(history[0].outcomes))
+                self.assertEqual({'T1', 'T2'}, {item['task_id'] for item in history[0].outcomes})
+                self.assertEqual(['T3'], [item['task_id'] for item in history[1].outcomes])
+                self.assertEqual({'ACCEPTED'}, {gateway.scheduler.get_task(task)['state'] for task in ('T1', 'T2', 'T3')})
             finally:
                 gateway.close()
 
