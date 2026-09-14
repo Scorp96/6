@@ -91,9 +91,14 @@ The machine sequence is:
 2. Add a dependency graph with `enqueue_graph()`.
 3. Call `claim_workers()`; it returns at most two fenced assignments.
 4. Execute only the paths and actions in each assignment.
-5. Submit a `HANDOFF` or `BLOCKER` with `record_worker_result()`.
+5. For the V4 path, return a version-bound structured `WORK_RESULT` through
+   `record_structured_worker_result()` (the payload must carry project/task/
+   assignment identity, objective hash, base state version, candidate commit,
+   evidence and acceptance coverage). `record_worker_result()` remains a
+   legacy compatibility seam for imported V3 results.
 6. Independently call `verify_worker_result()` before treating the task as
-   complete.
+   accepted. A structured result moves the task to `ACCEPTED`; a legacy result
+   may be retained for migration but cannot satisfy the new completion gate.
 7. Call `prepare_browser_intent()` so the prompt intent is durable.
 8. Call `submit_intent()`; a complete response is captured in SQLite, while an
    uncertain browser result remains recoverable and cannot be blindly retried.
@@ -101,6 +106,30 @@ The machine sequence is:
 
 The V4 package does not allow a Worker to rewrite the root contract, increase
 capacity, bypass a lease, or declare final completion.
+
+### Monitor and privileged recovery boundaries
+
+The bridge watchdog checks both the scheduler-owned process tree and the
+bridge's functional `health.json` heartbeat. A stale, missing, malformed, or
+`ERROR` heartbeat is reported as `WATCHDOG_STALE_HEALTH` and the scheduled task
+is restarted; an orphaned process tree remains `WATCHDOG_ORPHAN_BLOCKED`.
+
+The privileged broker keeps a durable request ledger. If it dies after marking
+an operation `INFLIGHT`, recovery must call `RequestLedger.reconcile_inflight()`
+with an external evidence reference and either `DONE_CONFIRMED` plus the
+verified result or `BLOCKED_AMBIGUOUS`. There is no automatic retry of an
+uncertain privileged side effect. `BLOCKED_AMBIGUOUS` is an auditable stop
+state, not a successful operation.
+
+### Structured Worker result contract
+
+The machine result validator is in
+`scorp-agent/master_a_dynamic_v4/work_result.py`. It rejects results whose
+`project_id`, `assignment_id`, `task_id`, `objective_sha256`, or
+`base_state_version` does not match the live assignment. `COMPLETE` also
+requires non-empty evidence and acceptance coverage. If Master A advances the
+project state after a Worker is assigned, the old result is fenced rather than
+merged into the newer task graph.
 
 ## Master A control surface
 

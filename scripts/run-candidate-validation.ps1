@@ -17,8 +17,19 @@ try {
     }
     finally { Pop-Location }
 
+    Write-Host '== Privileged broker pure-Python tests =='
+    $brokerRoot = Join-Path $agentRoot 'privileged-broker'
+    Push-Location $brokerRoot
+    try {
+        foreach ($pattern in @('test_broker_core.py', 'test_broker_client.py', 'test_broker_ops.py', 'test_install_contract.py')) {
+            & python -B -m unittest discover -s tests -p $pattern
+            if ($LASTEXITCODE -ne 0) { throw "BROKER_TESTS_FAILED:${pattern}:$LASTEXITCODE" }
+        }
+    }
+    finally { Pop-Location }
+
     Write-Host '== Python compilation =='
-    & python -B -m compileall -q (Join-Path $agentRoot 'master_a_dynamic_v4') $bridgeRoot
+    & python -B -m compileall -q (Join-Path $agentRoot 'master_a_dynamic_v4') $bridgeRoot (Join-Path $agentRoot 'privileged-broker')
     if ($LASTEXITCODE -ne 0) { throw "COMPILE_FAILED:$LASTEXITCODE" }
     Write-Host 'CANDIDATE_VALIDATION=PASS'
 }

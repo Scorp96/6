@@ -110,9 +110,54 @@ class RequestLedger:
             raise ValueError('REQUEST_ID_CONFLICT')
         if entry.get('state') == 'INFLIGHT':
             raise ValueError('REQUEST_INFLIGHT')
+        if entry.get('state') == 'BLOCKED_AMBIGUOUS':
+            raise ValueError('REQUEST_AMBIGUOUS')
         if entry.get('state') != 'DONE' or 'result' not in entry:
             raise ValueError('LEDGER_ENTRY_INVALID')
         return copy.deepcopy(entry['result'])
+
+    def reconcile_inflight(
+        self,
+        request: dict,
+        *,
+        disposition: str,
+        result: dict | None = None,
+        evidence_ref: str | None = None,
+    ):
+        """Record an explicit post-crash disposition for an INFLIGHT request.
+
+        The broker cannot infer whether a privileged side effect happened when
+        the process died between dispatch and ledger completion.  Recovery must
+        therefore be driven by an external receipt or an explicit ambiguity
+        record; this method never turns an uncertain request into a retry.
+        """
+        if disposition not in {'DONE_CONFIRMED', 'BLOCKED_AMBIGUOUS'}:
+            raise ValueError('RECONCILIATION_DISPOSITION_INVALID')
+        if not isinstance(evidence_ref, str) or not evidence_ref.strip():
+            raise ValueError('RECONCILIATION_EVIDENCE_REQUIRED')
+        value = self._load()
+        rid = request.get('request_id')
+        entry = value.get(rid)
+        if not entry or entry.get('request_sha256') != request_hash(request):
+            raise ValueError('REQUEST_LEDGER_MISMATCH')
+        if entry.get('state') != 'INFLIGHT':
+            raise ValueError('REQUEST_NOT_INFLIGHT')
+        if disposition == 'DONE_CONFIRMED':
+            if not isinstance(result, dict):
+                raise ValueError('RECONCILIATION_RESULT_REQUIRED')
+            stored = copy.deepcopy(result)
+            entry['state'] = 'DONE'
+            entry['result'] = stored
+            entry['result_sha256'] = hashlib.sha256(
+                json.dumps(stored, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+            ).hexdigest()
+            entry['reconciliation_evidence_ref'] = evidence_ref.strip()
+        else:
+            entry['state'] = 'BLOCKED_AMBIGUOUS'
+            entry['evidence_ref'] = evidence_ref.strip()
+        entry['reconciled_at'] = dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z')
+        _atomic_write_json(self.path, value)
+        return copy.deepcopy(entry)
 
     def mark_inflight(self, request: dict):
         value = self._load()

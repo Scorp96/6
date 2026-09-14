@@ -74,6 +74,45 @@ class BrokerCoreTests(unittest.TestCase):
             self.assertEqual(data['req-live']['state'], 'INFLIGHT')
             self.assertEqual(data['req-live']['request_sha256'], request_hash(req))
 
+    def test_inflight_reconciliation_requires_explicit_disposition_and_preserves_evidence(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'ledger.json'
+            req = sign_request(base_request('req-reconcile'), SECRET)
+            ledger = RequestLedger(path)
+            ledger.mark_inflight(req)
+            with self.assertRaisesRegex(ValueError, 'RECONCILIATION_DISPOSITION_INVALID'):
+                ledger.reconcile_inflight(req, disposition='RETRY')
+            with self.assertRaisesRegex(ValueError, 'RECONCILIATION_EVIDENCE_REQUIRED'):
+                ledger.reconcile_inflight(req, disposition='BLOCKED_AMBIGUOUS')
+            ledger.reconcile_inflight(
+                req,
+                disposition='BLOCKED_AMBIGUOUS',
+                evidence_ref='crash-window-001',
+            )
+            with self.assertRaisesRegex(ValueError, 'REQUEST_AMBIGUOUS'):
+                ledger.lookup(req)
+            entry = json.loads(path.read_text(encoding='utf-8'))['req-reconcile']
+            self.assertEqual(entry['state'], 'BLOCKED_AMBIGUOUS')
+            self.assertEqual(entry['evidence_ref'], 'crash-window-001')
+
+    def test_inflight_reconciliation_done_allows_verified_replay_without_execution(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'ledger.json'
+            req = sign_request(base_request('req-reconcile-done'), SECRET)
+            ledger = RequestLedger(path)
+            ledger.mark_inflight(req)
+            result = {'ok': True, 'value': 9}
+            ledger.reconcile_inflight(
+                req,
+                disposition='DONE_CONFIRMED',
+                result=result,
+                evidence_ref='external-receipt-9',
+            )
+            self.assertEqual(ledger.lookup(req), result)
+            entry = json.loads(path.read_text(encoding='utf-8'))['req-reconcile-done']
+            self.assertEqual(entry['state'], 'DONE')
+            self.assertEqual(entry['reconciliation_evidence_ref'], 'external-receipt-9')
+
     def test_mark_inflight_survives_brief_windows_destination_share_conflict(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / 'ledger.json'

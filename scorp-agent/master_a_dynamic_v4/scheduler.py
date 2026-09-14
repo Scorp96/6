@@ -11,6 +11,7 @@ from typing import Any
 from .models import canonical_json, sha256_json
 from .path_policy import PathPolicy
 from .state_store import StateStore, StoreInvariantError, UTC, utc_now
+from .work_result import WorkResultRejected, validate_work_result
 
 
 class SchedulerError(RuntimeError):
@@ -30,6 +31,7 @@ class AssignmentClaim:
     slot_id: str
     lease_token: str
     master_epoch: int
+    base_state_version: int
     objective_sha256: str
     resource_scope: tuple[str, ...]
     access_mode: str
@@ -220,7 +222,7 @@ class Scheduler:
         claims: list[AssignmentClaim] = []
         with self.store._transaction() as conn:
             state = conn.execute(
-                "SELECT master_epoch,status FROM project_state WHERE project_id=?",
+                "SELECT master_epoch,state_version,status FROM project_state WHERE project_id=?",
                 (self.project_id,),
             ).fetchone()
             if state is None:
@@ -264,7 +266,7 @@ class Scheduler:
                       ON dependency.project_id=d.project_id
                      AND dependency.task_id=d.depends_on_task_id
                     WHERE d.project_id=? AND d.task_id=?
-                      AND (dependency.state IS NULL OR dependency.state <> 'VERIFIED')
+                      AND (dependency.state IS NULL OR dependency.state NOT IN ('VERIFIED','ACCEPTED'))
                     LIMIT 1
                     """,
                     (self.project_id, task["task_id"]),
@@ -327,6 +329,7 @@ class Scheduler:
                         slot_id=slot_id,
                         lease_token=lease_token,
                         master_epoch=int(master_epoch),
+                        base_state_version=int(state["state_version"]),
                         objective_sha256=str(task["objective_sha256"]),
                         resource_scope=tuple(sorted(scope)),
                         access_mode=mode,
@@ -337,6 +340,47 @@ class Scheduler:
                 if len(claims) >= capacity:
                     break
         return claims
+
+    def record_work_result(
+        self,
+        claim: AssignmentClaim,
+        *,
+        payload: Mapping[str, Any],
+        now: dt.datetime | None = None,
+    ) -> str:
+        """Admit one version-bound structured Worker result.
+
+        The project state version is checked before the result enters the
+        candidate ledger.  A Master transition after assignment creation makes
+        the result stale instead of allowing it to update the task silently.
+        """
+
+        if not isinstance(claim, AssignmentClaim):
+            raise WorkerFenceError("ASSIGNMENT_CLAIM_INVALID")
+        state = self.store.get_project_state(self.project_id)
+        if int(state["state_version"]) != int(claim.base_state_version):
+            raise WorkerFenceError("TASK_GRAPH_VERSION_FENCED")
+        try:
+            normalized = validate_work_result(
+                payload,
+                project_id=self.project_id,
+                assignment_id=claim.assignment_id,
+                task_id=claim.task_id,
+                objective_sha256=claim.objective_sha256,
+                base_state_version=claim.base_state_version,
+            )
+        except WorkResultRejected as exc:
+            raise SchedulerError(str(exc)) from exc
+        if normalized["worker_id"] != claim.worker_id:
+            raise WorkerFenceError("WORKER_ID_MISMATCH")
+        return self.record_candidate(
+            claim.assignment_id,
+            lease_token=claim.lease_token,
+            master_epoch=claim.master_epoch,
+            kind="WORK_RESULT",
+            payload=normalized,
+            now=now,
+        )
 
     def record_candidate(
         self,
@@ -349,7 +393,7 @@ class Scheduler:
         now: dt.datetime | None = None,
     ) -> str:
         result_kind = str(kind or "").upper()
-        if result_kind not in {"HANDOFF", "BLOCKER"} or not isinstance(payload, Mapping):
+        if result_kind not in {"HANDOFF", "BLOCKER", "WORK_RESULT"} or not isinstance(payload, Mapping):
             raise SchedulerError("WORKER_RESULT_INVALID")
         stamp = _timestamp(now)
         with self.store._transaction() as conn:
@@ -440,13 +484,37 @@ class Scheduler:
                 raise SchedulerError("RESULT_SHA256_INVALID")
             if digest != declared:
                 raise SchedulerError("RESULT_SHA256_MISMATCH")
+            result_kind = str(row["result_kind"])
+            verification_state = "VERIFIED" if result_kind == "WORK_RESULT" else "VERIFIED_LEGACY"
+            if result_kind == "WORK_RESULT":
+                state = conn.execute(
+                    "SELECT state_version FROM project_state WHERE project_id=?",
+                    (self.project_id,),
+                ).fetchone()
+                try:
+                    validate_work_result(
+                        payload,
+                        project_id=self.project_id,
+                        assignment_id=str(row["assignment_id"]),
+                        task_id=str(row["task_id"]),
+                        objective_sha256=str(
+                            conn.execute(
+                                "SELECT objective_sha256 FROM assignments WHERE assignment_id=?",
+                                (row["assignment_id"],),
+                            ).fetchone()[0]
+                        ),
+                        base_state_version=int(state["state_version"]),
+                    )
+                except (WorkResultRejected, TypeError, ValueError) as exc:
+                    raise SchedulerError(str(exc)) from exc
             conn.execute(
-                "UPDATE candidate_results SET verification_state='VERIFIED',verified_result_sha256=?,verified_at=? WHERE result_id=?",
-                (digest, stamp, result_id),
+                "UPDATE candidate_results SET verification_state=?,verified_result_sha256=?,verified_at=? WHERE result_id=?",
+                (verification_state, digest, stamp, result_id),
             )
+            task_state = "ACCEPTED" if result_kind == "WORK_RESULT" else "VERIFIED"
             conn.execute(
-                "UPDATE task_nodes SET state='VERIFIED',result_sha256=?,updated_at=? WHERE project_id=? AND task_id=?",
-                (digest, stamp, self.project_id, row["task_id"]),
+                "UPDATE task_nodes SET state=?,result_sha256=?,updated_at=? WHERE project_id=? AND task_id=?",
+                (task_state, digest, stamp, self.project_id, row["task_id"]),
             )
             conn.execute(
                 "UPDATE assignments SET state='RETIRED',updated_at=? WHERE assignment_id=?",

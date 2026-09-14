@@ -118,8 +118,27 @@ class AcceptanceValidator:
                 (project_id,),
             ).fetchall()
             for task in required_tasks:
-                if str(task["state"]) != "VERIFIED":
+                if str(task["state"]) not in {"VERIFIED", "ACCEPTED"}:
                     blockers.add(f"REQUIRED_TASK_NOT_VERIFIED:{task['task_id']}")
+            legacy_or_unstructured = conn.execute(
+                """
+                SELECT t.task_id
+                FROM task_nodes t
+                WHERE t.project_id=? AND t.required=1
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM candidate_results r
+                    JOIN assignments a ON a.assignment_id=r.assignment_id
+                    WHERE r.project_id=? AND a.task_id=t.task_id
+                      AND r.result_kind='WORK_RESULT'
+                      AND r.verification_state='VERIFIED'
+                  )
+                ORDER BY t.task_id
+                """,
+                (project_id, project_id),
+            ).fetchall()
+            for task in legacy_or_unstructured:
+                blockers.add(f"REQUIRED_TASK_STRUCTURED_RESULT_MISSING:{task['task_id']}")
             if conn.execute(
                 "SELECT 1 FROM assignments WHERE project_id=? AND state IN ('ACTIVE','RESULT_RECEIVED') LIMIT 1",
                 (project_id,),

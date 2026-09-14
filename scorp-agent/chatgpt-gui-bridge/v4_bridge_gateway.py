@@ -148,6 +148,10 @@ class V4BridgeGateway:
             now=now,
         )
 
+    def record_structured_worker_result(self, claim, *, payload: Mapping[str, Any], now=None) -> str:
+        """Admit a version-bound WorkResult through the V4 scheduler."""
+        return self.scheduler.record_work_result(claim, payload=payload, now=now)
+
     def verify_worker_result(self, result_id: str, *, result_sha256: str, now=None) -> None:
         self.scheduler.verify_candidate(result_id, result_sha256=result_sha256, now=now)
 

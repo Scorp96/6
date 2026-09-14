@@ -131,6 +131,35 @@ class FalseCompletionTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_legacy_worker_result_cannot_satisfy_new_completion_gate(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, contract = self.make_store(root)
+            try:
+                self.record_valid_evidence(store, contract)
+                scheduler = Scheduler(store, "project-ac04", PathPolicy([root]), max_workers=2)
+                scheduler.enqueue_graph(
+                    [{"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [root / "result.txt"]}]
+                )
+                claim = scheduler.claim_runnable(master_epoch=0)[0]
+                result_id = scheduler.record_candidate(
+                    claim.assignment_id,
+                    lease_token=claim.lease_token,
+                    master_epoch=claim.master_epoch,
+                    kind="HANDOFF",
+                    payload={"result_sha256": "a" * 64, "artifact_sha256": "a" * 64},
+                )
+                scheduler.verify_candidate(result_id, result_sha256="a" * 64)
+                decision = self.evaluate(store)
+                joined = "|".join(decision.blockers)
+                self.assertIn("REQUIRED_TASK_STRUCTURED_RESULT_MISSING:T1", joined)
+                self.assertIn("UNVERIFIED_CANDIDATE_RESULTS", joined)
+            finally:
+                store.close()
+
 
     def test_release_manifest_hash_mismatch_blocks_even_when_caller_and_evidence_match(self):
         from master_a_dynamic_v4.acceptance import AcceptanceValidator
