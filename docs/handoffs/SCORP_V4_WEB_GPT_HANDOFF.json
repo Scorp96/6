@@ -1,0 +1,86 @@
+{
+  "format": "scorp-v4-web-gpt-handoff/1",
+  "candidate_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
+  "target_repository": "Scorp96/6",
+  "reasoning_model": "GPT-5.6 Sol",
+  "purpose": "Tell an ordinary web GPT and a Windows operator exactly where the local-control boundary is.",
+  "authority": {
+    "web_gpt": "plan_review_and_interpret_evidence_only",
+    "sqlite_control_plane": "local_authority_for_contracts_tasks_leases_and_completion",
+    "windows_host": "executes_only_after_local_adapter_and_scope_checks",
+    "browser_driver": "performs_explicitly_gated_UI_side_effects_and_read_only_reconciliation",
+    "git": "request_and_evidence_transport_only; never direct authority"
+  },
+  "capability_modes": {
+    "web_only": {
+      "can": ["read_repository", "produce_structured_plan", "review_evidence"],
+      "cannot": ["read_local_SQLite", "run_Windows_commands", "open_Chrome", "create_GPT_chats", "declare_completion"]
+    },
+    "operator_handoff": {
+      "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py",
+      "transport": "Git files or a user-provided handoff message",
+      "authority": "local SQLite after the operator starts the candidate runtime"
+    },
+    "sqlite_monitor": {
+      "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
+      "requires": ["existing SQLite database", "allowed root", "existing Master lease"],
+      "browser_send": "FORBIDDEN_BY_THIS_ENTRYPOINT"
+    },
+    "browser_connected": {
+      "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py",
+      "requires": ["existing authenticated Windows interactive session", "Chrome Use or Windows MCP driver", "explicit --send gate"],
+      "current_candidate_evidence": "offline_and_injected_only; fresh current browser AC07/AC08 remain NOT_RUN"
+    }
+  },
+  "handoff_sequence": [
+    {
+      "step": 1,
+      "actor": "web_gpt",
+      "action": "Read GPT_START_HERE.md and this handoff; state web_only until a preflight report is supplied."
+    },
+    {
+      "step": 2,
+      "actor": "windows_operator",
+      "action": "Run the read-only preflight and attach its JSON output without credentials or cookies."
+    },
+    {
+      "step": 3,
+      "actor": "web_gpt",
+      "action": "Produce one structured root contract and plan JSON; never claim that the plan was executed."
+    },
+    {
+      "step": 4,
+      "actor": "windows_operator",
+      "action": "Run offline validation, then use the explicit V4 runtime only after reviewing paths and the send gate."
+    },
+    {
+      "step": 5,
+      "actor": "local_runtime",
+      "action": "Persist state and evidence in SQLite, run bounded Worker assignments, and emit JSON evidence."
+    },
+    {
+      "step": 6,
+      "actor": "web_gpt",
+      "action": "Read the evidence, distinguish PASS/FAIL/BLOCKED/NOT_RUN, and request the next safe action."
+    }
+  ],
+  "preflight_command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-runtime\\state.sqlite3 --allowed-root C:\\ScorpAgent\\workspaces\\project",
+  "monitor_command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-runtime\\state.sqlite3 --allowed-root C:\\ScorpAgent\\workspaces\\project --max-iterations 1",
+  "required_blockers": [
+    "WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE",
+    "WINDOWS_INTERACTIVE_SESSION_UNAVAILABLE",
+    "CHATGPT_LOGIN_OR_CAPTCHA_REQUIRED",
+    "CHROME_USE_OR_WINDOWS_MCP_DRIVER_MISSING",
+    "AMBIGUOUS_BROWSER_SUBMISSION",
+    "MISSING_ROOT_CONTRACT",
+    "CANDIDATE_VERSION_MISMATCH"
+  ],
+  "forbidden_claims": [
+    "A GitHub repository alone grants the web GPT local computer access",
+    "A simulated or injected browser run proves a live ChatGPT run",
+    "A historical canary proves the current candidate",
+    "BLOCKED or NOT_RUN is completion",
+    "The web GPT may request or store API keys, cookies, or login data in the repository"
+  ],
+  "evidence_rule": "Every execution claim must name candidate_commit, command_or_action, observed_state_or_exit_code, raw_output_reference, and artifact hash."
+}

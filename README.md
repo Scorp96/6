@@ -4,6 +4,12 @@ This repository contains the source and operating instructions for the SCORP
 Master A + dynamic Worker system. Start with [GPT_START_HERE.md](GPT_START_HERE.md)
 before running anything.
 
+If an ordinary web GPT is taking over, read
+[docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md](docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md)
+first. Git visibility is not local-computer access; the handoff includes a
+read-only Windows preflight and the exact boundary between web planning and
+local execution.
+
 The reasoning controller for this design is **GPT-5.6 Sol**. `Scorp96/6` is the
 Git repository name; it is not a model identifier, and no GPT-6 runtime is
 required or implied. The local components are deterministic state, scheduling,

@@ -38,6 +38,14 @@ browser session using the user's existing subscription. It must stop when the
 Windows interactive session is unavailable, ChatGPT is logged out, a CAPTCHA is
 shown, or the browser result is ambiguous.
 
+**Web-GPT boundary:** opening this repository in ordinary ChatGPT does not
+grant that chat local Windows, SQLite, Python, Chrome Use, or Windows MCP
+permissions. If the chat has no local connector, it is in planning/review mode
+and must report `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`. Use
+`docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md` and its JSON companion for the
+human/operator handoff, then run the read-only preflight before claiming any
+local capability.
+
 ## First action: offline validation
 
 Open PowerShell at the repository root and run:
