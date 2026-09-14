@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `6db565cea425d8d9af6e39722f85f980ef367991`
+- Current candidate: `0af8a381d1e2bee80d8ff5f57a6ec459b6d72b22`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is

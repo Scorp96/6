@@ -9,7 +9,7 @@ left untouched.
 
 - Repository: `Scorp96/6`
 - Branch: `main`
-- Candidate commit: `6db565cea425d8d9af6e39722f85f980ef367991`
+- Candidate commit: `0af8a381d1e2bee80d8ff5f57a6ec459b6d72b22`
 - Worktree: `C:\ScorpAgent\_publish_git6`
 - V4 package: `scorp-agent/master_a_dynamic_v4`
 - Bridge seam: `scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py`

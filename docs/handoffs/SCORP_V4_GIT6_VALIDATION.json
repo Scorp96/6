@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "6db565cea425d8d9af6e39722f85f980ef367991",
+  "validated_commit": "0af8a381d1e2bee80d8ff5f57a6ec459b6d72b22",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,15 +12,15 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 71,
-      "observed": "71 tests passed, including MasterAController, strict Worker response decoder, and bounded LocalExecutionAdapter"
+      "tests_run": 74,
+      "observed": "74 tests passed, including assignment-scoped LocalExecutionAdapter checks and MasterAController execution_request routing"
     },
     {
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 415,
-      "observed": "415 tests passed, including the V4BridgeGateway integration test for the MasterAController T1/T2 parallel then T3 dependent run_cycles loop and guarded live-canary send gate"
+      "tests_run": 416,
+      "observed": "416 tests passed, including the real V4 gateway loop with an allowlisted local CSV execution request and the two-Worker dependency loop"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -66,6 +66,6 @@
     "MasterAController now provides start/apply_plan/step/run_cycles/watchdog/completion as a model-agnostic control surface; controller integration is offline with an injected engine and does not expand live-browser evidence.",
     "The live candidate evidence remains harmless fixed-marker browser work; the new controller integration proves the full T1/T2 -> T3 -> IDLE loop only with an injected engine.",
     "The built-in response decoder rejects prose and accepts only standalone or fenced JSON WORK_RESULT/1; run_cycles is capped and stops on BLOCKED, TERMINAL, or IDLE.",
-    "LocalExecutionAdapter runs only an allowlisted Python module with shell=False, checks assignment/epoch/lease and path scope before process start, and records bounded output plus hashes; its real CSV subprocess test is isolated and does not prove production permission."
+    "MasterAController now routes an optional execution_request through LocalExecutionAdapter before SQLite result admission; the adapter enforces assignment resource_scope in addition to global allowed roots and attaches a receipt before recomputing result_sha256."
   ]
 }
