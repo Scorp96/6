@@ -18,6 +18,31 @@ _STATE_LOCKS: dict[str, threading.RLock] = {}
 _STATE_LOCKS_GUARD = threading.Lock()
 
 
+class SendControlResolutionError(ValueError):
+    """Safe diagnostics for a post-fill snapshot without page text."""
+
+    def __init__(self, reason: str, payload):
+        rendered = _render_payload(payload)
+        try:
+            refs = _refs_from_snapshot(payload)
+        except ValueError:
+            refs = {}
+        button_names = sorted(
+            {
+                " ".join(str(meta.get("name") or "").split())
+                for meta in refs.values()
+                if isinstance(meta, dict) and str(meta.get("role") or "").strip().lower() == "button"
+            }
+        )
+        self.diagnostics = {
+            "button_names": button_names,
+            "button_count": len(button_names),
+            "ref_count": len(refs),
+            "snapshot_sha256": _sha(rendered),
+        }
+        super().__init__(reason)
+
+
 def _state_lock(path: Path) -> threading.RLock:
     key = str(path.resolve())
     with _STATE_LOCKS_GUARD:
@@ -261,7 +286,12 @@ class ChromeUseActorDriverV3:
 
     async def _send_ref(self, session):
         payload = await self.cli.run_json(session, "snapshot", "-i", timeout_seconds=self.timeout_seconds)
-        return _send_ref_from_snapshot(payload)
+        try:
+            return _send_ref_from_snapshot(payload)
+        except ValueError as exc:
+            if str(exc).startswith("CHROME_USE_SEND_REF_COUNT_"):
+                raise SendControlResolutionError(str(exc), payload) from exc
+            raise
 
     async def snapshot_conversation(self, conversation_url, *, window_handle=None):
         if window_handle is not None:

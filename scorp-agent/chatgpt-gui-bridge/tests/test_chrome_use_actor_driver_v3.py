@@ -158,6 +158,24 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual([], press_calls)
             self.assertFalse(any('#prompt-textarea' in args for _, args, _ in cli.calls))
 
+    def test_missing_send_control_reports_safe_post_fill_diagnostics(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [{
+                'data': {
+                    'refs': {
+                        'e11': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                        'e21': {'name': 'Stop generating', 'role': 'button'},
+                    },
+                    'snapshot': '- textbox "Message ChatGPT" [ref=e11]\n- button "Stop generating" [ref=e21]',
+                }
+            }]
+            driver = self._driver(td, cli)
+            with self.assertRaisesRegex(ValueError, 'CHROME_USE_SEND_REF_COUNT_0') as raised:
+                asyncio.run(driver._send_ref('session-diagnostic'))
+            self.assertEqual(['Stop generating'], raised.exception.diagnostics['button_names'])
+            self.assertEqual(64, len(raised.exception.diagnostics['snapshot_sha256']))
+
     def test_submit_accepts_chatgpt_root_query_redirect_before_new_conversation(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()
