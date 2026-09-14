@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "13cfffd533a71bd546fc26d5d8452e38ff8b0427",
+  "validated_commit": "f26d2015a4ac923225cec55b73f50ab9296cdf82",
   "validation_scope": "repository-candidate-plus-isolated-lab",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -19,8 +19,8 @@
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 436,
-      "observed": "436 tests passed, including controlled-composer key-event repair, concurrent two-Worker dispatch, Chrome Use state-file race protection, safe send diagnostics, operator-gated runtime, real V4 gateway loop, and read-only preflight"
+      "tests_run": 438,
+      "observed": "438 tests passed, including controlled-composer key-event repair, no-send diagnostic entrypoint tests, concurrent two-Worker dispatch, Chrome Use state-file race protection, safe send diagnostics, operator-gated runtime, real V4 gateway loop, and read-only preflight"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -50,27 +50,27 @@
     },
     {
       "id": "experimental_install_identity",
-      "command": "install_manifest.py against detached candidate 13cfffd",
+      "command": "install_manifest.py against detached candidate f26d201",
       "exit_code": 0,
-      "observed": "38-file manifest and install receipt matched; stable protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-13cfffd; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_13cfffd.json"
+      "observed": "39-file manifest and install receipt matched; stable protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-f26d201; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_f26d201.json"
     },
     {
       "id": "short_recovery_soak",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-13cfffd --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-13cfffd.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-f26d201 --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-f26d201.json",
       "exit_code": 0,
-      "observed": "10.0719948 seconds actual; 48 cycles; 144 verified tasks; peak concurrency 2; 142 slot reuses; 2 scheduler recoveries; 48 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_13cfffd.json"
+      "observed": "10.0375218 seconds actual; 47 cycles; 141 verified tasks; peak concurrency 2; 139 slot reuses; 2 scheduler recoveries; 47 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_f26d201.json"
     },
     {
       "id": "supervisor_runtime_probe",
-      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-13cfffd\\state.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-13cfffd --max-iterations 1",
+      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-f26d201\\state.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-f26d201 --max-iterations 1",
       "exit_code": 0,
-      "observed": "Installed 38-file candidate attached to an existing Master lease, renewed it once, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_13cfffd.json"
+      "observed": "Installed 39-file candidate attached to an existing Master lease, renewed it once, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_f26d201.json"
     },
     {
       "id": "local_interface_preflight",
-      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-13cfffd\\state.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-13cfffd",
+      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-f26d201\\state.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-f26d201",
       "exit_code": 0,
-      "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_13cfffd.json"
+      "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_f26d201.json"
     }
   ],
   "real_browser_canary": "FAIL/BLOCKED/NOT_RUN for current candidate; user-provided R4 report remains un-replayed and has no raw artifact binding",
@@ -101,9 +101,9 @@
     "The controller now dispatches up to two independent browser claims concurrently and consumes results in claim order; this is covered by a synchronization regression test but has not yet been proven in a fresh live canary.",
     "ChromeUseActorDriverV3 now serializes shared state-file read/modify/write transitions across driver instances and exposes non-sensitive post-fill send-control diagnostics; it does not claim that the real ChatGPT send button or conversation promotion is fixed.",
     "A user-provided R4 report identified a current real-browser failure at fill/send/conversation promotion. It is recorded as an external report without raw artifact binding, so it is not promoted to machine-readable PASS evidence.",
-    "The current code candidate is 13cfffd533a71bd546fc26d5d8452e38ff8b0427; after a missing Send control the driver performs one same-intent type --key-events --clear repair, then re-snapshots before any click.",
-    "The controlled-composer repair is covered by 14 focused actor-driver tests and the 436-test bridge regression; it does not prove that a live ChatGPT click creates /c/<id>.",
-    "The isolated AC10/AC12 evidence uses lab C:\\ScorpAgent\\v4-core-lab-13cfffd and stable protected roots; the volatile C:\\ScorpAgent\\state-v4 tree is not claimed protected in this receipt.",
+    "The current code candidate is f26d2015a4ac923225cec55b73f50ab9296cdf82; the repository now includes a fill-only composer diagnostic that never creates a V4 intent or clicks Send.",
+    "The controlled-composer repair and no-send diagnostic are covered by the 438-test bridge regression; the live no-send diagnostic remains NOT_RUN in this record.",
+    "The isolated AC10/AC12 evidence uses lab C:\\ScorpAgent\\v4-core-lab-f26d201 and stable protected roots; the volatile C:\\ScorpAgent\\state-v4 tree is not claimed protected in this receipt.",
     "The 10-second soak uses an injected fake browser engine and is a short recovery check, not a 24-hour stability or live ChatGPT acceptance."
   ],
   "external_runtime_report": {
@@ -112,5 +112,11 @@
     "scope": "R4 real Scorp96/6 browser path",
     "observed": "Master A, DAG admission, two assignments, and durable Worker-1 intent reached MAY_HAVE_SUBMITTED; Worker-1 had no conversation URL or response; Worker-2 browser dispatch was NOT_RUN because the previous controller loop was serial; read-only Chrome snapshot remained at https://chatgpt.com/; current fill/send diagnostic artifact was not supplied here.",
     "acceptance_effect": "Current real-browser AC07/AC08, WORK_RESULT/1, two-GPT E2E, rebind, and restart recovery remain FAIL/BLOCKED/NOT_RUN; do not treat offline or injected PASS as live completion."
+  },
+  "diagnostic_entrypoint": {
+    "path": "scorp-agent/chatgpt-gui-bridge/tools/v4_browser_fill_diagnostic.py",
+    "unit_tests": 2,
+    "live_status": "NOT_RUN",
+    "contract": "fill fixed marker, optional same-intent key-event repair, report Send control, never click or send"
   }
 }

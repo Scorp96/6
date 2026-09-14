@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "13cfffd533a71bd546fc26d5d8452e38ff8b0427",
+  "candidate_commit": "f26d2015a4ac923225cec55b73f50ab9296cdf82",
   "evidence_binding": {
-    "validated_commit": "13cfffd533a71bd546fc26d5d8452e38ff8b0427",
+    "validated_commit": "f26d2015a4ac923225cec55b73f50ab9296cdf82",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_13cfffd.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_13cfffd.json",
-    "binding_note": "This handoff describes the 13cfffd code candidate; the controlled-composer key-event repair is offline-tested, while current live fill-send-conversation evidence remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_f26d201.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_f26d201.json",
+    "binding_note": "This handoff describes the f26d201 code candidate; controlled-composer repair and the no-send diagnostic are tested, while current live fill-send-conversation evidence remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -60,7 +60,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "offline_and_injected_only; user-provided R4 report remains FAIL/BLOCKED/NOT_RUN for fresh current browser AC07/AC08"
+      "current_candidate_evidence": "offline_and_injected_only; fill-only live diagnostic NOT_RUN; user-provided R4 report remains FAIL/BLOCKED/NOT_RUN for fresh current browser AC07/AC08"
     }
   },
   "handoff_sequence": [
