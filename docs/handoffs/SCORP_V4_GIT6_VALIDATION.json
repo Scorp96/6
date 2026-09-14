@@ -71,6 +71,12 @@
       "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-a385f7b\\supervisor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-a385f7b",
       "exit_code": 0,
       "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_a385f7b.json"
+    },
+    {
+      "id": "session_lifecycle_smoke",
+      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_session_lifecycle.py retire --session diag-delivery-demo --evidence-path C:\\ScorpAgent\\v4-lifecycle-demo\\retirement.json",
+      "exit_code": 0,
+      "observed": "Named DIAGNOSTIC session retired without browser stop; global cleanup remained FORBIDDEN; receipt persisted with artifact_sha256=88260899fa6510ec5df9b6c55cf0c61bafdedba2f3794afbce6c0803180fcadf; evidence=C:\\ScorpAgent\\v4-lifecycle-demo\\retirement.json"
     }
   ],
   "real_browser_canary": "FAIL/BLOCKED/NOT_RUN for current candidate; user-provided R4 report remains un-replayed and has no raw artifact binding",
