@@ -3,11 +3,13 @@ from __future__ import annotations
 import unittest
 import pathlib
 import tempfile
+import hashlib
+import json
 
 
 class WorkResultContractTests(unittest.TestCase):
     def valid_payload(self) -> dict:
-        return {
+        payload = {
             "work_result_version": "1",
             "project_id": "project-1",
             "worker_id": "worker-1",
@@ -27,8 +29,15 @@ class WorkResultContractTests(unittest.TestCase):
             "unknowns": [],
             "contradictions": [],
             "followup_proposals": [],
-            "result_sha256": "e" * 64,
         }
+        payload["result_sha256"] = self.result_digest(payload)
+        return payload
+
+    @staticmethod
+    def result_digest(payload: dict) -> str:
+        return hashlib.sha256(
+            json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
 
     def validate(self, payload: dict):
         from master_a_dynamic_v4.work_result import validate_work_result
@@ -68,6 +77,7 @@ class WorkResultContractTests(unittest.TestCase):
 
         payload = self.valid_payload()
         payload["evidence"] = []
+        payload["result_sha256"] = self.result_digest({k: v for k, v in payload.items() if k != "result_sha256"})
         with self.assertRaisesRegex(WorkResultRejected, "COMPLETE_EVIDENCE_MISSING"):
             self.validate(payload)
 
@@ -82,6 +92,11 @@ class WorkResultContractTests(unittest.TestCase):
         payload = self.valid_payload()
         payload["work_result_version"] = "2"
         with self.assertRaisesRegex(WorkResultRejected, "WORK_RESULT_VERSION_UNSUPPORTED"):
+            self.validate(payload)
+
+        payload = self.valid_payload()
+        payload["result_sha256"] = "e" * 64
+        with self.assertRaisesRegex(WorkResultRejected, "RESULT_CONTENT_HASH_MISMATCH"):
             self.validate(payload)
 
     def test_scheduler_admits_only_result_bound_to_claim_and_graph_version(self):
@@ -111,6 +126,7 @@ class WorkResultContractTests(unittest.TestCase):
                         "base_state_version": claim.base_state_version,
                     }
                 )
+                payload["result_sha256"] = self.result_digest({k: v for k, v in payload.items() if k != "result_sha256"})
                 result_id = scheduler.record_work_result(claim, payload=payload)
                 scheduler.verify_candidate(result_id, result_sha256=payload["result_sha256"])
                 self.assertEqual("ACCEPTED", scheduler.get_task("T1")["state"])
@@ -149,6 +165,7 @@ class WorkResultContractTests(unittest.TestCase):
                         "base_state_version": claim.base_state_version,
                     }
                 )
+                payload["result_sha256"] = self.result_digest({k: v for k, v in payload.items() if k != "result_sha256"})
                 with self.assertRaisesRegex(WorkerFenceError, "TASK_GRAPH_VERSION_FENCED"):
                     scheduler.record_work_result(claim, payload=payload)
             finally:

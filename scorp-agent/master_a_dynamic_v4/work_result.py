@@ -8,6 +8,8 @@ evidence envelope before the scheduler can admit a structured ``WORK_RESULT``.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import hashlib
+import json
 from typing import Any
 
 
@@ -29,6 +31,14 @@ _LIST_FIELDS = (
 
 class WorkResultRejected(ValueError):
     """Raised when a Worker result cannot be bound to one assignment."""
+
+
+def result_content_sha256(value: Mapping[str, Any]) -> str:
+    """Hash the result envelope without its self-referential digest field."""
+
+    body = {key: item for key, item in value.items() if key != "result_sha256"}
+    raw = json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
 
 
 def _require_hex(value: Any, *, name: str, lengths: tuple[int, ...]) -> str:
@@ -107,6 +117,11 @@ def validate_work_result(
     if status not in WORK_RESULT_STATUSES:
         raise WorkResultRejected("STATUS_INVALID")
     normalized: dict[str, Any] = dict(result)
+    declared_result_sha256 = _require_hex(
+        result.get("result_sha256"), name="RESULT_SHA256", lengths=(64,)
+    )
+    if declared_result_sha256 != result_content_sha256(result):
+        raise WorkResultRejected("RESULT_CONTENT_HASH_MISMATCH")
     normalized.update(
         {
             "work_result_version": WORK_RESULT_VERSION,
@@ -118,9 +133,7 @@ def validate_work_result(
             "worker_id": worker_id,
             "candidate_commit": candidate_commit,
             "status": status,
-            "result_sha256": _require_hex(
-                result.get("result_sha256"), name="RESULT_SHA256", lengths=(64,)
-            ),
+            "result_sha256": declared_result_sha256,
         }
     )
     for field in _LIST_FIELDS:
