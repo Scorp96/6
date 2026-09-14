@@ -119,7 +119,11 @@ class OperatorControlService:
                     "project.pause": "PAUSED",
                     "project.resume": "RUNNING",
                     "project.cancel": "CANCELLED",
-                    "project.supersede": "RUNNING",
+                    # Supersession is a durable fence.  The replacement
+                    # objective must be explicitly resumed after its new
+                    # contract is admitted; an old Master cannot continue
+                    # merely because the hash changed.
+                    "project.supersede": "SUPERSEDED",
                     "project.emergency_stop": "EMERGENCY_STOPPED",
                 }[request.command]
                 phase = "OPERATOR_FENCE" if request.command != "project.resume" else "RUNNING"

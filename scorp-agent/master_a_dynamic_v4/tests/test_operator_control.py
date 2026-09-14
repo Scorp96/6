@@ -88,10 +88,14 @@ class OperatorControlTests(unittest.TestCase):
         )
         self.assertEqual("OK", supersede["status"])
         control = self.store.get_operator_control("p1")
-        self.assertEqual("RUNNING", control["operator_state"])
+        self.assertEqual("SUPERSEDED", control["operator_state"])
         self.assertEqual(4, control["operator_generation"])
         self.assertEqual(2, control["objective_generation"])
         self.assertEqual("b" * 64, control["objective_sha256"])
+        resumed = self.service.execute(self.request("s-resume", "project.resume", state_version=4))
+        self.assertEqual("OK", resumed["status"])
+        self.assertEqual("RUNNING", self.store.get_operator_control("p1")["operator_state"])
+        self.assertEqual(5, self.store.get_operator_control("p1")["operator_generation"])
 
     def test_supersede_requires_objective_hash(self):
         response = self.service.execute(self.request("missing", "project.supersede"))

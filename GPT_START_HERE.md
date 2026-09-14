@@ -187,7 +187,8 @@ explicit operator state `RUNNING`; old imported `ACTIVE` rows remain readable
 as a compatibility value. Reusing a `request_id` returns the durable receipt;
 reusing it with a different command or payload is rejected. A paused,
 cancelled, superseded, stale, or ambiguous browser intent cannot be blindly
-replayed. Daemon supervision state also exposes bounded restart backoff and a
+replayed. `project.supersede` remains durably `SUPERSEDED` until a fresh
+CAS-bound `project.resume` admits the replacement objective. Daemon supervision state also exposes bounded restart backoff and a
 restart-budget circuit; a failed SQLite intent fence returns
 `SQLITE_WRITE_FAILED` without attempting browser I/O.
 

@@ -27,6 +27,7 @@
     "runtime.status, runtime.snapshot, project.status, master.status, worker.status, evidence.query",
     "request actor plus response master_epoch/generation and optional stale-master/generation fencing",
     "project.pause, project.resume, project.cancel, project.supersede with CAS and request idempotency",
+    "project.supersede with durable SUPERSEDED fence, objective generation bump, and explicit CAS-bound resume",
     "project.emergency_stop with durable EMERGENCY_STOPPED fence and idempotent recovery-safe resume",
     "generation fencing before browser and local execution side effects",
     "SQLite write failure before browser intent fence fails closed without browser I/O",
