@@ -1,0 +1,235 @@
+"""Run one explicit Master A plan through the existing ChatGPT browser bridge.
+
+The command is intentionally operator-gated. Without ``--send`` it only
+returns ``SEND_REQUIRED`` and does not open Chrome, create SQLite state, or
+touch a driver binding. With the gate, one structured plan is admitted to the
+V4 controller, at most two Worker browser intents are active at a time, and
+all local execution requests pass through the bounded execution and Git
+worktree adapters.
+"""
+
+from __future__ import annotations
+
+import argparse
+import dataclasses
+import hashlib
+import json
+import pathlib
+import sys
+from collections.abc import Mapping
+from typing import Any
+
+
+BRIDGE_ROOT = pathlib.Path(__file__).resolve().parents[1]
+AGENT_ROOT = BRIDGE_ROOT.parent
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
+if str(BRIDGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(BRIDGE_ROOT))
+
+from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3  # noqa: E402
+from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
+from master_a_dynamic_v4.execution_adapter import LocalExecutionAdapter  # noqa: E402
+from master_a_dynamic_v4.git_worktree import GitWorktreeManager  # noqa: E402
+from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
+from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
+from v4_browser_engine import build_v4_browser_engine  # noqa: E402
+
+
+DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
+
+
+def _assistant_text(snapshot: str) -> str:
+    text = str(snapshot or "")
+    markers = ("#### ChatGPT 说：", "#### ChatGPT said:")
+    positions = [(text.rfind(marker), marker) for marker in markers]
+    start, marker = max(positions, key=lambda item: item[0])
+    if start < 0:
+        return ""
+    return text[start + len(marker) :].strip()
+
+
+def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] | None:
+    """Extract exactly one fenced or standalone ``WORK_RESULT/1`` object."""
+
+    _ = intent_id  # retained for the parser callback signature and audit logs
+    text = _assistant_text(snapshot)
+    if text.startswith("```") and text.endswith("```"):
+        lines = text.splitlines()
+        if len(lines) < 3 or lines[0].strip().lower() not in {"```", "```json"}:
+            return None
+        text = "\n".join(lines[1:-1]).strip()
+    if not text.startswith("{") or not text.endswith("}"):
+        return None
+    try:
+        value = json.loads(text)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(value, Mapping) or str(value.get("work_result_version") or "") != "1":
+        return None
+    return dict(value)
+
+
+def _load_plan(path: pathlib.Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("PLAN_JSON_INVALID") from exc
+    if not isinstance(value, Mapping):
+        raise RuntimeError("PLAN_JSON_NOT_OBJECT")
+    for key in ("root_contract", "acceptance_contract", "plan"):
+        if not isinstance(value.get(key), Mapping) or not value[key]:
+            raise RuntimeError(f"PLAN_{key.upper()}_MISSING")
+    return {
+        "root_contract": dict(value["root_contract"]),
+        "acceptance_contract": dict(value["acceptance_contract"]),
+        "plan": dict(value["plan"]),
+    }
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run one gated SCORP V4 Master A plan")
+    parser.add_argument("--send", action="store_true", help="required before opening ChatGPT or creating state")
+    parser.add_argument("--plan-json", required=True, type=pathlib.Path)
+    parser.add_argument("--database-path", required=True, type=pathlib.Path)
+    parser.add_argument("--driver-state-path", required=True, type=pathlib.Path)
+    parser.add_argument("--allowed-root", required=True, type=pathlib.Path)
+    parser.add_argument("--executable", default=DEFAULT_EXECUTABLE)
+    parser.add_argument("--python-executable", default=sys.executable)
+    parser.add_argument("--project-id", default="scorp-v4-master-runtime")
+    parser.add_argument("--session-id", default="master-a-runtime")
+    parser.add_argument("--max-cycles", type=int, default=32)
+    parser.add_argument("--timeout-seconds", type=int, default=900)
+    parser.add_argument(
+        "--allowed-module",
+        action="append",
+        default=["master_a_dynamic_v4.csv_workload.cli"],
+        help="repeat for each local Python module a Worker may request",
+    )
+    parser.add_argument("--candidate-commit", default="")
+    parser.add_argument("--artifact-manifest", type=pathlib.Path)
+    parser.add_argument("--evidence-path", type=pathlib.Path)
+    return parser
+
+
+def _worker_prompt(claim) -> str:
+    assignment = {
+        "project_id": claim.project_id,
+        "assignment_id": claim.assignment_id,
+        "task_id": claim.task_id,
+        "worker_id": claim.worker_id,
+        "slot_id": claim.slot_id,
+        "master_epoch": claim.master_epoch,
+        "base_state_version": claim.base_state_version,
+        "objective_sha256": claim.objective_sha256,
+        "resource_scope": list(claim.resource_scope),
+        "access_mode": claim.access_mode,
+    }
+    return json.dumps(
+        {
+            "protocol": "SCORP V4 WORK_RESULT/1",
+            "role": "dynamic Worker",
+            "assignment": assignment,
+            "instructions": [
+                "Only work inside the assignment resource_scope.",
+                "If local execution is required, include an execution_request using only approved fields.",
+                "Return exactly one JSON object with work_result_version=1 and no explanatory prose.",
+            ],
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def run_runtime(args: argparse.Namespace) -> int:
+    if not args.send:
+        print(json.dumps({"status": "SEND_REQUIRED", "reason": "pass --send only after reviewing the plan and paths"}))
+        return 2
+    plan = _load_plan(args.plan_json)
+    executable = pathlib.Path(args.executable)
+    if not executable.is_file():
+        raise RuntimeError("CHROME_USE_EXECUTABLE_MISSING")
+    allowed_root = pathlib.Path(args.allowed_root).resolve(strict=True)
+    database_path = pathlib.Path(args.database_path).resolve()
+    driver_state_path = pathlib.Path(args.driver_state_path).resolve()
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    driver_state_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cli = ChromeUseCliV3(executable=str(executable))
+    driver = ChromeUseActorDriverV3(cli, driver_state_path, timeout_seconds=min(args.timeout_seconds, 120))
+
+    async def auth_probe(channel: str):
+        session = "scorp-v4-master-auth-" + hashlib.sha256(str(args.project_id).encode()).hexdigest()[:12]
+        try:
+            await cli.run_json(session, "open", "https://chatgpt.com/", timeout_seconds=30)
+            page = await cli.run_json(session, "read", timeout_seconds=30)
+        except Exception as exc:
+            return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
+        text = json.dumps(page, ensure_ascii=False)
+        lowered = text.casefold()
+        if any(token in lowered for token in ("登录", "log in", "sign up", "captcha", "验证码")):
+            return {"status": "AUTHENTICATION_REQUIRED", "channel": channel}
+        if "plus" not in lowered and "准备好了" not in text and "ready" not in lowered:
+            return {"status": "AUTH_PROBE_UNCERTAIN", "channel": channel}
+        return {"status": "AUTHENTICATED", "channel": channel}
+
+    engine = build_v4_browser_engine(
+        driver,
+        auth_probe=auth_probe,
+        response_parser=parse_structured_response,
+        timeout_seconds=args.timeout_seconds,
+    )
+    gateway = V4BridgeGateway(
+        database_path,
+        str(args.project_id),
+        [allowed_root],
+        engine,
+        master_ttl_seconds=max(60, min(args.timeout_seconds * 2, 3600)),
+    )
+    try:
+        controller = MasterAController(
+            gateway,
+            str(args.session_id),
+            execution_adapter=LocalExecutionAdapter(
+                [allowed_root],
+                python_executable=args.python_executable,
+                pythonpath=AGENT_ROOT,
+                allowed_modules=args.allowed_module,
+            ),
+            git_worktree_manager=GitWorktreeManager([allowed_root]),
+        )
+        started = controller.start(plan["root_contract"], plan["acceptance_contract"])
+        admitted = controller.apply_plan(plan["plan"])
+        history = controller.run_cycles(_worker_prompt, max_cycles=args.max_cycles)
+        summary: dict[str, Any] = {
+            "status": history[-1].status if history else "NOT_RUN",
+            "project_id": str(args.project_id),
+            "master": started,
+            "plan": admitted,
+            "cycles": [dataclasses.asdict(item) for item in history],
+            "browser_io": "ATTEMPTED",
+            "reasoning_model": "GPT-5.6 Sol",
+            "worker_capacity": 2,
+        }
+        if args.candidate_commit:
+            artifacts: dict[str, str] = {}
+            if args.artifact_manifest:
+                artifacts = json.loads(args.artifact_manifest.read_text(encoding="utf-8"))
+            decision = controller.completion(candidate_commit=args.candidate_commit, artifact_hashes=artifacts)
+            summary["completion"] = {"status": decision.status.value, "blockers": list(decision.blockers)}
+        if args.evidence_path:
+            args.evidence_path.parent.mkdir(parents=True, exist_ok=True)
+            args.evidence_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0 if summary["status"] in {"IDLE", "TERMINAL"} else 2
+    finally:
+        gateway.close()
+
+
+def main(argv: list[str] | None = None) -> int:
+    return run_runtime(build_parser().parse_args(argv))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

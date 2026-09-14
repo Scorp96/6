@@ -114,6 +114,36 @@ the local engineering loop; it does not prove a live browser submission.
 The V4 package does not allow a Worker to rewrite the root contract, increase
 capacity, bypass a lease, or declare final completion.
 
+### One-plan Master A runtime
+
+The repository now includes an operator-gated runtime for the actual browser
+bridge:
+`scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py`.
+Prepare a plan using
+`docs/handoffs/SCORP_V4_MASTER_PLAN_TEMPLATE.json`, replace every placeholder,
+and review the paths and acceptance criteria. Then run it from the repository
+root with a fresh database and driver-state path:
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
+  --plan-json .\docs\handoffs\SCORP_V4_MASTER_PLAN_TEMPLATE.json `
+  --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
+  --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
+  --allowed-root C:\ScorpAgent\workspaces\project `
+  --send
+```
+
+The script refuses to open Chrome unless `--send` is present. It loads one
+structured root plan, starts one logical Master A, creates at most two dynamic
+Worker browser intents, accepts only `WORK_RESULT/1`, and routes any local
+execution request through the path and Git-worktree gates. A missing login,
+CAPTCHA, unavailable interactive session, ambiguous browser result, or invalid
+plan is reported as a blocker; no login or verification challenge is bypassed.
+This entry point is a finite run with a cycle cap. `MasterWatchdog` remains the
+durable monitor signal for a separate local supervisor and is not silently
+represented as a continuously running service.
+
 ### Monitor and privileged recovery boundaries
 
 The bridge watchdog checks both the scheduler-owned process tree and the

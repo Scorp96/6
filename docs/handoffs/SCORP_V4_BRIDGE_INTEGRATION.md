@@ -94,6 +94,12 @@ rejects dirty repositories and existing targets, verifies the requested base,
 and records a detached-worktree receipt. That receipt is nested in the local
 execution evidence; no force reset or automatic cleanup is performed.
 
+The operator entry point is
+`tools/v4_master_controller_runtime.py`. It reads one JSON plan, requires an
+explicit `--send` gate before opening Chrome, uses the existing authenticated
+ChatGPT session, and stops after a bounded number of controller cycles. The
+plan template is `docs/handoffs/SCORP_V4_MASTER_PLAN_TEMPLATE.json`.
+
 ## Quick simulated check
 
 The gateway tests use a fake browser engine and verify the local path:

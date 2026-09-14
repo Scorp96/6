@@ -1,0 +1,39 @@
+{
+  "root_contract": {
+    "project_id": "replace-with-project-id",
+    "root_objective": "replace-with-one-root-objective",
+    "repository_baseline": "replace-with-verified-commit",
+    "permitted_resources": [
+      "C:\\ScorpAgent\\workspaces\\replace-me"
+    ],
+    "stop_conditions": [
+      "WINDOWS_SESSION_UNAVAILABLE",
+      "CHATGPT_AUTH_REQUIRED",
+      "UNCERTAIN_BROWSER_SUBMISSION"
+    ]
+  },
+  "acceptance_contract": {
+    "required": [
+      "AC_REPLACE_ME"
+    ]
+  },
+  "plan": {
+    "project_id": "replace-with-project-id",
+    "master_identity": "A",
+    "tasks": [
+      {
+        "task_id": "T1",
+        "objective_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "resource_scope": [
+          "C:\\ScorpAgent\\workspaces\\replace-me"
+        ],
+        "access_mode": "read",
+        "dependencies": [],
+        "required": true,
+        "acceptance_criteria_ids": [
+          "AC_REPLACE_ME"
+        ]
+      }
+    ]
+  }
+}
