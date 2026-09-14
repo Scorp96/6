@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+from master_a_dynamic_v4.acceptance import AcceptanceDecision, AcceptanceValidator
 from master_a_dynamic_v4.models import CommitResult
 from master_a_dynamic_v4.path_policy import PathPolicy
 from master_a_dynamic_v4.recovery import recover_pending_intents
@@ -116,6 +117,19 @@ class V4BridgeGateway:
             transition_id,
             proposal,
             evidence_refs,
+        )
+
+    def evaluate_completion(
+        self,
+        *,
+        candidate_commit: str,
+        artifact_hashes: Mapping[str, str],
+    ) -> AcceptanceDecision:
+        """Run the independent completion gate without mutating project state."""
+        return AcceptanceValidator(self.store).evaluate(
+            self.project_id,
+            candidate_commit,
+            artifact_hashes,
         )
 
     def claim_workers(self, *, master_epoch: int = 0, limit: int = 2, now=None):

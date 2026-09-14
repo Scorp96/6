@@ -129,6 +129,35 @@ class V4GatewayTests(unittest.TestCase):
             finally:
                 gateway.close()
 
+    def test_completion_check_is_read_only_and_blocks_missing_evidence(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            gateway = V4BridgeGateway(
+                root / 'state.sqlite3', 'project-completion', [worktree], FakeEngine()
+            )
+            try:
+                gateway.ensure_contract(
+                    {'objective': 'completion gate'}, {'required': ['AC-GATE']}
+                )
+                gateway.store.record_release_candidate(
+                    'project-completion',
+                    candidate_commit='a' * 40,
+                    manifest={'files': {'artifact': 'b' * 64}},
+                )
+                before = gateway.describe()
+                decision = gateway.evaluate_completion(
+                    candidate_commit='a' * 40,
+                    artifact_hashes={'artifact': 'b' * 64},
+                )
+                self.assertEqual('BLOCKED', decision.status.value)
+                self.assertTrue(any('MISSING_EVIDENCE:AC-GATE' == item for item in decision.blockers))
+                after = gateway.describe()
+                self.assertEqual(before['state_version'], after['state_version'])
+                self.assertEqual('ACTIVE', after['status'])
+            finally:
+                gateway.close()
+
     def test_gui_engine_requires_explicit_auth_probe_and_bridges_async_turn(self):
         async def run_turn(prompt, request_id, timeout_seconds, conversation_url=None):
             return ({'kind': 'HANDOFF', 'state': 'DONE'}, 'snapshot', 'https://chatgpt.com/c/async')

@@ -113,6 +113,12 @@ editing tables itself. After `ensure_contract()` succeeds, the handoff order is:
 The facade makes the GPT-to-transaction boundary explicit; it does not make
 model reasoning or browser conversation creation automatic.
 
+Before reporting completion, call `evaluate_completion()` with the candidate
+commit and artifact hashes. The returned status must be `PASS` and its blockers
+must be empty. `BLOCKED`, `FAIL`, or `NOT_RUN` must remain non-complete and be
+reported with the returned blocker list. This check is read-only; a GPT message
+claiming `COMPLETE` cannot change the authoritative project state.
+
 ## Existing browser bridge
 
 The legacy bridge source is under `scorp-agent/chatgpt-gui-bridge/`. Its current
