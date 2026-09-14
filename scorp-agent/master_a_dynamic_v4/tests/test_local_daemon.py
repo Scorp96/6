@@ -7,10 +7,35 @@ from pathlib import Path
 
 from master_a_dynamic_v4.activation_arbiter import ArbiterSnapshot
 from master_a_dynamic_v4.daemon import LocalDaemon
+from master_a_dynamic_v4.daemon import MasterSupervisorActionHandler
 from master_a_dynamic_v4.state_store import StateStore
 
 
 class LocalDaemonTests(unittest.TestCase):
+    def test_resume_master_action_uses_existing_supervisor_without_browser_side_effects(self):
+        class FakeSupervisor:
+            def __init__(self):
+                self.calls = 0
+
+            def run_once(self):
+                self.calls += 1
+                return type("Decision", (), {"status": "MASTER_ACTIVE", "reason": "REBOUND"})()
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            supervisor = FakeSupervisor()
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, False, 0, 1, 0, 0),
+                action_handlers={"RESUME_MASTER": MasterSupervisorActionHandler(supervisor)},
+                health_path=root / "health.json",
+            )
+            self.assertEqual("RESUME_MASTER", daemon.run_once().action)
+            self.assertEqual(1, supervisor.calls)
     def test_run_once_persists_decision_and_separates_progress_from_heartbeat(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

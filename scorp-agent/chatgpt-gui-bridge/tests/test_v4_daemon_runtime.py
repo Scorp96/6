@@ -60,6 +60,65 @@ class V4DaemonRuntimeTests(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()):
                     runtime.run_runtime(second)
 
+    def test_runtime_can_attach_the_existing_master_supervisor_without_enabling_browser_send(self):
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.close()
+            args = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db), "--allowed-root", str(root),
+                    "--project-id", "p", "--daemon-epoch", "1", "--actor-id", "daemon-a",
+                    "--health-path", str(root / "health.json"), "--max-iterations", "1",
+                    "--supervise-master", "--master-session-id", "master-a",
+                ]
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = runtime.run_runtime(args)
+            self.assertEqual(2, rc)
+            summary = json.loads(output.getvalue())
+            self.assertTrue(summary["master_supervision"])
+            self.assertEqual("FORBIDDEN", summary["browser_send"])
+
+    def test_supervised_runtime_renews_an_active_master_session(self):
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            started = store.start_master_session("p", "master-a", ttl_seconds=60)
+            before = started["heartbeat_at"]
+            store.close()
+            args = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db), "--allowed-root", str(root),
+                    "--project-id", "p", "--daemon-epoch", "1", "--actor-id", "daemon-a",
+                    "--health-path", str(root / "health.json"), "--max-iterations", "1",
+                    "--supervise-master", "--master-session-id", "master-a",
+                ]
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = runtime.run_runtime(args)
+            self.assertEqual(0, rc)
+            self.assertEqual("HEARTBEAT_IDLE", json.loads(output.getvalue())["decisions"][0]["action"])
+            with StateStore(db, [root]) as reopened:
+                with reopened._connection() as conn:
+                    after = conn.execute(
+                        "SELECT heartbeat_at FROM master_sessions WHERE project_id=? AND session_id=?",
+                        ("p", "master-a"),
+                    ).fetchone()[0]
+                self.assertNotEqual(before, after)
+
 
 if __name__ == "__main__":
     unittest.main()

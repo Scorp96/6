@@ -41,6 +41,13 @@ The first pass acquires the single `daemon_leases` row for the project. A live
 lease owned by another process returns `DAEMON_LEASE_ACTIVE`; an expired lease
 advances the epoch. Each bounded-loop pass renews the same owner and epoch.
 
+To let the machine dog renew an already-active logical Master A, add
+`--supervise-master --master-session-id master-a-runtime`. This attaches the
+existing `MasterSupervisor` through a monitor-only gateway. It renews the
+Master lease when the session is healthy and returns `BLOCKED` when a physical
+rebind is required. This option still does not fill a composer, click Send, or
+reconcile an ambiguous browser side effect.
+
 ## Optional Task Scheduler registration
 
 The installer requires an existing database, allowed root, project id and

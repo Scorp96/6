@@ -20,8 +20,28 @@ if str(AGENT_ROOT) not in sys.path:
 if str(BRIDGE_ROOT) not in sys.path:
     sys.path.insert(0, str(BRIDGE_ROOT))
 
-from master_a_dynamic_v4.daemon import LocalDaemon  # noqa: E402
+from master_a_dynamic_v4.daemon import LocalDaemon, MasterSupervisorActionHandler  # noqa: E402
+from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
+from master_a_dynamic_v4.master_supervisor import MasterSupervisor  # noqa: E402
 from master_a_dynamic_v4.state_store import StateStore  # noqa: E402
+from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
+
+
+class MonitorOnlyEngine:
+    """Engine used by the optional MasterSupervisor attachment.
+
+    It deliberately provides no submit or reconcile operation. Physical
+    rebind must be supplied by a separate read-only adapter.
+    """
+
+    def auth_state(self, _channel: str) -> dict[str, str]:
+        return {"status": "MONITOR_ONLY"}
+
+    def submit(self, _intent):
+        raise RuntimeError("MONITOR_ONLY_BROWSER_SUBMIT_FORBIDDEN")
+
+    def reconcile(self, _intent):
+        raise RuntimeError("MONITOR_ONLY_BROWSER_RECONCILE_FORBIDDEN")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -36,6 +56,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--interval-seconds", type=float, default=5.0)
     parser.add_argument("--max-iterations", type=int, default=1)
     parser.add_argument("--forever", action="store_true")
+    parser.add_argument("--supervise-master", action="store_true")
+    parser.add_argument("--master-session-id", default="master-a-runtime")
     return parser
 
 
@@ -55,6 +77,7 @@ def run_runtime(args: argparse.Namespace) -> int:
     health_path = pathlib.Path(args.health_path).resolve() if args.health_path else database_path.with_suffix(".daemon-health.json")
 
     store = StateStore(database_path, [allowed_root])
+    supervisor_gateway = None
     try:
         lease = store.acquire_daemon_lease(
             str(args.project_id),
@@ -65,6 +88,25 @@ def run_runtime(args: argparse.Namespace) -> int:
             raise RuntimeError(
                 f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
             )
+        action_handlers = {}
+        master_supervision = False
+        if args.supervise_master:
+            supervisor_gateway = V4BridgeGateway(
+                database_path,
+                str(args.project_id),
+                [allowed_root],
+                MonitorOnlyEngine(),
+                master_ttl_seconds=max(60, int(args.daemon_ttl_seconds)),
+            )
+            controller = MasterAController(supervisor_gateway, str(args.master_session_id))
+            controller.attach_existing_session()
+            supervisor = MasterSupervisor(controller)
+            supervisor_handler = MasterSupervisorActionHandler(supervisor)
+            action_handlers = {
+                "RESUME_MASTER": supervisor_handler,
+                "HEARTBEAT_IDLE": supervisor_handler,
+            }
+            master_supervision = True
         daemon = LocalDaemon(
             store,
             project_id=str(args.project_id),
@@ -78,6 +120,7 @@ def run_runtime(args: argparse.Namespace) -> int:
                 daemon_epoch=int(args.daemon_epoch),
                 ttl_seconds=int(args.daemon_ttl_seconds),
             ),
+            action_handlers=action_handlers,
             health_path=health_path,
             actor_id=str(args.actor_id),
         )
@@ -95,10 +138,13 @@ def run_runtime(args: argparse.Namespace) -> int:
             "decisions": [decision.as_dict() for decision in decisions],
             "health_path": str(health_path),
             "browser_send": "FORBIDDEN",
+            "master_supervision": master_supervision,
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0 if health["status"] in {"HEALTHY", "TERMINAL"} else 2
     finally:
+        if supervisor_gateway is not None:
+            supervisor_gateway.close()
         store.close()
 
 

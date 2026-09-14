@@ -24,6 +24,28 @@ class DaemonInvariantError(RuntimeError):
     pass
 
 
+class MasterSupervisorActionHandler:
+    """Adapt the existing MasterSupervisor to a daemon action handler.
+
+    The handler only accepts a positive supervisor result. Physical browser
+    rebind remains the supervisor's injected callback; this adapter never
+    opens a browser or retries a blocked operation.
+    """
+
+    def __init__(self, supervisor: Any) -> None:
+        if supervisor is None or not callable(getattr(supervisor, "run_once", None)):
+            raise ValueError("MASTER_SUPERVISOR_REQUIRED")
+        self.supervisor = supervisor
+
+    def __call__(self, _decision: ActivationDecision) -> Any:
+        result = self.supervisor.run_once()
+        status = str(getattr(result, "status", result.get("status") if isinstance(result, Mapping) else ""))
+        reason = str(getattr(result, "reason", result.get("reason") if isinstance(result, Mapping) else ""))
+        if status in {"MASTER_ACTIVE", "TERMINAL"}:
+            return result
+        raise RuntimeError(f"MASTER_SUPERVISOR_{status or 'UNKNOWN'}:{reason or 'NO_REASON'}")
+
+
 class LocalDaemon:
     """Run one deterministic decision pass without owning browser I/O.
 
