@@ -70,8 +70,10 @@ browser reconcile and Send remain separate gates.
 
 ## Current evidence boundary
 
-- `TEST_VERIFIED`: V4 suite 97/97 and GUI bridge suite 456/456 on the bundled
-  Windows Python runtime; PowerShell parser and Python compilation checks pass.
+- `TEST_VERIFIED`: V4 suite 103/103 and GUI bridge suite 465/465 on the bundled
+  Windows Python runtime; the two Worker canary dispatch regression is included.
+  PowerShell parser and Python compilation checks pass when run against the
+  candidate checkout.
 - `LIVE_VERIFIED`: no current-candidate ChatGPT Send or two-Worker browser
   result has been claimed here.
 - `ACCEPTED`: not reached. Production registration, current-candidate Chrome
@@ -88,3 +90,19 @@ started. The run was stopped without retrying. The read-only receipt is
 `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_167473a.json`; its result is
 `BLOCKED`, with `retry_count: 0`. This is LIVE_VERIFIED failure evidence, not
 an acceptance pass.
+
+After the transport command serialization fix, a second fresh canary was run
+against candidate `0760c26` with a new SQLite database and driver state. The
+EOF/daemon-busy symptom did not recur, but the browser remained at the logged-in
+ChatGPT root URL after the submit path and never produced `/c/<id>`. The first
+Worker intent was therefore recorded as `BLOCKED_AMBIGUOUS` with reason
+`CONVERSATION_URL_MISSING`; Worker-2 was not started by that older serial
+canary implementation. The read-only receipt is
+`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_0760c26.json`; its SHA-256 is
+`93755FFAED06821463BBEBF5548C0622E658C79411228D1A601794B1C2B75AD9`.
+
+The canary code now prepares both durable intents first and dispatches their
+browser submissions concurrently. This fixes the orchestration serialization
+defect, but it has not been promoted to a live PASS: a new canary is required
+only after the current ambiguous browser session is reconciled or retired by a
+fresh operator-approved run.

@@ -69,6 +69,17 @@ def failure_evidence(*, project_id: str, error: Exception, intents: list[Mapping
     }
 
 
+async def dispatch_intents_concurrently(gateway: V4BridgeGateway, intent_ids: list[str]):
+    """Submit distinct durable intents without letting one browser stall block another."""
+
+    return list(
+        await asyncio.gather(
+            *(asyncio.to_thread(gateway.submit_intent, str(intent_id)) for intent_id in intent_ids),
+            return_exceptions=True,
+        )
+    )
+
+
 def _reply_matches(snapshot: str, expected: str) -> bool:
     text = str(snapshot or "")
     positions = [(text.rfind(marker), marker) for marker in ("#### ChatGPT 说：", "#### ChatGPT said:")]
@@ -166,6 +177,7 @@ async def run_canary(args: argparse.Namespace) -> int:
         claims = gateway.claim_workers(master_epoch=int(master["master_epoch"]), limit=2)
         if len(claims) != 2:
             raise RuntimeError(f"EXPECTED_TWO_CLAIMS:{len(claims)}")
+        prepared = []
         for claim in claims:
             marker = MARKERS.get(claim.slot_id)
             if marker is None:
@@ -176,7 +188,14 @@ async def run_canary(args: argparse.Namespace) -> int:
             )
             intent = gateway.prepare_worker_intent(claim, prompt, metadata={"canary_marker": marker})
             expected_by_intent[str(intent["intent_id"])] = marker
-            result = gateway.submit_intent(str(intent["intent_id"]))
+            prepared.append((claim, marker, intent))
+        submitted = await dispatch_intents_concurrently(
+            gateway, [str(intent["intent_id"]) for _, _, intent in prepared]
+        )
+        for (claim, marker, intent), submitted_result in zip(prepared, submitted, strict=True):
+            if isinstance(submitted_result, Exception):
+                raise submitted_result
+            result = submitted_result
             for _ in range(8):
                 if result.get("state") == "RESPONSE_CAPTURED":
                     break

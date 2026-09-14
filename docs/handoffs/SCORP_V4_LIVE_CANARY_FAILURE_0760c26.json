@@ -1,0 +1,19 @@
+{
+  "format": "scorp-v4-two-worker-live-canary-failure/1",
+  "project_id": "scorp-v4-live-0760c26-live-0b0b9cba",
+  "result": "BLOCKED",
+  "reason": "LIVE_CANARY_EXCEPTION_FAIL_CLOSED",
+  "error_type": "RuntimeError",
+  "error_message_sha256": "3e76c239f7d43586fde363157a11f26ac36192c339df4afbca736e3dcbd87859",
+  "retry_count": 0,
+  "intents": [
+    {
+      "intent_id": "worker-intent-assignment-f6f138f5e5bf4f3b9e6b820e2ce63487",
+      "state": "BLOCKED_AMBIGUOUS",
+      "conversation_url": null,
+      "remote_identity": null,
+      "ambiguity_reason": "CONVERSATION_URL_MISSING"
+    }
+  ],
+  "observed_at_utc": "2026-09-14T14:29:33.420579Z"
+}
