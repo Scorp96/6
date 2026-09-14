@@ -56,6 +56,7 @@ class MasterAController:
             "dependencies",
             "required",
             "acceptance_criteria_ids",
+            "task_context",
         }
     )
 
@@ -618,6 +619,18 @@ class MasterAController:
             if not isinstance(scope, Sequence) or isinstance(scope, (str, bytes)):
                 raise ControllerRejected("TASK_RESOURCE_SCOPE_INVALID")
             task["resource_scope"] = [str(item) for item in scope]
+            task_context = task.get("task_context", {})
+            if not isinstance(task_context, Mapping):
+                raise ControllerRejected("TASK_CONTEXT_INVALID")
+            try:
+                encoded_context = json.dumps(
+                    dict(task_context), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                )
+            except (TypeError, ValueError) as exc:
+                raise ControllerRejected("TASK_CONTEXT_INVALID") from exc
+            if len(encoded_context.encode("utf-8")) > 64 * 1024:
+                raise ControllerRejected("TASK_CONTEXT_TOO_LARGE")
+            task["task_context"] = dict(task_context)
             seen.add(task_id)
             normalized_tasks.append(task)
         known = set(seen)

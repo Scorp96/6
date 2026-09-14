@@ -17,9 +17,21 @@ def main(argv: list[str] | None = None) -> int:
             reconfigure(encoding="utf-8", errors="strict")
     parser = argparse.ArgumentParser(description="Generate the deterministic SCORP V4 CSV report")
     parser.add_argument("csv_path")
+    parser.add_argument(
+        "--output",
+        help="optional exact output path; the report is written only after the CSV is fully validated",
+    )
     args = parser.parse_args(argv)
     try:
-        sys.stdout.write(stable_report(args.csv_path))
+        report = stable_report(args.csv_path)
+        if args.output:
+            try:
+                with open(args.output, "w", encoding="utf-8", newline="") as handle:
+                    handle.write(report)
+            except OSError as exc:
+                sys.stderr.write(f"CSV_OUTPUT_FAILED:{exc}\n")
+                return 2
+        sys.stdout.write(report)
     except CsvInputError as exc:
         sys.stderr.write(str(exc) + "\n")
         return 2

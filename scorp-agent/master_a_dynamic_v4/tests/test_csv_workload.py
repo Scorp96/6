@@ -208,3 +208,45 @@ class CsvWorkloadTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class CsvCliOutputTests(unittest.TestCase):
+    def test_cli_writes_report_to_explicit_output_without_partial_file(self):
+        root = pathlib.Path(__file__).resolve().parent
+        source = root / "fixtures" / "orders.csv"
+        with tempfile.TemporaryDirectory() as raw:
+            output = pathlib.Path(raw) / "report.json"
+            command = [
+                sys.executable,
+                "-B",
+                "-m",
+                "master_a_dynamic_v4.csv_workload.cli",
+                str(source),
+                "--output",
+                str(output),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=str(root.parents[1]),
+                env={**__import__("os").environ, "PYTHONPATH": str(root.parents[2])},
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertTrue(output.is_file())
+            self.assertEqual(completed.stdout, output.read_text(encoding="utf-8"))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+class CsvTaskScopeTests(unittest.TestCase):
+    def test_t3_scope_contains_source_and_report_for_bounded_write(self):
+        from master_a_dynamic_v4.csv_workload.graph import build_task_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = pathlib.Path(raw)
+            source = root / "orders.csv"
+            report = root / "worktree" / "report.json"
+            t3 = next(task for task in build_task_graph(source, report) if task["task_id"] == "T3")
+            self.assertEqual({str(source.resolve()), str(report.resolve())}, set(t3["resource_scope"]))

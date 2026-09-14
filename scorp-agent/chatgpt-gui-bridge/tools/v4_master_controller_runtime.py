@@ -176,6 +176,7 @@ def _worker_prompt(claim) -> str:
             "protocol": "SCORP V4 WORK_RESULT/1",
             "role": "dynamic Worker",
             "assignment": assignment,
+            "task_context": dict(getattr(claim, "task_context", {}) or {}),
             "instructions": [
                 "Only work inside the assignment resource_scope.",
                 "If local execution is required, include an execution_request using only approved fields.",

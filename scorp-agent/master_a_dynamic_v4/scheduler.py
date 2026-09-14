@@ -36,6 +36,7 @@ class AssignmentClaim:
     resource_scope: tuple[str, ...]
     access_mode: str
     expires_at: str
+    task_context: Mapping[str, Any] = dataclasses.field(default_factory=dict)
 
 
 def _aware(value: dt.datetime | None) -> dt.datetime:
@@ -47,6 +48,16 @@ def _aware(value: dt.datetime | None) -> dt.datetime:
 
 def _timestamp(value: dt.datetime | None) -> str:
     return _aware(value).isoformat().replace("+00:00", "Z")
+
+
+def _decode_task_context(raw: Any) -> dict[str, Any]:
+    try:
+        value = json.loads(str(raw or "{}"))
+    except (TypeError, ValueError) as exc:
+        raise SchedulerError("TASK_CONTEXT_INVALID") from exc
+    if not isinstance(value, Mapping):
+        raise SchedulerError("TASK_CONTEXT_INVALID")
+    return dict(value)
 
 
 class Scheduler:
@@ -79,6 +90,15 @@ class Scheduler:
             objective = str(raw.get("objective_sha256") or "").strip().lower()
             access_mode = str(raw.get("access_mode") or "write").strip().lower()
             dependencies = [str(value).strip() for value in raw.get("dependencies", [])]
+            task_context = raw.get("task_context", {})
+            if not isinstance(task_context, Mapping):
+                raise SchedulerError("TASK_CONTEXT_INVALID")
+            try:
+                task_context_json = canonical_json(dict(task_context))
+            except (TypeError, ValueError) as exc:
+                raise SchedulerError("TASK_CONTEXT_INVALID") from exc
+            if len(task_context_json.encode("utf-8")) > 64 * 1024:
+                raise SchedulerError("TASK_CONTEXT_TOO_LARGE")
             if not task_id or task_id in ids:
                 raise SchedulerError("TASK_ID_INVALID_OR_DUPLICATE")
             if len(objective) != 64 or any(ch not in "0123456789abcdef" for ch in objective):
@@ -92,6 +112,7 @@ class Scheduler:
                     "task_id": task_id,
                     "objective_sha256": objective,
                     "resource_scope": scope,
+                    "task_context_json": task_context_json,
                     "access_mode": access_mode,
                     "dependencies": dependencies,
                     "required": 1 if raw.get("required", True) else 0,
@@ -128,6 +149,7 @@ class Scheduler:
                 identity = {
                     "objective_sha256": task["objective_sha256"],
                     "resource_scope_json": canonical_json(list(task["resource_scope"])),
+                    "task_context_json": task["task_context_json"],
                     "access_mode": task["access_mode"],
                     "required": task["required"],
                 }
@@ -144,14 +166,15 @@ class Scheduler:
                     """
                     INSERT INTO task_nodes(
                         project_id,task_id,objective_sha256,resource_scope_json,
-                        access_mode,required,state,created_at,updated_at
-                    ) VALUES(?,?,?,?,?,?,'QUEUED',?,?)
+                        task_context_json,access_mode,required,state,created_at,updated_at
+                    ) VALUES(?,?,?,?,?,?,?,'QUEUED',?,?)
                     """,
                     (
                         self.project_id,
                         task["task_id"],
                         task["objective_sha256"],
                         identity["resource_scope_json"],
+                        identity["task_context_json"],
                         task["access_mode"],
                         task["required"],
                         now,
@@ -239,8 +262,10 @@ class Scheduler:
                 return []
             rows = conn.execute(
                 """
-                SELECT a.*,l.expires_at,l.state AS lease_state
-                FROM assignments a JOIN leases l ON l.assignment_id=a.assignment_id
+                SELECT a.*,t.task_context_json,l.expires_at,l.state AS lease_state
+                FROM assignments a
+                JOIN task_nodes t ON t.project_id=a.project_id AND t.task_id=a.task_id
+                JOIN leases l ON l.assignment_id=a.assignment_id
                 WHERE a.project_id=? AND a.master_epoch=?
                   AND a.state='ACTIVE' AND l.state='ACTIVE'
                 ORDER BY a.slot_id,a.assignment_id
@@ -266,6 +291,7 @@ class Scheduler:
                         resource_scope=tuple(sorted(json.loads(str(row["resource_scope_json"]))),),
                         access_mode=str(row["access_mode"]),
                         expires_at=str(row["expires_at"]),
+                        task_context=_decode_task_context(row["task_context_json"]),
                     )
                 )
             return claims
@@ -408,6 +434,7 @@ class Scheduler:
                         resource_scope=tuple(sorted(scope)),
                         access_mode=mode,
                         expires_at=expires,
+                        task_context=_decode_task_context(task["task_context_json"]),
                     )
                 )
                 active.append((scope, mode))

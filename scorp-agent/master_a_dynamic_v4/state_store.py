@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class StoreInvariantError(RuntimeError):
@@ -101,6 +101,13 @@ class StateStore:
                 conn.execute(
                     "ALTER TABLE assignments ADD COLUMN base_state_version INTEGER NOT NULL DEFAULT 0 CHECK (base_state_version >= 0)"
                 )
+            task_columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(task_nodes)").fetchall()
+            }
+            if "task_context_json" not in task_columns:
+                conn.execute(
+                    "ALTER TABLE task_nodes ADD COLUMN task_context_json TEXT NOT NULL DEFAULT '{}'"
+                )
             rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
             if not rows:
                 conn.execute("BEGIN IMMEDIATE")
@@ -115,10 +122,11 @@ class StateStore:
                     raise
                 rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
             versions = [int(row[0]) for row in rows]
-            # Version 2 adds the daemon lease table.  The DDL above is
-            # idempotent, so recording the migration is sufficient for an
-            # existing V1 database and preserves the migration history.
-            if versions == [1] and SCHEMA_VERSION == 2:
+            # Version 2 adds the daemon lease table. Version 3 persists the
+            # non-authoritative task context used to build a Worker prompt.
+            # The DDL above is idempotent, so recording each migration is
+            # sufficient for older databases and preserves their history.
+            if versions == [1] and SCHEMA_VERSION >= 2:
                 conn.execute("BEGIN IMMEDIATE")
                 try:
                     conn.execute(
@@ -130,6 +138,18 @@ class StateStore:
                     conn.rollback()
                     raise
                 versions = [1, 2]
+            if versions == [1, 2] and SCHEMA_VERSION >= 3:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (3, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = [1, 2, 3]
             valid_versions = {tuple(range(1, SCHEMA_VERSION + 1)), (SCHEMA_VERSION,)}
             if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")

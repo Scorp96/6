@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS task_nodes (
     task_id TEXT NOT NULL,
     objective_sha256 TEXT NOT NULL,
     resource_scope_json TEXT NOT NULL,
+    task_context_json TEXT NOT NULL DEFAULT '{}',
     access_mode TEXT NOT NULL DEFAULT 'write',
     required INTEGER NOT NULL DEFAULT 1 CHECK (required IN (0, 1)),
     state TEXT NOT NULL DEFAULT 'QUEUED',

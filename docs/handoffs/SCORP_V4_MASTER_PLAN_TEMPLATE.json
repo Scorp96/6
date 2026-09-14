@@ -28,6 +28,9 @@
           "C:\\ScorpAgent\\workspaces\\replace-me"
         ],
         "access_mode": "read",
+        "task_context": {
+          "instruction": "Replace with a bounded task description and required structured result fields."
+        },
         "dependencies": [],
         "required": true,
         "acceptance_criteria_ids": [
