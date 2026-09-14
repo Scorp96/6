@@ -87,6 +87,13 @@ stored as `RESPONSE_CAPTURED` and the outbox is finalized. If a restart finds
 an unresolved local intent, recovery reports
 `LOCAL_EXECUTION_RECONCILIATION_REQUIRED` and never replays the process.
 
+For `access_mode=write`, the controller also requires a
+`GitWorktreeManager` and the request fields `repository`, `worktree`, and
+`base_commit`. The manager uses fixed `git` subcommands with `shell=False`,
+rejects dirty repositories and existing targets, verifies the requested base,
+and records a detached-worktree receipt. That receipt is nested in the local
+execution evidence; no force reset or automatic cleanup is performed.
+
 ## Quick simulated check
 
 The gateway tests use a fake browser engine and verify the local path:

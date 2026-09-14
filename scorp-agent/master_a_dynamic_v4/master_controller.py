@@ -17,6 +17,7 @@ from typing import Any
 from .models import CommitResult, sha256_json
 from .scheduler import AssignmentClaim, SchedulerError, WorkerFenceError
 from .execution_adapter import ExecutionAdapterRejected
+from .git_worktree import GitWorktreeRejected
 from .work_result import decode_work_result_response, result_content_sha256
 
 
@@ -57,7 +58,14 @@ class MasterAController:
         }
     )
 
-    def __init__(self, gateway: Any, session_id: str, *, execution_adapter: Any | None = None):
+    def __init__(
+        self,
+        gateway: Any,
+        session_id: str,
+        *,
+        execution_adapter: Any | None = None,
+        git_worktree_manager: Any | None = None,
+    ):
         self.gateway = gateway
         self.project_id = str(getattr(gateway, "project_id", "") or "").strip()
         self.session_id = str(session_id or "").strip()
@@ -68,6 +76,7 @@ class MasterAController:
         self.master_epoch: int | None = None
         self.plan_hash: str | None = None
         self.execution_adapter = execution_adapter
+        self.git_worktree_manager = git_worktree_manager
 
     def start(
         self,
@@ -340,6 +349,9 @@ class MasterAController:
             "resource_paths",
             "access_mode",
             "timeout_seconds",
+            "repository",
+            "worktree",
+            "base_commit",
         }
         if set(request) - allowed:
             raise ControllerRejected("EXECUTION_REQUEST_UNKNOWN_FIELD")
@@ -352,6 +364,11 @@ class MasterAController:
         mode = str(request.get("access_mode") or claim.access_mode).strip().lower()
         if mode != str(claim.access_mode).strip().lower():
             raise ControllerRejected("EXECUTION_REQUEST_ACCESS_MODE_MISMATCH")
+        is_write = mode == "write"
+        if is_write and self.git_worktree_manager is None:
+            raise ControllerRejected("GIT_WORKTREE_MANAGER_UNAVAILABLE")
+        if is_write and not all(str(request.get(key) or "").strip() for key in ("repository", "worktree", "base_commit")):
+            raise ControllerRejected("GIT_WORKTREE_REQUEST_INCOMPLETE")
         try:
             timeout_seconds = int(request.get("timeout_seconds", 300))
         except (TypeError, ValueError) as exc:
@@ -400,6 +417,15 @@ class MasterAController:
             raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_STATE_INVALID:{intent_state}")
         try:
             self.gateway.store.begin_possible_submit(intent_id)
+            worktree_receipt = None
+            if is_write:
+                worktree_receipt = self.git_worktree_manager.prepare(
+                    claim,
+                    repository=str(request["repository"]),
+                    worktree=str(request["worktree"]),
+                    base_commit=str(request["base_commit"]),
+                    timeout_seconds=timeout_seconds,
+                )
             receipt = self.execution_adapter.execute(
                 claim,
                 module=str(request.get("module") or ""),
@@ -412,7 +438,7 @@ class MasterAController:
                 expected_lease_token=claim.lease_token,
                 timeout_seconds=timeout_seconds,
             )
-        except ExecutionAdapterRejected as exc:
+        except (ExecutionAdapterRejected, GitWorktreeRejected) as exc:
             self.gateway.store.block_intent(
                 intent_id,
                 reason=f"LOCAL_EXECUTION_REJECTED:{exc}",
@@ -456,6 +482,12 @@ class MasterAController:
                 observation={"type": type(receipt).__name__},
             )
             raise ControllerRejected("EXECUTION_RECEIPT_INVALID")
+        if is_write and worktree_receipt is not None:
+            value["git_worktree_receipt"] = (
+                worktree_receipt.as_dict()
+                if hasattr(worktree_receipt, "as_dict")
+                else dict(worktree_receipt)
+            )
         if (
             str(value.get("assignment_id") or "") != claim.assignment_id
             or str(value.get("task_id") or "") != claim.task_id

@@ -59,7 +59,13 @@ class MissingControllerTests(unittest.TestCase):
 
         gateway = _FakeGateway("controller-project")
         adapter = _FakeExecutionAdapter()
-        controller = MasterAController(gateway, "master-session", execution_adapter=adapter)
+        worktree_manager = _FakeGitWorktreeManager()
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            execution_adapter=adapter,
+            git_worktree_manager=worktree_manager,
+        )
         controller.start({"objective": "execute bounded local work"}, {"required": ["AC_CONTROLLER"]})
         controller.apply_plan(
             {
@@ -78,6 +84,9 @@ class MissingControllerTests(unittest.TestCase):
                 "resource_paths": ["C:/lab/T1.txt"],
                 "access_mode": "write",
                 "timeout_seconds": 5,
+                "repository": "C:/lab/repository",
+                "worktree": "C:/lab/T1-worktree",
+                "base_commit": "a" * 40,
             }
             return result
 
@@ -86,6 +95,7 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual(1, len(adapter.calls))
         self.assertTrue(all("execution_receipt" in payload for _, payload in gateway.verified))
         self.assertEqual("master_a_dynamic_v4.csv_workload.cli", adapter.calls[0]["module"])
+        self.assertEqual(1, len(worktree_manager.calls))
 
     def test_ambiguous_browser_state_is_left_for_reconciliation(self):
         from master_a_dynamic_v4.master_controller import MasterAController
@@ -329,6 +339,32 @@ class _FakeExecutionAdapter:
     def execute(self, claim, **request):
         self.calls.append(dict(request))
         return _FakeExecutionReceipt(claim.assignment_id, claim.task_id)
+
+
+class _FakeGitWorktreeReceipt:
+    def as_dict(self):
+        return {
+            "assignment_id": "assignment-T1",
+            "task_id": "T1",
+            "repository": "C:/lab/repository",
+            "worktree": "C:/lab/T1-worktree",
+            "base_commit": "a" * 40,
+            "head_commit": "a" * 40,
+            "commands": [],
+            "stdout_sha256": "c" * 64,
+            "stderr_sha256": "d" * 64,
+            "started_at": "2026-09-14T00:00:00Z",
+            "finished_at": "2026-09-14T00:00:01Z",
+        }
+
+
+class _FakeGitWorktreeManager:
+    def __init__(self):
+        self.calls = []
+
+    def prepare(self, claim, **request):
+        self.calls.append(dict(request))
+        return _FakeGitWorktreeReceipt()
 
 
 def _result_for_claim(claim):

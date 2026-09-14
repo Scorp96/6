@@ -199,6 +199,13 @@ restart that finds an unresolved local execution intent reports
 `LOCAL_EXECUTION_RECONCILIATION_REQUIRED` and does not rerun the process;
 there is no fabricated exactly-once claim for an OS subprocess.
 
+Write-capable requests additionally require `GitWorktreeManager`. It verifies
+that the repository is clean, resolves the requested base commit, creates a
+detached worktree inside the assignment scope, and checks the new worktree
+HEAD before the Worker process starts. Existing targets, dirty repositories,
+base drift, and scope escapes are rejected; the manager never deletes a target
+or force-resets a user's repository.
+
 The implementation is in
 `scorp-agent/master_a_dynamic_v4/master_controller.py`, with an actual
 `V4BridgeGateway` integration test in
