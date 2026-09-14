@@ -2,17 +2,18 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $agentRoot = Join-Path $repo 'scorp-agent'
 $bridgeRoot = Join-Path $agentRoot 'chatgpt-gui-bridge'
+$Python = if ($env:SCORP_PYTHON) { $env:SCORP_PYTHON } else { 'python' }
 $oldPythonPath = $env:PYTHONPATH
 try {
     $env:PYTHONPATH = $agentRoot
     Write-Host '== V4 tests =='
-    & python -B -m unittest discover -s (Join-Path $agentRoot 'master_a_dynamic_v4/tests') -p 'test_*.py'
+    & $Python -B -m unittest discover -s (Join-Path $agentRoot 'master_a_dynamic_v4/tests') -p 'test_*.py'
     if ($LASTEXITCODE -ne 0) { throw "V4_TESTS_FAILED:$LASTEXITCODE" }
 
     Write-Host '== GUI bridge tests =='
     Push-Location $bridgeRoot
     try {
-        & python -B -m unittest discover -s tests -p 'test_*.py'
+        & $Python -B -m unittest discover -s tests -p 'test_*.py'
         if ($LASTEXITCODE -ne 0) { throw "BRIDGE_TESTS_FAILED:$LASTEXITCODE" }
     }
     finally { Pop-Location }
@@ -22,14 +23,14 @@ try {
     Push-Location $brokerRoot
     try {
         foreach ($pattern in @('test_broker_core.py', 'test_broker_client.py', 'test_broker_ops.py', 'test_install_contract.py')) {
-            & python -B -m unittest discover -s tests -p $pattern
+            & $Python -B -m unittest discover -s tests -p $pattern
             if ($LASTEXITCODE -ne 0) { throw "BROKER_TESTS_FAILED:${pattern}:$LASTEXITCODE" }
         }
     }
     finally { Pop-Location }
 
     Write-Host '== Python compilation =='
-    & python -B -m compileall -q (Join-Path $agentRoot 'master_a_dynamic_v4') $bridgeRoot (Join-Path $agentRoot 'privileged-broker')
+    & $Python -B -m compileall -q (Join-Path $agentRoot 'master_a_dynamic_v4') $bridgeRoot (Join-Path $agentRoot 'privileged-broker')
     if ($LASTEXITCODE -ne 0) { throw "COMPILE_FAILED:$LASTEXITCODE" }
     Write-Host 'CANDIDATE_VALIDATION=PASS'
 }
