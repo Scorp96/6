@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`de45cf0375cf7ac54be44373feddbd34f8c4f8b6`
+`9f86befc795cd3887e5b416810943e9076136a10`
 
 ## REMOTE_MAIN_HEAD
 
@@ -93,7 +93,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：154 项测试通过。
+- V4 core：155 项测试通过。
 - GUI bridge：475 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
