@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "a135e0cf8c317dcd4f51326bf5b9b71914e007fa",
+  "validated_commit": "7a2724d0c5ee5e5c57e19a42168f9131b0fe1f17",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -20,7 +20,7 @@
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
       "tests_run": 415,
-      "observed": "415 tests passed, including the V4BridgeGateway integration test for the MasterAController structured two-worker loop and guarded live-canary send gate"
+      "observed": "415 tests passed, including the V4BridgeGateway integration test for the MasterAController T1/T2 parallel then T3 dependent run_cycles loop and guarded live-canary send gate"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -63,6 +63,7 @@
     "A real two-Worker browser run used distinct worker-slot-1 and worker-slot-2 channels; both fixed-marker responses were captured after positive read-only reconciliation without duplicate sends.",
     "The two-worker live browser side effects were initiated before the final 2148dc3 commit; final code performed read-only reconciliation and has dedicated transient-URL regression tests, so the live record is not an immutable release-signature proof.",
     "The guarded canary runner was revalidated after 78df38a: if a valid persisted driver binding exists after a transient URL observation, it performs read-only confirmation before reconciliation and never blind-resends.",
-    "MasterAController now provides start/apply_plan/step/run_cycles/watchdog/completion as a model-agnostic control surface; controller integration is offline with an injected engine and does not expand live-browser evidence."
+    "MasterAController now provides start/apply_plan/step/run_cycles/watchdog/completion as a model-agnostic control surface; controller integration is offline with an injected engine and does not expand live-browser evidence.",
+    "The live candidate evidence remains harmless fixed-marker browser work; the new controller integration proves the full T1/T2 -> T3 -> IDLE loop only with an injected engine."
   ]
 }
