@@ -14,10 +14,11 @@ $env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
   --database C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --project-id demo `
   --allowed-root C:\ScorpAgent\v4-runtime `
+  # omit --daemon-epoch for a daemon process; it acquires the current SQLite epoch
   --daemon-epoch 1
 ```
 
-`--daemon-epoch` 必须是当前 SQLite daemon lease 的 epoch。读取命令是 `runtime.status`、`runtime.snapshot`、`project.status`、`master.status`、`worker.status` 和有界的 `evidence.query`。控制命令是 `project.pause`、`project.resume`、`project.cancel` 和 `project.supersede`；控制命令必须同时带 `expected_state_version`、`expected_daemon_epoch`，并使用新的 `request_id`。请求可带有界的 `actor`；响应会返回 `master_epoch` 和 operator `generation`，调用方可以用 `expected_master_epoch`、`expected_generation` 拒绝旧 Master 或旧控制代际。
+Runtime daemon 启动时可以省略固定的 `--daemon-epoch`，由 SQLite lease 返回当前 epoch；如果显式提供，则只作为期望值校验。这样 Scheduled Task 重启后不会把旧 epoch 固定在任务参数中。读取命令是 `runtime.status`、`runtime.snapshot`、`project.status`、`master.status`、`worker.status` 和有界的 `evidence.query`。控制命令是 `project.pause`、`project.resume`、`project.cancel` 和 `project.supersede`；控制命令必须同时带 `expected_state_version`、`expected_daemon_epoch`，并使用新的 `request_id`。请求可带有界的 `actor`；响应会返回 `master_epoch` 和 operator `generation`，调用方可以用 `expected_master_epoch`、`expected_generation` 拒绝旧 Master 或旧控制代际。
 
 普通 GPT 的交接方式是：它只生成上述结构化 JSON 请求，读取 JSON 响应中的 `status`、`state_version`、`master_epoch`、`generation`、`receipt_id` 和 `error`，然后根据 `runtime.status` 再构造下一次 CAS 请求。它不能把自然语言中的“继续”“重试”当作浏览器盲重发许可。`MAY_HAVE_SUBMITTED`、`BLOCKED_AMBIGUOUS`、登录失效、验证码和 Windows 交互会话不可用都必须暂停并报告。
 

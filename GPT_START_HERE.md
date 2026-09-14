@@ -195,6 +195,12 @@ This command core is a local feature-branch implementation and a testable
 handoff surface. Its focused tests and offline regression do not prove live
 ChatGPT browser acceptance or production cutover.
 
+The V4 daemon entrypoint may omit `--daemon-epoch`; it then acquires the
+current SQLite lease epoch. A fixed epoch is accepted only as an explicit
+fence check. The installer therefore should not bake an old epoch into a
+long-lived Scheduled Task. Daemon supervision records restart/recovery counts,
+bounded backoff, and a restart-budget circuit in SQLite.
+
 ### One-plan Master A runtime
 
 The repository now includes an operator-gated runtime for the actual browser

@@ -49,7 +49,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--database-path", required=True, type=pathlib.Path)
     parser.add_argument("--allowed-root", required=True, type=pathlib.Path)
     parser.add_argument("--project-id", required=True)
-    parser.add_argument("--daemon-epoch", required=True, type=int)
+    parser.add_argument(
+        "--daemon-epoch",
+        required=False,
+        type=int,
+        help="Optional expected epoch; omit to acquire the current SQLite epoch.",
+    )
     parser.add_argument("--actor-id", default="scorp-daemon")
     parser.add_argument("--daemon-ttl-seconds", type=int, default=30)
     parser.add_argument("--health-path", type=pathlib.Path)
@@ -66,7 +71,7 @@ def run_runtime(args: argparse.Namespace) -> int:
     if not database_path.is_file():
         raise RuntimeError("STATE_DATABASE_MISSING")
     allowed_root = pathlib.Path(args.allowed_root).resolve(strict=True)
-    if int(args.daemon_epoch) < 0:
+    if args.daemon_epoch is not None and int(args.daemon_epoch) < 0:
         raise RuntimeError("DAEMON_EPOCH_INVALID")
     if int(args.daemon_ttl_seconds) <= 0:
         raise RuntimeError("DAEMON_TTL_INVALID")
@@ -89,10 +94,11 @@ def run_runtime(args: argparse.Namespace) -> int:
             str(args.actor_id),
             ttl_seconds=int(args.daemon_ttl_seconds),
         )
-        if int(lease["daemon_epoch"]) != int(args.daemon_epoch):
+        if args.daemon_epoch is not None and int(lease["daemon_epoch"]) != int(args.daemon_epoch):
             raise RuntimeError(
                 f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
             )
+        daemon_epoch = int(lease["daemon_epoch"])
         action_handlers = {}
         master_supervision = False
         if args.supervise_master:
@@ -115,14 +121,14 @@ def run_runtime(args: argparse.Namespace) -> int:
         daemon = LocalDaemon(
             store,
             project_id=str(args.project_id),
-            daemon_epoch=int(args.daemon_epoch),
+            daemon_epoch=daemon_epoch,
             snapshot_provider=lambda: store.activation_snapshot(
-                str(args.project_id), daemon_epoch=int(args.daemon_epoch)
+                str(args.project_id), daemon_epoch=daemon_epoch
             ),
             lease_heartbeat=lambda: store.heartbeat_daemon_lease(
                 str(args.project_id),
                 str(args.actor_id),
-                daemon_epoch=int(args.daemon_epoch),
+                daemon_epoch=daemon_epoch,
                 ttl_seconds=int(args.daemon_ttl_seconds),
             ),
             action_handlers=action_handlers,
@@ -140,7 +146,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             "format": "scorp-v4-daemon-run/1",
             "status": health["status"],
             "project_id": str(args.project_id),
-            "daemon_epoch": int(args.daemon_epoch),
+            "daemon_epoch": daemon_epoch,
             "decision_count": len(decisions),
             "decisions": [decision.as_dict() for decision in decisions],
             "health_path": str(health_path),

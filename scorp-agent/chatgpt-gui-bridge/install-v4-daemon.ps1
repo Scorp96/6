@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$DatabasePath,
     [Parameter(Mandatory=$true)][string]$AllowedRoot,
     [Parameter(Mandatory=$true)][string]$ProjectId,
-    [Parameter(Mandatory=$true)][ValidateRange(0, [int]::MaxValue)][int]$DaemonEpoch,
+    [ValidateRange(-1, [int]::MaxValue)][int]$DaemonEpoch = -1,
     [string]$Python = 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe',
     [string]$TaskName = 'SCORP_V4_DAEMON',
     [string]$HealthPath,
@@ -54,10 +54,20 @@ try {
         '--database-path', ('"{0}"' -f $database),
         '--allowed-root', ('"{0}"' -f $allowed),
         '--project-id', ('"{0}"' -f $ProjectId),
-        '--daemon-epoch', [string]$DaemonEpoch,
         '--health-path', ('"{0}"' -f [IO.Path]::GetFullPath($HealthPath)),
         '--forever'
     )
+    if ($DaemonEpoch -ge 0) {
+        $argumentList = @(
+            '-B', ('"{0}"' -f $daemonScript),
+            '--database-path', ('"{0}"' -f $database),
+            '--allowed-root', ('"{0}"' -f $allowed),
+            '--project-id', ('"{0}"' -f $ProjectId),
+            '--daemon-epoch', [string]$DaemonEpoch,
+            '--health-path', ('"{0}"' -f [IO.Path]::GetFullPath($HealthPath)),
+            '--forever'
+        )
+    }
     $arguments = $argumentList -join ' '
     $action = New-ScheduledTaskAction -Execute $Python -Argument $arguments -WorkingDirectory (Split-Path -Parent $daemonScript)
     $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
@@ -72,7 +82,9 @@ try {
         if ($Start) { Start-ScheduledTask -TaskName $resolvedTaskName }
     }
     $installSucceeded = $true
-    [pscustomobject]@{ task_name=$resolvedTaskName; database=$database; project_id=$ProjectId; daemon_epoch=$DaemonEpoch; started=[bool]$Start; script=$daemonScript }
+    $epochValue = if ($DaemonEpoch -ge 0) { $DaemonEpoch } else { $null }
+    $epochMode = if ($DaemonEpoch -ge 0) { 'EXPECTED' } else { 'ACQUIRE_CURRENT' }
+    [pscustomobject]@{ task_name=$resolvedTaskName; database=$database; project_id=$ProjectId; daemon_epoch=$epochValue; epoch_mode=$epochMode; started=[bool]$Start; script=$daemonScript }
 }
 finally {
     if (-not $installSucceeded) {

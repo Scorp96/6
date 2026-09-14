@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -59,6 +60,55 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             with self.assertRaisesRegex(StoreInvariantError, "DAEMON_LEASE_ACTIVE"):
                 with contextlib.redirect_stdout(io.StringIO()):
                     runtime.run_runtime(second)
+
+    def test_runtime_can_acquire_current_epoch_without_static_epoch_argument(self):
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.close()
+            args = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db), "--allowed-root", str(root),
+                    "--project-id", "p", "--actor-id", "daemon-a",
+                    "--health-path", str(root / "health.json"), "--max-iterations", "1",
+                ]
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = runtime.run_runtime(args)
+            self.assertEqual(2, rc)
+            summary = json.loads(output.getvalue())
+            self.assertEqual(1, summary["daemon_epoch"])
+
+    def test_runtime_reacquires_a_new_epoch_after_the_previous_lease_expires(self):
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.close()
+            common = [
+                "--database-path", str(db), "--allowed-root", str(root),
+                "--project-id", "p", "--actor-id", "daemon-a",
+                "--daemon-ttl-seconds", "1", "--max-iterations", "1",
+            ]
+            first = runtime.build_parser().parse_args(common + ["--health-path", str(root / "first.json")])
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(2, runtime.run_runtime(first))
+            time.sleep(1.2)
+            second = runtime.build_parser().parse_args(common + ["--health-path", str(root / "second.json")])
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(2, runtime.run_runtime(second))
+            self.assertEqual(2, json.loads(output.getvalue())["daemon_epoch"])
 
     def test_runtime_can_attach_the_existing_master_supervisor_without_enabling_browser_send(self):
         from master_a_dynamic_v4.state_store import StateStore
