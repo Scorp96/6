@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "e6612a994c0b094e00669a9e5854c3dfa2df4edb",
+  "validated_commit": "ec69d9608e3423cdfebe82d30b4dcf9e2994463b",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,8 +12,8 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 56,
-      "observed": "56 tests passed, including structured Worker results and real CSV completion gate"
+      "tests_run": 57,
+      "observed": "57 tests passed, including structured Worker results, real CSV completion gate, and cyclic graph rejection"
     },
     {
       "id": "bridge_full_regression",
@@ -49,7 +49,7 @@
       "observed": "T1/T2 parallel, T3 dependency continuation, independent acceptance PASS"
     }
   ],
-  "real_browser_canary": "NOT_RUN_FOR_THIS_REPOSITORY_COPY",
+  "real_browser_canary": "PASS_SESSION_CONNECTIVITY_ONLY; see docs/handoffs/SCORP_V4_GIT6_BROWSER_CANARY.json",
   "github_write_test": "NOT_RUN",
   "production_cutover": "NOT_AUTHORIZED_NOT_ATTEMPTED",
   "long_duration_stability_proven": false,
