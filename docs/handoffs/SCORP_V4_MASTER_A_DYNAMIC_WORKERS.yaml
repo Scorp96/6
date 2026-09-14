@@ -12,7 +12,7 @@
     "target_branch": "main",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core",
     "target_worktree": "C:\\ScorpAgent\\_publish_git6",
-    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-9a0be50"
+    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-a48b27f"
   },
   "artifacts": {
     "machine_readable_spec": "docs/handoffs/SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
@@ -182,32 +182,32 @@
     "AC01": {
       "title": "concurrent CAS",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_83"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_86"
     },
     "AC02": {
       "title": "idempotency and fencing",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_83"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_86"
     },
     "AC03": {
       "title": "crash recovery",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_83"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_86"
     },
     "AC04": {
       "title": "false completion rejection",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_83"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_86"
     },
     "AC05": {
       "title": "two-slot dynamic Workers and dependencies",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_83_AND_BRIDGE_419"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_86_AND_BRIDGE_419"
     },
     "AC06": {
       "title": "permission and path boundary",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_83"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_86"
     },
     "AC07": {
       "title": "browser rebind and no duplicate submit",
@@ -222,17 +222,17 @@
     "AC09": {
       "title": "review deadline and late counter-evidence",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_V4_UNIT_83"
+      "evidence_scope": "CURRENT_GIT6_V4_UNIT_86"
     },
     "AC10": {
       "title": "candidate and experimental install identity",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_ISOLATED_LAB_9A0BE50_27_FILES_PROTECTED_HASHES_EQUAL"
+      "evidence_scope": "CURRENT_GIT6_ISOLATED_LAB_A48B27F_27_FILES_PROTECTED_HASHES_EQUAL"
     },
     "AC11": {
       "title": "full regression",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_83_V4_PLUS_419_BRIDGE_PLUS_29_BROKER_PLUS_COMPILE"
+      "evidence_scope": "CURRENT_GIT6_86_V4_PLUS_419_BRIDGE_PLUS_29_BROKER_PLUS_COMPILE"
     },
     "AC12": {
       "title": "short performance and recovery soak",
@@ -249,7 +249,7 @@
         "MEASURED_THROUGHPUT_AND_ENVIRONMENT"
       ],
       "long_duration_stability_proven": false,
-      "evidence_scope": "CURRENT_GIT6_SHORT_SOAK_10S_50_CYCLES_2_RECOVERIES_0_ERRORS_9A0BE50"
+      "evidence_scope": "CURRENT_GIT6_SHORT_SOAK_10S_49_CYCLES_2_RECOVERIES_0_ERRORS_A48B27F"
     }
   },
   "deprecation": {
@@ -294,6 +294,6 @@
     "UNEXPECTED_PRODUCTION_MUTATION",
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
-  "candidate_commit": "9a0be50dc12c74959894bd239c58ff0ba49e8d8a",
+  "candidate_commit": "a48b27f208ba62abb1650f890af26bb1e1847fe3",
   "evidence_commit": "RECORDED_EXTERNALLY_AFTER_EVIDENCE_COMMIT"
 }
