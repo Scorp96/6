@@ -1,6 +1,7 @@
 import hashlib
 import json
 import pathlib
+import subprocess
 import tempfile
 import unittest
 
@@ -93,6 +94,34 @@ class StructuredExecutionWorkerEngine(StructuredWorkerEngine):
         return response
 
 
+class StructuredGitExecutionWorkerEngine(StructuredWorkerEngine):
+    def __init__(self, repository, worktree, base_commit):
+        super().__init__()
+        self.repository = pathlib.Path(repository)
+        self.worktree = pathlib.Path(worktree)
+        self.base_commit = base_commit
+
+    def submit(self, intent):
+        response = super().submit(intent)
+        result = response['response']
+        source = self.worktree / 'orders.csv'
+        result['execution_request'] = {
+            'module': 'master_a_dynamic_v4.csv_workload.cli',
+            'args': [str(source)],
+            'working_directory': str(self.worktree),
+            'resource_paths': [str(source)],
+            'access_mode': 'write',
+            'timeout_seconds': 30,
+            'repository': str(self.repository),
+            'worktree': str(self.worktree),
+            'base_commit': self.base_commit,
+        }
+        from master_a_dynamic_v4.work_result import result_content_sha256
+        result['result_sha256'] = result_content_sha256(result)
+        response['response'] = result
+        return response
+
+
 class V4GatewayTests(unittest.TestCase):
     def test_master_controller_runs_real_gateway_two_worker_structured_loop(self):
         from master_a_dynamic_v4.master_controller import MasterAController
@@ -179,6 +208,69 @@ class V4GatewayTests(unittest.TestCase):
                     ).fetchone()
                 self.assertEqual(('RESPONSE_CAPTURED', 'COMPLETED'), tuple(execution_intent))
                 self.assertEqual(1, engine.submits)
+            finally:
+                gateway.close()
+
+    def test_write_worker_uses_verified_detached_git_worktree_before_execution(self):
+        from master_a_dynamic_v4.execution_adapter import LocalExecutionAdapter
+        from master_a_dynamic_v4.git_worktree import GitWorktreeManager
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        def git(args, cwd):
+            return subprocess.run(
+                ['git', *args], cwd=str(cwd), check=True, capture_output=True,
+                text=True, encoding='utf-8', errors='replace',
+            )
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            repository = root / 'repository'; repository.mkdir()
+            git(['init', '--initial-branch=main', str(repository)], root)
+            git(['-C', str(repository), 'config', 'user.email', 'test@example.invalid'], root)
+            git(['-C', str(repository), 'config', 'user.name', 'SCORP Test'], root)
+            (repository / 'orders.csv').write_text(
+                'order_id,category,amount\nO-1,alpha,1.20\n', encoding='utf-8', newline=''
+            )
+            git(['-C', str(repository), 'add', 'orders.csv'], root)
+            git(['-C', str(repository), 'commit', '-m', 'baseline'], root)
+            base_commit = git(['-C', str(repository), 'rev-parse', 'HEAD'], root).stdout.strip()
+            worktree = root / 'worker-worktree'
+            engine = StructuredGitExecutionWorkerEngine(repository, worktree, base_commit)
+            gateway = V4BridgeGateway(
+                root / 'state.sqlite3', 'project-git-execution', [root], engine
+            )
+            controller = MasterAController(
+                gateway,
+                'master-git-execution',
+                execution_adapter=LocalExecutionAdapter([root], python_executable=sys.executable, pythonpath=sys_path),
+                git_worktree_manager=GitWorktreeManager([root]),
+            )
+            try:
+                controller.start({'objective': 'run a write-scoped worker'}, {'required': ['AC-GIT']})
+                controller.apply_plan({
+                    'project_id': 'project-git-execution',
+                    'master_identity': 'A',
+                    'tasks': [{
+                        'task_id': 'T1',
+                        'objective_sha256': '1' * 64,
+                        'resource_scope': [worktree],
+                        'access_mode': 'write',
+                        'dependencies': [],
+                        'acceptance_criteria_ids': ['AC-GIT'],
+                    }],
+                })
+                history = controller.run_cycles(lambda claim: 'return WORK_RESULT/1', max_cycles=2)
+                self.assertEqual(['DISPATCHED', 'IDLE'], [item.status for item in history])
+                self.assertEqual('ACCEPTED', gateway.scheduler.get_task('T1')['state'])
+                self.assertEqual(base_commit, git(['-C', str(worktree), 'rev-parse', 'HEAD'], root).stdout.strip())
+                self.assertTrue((worktree / 'orders.csv').is_file())
+                with gateway.store._connection() as conn:
+                    row = conn.execute(
+                        "SELECT payload_json FROM candidate_results WHERE project_id=?",
+                        ('project-git-execution',),
+                    ).fetchone()
+                payload = json.loads(row['payload_json'])
+                self.assertEqual(base_commit, payload['execution_receipt']['git_worktree_receipt']['head_commit'])
             finally:
                 gateway.close()
 
