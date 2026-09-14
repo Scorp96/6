@@ -21,6 +21,10 @@ The repository includes two generations of the system:
   decision.
 - `scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py` and `gui_engine.py`
   connect the V4 core to the existing asynchronous GUI transport.
+- `scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py`
+  provides the bounded local Master monitor. It renews an existing SQLite
+  lease, journals each decision, and forbids browser sends; `--rebind` is a
+  separate read-only physical-session check.
 
 The source is safe to test offline. It does not contain browser profiles,
 cookies, authentication data, SQLite state, runtime virtual environments,

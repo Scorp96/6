@@ -112,6 +112,13 @@ mismatch, or snapshot failure raises `PhysicalRebindError`, which the
 supervisor turns into `BLOCKED` and cleans up through the controller epoch
 end path.
 
+The directly runnable host seam is
+`tools/v4_master_supervisor_runtime.py`. It attaches to an existing lease and
+writes one fsynced JSONL decision per poll; the default mode forbids browser
+I/O. `--rebind` can be enabled only with an existing Chrome Use executable and
+driver-state path, and performs an authenticated read-only snapshot/rebind
+without sending a prompt.
+
 The local process follows a durable `action_intents/outbox` lifecycle. SQLite
 commits `MAY_HAVE_SUBMITTED` before `subprocess.run`; a captured receipt is
 stored as `RESPONSE_CAPTURED` and the outbox is finalized. If a restart finds
