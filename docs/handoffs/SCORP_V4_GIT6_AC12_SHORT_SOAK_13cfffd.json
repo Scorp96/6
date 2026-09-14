@@ -1,0 +1,39 @@
+{
+  "actual_duration_seconds": 10.0719947999969,
+  "browser_intents": 48,
+  "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+  "concurrency_peak": 2,
+  "database": "C:\\ScorpAgent\\v4-core-lab-13cfffd\\short-soak.sqlite3",
+  "database_sha256": "66eb7d523bb670ab16891ffbf16a7b6a29303c4aa7d92f5bd6994f662e1bec02",
+  "duplicate_submits": 0,
+  "ended_at": "2026-09-14T12:10:27.409732Z",
+  "environment": {
+    "cpu_count": 8,
+    "os": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 142 Stepping 11, GenuineIntel",
+    "python": "3.14.7",
+    "sqlite": "3.53.1",
+    "sqlite_pragmas": {
+      "busy_timeout": 5000,
+      "foreign_keys": 1,
+      "journal_mode": "delete",
+      "synchronous": 2
+    }
+  },
+  "errors": 0,
+  "format": "scorp-v4-short-soak-receipt/1",
+  "long_duration_stability_proven": false,
+  "max_recovery_seconds": 0.03433109999605222,
+  "recovery_limit_seconds": 2.0,
+  "requested_duration_seconds": 10.0,
+  "scheduler_recoveries": 2,
+  "slot_reuse_count": 142,
+  "started_at": "2026-09-14T12:10:17.337731Z",
+  "status": "PASS",
+  "submit_attempts": 48,
+  "task_cycles": 48,
+  "tasks_verified": 144,
+  "throughput_tasks_per_second": 14.29706854098498,
+  "candidate_commit": "13cfffd533a71bd546fc26d5d8452e38ff8b0427",
+  "lab_root": "C:\\ScorpAgent\\v4-core-lab-13cfffd"
+}

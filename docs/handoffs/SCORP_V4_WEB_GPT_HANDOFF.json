@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "210dcf64a5445c7509bc09d528fa18d0cf8bb662",
+  "candidate_commit": "13cfffd533a71bd546fc26d5d8452e38ff8b0427",
   "evidence_binding": {
-    "validated_commit": "210dcf64a5445c7509bc09d528fa18d0cf8bb662",
+    "validated_commit": "13cfffd533a71bd546fc26d5d8452e38ff8b0427",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_210dcf6.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_210dcf6.json",
-    "binding_note": "This handoff describes the 210dcf6 code candidate; its browser selector/diagnostic change is offline-tested, while current live fill-send-conversation evidence remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_13cfffd.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_13cfffd.json",
+    "binding_note": "This handoff describes the 13cfffd code candidate; the controlled-composer key-event repair is offline-tested, while current live fill-send-conversation evidence remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
