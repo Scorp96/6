@@ -5,7 +5,7 @@
   "target_branch": "main",
   "code_candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
   "validated_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
-  "evidence_record_commit": "e43b393fcb834176708f2bfbb8f0d89626853323",
+  "evidence_record_commit": "58d33e53997013b01f9808569e7ba874c9b77e15",
   "validation_scope": "current-code-candidate-plus-isolated-lab-plus-fresh-real-browser-canary",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
