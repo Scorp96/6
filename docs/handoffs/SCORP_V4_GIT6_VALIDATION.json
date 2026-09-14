@@ -45,8 +45,8 @@
       "status": "TEST_VERIFIED",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 467,
-      "observed": "467 tests passed, including Chrome Use command serialization, controlled composer repair, live canary orchestration and lifecycle fencing"
+      "tests_run": 468,
+      "observed": "468 tests passed, including the current-live-gate web-GPT packet binding, Chrome Use command serialization, controlled composer repair, live canary orchestration and lifecycle fencing"
     },
     {
       "id": "python_compile",
@@ -134,5 +134,7 @@
     "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json",
     "read_only_preflight_observed_at": "2026-09-14T15:46:36.8299717Z",
     "last_send_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c"
-  }
+  },
+  "handoff_tool_commit": "18468c66ae302fb986e2d6c71c3aacdb42dbfb05",
+  "handoff_tool_scope": "v4_web_gpt_packet.py now carries current_candidate_live_gate; regression test test_web_gpt_packet.py"
 }

@@ -321,6 +321,7 @@
       "evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json",
       "observed_at": "2026-09-14T15:46:36.8299717Z",
       "send_attempted": false
-    }
+    },
+    "handoff_tool_commit": "18468c66ae302fb986e2d6c71c3aacdb42dbfb05"
   }
 }

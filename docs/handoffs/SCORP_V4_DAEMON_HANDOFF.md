@@ -70,7 +70,7 @@ browser reconcile and Send remain separate gates.
 
 ## Current evidence boundary
 
-- `TEST_VERIFIED`: V4 suite 111/111 and GUI bridge suite 467/467 on the bundled
+- `TEST_VERIFIED`: V4 suite 111/111 and GUI bridge suite 468/468 on the bundled
   Windows Python runtime; task-context migration/prompt propagation, distinct
   CSV validate/aggregate/report operations, two Worker dispatch, independent
   reconcile, and owned-tab isolation are included. The installed lab and short

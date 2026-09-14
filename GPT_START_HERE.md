@@ -485,6 +485,7 @@ browser status, production status, blockers, and unverified items. Keep
 Use these paths when an ordinary GPT or operator takes over this repository:
 
 - Code candidate: `4246ac13f36e86d67c902228b8280a4840d47963` on `main`.
+- Handoff packet tooling patch: `18468c66ae302fb986e2d6c71c3aacdb42dbfb05`; it is validated separately and does not change the runtime candidate manifest.
 - Repository checkout: `C:\ScorpAgent\_publish_git6`.
 - Clean source snapshot: `C:\ScorpAgent\v4-source-4246ac13`.
 - Isolated lab: `C:\ScorpAgent\v4-core-lab-4246ac13`.
