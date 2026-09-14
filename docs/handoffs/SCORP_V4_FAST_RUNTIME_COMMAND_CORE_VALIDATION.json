@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "7f9501d499623710a4b517823aca00d2895412ad",
+  "implementation_commit": "21470e42ead8c5f89f8d02680de921cdaada0da1",
   "verification": {
     "test_verified": {
       "v4_core_tests": {"result": "PASS", "count": 152},
@@ -21,7 +21,7 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "7EB89A9DD276E8F5CFEB0ABEE48E643C476451D5171482BDFE93071B5D8CFAEB"
+      "sha256": "386A724FEC2FE06B5FE4D182FF7A20686F0FEF2F5A09130B79A1102FFC862D37"
     }
   },
   "implemented": [
