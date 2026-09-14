@@ -250,3 +250,43 @@ class CsvTaskScopeTests(unittest.TestCase):
             report = root / "worktree" / "report.json"
             t3 = next(task for task in build_task_graph(source, report) if task["task_id"] == "T3")
             self.assertEqual({str(source.resolve()), str(report.resolve())}, set(t3["resource_scope"]))
+
+class CsvCliOperationTests(unittest.TestCase):
+    def test_cli_operations_have_distinct_deterministic_outputs(self):
+        root = pathlib.Path(__file__).resolve().parent
+        source = root / "fixtures" / "orders.csv"
+        expected = {
+            "validate": {"valid": True, "row_count": 3},
+            "aggregate": {"categories": {"alpha": "12.30", "beta": "10.00"}},
+        }
+        for operation, document in expected.items():
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-B",
+                    "-m",
+                    "master_a_dynamic_v4.csv_workload.cli",
+                    str(source),
+                    "--operation",
+                    operation,
+                ],
+                cwd=str(root.parents[1]),
+                env={**os.environ, "PYTHONPATH": str(root.parents[2])},
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            self.assertEqual(document, json.loads(completed.stdout))
+
+
+class CsvTaskOperationTests(unittest.TestCase):
+    def test_graph_assigns_distinct_cli_operations(self):
+        from master_a_dynamic_v4.csv_workload.graph import build_task_graph
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = pathlib.Path(raw)
+            tasks = {task["task_id"]: task for task in build_task_graph(root / "orders.csv", root / "report.json")}
+            self.assertEqual("validate", tasks["T1"]["task_context"]["operation"])
+            self.assertEqual("aggregate", tasks["T2"]["task_context"]["operation"])
+            self.assertEqual("report", tasks["T3"]["task_context"]["operation"])

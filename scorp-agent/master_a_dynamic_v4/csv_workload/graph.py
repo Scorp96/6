@@ -21,6 +21,7 @@ def build_task_graph(
             "task_context": {
                 "workload": "csv_summary",
                 "task": "T1",
+                "operation": "validate",
                 "instruction": "Read the assigned UTF-8 CSV strictly. Reject malformed rows and do not emit a partial-success result.",
                 "expected_artifacts": [source],
             },
@@ -34,6 +35,7 @@ def build_task_graph(
             "task_context": {
                 "workload": "csv_summary",
                 "task": "T2",
+                "operation": "aggregate",
                 "instruction": "Aggregate amount by category with Decimal arithmetic and return canonical decimal strings.",
                 "expected_artifacts": [source],
             },
@@ -47,6 +49,7 @@ def build_task_graph(
             "task_context": {
                 "workload": "csv_summary",
                 "task": "T3",
+                "operation": "report",
                 "instruction": "Integrate T1 and T2 into a stable JSON report sorted by category, then run the required end-to-end checks.",
                 "expected_artifacts": [report],
             },
