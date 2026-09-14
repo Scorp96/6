@@ -79,6 +79,11 @@ def run_runtime(args: argparse.Namespace) -> int:
     store = StateStore(database_path, [allowed_root])
     supervisor_gateway = None
     try:
+        recovery_gate = store.daemon_recovery_gate(str(args.project_id))
+        if recovery_gate["status"] != "ALLOWED":
+            raise RuntimeError(
+                f"DAEMON_RECOVERY_{recovery_gate['status']}:{recovery_gate.get('reason', '')}"
+            )
         lease = store.acquire_daemon_lease(
             str(args.project_id),
             str(args.actor_id),
@@ -129,6 +134,8 @@ def run_runtime(args: argparse.Namespace) -> int:
             max_iterations=None if args.forever else int(args.max_iterations),
         )
         health = json.loads(health_path.read_text(encoding="utf-8"))
+        if health["status"] in {"HEALTHY", "TERMINAL"}:
+            store.record_daemon_recovery(str(args.project_id))
         summary = {
             "format": "scorp-v4-daemon-run/1",
             "status": health["status"],

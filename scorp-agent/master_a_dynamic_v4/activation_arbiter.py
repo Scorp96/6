@@ -27,7 +27,7 @@ class ArbiterSnapshot:
     progress_state: str = "IDLE"
     stale_results: int = 0
     auth_blocked: bool = False
-    operator_state: str = "ACTIVE"
+    operator_state: str = "RUNNING"
     auth_host_blocker: str | None = None
     pending_results: int = 0
     active_worker_lost: bool = False
@@ -88,7 +88,7 @@ class ActivationArbiter:
 
         if value.project_status in {"COMPLETE", "HARD_BLOCKED", "TERMINAL"}:
             action, reason = "TERMINAL", "PROJECT_TERMINAL"
-        elif str(value.operator_state) not in {"", "ACTIVE"}:
+        elif str(value.operator_state) not in {"", "ACTIVE", "RUNNING"}:
             action, reason = "BLOCKED", f"OPERATOR_FENCE_{str(value.operator_state).upper()}"
         elif value.auth_blocked or value.auth_host_blocker:
             action, reason = "BLOCKED", str(value.auth_host_blocker or "AUTHENTICATION_REQUIRED")

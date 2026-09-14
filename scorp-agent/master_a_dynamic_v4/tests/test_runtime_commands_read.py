@@ -40,7 +40,7 @@ class RuntimeReadCommandTests(unittest.TestCase):
         self.assertEqual("OK", response["status"])
         result = response["result"]
         self.assertEqual("p1", result["project_id"])
-        self.assertEqual("ACTIVE", result["operator"]["operator_state"])
+        self.assertEqual("RUNNING", result["operator"]["operator_state"])
         self.assertEqual("IDLE", result["observation"]["progress_state"])
         self.assertEqual(0, result["workers"]["active"])
         project = self.service.execute(self.request("project.status"))

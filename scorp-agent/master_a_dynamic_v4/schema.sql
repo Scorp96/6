@@ -45,6 +45,20 @@ CREATE TABLE IF NOT EXISTS daemon_leases (
     lease_until TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS daemon_supervision (
+    project_id TEXT PRIMARY KEY REFERENCES contracts(project_id) ON DELETE CASCADE,
+    restart_count INTEGER NOT NULL DEFAULT 0 CHECK (restart_count >= 0),
+    recovery_count INTEGER NOT NULL DEFAULT 0 CHECK (recovery_count >= 0),
+    consecutive_failures INTEGER NOT NULL DEFAULT 0 CHECK (consecutive_failures >= 0),
+    restart_budget INTEGER NOT NULL DEFAULT 3 CHECK (restart_budget >= 1),
+    circuit_state TEXT NOT NULL DEFAULT 'CLOSED',
+    backoff_until TEXT,
+    block_reason TEXT,
+    last_failure_at TEXT,
+    last_recovery_at TEXT,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS master_sessions (
     project_id TEXT NOT NULL REFERENCES contracts(project_id) ON DELETE CASCADE,
     session_id TEXT NOT NULL,

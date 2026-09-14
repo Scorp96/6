@@ -124,11 +124,15 @@ class RuntimeCommandService:
                 "SELECT daemon_epoch,owner_id,heartbeat_at,lease_until FROM daemon_leases WHERE project_id=?",
                 (project_id,),
             ).fetchone()
+            supervision = conn.execute(
+                "SELECT * FROM daemon_supervision WHERE project_id=?", (project_id,)
+            ).fetchone()
             return {
                 "project": dict(project),
                 "operator": self._control(project_id),
                 "observation": self._observation(project_id),
                 "daemon": dict(daemon) if daemon is not None else None,
+                "supervision": dict(supervision) if supervision is not None else None,
             }
 
     def _runtime_status(self, project_id: str, *, actor: str | None = None) -> dict[str, Any]:

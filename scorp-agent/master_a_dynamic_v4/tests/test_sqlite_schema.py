@@ -8,6 +8,7 @@ import unittest
 
 REQUIRED_TABLES = {
     "daemon_leases",
+    "daemon_supervision",
     "contracts",
     "project_state",
     "master_sessions",

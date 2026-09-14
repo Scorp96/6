@@ -88,7 +88,7 @@ class OperatorControlTests(unittest.TestCase):
         )
         self.assertEqual("OK", supersede["status"])
         control = self.store.get_operator_control("p1")
-        self.assertEqual("ACTIVE", control["operator_state"])
+        self.assertEqual("RUNNING", control["operator_state"])
         self.assertEqual(4, control["operator_generation"])
         self.assertEqual(2, control["objective_generation"])
         self.assertEqual("b" * 64, control["objective_sha256"])

@@ -33,7 +33,7 @@ class RuntimePublicApiTests(unittest.TestCase):
     def test_store_exposes_planned_snapshot_gate_and_receipt_names(self):
         snapshot = self.store.runtime_snapshot("p1", self.lease["daemon_epoch"])
         self.assertEqual("p1", snapshot["project_id"])
-        self.assertEqual("ACTIVE", snapshot["operator"]["operator_state"])
+        self.assertEqual("RUNNING", snapshot["operator"]["operator_state"])
         gate = self.store.external_side_effect_gate("p1", 0, 0)
         self.assertEqual("ALLOWED", gate["status"])
         self.assertIsNone(self.store.get_command_receipt("missing"))

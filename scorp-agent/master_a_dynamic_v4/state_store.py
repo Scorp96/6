@@ -239,7 +239,7 @@ class StateStore:
                         objective_sha256,updated_at
                     ) VALUES(?,?,?,?,?,?)
                     """,
-                    (project, "ACTIVE", 0, 0, str(root_value.get("objective_sha256") or root_hash), now),
+                    (project, "RUNNING", 0, 0, str(root_value.get("objective_sha256") or root_hash), now),
                 )
                 conn.execute(
                     """
@@ -250,6 +250,16 @@ class StateStore:
                     ) VALUES(?,?,?,?,?,?,?,?,?,?)
                     """,
                     (project, "IDLE", "UNKNOWN", None, now, None, now, None, None, None),
+                )
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO daemon_supervision(
+                        project_id,restart_count,recovery_count,consecutive_failures,
+                        restart_budget,circuit_state,backoff_until,block_reason,
+                        last_failure_at,last_recovery_at,updated_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (project, 0, 0, 0, 3, "CLOSED", None, None, None, None, now),
                 )
                 return dict(existing)
             conn.execute(
@@ -281,7 +291,7 @@ class StateStore:
                     objective_sha256,updated_at
                 ) VALUES(?,?,?,?,?,?)
                 """,
-                (project, "ACTIVE", 0, 0, str(root_value.get("objective_sha256") or sha256_json(root_value)), now),
+                (project, "RUNNING", 0, 0, str(root_value.get("objective_sha256") or sha256_json(root_value)), now),
             )
             conn.execute(
                 """
@@ -292,6 +302,16 @@ class StateStore:
                 ) VALUES(?,?,?,?,?,?,?,?,?,?)
                 """,
                 (project, "IDLE", "UNKNOWN", None, now, None, now, None, None, None),
+            )
+            conn.execute(
+                """
+                INSERT INTO daemon_supervision(
+                    project_id,restart_count,recovery_count,consecutive_failures,
+                    restart_budget,circuit_state,backoff_until,block_reason,
+                    last_failure_at,last_recovery_at,updated_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (project, 0, 0, 0, 3, "CLOSED", None, None, None, None, now),
             )
             return dict(
                 conn.execute("SELECT * FROM contracts WHERE project_id=?", (project,)).fetchone()
@@ -452,6 +472,189 @@ class StateStore:
                 raise StoreInvariantError("PROJECT_NOT_FOUND")
             return dict(row)
 
+    def get_daemon_supervision(self, project_id: str) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        if not project:
+            raise StoreInvariantError("PROJECT_ID_EMPTY")
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM daemon_supervision WHERE project_id=?", (project,)
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("DAEMON_SUPERVISION_NOT_FOUND")
+            return dict(row)
+
+    def daemon_recovery_gate(
+        self, project_id: str, *, now: dt.datetime | None = None
+    ) -> dict[str, Any]:
+        row = self.get_daemon_supervision(project_id)
+        instant = self._aware_time(now)
+        stamp = instant.isoformat().replace("+00:00", "Z")
+        state = str(row["circuit_state"])
+        if state == "BLOCKED":
+            return {
+                "status": "BLOCKED",
+                "reason": str(row["block_reason"] or "RESTART_BUDGET_EXHAUSTED"),
+                "project_id": str(project_id),
+                "restart_count": int(row["restart_count"]),
+                "restart_budget": int(row["restart_budget"]),
+            }
+        backoff_until = str(row["backoff_until"] or "")
+        if state == "BACKOFF" and backoff_until and backoff_until > stamp:
+            return {
+                "status": "BACKOFF",
+                "reason": "DAEMON_RESTART_BACKOFF",
+                "retry_at": backoff_until,
+                "project_id": str(project_id),
+                "restart_count": int(row["restart_count"]),
+                "restart_budget": int(row["restart_budget"]),
+            }
+        return {
+            "status": "ALLOWED",
+            "project_id": str(project_id),
+            "restart_count": int(row["restart_count"]),
+            "restart_budget": int(row["restart_budget"]),
+        }
+
+    def _record_daemon_failure_in_transaction(
+        self,
+        conn: sqlite3.Connection,
+        project_id: str,
+        *,
+        reason: str,
+        stamp: str,
+        restart_budget: int | None = None,
+        base_backoff_seconds: int = 2,
+        max_backoff_seconds: int = 300,
+    ) -> dict[str, Any]:
+        row = conn.execute(
+            "SELECT * FROM daemon_supervision WHERE project_id=?", (project_id,)
+        ).fetchone()
+        if row is None:
+            raise StoreInvariantError("DAEMON_SUPERVISION_NOT_FOUND")
+        budget = int(restart_budget if restart_budget is not None else row["restart_budget"])
+        if budget < 1:
+            raise StoreInvariantError("DAEMON_RESTART_BUDGET_INVALID")
+        base = max(1, int(base_backoff_seconds))
+        maximum = max(base, int(max_backoff_seconds))
+        restart_count = int(row["restart_count"]) + 1
+        consecutive = int(row["consecutive_failures"]) + 1
+        delay = min(maximum, base * (2 ** min(consecutive - 1, 10)))
+        backoff = (
+            dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+            + dt.timedelta(seconds=delay)
+        ).isoformat().replace("+00:00", "Z")
+        blocked = restart_count >= budget
+        circuit = "BLOCKED" if blocked else "BACKOFF"
+        block_reason = "RESTART_BUDGET_EXHAUSTED" if blocked else None
+        conn.execute(
+            """
+            UPDATE daemon_supervision SET restart_count=?,consecutive_failures=?,
+                restart_budget=?,circuit_state=?,backoff_until=?,block_reason=?,
+                last_failure_at=?,updated_at=? WHERE project_id=?
+            """,
+            (
+                restart_count,
+                consecutive,
+                budget,
+                circuit,
+                backoff,
+                block_reason,
+                stamp,
+                stamp,
+                project_id,
+            ),
+        )
+        conn.execute(
+            "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+            (
+                f"daemon-failure-{project_id}-{restart_count}",
+                project_id,
+                "DAEMON_FAILURE",
+                canonical_json({
+                    "reason": str(reason),
+                    "restart_count": restart_count,
+                    "consecutive_failures": consecutive,
+                    "restart_budget": budget,
+                    "circuit_state": circuit,
+                    "backoff_until": backoff,
+                }),
+                stamp,
+            ),
+        )
+        return dict(
+            conn.execute(
+                "SELECT * FROM daemon_supervision WHERE project_id=?", (project_id,)
+            ).fetchone()
+        )
+
+    def record_daemon_failure(
+        self,
+        project_id: str,
+        *,
+        reason: str,
+        now: dt.datetime | None = None,
+        restart_budget: int | None = None,
+        base_backoff_seconds: int = 2,
+        max_backoff_seconds: int = 300,
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        why = str(reason or "").strip()
+        if not project or not why:
+            raise StoreInvariantError("DAEMON_FAILURE_INVALID")
+        stamp = self._aware_time(now).isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            if conn.execute(
+                "SELECT 1 FROM project_state WHERE project_id=?", (project,)
+            ).fetchone() is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            return self._record_daemon_failure_in_transaction(
+                conn,
+                project,
+                reason=why,
+                stamp=stamp,
+                restart_budget=restart_budget,
+                base_backoff_seconds=base_backoff_seconds,
+                max_backoff_seconds=max_backoff_seconds,
+            )
+
+    def record_daemon_recovery(
+        self, project_id: str, *, now: dt.datetime | None = None
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        if not project:
+            raise StoreInvariantError("PROJECT_ID_EMPTY")
+        stamp = self._aware_time(now).isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            row = conn.execute(
+                "SELECT * FROM daemon_supervision WHERE project_id=?", (project,)
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("DAEMON_SUPERVISION_NOT_FOUND")
+            conn.execute(
+                """
+                UPDATE daemon_supervision SET restart_count=0,recovery_count=recovery_count+1,
+                    consecutive_failures=0,circuit_state='CLOSED',backoff_until=NULL,
+                    block_reason=NULL,last_recovery_at=?,updated_at=? WHERE project_id=?
+                """,
+                (stamp, stamp, project),
+            )
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"daemon-recovery-{project}-{int(row['recovery_count']) + 1}",
+                    project,
+                    "DAEMON_RECOVERY",
+                    canonical_json({"recovery_count": int(row["recovery_count"]) + 1}),
+                    stamp,
+                ),
+            )
+            return dict(
+                conn.execute(
+                    "SELECT * FROM daemon_supervision WHERE project_id=?", (project,)
+                ).fetchone()
+            )
+
     def acquire_daemon_lease(
         self,
         project_id: str,
@@ -487,6 +690,17 @@ class StateStore:
                     (stamp, lease_until, project, owner, int(existing["daemon_epoch"])),
                 )
                 return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
+            if existing is not None:
+                # An expired lease is the durable evidence available to the
+                # next process after an unclean daemon stop.  Record the
+                # restart before installing the new epoch; the new owner is
+                # still the only authority for this transaction.
+                self._record_daemon_failure_in_transaction(
+                    conn,
+                    project,
+                    reason="LEASE_EXPIRED",
+                    stamp=stamp,
+                )
             epoch = int(existing["daemon_epoch"]) + 1 if existing is not None else 1
             conn.execute(
                 """
@@ -623,7 +837,7 @@ class StateStore:
                 ambiguous_intents=ambiguous,
                 progress_state=progress_state,
                 stale_results=stale,
-                operator_state=str(control["operator_state"]) if control is not None else "ACTIVE",
+                operator_state=str(control["operator_state"]) if control is not None else "RUNNING",
                 auth_host_blocker=str(observation["auth_host_blocker"]) if observation is not None and observation["auth_host_blocker"] else None,
                 pending_results=pending_results,
                 browser_semantic_state=str(observation["browser_semantic_state"]) if observation is not None else "UNKNOWN",
@@ -1171,7 +1385,7 @@ class StateStore:
             ).fetchone()
             if row is None:
                 raise StoreInvariantError("OPERATOR_CONTROL_NOT_FOUND")
-            if str(row["operator_state"]) != "ACTIVE":
+            if str(row["operator_state"]) not in {"ACTIVE", "RUNNING"}:
                 raise StoreInvariantError(f"OPERATOR_STATE_FENCED:{row['operator_state']}")
             if operator != int(row["operator_generation"]):
                 raise StoreInvariantError("OPERATOR_GENERATION_FENCED")
@@ -1212,6 +1426,9 @@ class StateStore:
                 "SELECT daemon_epoch,owner_id,heartbeat_at,lease_until FROM daemon_leases WHERE project_id=?",
                 (project,),
             ).fetchone()
+            supervision = conn.execute(
+                "SELECT * FROM daemon_supervision WHERE project_id=?", (project,)
+            ).fetchone()
             master = conn.execute(
                 "SELECT * FROM master_sessions WHERE project_id=? ORDER BY CASE WHEN state='ACTIVE' THEN 0 ELSE 1 END, heartbeat_at DESC LIMIT 1",
                 (project,),
@@ -1248,6 +1465,7 @@ class StateStore:
             "operator": dict(control) if control is not None else None,
             "observation": dict(observation) if observation is not None else None,
             "daemon": dict(daemon) if daemon is not None else None,
+            "supervision": dict(supervision) if supervision is not None else None,
             "master": dict(master) if master is not None else None,
             "workers": {"active": active_workers, "capacity": 2, "free": max(0, 2 - active_workers)},
             "tasks": {"queued": queued, "running": running},
@@ -1283,7 +1501,7 @@ class StateStore:
         except (TypeError, ValueError) as exc:
             raise StoreInvariantError("OPERATOR_GENERATION_BINDING_INVALID") from exc
         if (
-            str(control["operator_state"]) != "ACTIVE"
+            str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}
             or operator_generation != int(control["operator_generation"])
             or objective_generation != int(control["objective_generation"])
         ):

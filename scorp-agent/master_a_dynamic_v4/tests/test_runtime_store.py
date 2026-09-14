@@ -25,7 +25,7 @@ class RuntimeStoreTests(unittest.TestCase):
 
     def test_contract_initializes_operator_generation_and_observation(self):
         control = self.store.get_operator_control("p1")
-        self.assertEqual("ACTIVE", control["operator_state"])
+        self.assertEqual("RUNNING", control["operator_state"])
         self.assertEqual(0, control["operator_generation"])
         self.assertEqual(0, control["objective_generation"])
         self.assertEqual(
@@ -96,7 +96,7 @@ class RuntimeStoreTests(unittest.TestCase):
         self.store.create_contract(
             "p1", root_contract={"objective": "demo"}, acceptance_contract={"required": ["AC01"]}
         )
-        self.assertEqual("ACTIVE", self.store.get_operator_control("p1")["operator_state"])
+        self.assertEqual("RUNNING", self.store.get_operator_control("p1")["operator_state"])
         self.assertEqual("IDLE", self.store.get_runtime_observation("p1")["progress_state"])
 
 

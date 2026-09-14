@@ -334,7 +334,7 @@ class Scheduler:
                 "SELECT operator_state FROM operator_controls WHERE project_id=?",
                 (self.project_id,),
             ).fetchone()
-            if control is not None and str(control["operator_state"]) != "ACTIVE":
+            if control is not None and str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
                 return []
 
             active_rows = conn.execute(

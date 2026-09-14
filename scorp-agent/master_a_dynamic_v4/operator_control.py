@@ -117,9 +117,9 @@ class OperatorControlService:
                     objective_generation += 1
                 status = {
                     "project.pause": "PAUSED",
-                    "project.resume": "ACTIVE",
+                    "project.resume": "RUNNING",
                     "project.cancel": "CANCELLED",
-                    "project.supersede": "ACTIVE",
+                    "project.supersede": "RUNNING",
                 }[request.command]
                 phase = "OPERATOR_FENCE" if request.command != "project.resume" else "RUNNING"
                 next_version = int(state["state_version"]) + 1

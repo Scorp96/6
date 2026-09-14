@@ -47,6 +47,9 @@ class RuntimeCommandContractV2Tests(unittest.TestCase):
         self.assertEqual("p1", workers["result"]["project_id"])
         self.assertLessEqual(len(workers["result"]["items"]), 2)
 
+    def test_new_contract_uses_explicit_running_operator_state(self):
+        self.assertEqual("RUNNING", self.store.get_operator_control("p1")["operator_state"])
+
     def test_actor_and_epoch_generation_are_in_response_and_stale_master_is_fenced(self):
         status = self.service.execute(self.request("status", "runtime.status"))
         self.assertEqual("gpt-master", status["result"]["actor"])
