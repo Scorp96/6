@@ -1,0 +1,144 @@
+"""Small, bounded local machine-dog loop for the V4 transaction core."""
+
+from __future__ import annotations
+
+import datetime as dt
+import json
+import os
+import pathlib
+import time
+from collections.abc import Callable, Mapping
+from typing import Any
+
+from .activation_arbiter import ActivationArbiter, ActivationDecision, ArbiterSnapshot
+from .state_store import StateStore
+
+UTC = dt.timezone.utc
+
+
+def _now() -> str:
+    return dt.datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+class DaemonInvariantError(RuntimeError):
+    pass
+
+
+class LocalDaemon:
+    """Run one deterministic decision pass without owning browser I/O.
+
+    ``snapshot_provider`` is the only runtime-specific seam.  Action handlers
+    must call fenced adapters; this class never retries an ambiguous browser
+    action and never invents a new assignment itself.
+    """
+
+    def __init__(
+        self,
+        store: StateStore,
+        *,
+        project_id: str,
+        daemon_epoch: int,
+        snapshot_provider: Callable[[], ArbiterSnapshot | Mapping[str, object]],
+        action_handlers: Mapping[str, Callable[[ActivationDecision], Any]] | None = None,
+        health_path: str | pathlib.Path,
+        actor_id: str = "scorp-daemon",
+    ) -> None:
+        if store is None or not str(project_id).strip():
+            raise ValueError("DAEMON_STORE_AND_PROJECT_REQUIRED")
+        if int(daemon_epoch) < 0:
+            raise ValueError("DAEMON_EPOCH_INVALID")
+        if not callable(snapshot_provider):
+            raise ValueError("DAEMON_SNAPSHOT_PROVIDER_REQUIRED")
+        self.store = store
+        self.project_id = str(project_id).strip()
+        self.daemon_epoch = int(daemon_epoch)
+        self.snapshot_provider = snapshot_provider
+        self.action_handlers = dict(action_handlers or {})
+        self.health_path = pathlib.Path(health_path).resolve()
+        self.health_path.parent.mkdir(parents=True, exist_ok=True)
+        self.arbiter = ActivationArbiter(actor_id=actor_id)
+        self._last_progress_at: str | None = None
+
+    def run_once(self) -> ActivationDecision:
+        snapshot_raw = self.snapshot_provider()
+        snapshot = snapshot_raw if isinstance(snapshot_raw, ArbiterSnapshot) else ArbiterSnapshot(**dict(snapshot_raw))
+        if snapshot.project_id != self.project_id or snapshot.daemon_epoch != self.daemon_epoch:
+            self._write_health(
+                status="BLOCKED",
+                snapshot=snapshot,
+                error="DAEMON_EPOCH_OR_PROJECT_MISMATCH",
+            )
+            raise DaemonInvariantError("DAEMON_EPOCH_OR_PROJECT_MISMATCH")
+        if snapshot.progress_state not in {"IDLE", "ACTIVE_GENERATING", "ACTIVE_NO_VISIBLE_PROGRESS", "STALLED_SUSPECTED", "STALLED_CONFIRMED"}:
+            self._write_health(status="BLOCKED", snapshot=snapshot, error="PROGRESS_STATE_INVALID")
+            raise DaemonInvariantError("PROGRESS_STATE_INVALID")
+        if snapshot.progress_state in {"ACTIVE_GENERATING", "IDLE"}:
+            self._last_progress_at = _now()
+
+        decision = self.arbiter.decide(snapshot)
+        self.store.record_activation_decision(decision.as_dict())
+        status = "HEALTHY"
+        error: str | None = None
+        handler = self.action_handlers.get(decision.action)
+        if decision.action in {"TERMINAL"}:
+            status = "TERMINAL"
+        elif decision.action in {"RECONCILE_AMBIGUOUS", "BLOCKED", "FENCE_STALE_RESULTS", "RESUME_MASTER", "RECOVER_STALLED"} and handler is None:
+            status = "BLOCKED"
+            error = f"ACTION_HANDLER_REQUIRED:{decision.action}"
+        elif handler is not None:
+            try:
+                handler(decision)
+            except Exception as exc:  # fail closed but leave the decision durable
+                status = "BLOCKED"
+                error = f"ACTION_FAILED:{type(exc).__name__}"
+        self._write_health(status=status, snapshot=snapshot, decision=decision, error=error)
+        return decision
+
+    def run_loop(
+        self,
+        *,
+        interval_seconds: float = 5.0,
+        max_iterations: int | None = None,
+        stop_event: Any | None = None,
+        sleep: Callable[[float], Any] = time.sleep,
+    ) -> list[ActivationDecision]:
+        if float(interval_seconds) < 0:
+            raise ValueError("DAEMON_INTERVAL_INVALID")
+        if max_iterations is not None and int(max_iterations) <= 0:
+            raise ValueError("DAEMON_ITERATION_BOUND_INVALID")
+        decisions: list[ActivationDecision] = []
+        while max_iterations is None or len(decisions) < int(max_iterations):
+            if stop_event is not None and bool(stop_event.is_set()):
+                break
+            decisions.append(self.run_once())
+            if stop_event is not None and bool(stop_event.is_set()):
+                break
+            if max_iterations is None or len(decisions) < int(max_iterations):
+                sleep(float(interval_seconds))
+        return decisions
+
+    def _write_health(
+        self,
+        *,
+        status: str,
+        snapshot: ArbiterSnapshot,
+        decision: ActivationDecision | None = None,
+        error: str | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "protocol_version": "scorp.v4.daemon-health/1",
+            "status": status,
+            "project_id": self.project_id,
+            "daemon_epoch": self.daemon_epoch,
+            "heartbeat_at": _now(),
+            "liveness": {
+                "state": snapshot.progress_state,
+                "last_progress_at": self._last_progress_at,
+            },
+            "error": error,
+        }
+        if decision is not None:
+            payload["last_decision"] = decision.as_dict()
+        temporary = self.health_path.with_name(self.health_path.name + ".tmp")
+        temporary.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        os.replace(temporary, self.health_path)

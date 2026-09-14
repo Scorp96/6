@@ -216,6 +216,77 @@ class StateStore:
                 raise StoreInvariantError("PROJECT_NOT_FOUND")
             return dict(row)
 
+    def activation_snapshot(self, project_id: str, *, daemon_epoch: int):
+        """Read the bounded state required by the local ActivationArbiter.
+
+        This method is intentionally read-only.  It never claims a lease,
+        touches a browser intent, or advances an epoch.
+        """
+        from .activation_arbiter import ArbiterSnapshot
+
+        project = str(project_id or "").strip()
+        if not project:
+            raise StoreInvariantError("PROJECT_ID_EMPTY")
+        now = utc_now()
+        with self._connection() as conn:
+            state = conn.execute(
+                "SELECT status,master_epoch FROM project_state WHERE project_id=?", (project,)
+            ).fetchone()
+            if state is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            active_master = conn.execute(
+                """
+                SELECT 1 FROM master_sessions
+                WHERE project_id=? AND state='ACTIVE' AND master_epoch=? AND lease_until>?
+                LIMIT 1
+                """,
+                (project, int(state["master_epoch"]), now),
+            ).fetchone() is not None
+            active_workers = int(conn.execute(
+                "SELECT COUNT(*) FROM leases WHERE project_id=? AND state='ACTIVE' AND expires_at>?",
+                (project, now),
+            ).fetchone()[0])
+            ready_tasks = int(conn.execute(
+                """
+                SELECT COUNT(*) FROM task_nodes t
+                WHERE t.project_id=? AND t.state='QUEUED'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM task_dependencies d
+                    JOIN task_nodes dep ON dep.project_id=d.project_id AND dep.task_id=d.depends_on_task_id
+                    WHERE d.project_id=t.project_id AND d.task_id=t.task_id
+                      AND dep.state NOT IN ('VERIFIED','ACCEPTED')
+                  )
+                """,
+                (project,),
+            ).fetchone()[0])
+            ambiguous = int(conn.execute(
+                "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS')",
+                (project,),
+            ).fetchone()[0])
+            stale = int(conn.execute(
+                """
+                SELECT COUNT(*) FROM candidate_results r
+                JOIN project_state p ON p.project_id=r.project_id
+                WHERE r.project_id=? AND r.master_epoch<p.master_epoch
+                """,
+                (project,),
+            ).fetchone()[0])
+            free_slots = max(0, 2 - active_workers)
+            progress_state = "ACTIVE_NO_VISIBLE_PROGRESS" if active_workers else "IDLE"
+            return ArbiterSnapshot(
+                project_id=project,
+                project_status=str(state["status"]),
+                master_epoch=int(state["master_epoch"]),
+                daemon_epoch=int(daemon_epoch),
+                master_active=active_master,
+                active_workers=active_workers,
+                free_slots=free_slots,
+                ready_tasks=ready_tasks,
+                ambiguous_intents=ambiguous,
+                progress_state=progress_state,
+                stale_results=stale,
+            )
+
     def advance_master_epoch(self, project_id: str, *, expected_epoch: int) -> int:
         with self._transaction() as conn:
             row = conn.execute(
@@ -601,6 +672,50 @@ class StateStore:
             row = conn.execute(
                 "SELECT COUNT(*) FROM transitions WHERE project_id=? AND result=?",
                 (project_id, CommitResult.COMMITTED.value),
+            ).fetchone()
+            return int(row[0])
+
+    def record_activation_decision(self, decision: Mapping[str, Any]) -> dict[str, Any]:
+        """Persist one deterministic daemon decision using the event log.
+
+        Decisions use the existing transactional event table so the first P0
+        implementation does not introduce a second source of truth or require
+        a live schema rewrite.  A decision id is idempotent only when its
+        canonical payload is identical; reuse with different content is an
+        invariant violation.
+        """
+        if not isinstance(decision, Mapping):
+            raise StoreInvariantError("ACTIVATION_DECISION_INVALID")
+        required = ("decision_id", "project_id", "actor_id", "daemon_epoch", "master_epoch", "action", "reason", "input_sha256")
+        if any(not str(decision.get(key, "")).strip() for key in required):
+            raise StoreInvariantError("ACTIVATION_DECISION_FIELDS_INVALID")
+        project_id = str(decision["project_id"])
+        decision_id = str(decision["decision_id"])
+        payload = dict(decision)
+        payload_text = canonical_json(payload)
+        now = utc_now()
+        with self._transaction() as conn:
+            if conn.execute("SELECT 1 FROM project_state WHERE project_id=?", (project_id,)).fetchone() is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            existing = conn.execute(
+                "SELECT payload_json FROM events WHERE event_id=? AND project_id=? AND kind='ACTIVATION_DECISION'",
+                (decision_id, project_id),
+            ).fetchone()
+            if existing is not None:
+                if str(existing[0]) != payload_text:
+                    raise StoreInvariantError("ACTIVATION_DECISION_IDENTITY_CONFLICT")
+                return payload
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (decision_id, project_id, "ACTIVATION_DECISION", payload_text, now),
+            )
+            return payload
+
+    def count_activation_decisions(self, project_id: str) -> int:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM events WHERE project_id=? AND kind='ACTIVATION_DECISION'",
+                (str(project_id),),
             ).fetchone()
             return int(row[0])
 

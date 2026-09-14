@@ -8,6 +8,13 @@ from .reader import CsvInputError
 
 
 def main(argv: list[str] | None = None) -> int:
+    # The Windows bundled runtime may select the system code page for a pipe.
+    # The workload contract is UTF-8 JSON, so make the child stream encoding
+    # explicit before writing non-ASCII category names.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="strict")
     parser = argparse.ArgumentParser(description="Generate the deterministic SCORP V4 CSV report")
     parser.add_argument("csv_path")
     args = parser.parse_args(argv)
