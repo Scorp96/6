@@ -1,0 +1,58 @@
+{
+  "format": "scorp-v4-git6-install-evidence/1",
+  "candidate_commit": "bbb5c6004f057f9ed2e71e0c95d5201cc13e97b9",
+  "manifest_sha256": "8c48dd9cdc28c5f7446f087a4a0cd6c33251ff4937d550939353de7d6ed7ba2d",
+  "manifest_file_count": 28,
+  "install_receipt": {
+    "database": "C:\\ScorpAgent\\v4-core-lab-bbb5c60b\\state.sqlite3",
+    "format": "scorp-v4-lab-install-receipt/1",
+    "installed_at": "2026-09-14T10:54:01.033655Z",
+    "interpreter": "C:\\Users\\scorp\\AppData\\Local\\Python\\bin\\python.exe",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-bbb5c60b",
+    "manifest_sha256": "8c48dd9cdc28c5f7446f087a4a0cd6c33251ff4937d550939353de7d6ed7ba2d",
+    "protected_after_sha256": "2213cc4b690687c208b55caaed1ca164ff95e149c937586b3efcc05990e5308e",
+    "protected_before_sha256": "2213cc4b690687c208b55caaed1ca164ff95e149c937586b3efcc05990e5308e",
+    "source_commit": "bbb5c6004f057f9ed2e71e0c95d5201cc13e97b9",
+    "source_tree": "C:\\ScorpAgent\\v4-source-bbb5c60b"
+  },
+  "short_soak_receipt": {
+    "actual_duration_seconds": 10.149356900001294,
+    "browser_intents": 50,
+    "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+    "concurrency_peak": 2,
+    "database": "C:\\ScorpAgent\\v4-core-lab-bbb5c60b\\short-soak.sqlite3",
+    "database_sha256": "c59a06cf1c5bc831837fd8be9c6ef6dc78d804ac9d6a622ed070fb1df351e83e",
+    "duplicate_submits": 0,
+    "ended_at": "2026-09-14T10:54:18.893971Z",
+    "environment": {
+      "cpu_count": 8,
+      "os": "Windows-11-10.0.26200-SP0",
+      "processor": "Intel64 Family 6 Model 142 Stepping 11, GenuineIntel",
+      "python": "3.15.0rc2",
+      "sqlite": "3.53.2",
+      "sqlite_pragmas": {
+        "busy_timeout": 5000,
+        "foreign_keys": 1,
+        "journal_mode": "delete",
+        "synchronous": 2
+      }
+    },
+    "errors": 0,
+    "format": "scorp-v4-short-soak-receipt/1",
+    "long_duration_stability_proven": false,
+    "max_recovery_seconds": 0.034534200000052806,
+    "recovery_limit_seconds": 2.0,
+    "requested_duration_seconds": 10.0,
+    "scheduler_recoveries": 2,
+    "slot_reuse_count": 148,
+    "started_at": "2026-09-14T10:54:08.744607Z",
+    "status": "PASS",
+    "submit_attempts": 50,
+    "task_cycles": 50,
+    "tasks_verified": 150,
+    "throughput_tasks_per_second": 14.779261531337111
+  },
+  "production_mutated": false,
+  "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+  "long_duration_stability_proven": false
+}
