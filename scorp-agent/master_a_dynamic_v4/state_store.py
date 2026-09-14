@@ -216,6 +216,97 @@ class StateStore:
                 raise StoreInvariantError("PROJECT_NOT_FOUND")
             return dict(row)
 
+    def acquire_daemon_lease(
+        self,
+        project_id: str,
+        owner_id: str,
+        *,
+        now: dt.datetime | None = None,
+        ttl_seconds: int = 30,
+    ) -> dict[str, Any]:
+        """Acquire the single local-daemon lease for a project.
+
+        A live lease owned by another process is a hard fencing error. An
+        expired lease advances the epoch before another owner can proceed.
+        The operation is one SQLite transaction, so two daemon processes
+        cannot both become the current owner.
+        """
+        project = str(project_id or "").strip()
+        owner = str(owner_id or "").strip()
+        ttl = int(ttl_seconds)
+        if not project or not owner or ttl <= 0:
+            raise StoreInvariantError("DAEMON_LEASE_INVALID")
+        instant = self._aware_time(now)
+        stamp = instant.isoformat().replace("+00:00", "Z")
+        lease_until = (instant + dt.timedelta(seconds=ttl)).isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            if conn.execute("SELECT 1 FROM project_state WHERE project_id=?", (project,)).fetchone() is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            existing = conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone()
+            if existing is not None and str(existing["lease_until"]) > stamp:
+                if str(existing["owner_id"]) != owner:
+                    raise StoreInvariantError("DAEMON_LEASE_ACTIVE")
+                conn.execute(
+                    "UPDATE daemon_leases SET heartbeat_at=?,lease_until=? WHERE project_id=? AND owner_id=? AND daemon_epoch=?",
+                    (stamp, lease_until, project, owner, int(existing["daemon_epoch"])),
+                )
+                return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
+            epoch = int(existing["daemon_epoch"]) + 1 if existing is not None else 1
+            conn.execute(
+                """
+                INSERT INTO daemon_leases(project_id,daemon_epoch,owner_id,heartbeat_at,lease_until)
+                VALUES(?,?,?,?,?)
+                ON CONFLICT(project_id) DO UPDATE SET
+                    daemon_epoch=excluded.daemon_epoch,
+                    owner_id=excluded.owner_id,
+                    heartbeat_at=excluded.heartbeat_at,
+                    lease_until=excluded.lease_until
+                """,
+                (project, epoch, owner, stamp, lease_until),
+            )
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"daemon-lease-{project}-{epoch}",
+                    project,
+                    "DAEMON_LEASE_ACQUIRED",
+                    canonical_json({"daemon_epoch": epoch, "owner_id": owner}),
+                    stamp,
+                ),
+            )
+            return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
+
+    def heartbeat_daemon_lease(
+        self,
+        project_id: str,
+        owner_id: str,
+        *,
+        daemon_epoch: int,
+        now: dt.datetime | None = None,
+        ttl_seconds: int = 30,
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        owner = str(owner_id or "").strip()
+        ttl = int(ttl_seconds)
+        if not project or not owner or int(daemon_epoch) < 1 or ttl <= 0:
+            raise StoreInvariantError("DAEMON_HEARTBEAT_INVALID")
+        instant = self._aware_time(now)
+        stamp = instant.isoformat().replace("+00:00", "Z")
+        lease_until = (instant + dt.timedelta(seconds=ttl)).isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            row = conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone()
+            if row is None:
+                raise StoreInvariantError("DAEMON_LEASE_NOT_FOUND")
+            if str(row["owner_id"]) != owner or int(row["daemon_epoch"]) != int(daemon_epoch):
+                raise StoreInvariantError("DAEMON_LEASE_FENCED")
+            if str(row["lease_until"]) <= stamp:
+                raise StoreInvariantError("DAEMON_LEASE_EXPIRED")
+            conn.execute(
+                "UPDATE daemon_leases SET heartbeat_at=?,lease_until=? WHERE project_id=? AND owner_id=? AND daemon_epoch=?",
+                (stamp, lease_until, project, owner, int(daemon_epoch)),
+            )
+            return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
+
     def activation_snapshot(self, project_id: str, *, daemon_epoch: int):
         """Read the bounded state required by the local ActivationArbiter.
 

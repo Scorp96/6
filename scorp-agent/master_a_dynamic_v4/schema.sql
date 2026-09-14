@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS project_state (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS daemon_leases (
+    project_id TEXT PRIMARY KEY REFERENCES contracts(project_id) ON DELETE CASCADE,
+    daemon_epoch INTEGER NOT NULL CHECK (daemon_epoch >= 1),
+    owner_id TEXT NOT NULL,
+    heartbeat_at TEXT NOT NULL,
+    lease_until TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS master_sessions (
     project_id TEXT NOT NULL REFERENCES contracts(project_id) ON DELETE CASCADE,
     session_id TEXT NOT NULL,

@@ -17,23 +17,43 @@ class LocalDaemonTests(unittest.TestCase):
             store = StateStore(root / "state.sqlite3", [root])
             store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
             observed = []
+            heartbeats = []
             daemon = LocalDaemon(
                 store,
                 project_id="p",
                 daemon_epoch=3,
                 snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 1, 1, 0),
                 action_handlers={"ASSIGN_WORKER": lambda decision: observed.append(decision.action)},
+                lease_heartbeat=lambda: heartbeats.append(True),
                 health_path=root / "health.json",
             )
             result = daemon.run_once()
             self.assertEqual("ASSIGN_WORKER", result.action)
             self.assertEqual(["ASSIGN_WORKER"], observed)
+            self.assertEqual([True], heartbeats)
             self.assertEqual(1, store.count_activation_decisions("p"))
             health = json.loads((root / "health.json").read_text(encoding="utf-8"))
             self.assertEqual("HEALTHY", health["status"])
             self.assertEqual("IDLE", health["liveness"]["state"])
             self.assertEqual("ASSIGN_WORKER", health["last_decision"]["action"])
             self.assertTrue(health["heartbeat_at"])
+
+    def test_failed_daemon_heartbeat_blocks_before_activation(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 1, 1, 0),
+                lease_heartbeat=lambda: (_ for _ in ()).throw(RuntimeError("LEASE_EXPIRED")),
+                health_path=root / "health.json",
+            )
+            with self.assertRaisesRegex(RuntimeError, "LEASE_EXPIRED"):
+                daemon.run_once()
+            self.assertEqual("BLOCKED", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
 
     def test_ambiguous_decision_has_no_default_action_handler(self):
         with tempfile.TemporaryDirectory() as td:

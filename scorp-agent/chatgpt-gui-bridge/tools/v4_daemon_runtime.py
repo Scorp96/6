@@ -31,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--daemon-epoch", required=True, type=int)
     parser.add_argument("--actor-id", default="scorp-daemon")
+    parser.add_argument("--daemon-ttl-seconds", type=int, default=30)
     parser.add_argument("--health-path", type=pathlib.Path)
     parser.add_argument("--interval-seconds", type=float, default=5.0)
     parser.add_argument("--max-iterations", type=int, default=1)
@@ -45,6 +46,8 @@ def run_runtime(args: argparse.Namespace) -> int:
     allowed_root = pathlib.Path(args.allowed_root).resolve(strict=True)
     if int(args.daemon_epoch) < 0:
         raise RuntimeError("DAEMON_EPOCH_INVALID")
+    if int(args.daemon_ttl_seconds) <= 0:
+        raise RuntimeError("DAEMON_TTL_INVALID")
     if float(args.interval_seconds) < 0:
         raise RuntimeError("DAEMON_INTERVAL_INVALID")
     if not args.forever and int(args.max_iterations) <= 0:
@@ -53,12 +56,27 @@ def run_runtime(args: argparse.Namespace) -> int:
 
     store = StateStore(database_path, [allowed_root])
     try:
+        lease = store.acquire_daemon_lease(
+            str(args.project_id),
+            str(args.actor_id),
+            ttl_seconds=int(args.daemon_ttl_seconds),
+        )
+        if int(lease["daemon_epoch"]) != int(args.daemon_epoch):
+            raise RuntimeError(
+                f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
+            )
         daemon = LocalDaemon(
             store,
             project_id=str(args.project_id),
             daemon_epoch=int(args.daemon_epoch),
             snapshot_provider=lambda: store.activation_snapshot(
                 str(args.project_id), daemon_epoch=int(args.daemon_epoch)
+            ),
+            lease_heartbeat=lambda: store.heartbeat_daemon_lease(
+                str(args.project_id),
+                str(args.actor_id),
+                daemon_epoch=int(args.daemon_epoch),
+                ttl_seconds=int(args.daemon_ttl_seconds),
             ),
             health_path=health_path,
             actor_id=str(args.actor_id),

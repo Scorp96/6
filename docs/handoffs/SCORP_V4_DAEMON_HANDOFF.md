@@ -8,7 +8,8 @@ boundary. It is an operational handoff, not a production acceptance receipt.
 - `scorp-agent/master_a_dynamic_v4/activation_arbiter.py` contains the
   side-effect-free deterministic priority decision.
 - `scorp-agent/master_a_dynamic_v4/daemon.py` runs a bounded local decision
-  loop, writes an atomic health file, and persists decisions in SQLite.
+  loop, renews the daemon lease, writes an atomic health file, and persists
+  decisions in SQLite.
 - `scorp-agent/chatgpt-gui-bridge/tools/v4_daemon_runtime.py` is the Windows
   command entrypoint.
 - `scorp-agent/chatgpt-gui-bridge/install-v4-daemon.ps1` is a transactional,
@@ -35,6 +36,10 @@ The daemon reads SQLite and writes one `ACTIVATION_DECISION` event. It does not
 send a browser message. If there is no valid Master binding, the expected
 result is `RESUME_MASTER` with process exit code `2` and health status
 `BLOCKED`. That is a fail-closed blocker, not a failed blind retry.
+
+The first pass acquires the single `daemon_leases` row for the project. A live
+lease owned by another process returns `DAEMON_LEASE_ACTIVE`; an expired lease
+advances the epoch. Each bounded-loop pass renews the same owner and epoch.
 
 ## Optional Task Scheduler registration
 

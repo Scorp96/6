@@ -40,6 +40,7 @@ class LocalDaemon:
         daemon_epoch: int,
         snapshot_provider: Callable[[], ArbiterSnapshot | Mapping[str, object]],
         action_handlers: Mapping[str, Callable[[ActivationDecision], Any]] | None = None,
+        lease_heartbeat: Callable[[], Any] | None = None,
         health_path: str | pathlib.Path,
         actor_id: str = "scorp-daemon",
     ) -> None:
@@ -54,6 +55,7 @@ class LocalDaemon:
         self.daemon_epoch = int(daemon_epoch)
         self.snapshot_provider = snapshot_provider
         self.action_handlers = dict(action_handlers or {})
+        self.lease_heartbeat = lease_heartbeat
         self.health_path = pathlib.Path(health_path).resolve()
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
         self.arbiter = ActivationArbiter(actor_id=actor_id)
@@ -72,6 +74,12 @@ class LocalDaemon:
         if snapshot.progress_state not in {"IDLE", "ACTIVE_GENERATING", "ACTIVE_NO_VISIBLE_PROGRESS", "STALLED_SUSPECTED", "STALLED_CONFIRMED"}:
             self._write_health(status="BLOCKED", snapshot=snapshot, error="PROGRESS_STATE_INVALID")
             raise DaemonInvariantError("PROGRESS_STATE_INVALID")
+        if self.lease_heartbeat is not None:
+            try:
+                self.lease_heartbeat()
+            except Exception:
+                self._write_health(status="BLOCKED", snapshot=snapshot, error="DAEMON_LEASE_HEARTBEAT_FAILED")
+                raise
         if snapshot.progress_state in {"ACTIVE_GENERATING", "IDLE"}:
             self._last_progress_at = _now()
 

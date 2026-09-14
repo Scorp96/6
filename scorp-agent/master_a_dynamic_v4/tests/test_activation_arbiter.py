@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 import tempfile
+import datetime as dt
 from pathlib import Path
 
 from master_a_dynamic_v4.activation_arbiter import ActivationArbiter, ArbiterSnapshot
@@ -127,6 +128,22 @@ class ActivationArbiterTests(unittest.TestCase):
             self.assertFalse(snapshot.master_active)
             self.assertEqual(2, snapshot.free_slots)
             self.assertEqual(0, snapshot.ambiguous_intents)
+
+    def test_daemon_lease_fences_a_second_owner_and_advances_epoch_after_expiry(self):
+        with tempfile.TemporaryDirectory() as td:
+            store = StateStore(Path(td) / "state.sqlite3", [td])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            start = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
+            first = store.acquire_daemon_lease("p", "daemon-a", now=start, ttl_seconds=10)
+            self.assertEqual(1, first["daemon_epoch"])
+            with self.assertRaises(StoreInvariantError):
+                store.acquire_daemon_lease("p", "daemon-b", now=start + dt.timedelta(seconds=1), ttl_seconds=10)
+            renewed = store.heartbeat_daemon_lease("p", "daemon-a", daemon_epoch=1, now=start + dt.timedelta(seconds=2), ttl_seconds=10)
+            self.assertEqual("daemon-a", renewed["owner_id"])
+            second = store.acquire_daemon_lease("p", "daemon-b", now=start + dt.timedelta(seconds=20), ttl_seconds=10)
+            self.assertEqual(2, second["daemon_epoch"])
+            with self.assertRaises(StoreInvariantError):
+                store.heartbeat_daemon_lease("p", "daemon-a", daemon_epoch=1, now=start + dt.timedelta(seconds=21), ttl_seconds=10)
 
 
 if __name__ == "__main__":
