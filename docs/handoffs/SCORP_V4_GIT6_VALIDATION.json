@@ -140,7 +140,7 @@
     "read_only_preflight_candidate": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
     "read_only_preflight_status": "BLOCKED_EXTERNAL_PRECONDITION",
     "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json",
-    "read_only_preflight_observed_at": "2026-09-14T15:46:36.8299717Z",
+    "read_only_preflight_observed_at": "2026-09-14T16:04:15.6935258Z",
     "last_send_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c"
   },
   "handoff_tool_commit": "a1d177a5567d88d645b804e40dc5e13f3fd79b81",
