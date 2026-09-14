@@ -18,7 +18,11 @@
       "reason": "只读 Chrome 预检显示 ChatGPT 页面处于‘请求过于频繁，暂时限制访问对话记录’状态；没有重新点击真实提交，也没有把旧的 MAY_HAVE_SUBMITTED 证据重放为新 canary。"
     },
     "accepted": false,
-    "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。"
+    "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
+    "phase0_audit": {
+      "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
+      "sha256": "865923644F9AF1D5C90C65338DCCF84DDBBCBD5C768C4260AC11B1C80A89B416"
+    }
   },
   "implemented": [
     "versioned JSON request/response protocol",
