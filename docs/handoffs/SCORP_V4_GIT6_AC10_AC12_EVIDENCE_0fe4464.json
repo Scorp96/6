@@ -1,0 +1,60 @@
+{
+  "format": "scorp-v4-git6-install-evidence/1",
+  "candidate_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
+  "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+  "manifest_file_count": 41,
+  "manifest_sha256": "63a2d0f1e974cc90293f84a62f2d0384bfbf98da629c593f5a1531850c12de39",
+  "install_receipt": {
+    "database": "C:\\ScorpAgent\\v4-core-lab-0fe4464\\state.sqlite3",
+    "format": "scorp-v4-lab-install-receipt/1",
+    "installed_at": "2026-09-14T14:59:53.624647Z",
+    "interpreter": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-0fe4464",
+    "manifest_sha256": "63a2d0f1e974cc90293f84a62f2d0384bfbf98da629c593f5a1531850c12de39",
+    "protected_after_sha256": "9c3830b0e26ac078d5a2f7436bae7f12e13de2db3f61942f6c42bcdf0982088d",
+    "protected_before_sha256": "9c3830b0e26ac078d5a2f7436bae7f12e13de2db3f61942f6c42bcdf0982088d",
+    "source_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
+    "source_tree": "C:\\ScorpAgent\\v4-source-0fe4464"
+  },
+  "short_soak_receipt": {
+    "actual_duration_seconds": 5.101647199997387,
+    "browser_intents": 25,
+    "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+    "concurrency_peak": 2,
+    "database": "C:\\ScorpAgent\\v4-core-lab-0fe4464\\short-soak.sqlite3",
+    "database_sha256": "7f0eeb01c3413ea4e151cf3205eb58b420f5ae9d8abef6178b685836615d0c60",
+    "duplicate_submits": 0,
+    "ended_at": "2026-09-14T15:00:51.855560Z",
+    "environment": {
+      "cpu_count": 8,
+      "os": "Windows-11-10.0.26200-SP0",
+      "processor": "Intel64 Family 6 Model 142 Stepping 11, GenuineIntel",
+      "python": "3.14.7",
+      "sqlite": "3.53.1",
+      "sqlite_pragmas": {
+        "busy_timeout": 5000,
+        "foreign_keys": 1,
+        "journal_mode": "delete",
+        "synchronous": 2
+      }
+    },
+    "errors": 0,
+    "format": "scorp-v4-short-soak-receipt/1",
+    "long_duration_stability_proven": false,
+    "max_recovery_seconds": 0.0374487999943085,
+    "recovery_limit_seconds": 2.0,
+    "requested_duration_seconds": 5.0,
+    "scheduler_recoveries": 2,
+    "slot_reuse_count": 73,
+    "started_at": "2026-09-14T15:00:46.753906Z",
+    "status": "PASS",
+    "submit_attempts": 25,
+    "task_cycles": 25,
+    "tasks_verified": 75,
+    "throughput_tasks_per_second": 14.701134174867757,
+    "candidate_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-0fe4464"
+  },
+  "production_mutated": false,
+  "long_duration_stability_proven": false
+}

@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `b4d71294957f741e9bdb3969ee75310324f8acc1`。该身份与 `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`、`SCORP_V4_GIT6_CANDIDATE_MANIFEST_b4d7129.json` 和 `SCORP_V4_GIT6_PREFLIGHT_b4d7129.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
+当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `0fe44642575332c9460e6ee9f2182de3671fa6dd`。该身份与 `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`、`SCORP_V4_GIT6_CANDIDATE_MANIFEST_0fe4464.json` 和 `SCORP_V4_GIT6_PREFLIGHT_0fe4464.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
 
 ## 先判断你现在是哪一种模式
 
