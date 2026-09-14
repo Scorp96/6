@@ -379,6 +379,27 @@ class ChromeUseActorDriverV3:
                 )
                 raise
 
+    async def _recover_new_conversation_after_timeout(self, session, turn_id, original_error):
+        """Reconcile one possibly completed new-chat submission without replaying it."""
+
+        recovery_timeout = min(float(self.timeout_seconds), 5.0)
+        for attempt in range(4):
+            observed_after_timeout = None
+            try:
+                observed_after_timeout = await self._get_url(
+                    session,
+                    timeout_seconds=recovery_timeout,
+                )
+            except TimeoutError:
+                pass
+            if observed_after_timeout is not None and observed_after_timeout != _ROOT_URL:
+                observed_after_timeout = _canonical_url(observed_after_timeout)
+                self._promote(turn_id, observed_after_timeout)
+                return await self._snapshot(session, observed_after_timeout)
+            if attempt < 3:
+                await self.sleeper(0.5)
+        raise original_error
+
     async def snapshot_conversation(self, conversation_url, *, window_handle=None):
         if window_handle is not None:
             raise ValueError("CHROME_USE_WINDOW_HANDLE_UNSUPPORTED")
@@ -468,29 +489,46 @@ class ChromeUseActorDriverV3:
                 prompt_length=len(prompt),
                 prompt_sha256=_sha(prompt),
             )
-            raise
-        try:
-            await self.cli.run_json(session, "click", send_ref, timeout_seconds=self.timeout_seconds)
-        except TimeoutError:
-            if conversation_url is not None:
+            if exc.diagnostics.get("key_event_repair") != "USED_BUT_SEND_CONTROL_STILL_MISSING":
                 raise
-            recovery_timeout = min(float(self.timeout_seconds), 5.0)
-            for attempt in range(4):
-                observed_after_timeout = None
-                try:
-                    observed_after_timeout = await self._get_url(
-                        session,
-                        timeout_seconds=recovery_timeout,
+            try:
+                # The first key-event repair only restores the controlled
+                # editor state.  If the accessibility tree still has no Send
+                # control, submit the same intent once with the CLI's explicit
+                # keyboard-submit flag.  A later URL check decides whether it
+                # actually created a conversation; there is no blind retry.
+                await self.cli.run_json(
+                    session,
+                    "type",
+                    editor_ref,
+                    prompt,
+                    "--key-events",
+                    "--clear",
+                    "--enter",
+                    timeout_seconds=self.timeout_seconds,
+                )
+            except TimeoutError as timeout_error:
+                if conversation_url is None:
+                    return await self._recover_new_conversation_after_timeout(
+                        session, turn_id, timeout_error
                     )
-                except TimeoutError:
-                    pass
-                if observed_after_timeout is not None and observed_after_timeout != _ROOT_URL:
-                    observed_after_timeout = _canonical_url(observed_after_timeout)
-                    self._promote(turn_id, observed_after_timeout)
-                    return await self._snapshot(session, observed_after_timeout)
-                if attempt < 3:
-                    await self.sleeper(0.5)
-            raise
+                raise
+            except Exception as fallback_error:
+                exc.add_context(
+                    key_event_submit="FAILED",
+                    key_event_submit_error=type(fallback_error).__name__,
+                )
+                raise exc from fallback_error
+            send_ref = None
+        if send_ref is not None:
+            try:
+                await self.cli.run_json(session, "click", send_ref, timeout_seconds=self.timeout_seconds)
+            except TimeoutError as timeout_error:
+                if conversation_url is not None:
+                    raise
+                return await self._recover_new_conversation_after_timeout(
+                    session, turn_id, timeout_error
+                )
         observed = target
         for _ in range(20):
             try:

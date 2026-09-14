@@ -271,6 +271,41 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 ))
             self.assertFalse(any(args and args[0] == 'type' for _, args, _ in cli.calls))
 
+    def test_submit_uses_single_key_event_enter_fallback_when_send_stays_missing(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            conversation = 'https://chatgpt.com/c/live-key-event-enter'
+            cli.responses = [
+                {'success': True},
+                {'data': {'value': 'https://chatgpt.com/'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                # Native fill did not activate the controlled composer.
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                # The repair restored the editor but the Send control is still
+                # absent, so the driver may use exactly one Enter fallback.
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {'data': {'value': conversation}},
+                {'success': True, 'data': {'broughtToFront': True}},
+                {'data': {'snapshot': 'submitted by enter'}},
+            ]
+            driver = self._driver(td, cli)
+            result = asyncio.run(driver.submit_prompt(
+                prompt='hello', turn_id='turn-key-event-enter', actor_kind='WORKER', conversation_url=None
+            ))
+            self.assertIn(conversation, result)
+            type_calls = [args for _, args, _ in cli.calls if args and args[0] == 'type']
+            self.assertEqual(
+                [
+                    ['type', '@e11', 'hello', '--key-events', '--clear'],
+                    ['type', '@e11', 'hello', '--key-events', '--clear', '--enter'],
+                ],
+                type_calls,
+            )
+            self.assertFalse(any(args and args[0] == 'click' for _, args, _ in cli.calls))
+
     def test_submit_accepts_chatgpt_root_query_redirect_before_new_conversation(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()
