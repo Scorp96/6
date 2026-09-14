@@ -241,6 +241,6 @@
     "UNEXPECTED_PRODUCTION_MUTATION",
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
-  "candidate_commit": "08b139ca8cdddb8779cf929d476bae15ec0d226e",
+  "candidate_commit": "3ccd41febc0a5766c508235b13e2c6bf82314744",
   "evidence_commit": "RECORDED_EXTERNALLY_AFTER_EVIDENCE_COMMIT"
 }
