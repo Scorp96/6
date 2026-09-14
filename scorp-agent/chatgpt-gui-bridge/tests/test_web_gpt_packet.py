@@ -17,15 +17,13 @@ def load_tool():
 
 class WebGptPacketTests(unittest.TestCase):
     def test_packet_carries_current_live_gate_from_validation_record(self):
+        validation_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_GIT6_VALIDATION.json'
+        validation = json.loads(validation_path.read_text(encoding='utf-8'))
+        expected_gate = validation['current_candidate_live_gate']
         packet = load_tool().build_packet(ROOT)
         gate = packet.get('current_live_gate')
         self.assertIsInstance(gate, dict)
-        self.assertEqual(gate.get('candidate_code_commit'), '4246ac13f36e86d67c902228b8280a4840d47963')
-        self.assertEqual(gate.get('status'), 'BLOCKED_EXTERNAL_PRECONDITION')
-        self.assertEqual(
-            gate.get('read_only_preflight_evidence'),
-            'docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json',
-        )
+        self.assertEqual(gate, expected_gate)
 
 
 if __name__ == '__main__':
