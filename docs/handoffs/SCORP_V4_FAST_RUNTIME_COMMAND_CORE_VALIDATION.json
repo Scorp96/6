@@ -7,7 +7,7 @@
   "implementation_commit": "92b166d30e78dda79c4bc2c4afd97fa9856b1ae9",
   "verification": {
     "test_verified": {
-      "v4_core_tests": {"result": "PASS", "count": 149},
+      "v4_core_tests": {"result": "PASS", "count": 150},
       "gui_bridge_tests": {"result": "PASS", "count": 475, "pythonpath": ["scorp-agent", "scorp-agent/chatgpt-gui-bridge"]},
       "compileall": "PASS",
       "git_diff_check": "PASS",
@@ -33,6 +33,7 @@
     "project.pause, project.resume, project.cancel, project.supersede with CAS and request idempotency",
     "project.supersede with durable SUPERSEDED fence, objective generation bump, and explicit CAS-bound resume",
     "project.emergency_stop with durable EMERGENCY_STOPPED fence and idempotent recovery-safe resume",
+    "semantic append-only operator events committed with durable receipts",
     "generation fencing before browser and local execution side effects",
     "SQLite write failure before browser intent fence fails closed without browser I/O",
     "public compatibility APIs for protocol_error, runtime_snapshot, external_side_effect_gate, and OperatorControl.apply",

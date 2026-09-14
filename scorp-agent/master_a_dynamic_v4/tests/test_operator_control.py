@@ -148,6 +148,25 @@ class OperatorControlTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual("EMERGENCY_STOPPED", self.store.get_operator_control("p1")["operator_state"])
 
+        with self.store._connection() as conn:
+            event = conn.execute(
+                "SELECT kind FROM events WHERE project_id=? ORDER BY created_at DESC LIMIT 1",
+                ("p1",),
+            ).fetchone()
+        self.assertEqual("EMERGENCY_STOPPED", event[0])
+
+    def test_supersede_emits_objective_superseded_event(self):
+        response = self.service.execute(
+            self.request("supersede-event", "project.supersede", payload={"objective_sha256": "c" * 64})
+        )
+        self.assertEqual("OK", response["status"])
+        with self.store._connection() as conn:
+            event = conn.execute(
+                "SELECT kind FROM events WHERE project_id=? ORDER BY created_at DESC LIMIT 1",
+                ("p1",),
+            ).fetchone()
+        self.assertEqual("OBJECTIVE_SUPERSEDED", event[0])
+
 
 if __name__ == "__main__":
     unittest.main()

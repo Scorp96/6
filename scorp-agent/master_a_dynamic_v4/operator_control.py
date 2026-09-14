@@ -161,12 +161,19 @@ class OperatorControlService:
                         (request.project_id,),
                     )
                 event_id = f"runtime-command-{request.request_id}"
+                event_kind = {
+                    "project.pause": "PROJECT_PAUSED",
+                    "project.resume": "PROJECT_RESUMED",
+                    "project.cancel": "PROJECT_CANCELLED",
+                    "project.supersede": "OBJECTIVE_SUPERSEDED",
+                    "project.emergency_stop": "EMERGENCY_STOPPED",
+                }[request.command]
                 conn.execute(
                     "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
                     (
                         event_id,
                         request.project_id,
-                        "OPERATOR_CONTROL",
+                        event_kind,
                         canonical_json({
                             "request_id": request.request_id,
                             "command": request.command,
