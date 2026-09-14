@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "78df38aada756077bcda8b5e9e446484307ede86",
+  "validated_commit": "a135e0cf8c317dcd4f51326bf5b9b71914e007fa",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,15 +12,15 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 62,
-      "observed": "62 tests passed, including structured Worker results, real CSV completion gate, cyclic graph rejection, Master A session watchdog, and claim recovery"
+      "tests_run": 67,
+      "observed": "67 tests passed, including MasterAController plan validation, two-worker dispatch, ambiguity fencing, restart no-resubmit, and bounded run_cycles"
     },
     {
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 414,
-      "observed": "414 tests passed, including guarded live-canary send gate"
+      "tests_run": 415,
+      "observed": "415 tests passed, including the V4BridgeGateway integration test for the MasterAController structured two-worker loop and guarded live-canary send gate"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -62,6 +62,7 @@
     "The candidate is delivered to GitHub main; installing it into the user's production scheduled task remains a separate authorized step.",
     "A real two-Worker browser run used distinct worker-slot-1 and worker-slot-2 channels; both fixed-marker responses were captured after positive read-only reconciliation without duplicate sends.",
     "The two-worker live browser side effects were initiated before the final 2148dc3 commit; final code performed read-only reconciliation and has dedicated transient-URL regression tests, so the live record is not an immutable release-signature proof.",
-    "The guarded canary runner was revalidated after 78df38a: if a valid persisted driver binding exists after a transient URL observation, it performs read-only confirmation before reconciliation and never blind-resends."
+    "The guarded canary runner was revalidated after 78df38a: if a valid persisted driver binding exists after a transient URL observation, it performs read-only confirmation before reconciliation and never blind-resends.",
+    "MasterAController now provides start/apply_plan/step/run_cycles/watchdog/completion as a model-agnostic control surface; controller integration is offline with an injected engine and does not expand live-browser evidence."
   ]
 }
