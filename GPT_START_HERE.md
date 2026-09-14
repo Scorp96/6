@@ -171,7 +171,8 @@ For a local monitor process, import `master_a_dynamic_v4.MasterSupervisor` and
 call `run_once()` on a bounded interval. It renews an active Master lease. If
 the lease expired, it first acquires a new `master_epoch`, then invokes the
 injected physical-session `rebind_callback`. Without that callback it returns
-`RESUME_REQUIRED`; if the callback fails it returns `BLOCKED`. The supervisor
+`RESUME_REQUIRED` without advancing the epoch; if the callback fails it ends
+the unbound epoch when supported and returns `BLOCKED`. The supervisor
 does not open Chrome, create a ChatGPT conversation, or bypass login itself.
 Windows Task Scheduler or another local monitor may call this seam, while the
 browser adapter remains responsible for authentication, session creation, and

@@ -1,10 +1,10 @@
 """Local supervisor seam for the durable Master A session.
 
-The supervisor is deliberately smaller than the controller.  It polls the
-SQLite-backed watchdog, renews a live logical session, and requests a new
-fencing epoch after expiry.  Rebinding a physical browser is injected by the
-host process so this module cannot claim that a browser was recovered when no
-browser operation actually happened.
+    The supervisor is deliberately smaller than the controller. It polls the
+    SQLite-backed watchdog and renews a live logical session. After expiry it
+    requests a new fencing epoch only when a physical-browser rebind callback is
+    supplied; without that callback it leaves the old state untouched and emits
+    a durable handoff signal.
 """
 
 from __future__ import annotations
@@ -28,10 +28,11 @@ class SupervisorDecision:
 class MasterSupervisor:
     """Keep one logical Master A alive without owning browser I/O.
 
-    ``rebind_callback`` belongs to the physical-session adapter.  It receives
-    the result of ``controller.resume()`` only after a new epoch has been
-    acquired.  A callback failure is reported as ``BLOCKED`` and is never
-    presented as a successful recovery.
+    ``rebind_callback`` belongs to the physical-session adapter. It receives the
+    result of ``controller.resume()`` only after a new epoch has been acquired.
+    A callback failure ends that unbound epoch when the controller supports
+    ``end()`` and is reported as ``BLOCKED``; it is never presented as a
+    successful recovery.
     """
 
     def __init__(
@@ -66,6 +67,12 @@ class MasterSupervisor:
             )
 
         if status == "RESUME_REQUIRED":
+            if self.rebind_callback is None:
+                return SupervisorDecision(
+                    status="RESUME_REQUIRED",
+                    reason="PHYSICAL_REBIND_REQUIRED",
+                    watchdog=watchdog,
+                )
             try:
                 resume = self._mapping(self.controller.resume(), "RESUME_RESULT_INVALID")
             except Exception as exc:
@@ -74,19 +81,20 @@ class MasterSupervisor:
                     reason=f"RESUME_FAILED:{type(exc).__name__}",
                     watchdog=watchdog,
                 )
-            if self.rebind_callback is None:
-                return SupervisorDecision(
-                    status="RESUME_REQUIRED",
-                    reason="PHYSICAL_REBIND_REQUIRED",
-                    watchdog=watchdog,
-                    resume=resume,
-                )
             try:
                 self.rebind_callback(resume)
             except Exception as exc:
+                cleanup_reason = "PHYSICAL_REBIND_FAILED"
+                cleanup_error = ""
+                end = getattr(self.controller, "end", None)
+                if callable(end):
+                    try:
+                        end(reason=cleanup_reason)
+                    except Exception as cleanup_exc:
+                        cleanup_error = f":CLEANUP_FAILED:{type(cleanup_exc).__name__}"
                 return SupervisorDecision(
                     status="BLOCKED",
-                    reason=f"REBIND_FAILED:{type(exc).__name__}",
+                    reason=f"REBIND_FAILED:{type(exc).__name__}{cleanup_error}",
                     watchdog=watchdog,
                     resume=resume,
                 )
@@ -115,4 +123,3 @@ class MasterSupervisor:
         if not isinstance(value, Mapping):
             raise ValueError(error)
         return value
-

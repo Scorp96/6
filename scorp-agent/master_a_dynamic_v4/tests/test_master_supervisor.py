@@ -25,6 +25,15 @@ class MasterSupervisorTests(unittest.TestCase):
         self.assertEqual(1, controller.resumes)
         self.assertEqual([{"master_epoch": 2}], rebinds)
 
+    def test_expired_session_without_rebind_callback_does_not_advance_epoch(self):
+        from master_a_dynamic_v4.master_supervisor import MasterSupervisor
+
+        controller = _Controller([{"status": "RESUME_REQUIRED"}])
+        decision = MasterSupervisor(controller).run_once()
+        self.assertEqual("RESUME_REQUIRED", decision.status)
+        self.assertEqual("PHYSICAL_REBIND_REQUIRED", decision.reason)
+        self.assertEqual(0, controller.resumes)
+
     def test_rebind_failure_remains_blocked(self):
         from master_a_dynamic_v4.master_supervisor import MasterSupervisor
 
@@ -35,6 +44,7 @@ class MasterSupervisorTests(unittest.TestCase):
         decision = MasterSupervisor(controller, rebind_callback=fail).run_once()
         self.assertEqual("BLOCKED", decision.status)
         self.assertIn("REBIND_FAILED", decision.reason)
+        self.assertEqual(1, controller.ends)
 
     def test_terminal_session_is_not_restarted(self):
         from master_a_dynamic_v4.master_supervisor import MasterSupervisor
@@ -51,6 +61,7 @@ class _Controller:
         self.decisions = list(decisions)
         self.heartbeats = 0
         self.resumes = 0
+        self.ends = 0
 
     def watchdog_once(self):
         return self.decisions.pop(0)
@@ -62,6 +73,10 @@ class _Controller:
     def resume(self):
         self.resumes += 1
         return {"master_epoch": 2}
+
+    def end(self, *, reason):
+        self.ends += 1
+        return {"state": "ENDED", "reason": reason}
 
 
 if __name__ == "__main__":

@@ -124,6 +124,25 @@ class MasterAController:
             "active_claims": tuple(claim.assignment_id for claim in claims),
         }
 
+    def end(self, *, reason: str) -> dict[str, Any]:
+        """End this epoch when physical-session recovery did not complete.
+
+        A supervisor uses this fail-closed cleanup after it has acquired a new
+        epoch but cannot bind a browser. Leaving that epoch ACTIVE would let a
+        later monitor heartbeat an unbound logical Master and falsely report
+        recovery.
+        """
+
+        epoch = self._require_epoch()
+        why = str(reason or "").strip()
+        if not why:
+            raise ControllerRejected("MASTER_END_REASON_MISSING")
+        return self.gateway.end_master_session(
+            self.session_id,
+            master_epoch=epoch,
+            reason=why,
+        )
+
     def watchdog_once(self) -> dict[str, Any]:
         return self.gateway.watchdog_once()
 

@@ -91,7 +91,8 @@ ChatGPT session may inject `rebind_callback(resume_result)` to replace the
 browser binding after the new epoch is acquired. The callback is deliberately
 outside the supervisor: a successful SQLite resume is not evidence that a
 browser was opened or that ChatGPT is authenticated. A missing callback leaves
-the decision at `RESUME_REQUIRED`; a callback failure is `BLOCKED` and must be
+the epoch unchanged and leaves the decision at `RESUME_REQUIRED`; a callback
+failure ends the unbound epoch when supported, returns `BLOCKED`, and must be
 reported for operator recovery.
 
 The local process follows a durable `action_intents/outbox` lifecycle. SQLite
