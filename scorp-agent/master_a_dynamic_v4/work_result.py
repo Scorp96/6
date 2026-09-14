@@ -33,6 +33,37 @@ class WorkResultRejected(ValueError):
     """Raised when a Worker result cannot be bound to one assignment."""
 
 
+def decode_work_result_response(value: str | Mapping[str, Any]) -> dict[str, Any]:
+    """Decode one browser-captured Worker response without trusting prose.
+
+    A response must be either a JSON object by itself or one fenced ``json``
+    object.  Explanatory text, multiple objects, arrays, and another protocol
+    version are rejected so a GPT cannot turn a conversational acknowledgement
+    into an authoritative Worker result.
+    """
+
+    if isinstance(value, Mapping):
+        parsed = dict(value)
+    else:
+        text = str(value or "").strip()
+        if text.startswith("```") and text.endswith("```"):
+            lines = text.splitlines()
+            if len(lines) < 3 or lines[0].strip().lower() not in {"```", "```json"}:
+                raise WorkResultRejected("WORK_RESULT_RESPONSE_AMBIGUOUS")
+            text = "\n".join(lines[1:-1]).strip()
+        if not text.startswith("{") or not text.endswith("}"):
+            raise WorkResultRejected("WORK_RESULT_RESPONSE_AMBIGUOUS")
+        try:
+            parsed = json.loads(text)
+        except (TypeError, ValueError) as exc:
+            raise WorkResultRejected("WORK_RESULT_RESPONSE_INVALID_JSON") from exc
+        if not isinstance(parsed, dict):
+            raise WorkResultRejected("WORK_RESULT_RESPONSE_NOT_MAPPING")
+    if str(parsed.get("work_result_version") or "") != WORK_RESULT_VERSION:
+        raise WorkResultRejected("WORK_RESULT_VERSION_UNSUPPORTED")
+    return parsed
+
+
 def result_content_sha256(value: Mapping[str, Any]) -> str:
     """Hash the result envelope without its self-referential digest field."""
 

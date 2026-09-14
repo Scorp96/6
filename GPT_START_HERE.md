@@ -157,18 +157,21 @@ natural-language claims as authority. Its normal sequence is:
 ```text
 start(root_contract, acceptance_contract)
         -> apply_plan({project_id, master_identity: "A", tasks: [...]})
-        -> repeat step(prompt_factory, response_decoder)
+        -> repeat run_cycles(prompt_factory, optional response_decoder)
         -> watchdog_once() / heartbeat()
         -> completion(candidate_commit, artifact_hashes)
 ```
 
-`step()` first reloads active claims, then fills free capacity up to two Worker
+`run_cycles()` repeatedly invokes `step()` with a hard cycle cap. `step()` first
+reloads active claims, then fills free capacity up to two Worker
 slots. It persists each assignment-bound browser intent, refuses to resubmit an
 intent in `MAY_HAVE_SUBMITTED`, `CONFIRMED_SUBMITTED`, or
 `BLOCKED_AMBIGUOUS`, and admits a response only when the decoder returns a
-version-bound `WORK_RESULT/1` that the scheduler verifies. The decoder is an
-injected boundary for the existing browser transport; it is not a model API and
-does not grant local shell permissions to a web GPT.
+version-bound `WORK_RESULT/1` that the scheduler verifies. When no custom decoder
+is supplied, `decode_work_result_response()` accepts only a standalone JSON
+object or a fenced JSON object; explanatory prose is rejected. A custom decoder
+is an injected boundary for the existing browser transport; it is not a model
+API and does not grant local shell permissions to a web GPT.
 
 The implementation is in
 `scorp-agent/master_a_dynamic_v4/master_controller.py`, with an actual

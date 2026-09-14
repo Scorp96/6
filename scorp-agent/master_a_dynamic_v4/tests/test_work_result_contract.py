@@ -56,6 +56,16 @@ class WorkResultContractTests(unittest.TestCase):
         self.assertEqual("COMPLETE", result["status"])
         self.assertEqual("T1", result["task_id"])
 
+    def test_decodes_only_a_structured_json_worker_response(self):
+        from master_a_dynamic_v4.work_result import decode_work_result_response, WorkResultRejected
+
+        payload = self.valid_payload()
+        self.assertEqual(payload, decode_work_result_response(json.dumps(payload, sort_keys=True)))
+        fenced = "```json\n" + json.dumps(payload, sort_keys=True) + "\n```"
+        self.assertEqual(payload, decode_work_result_response(fenced))
+        with self.assertRaisesRegex(WorkResultRejected, "WORK_RESULT_RESPONSE_AMBIGUOUS"):
+            decode_work_result_response("Here is the result:\n" + json.dumps(payload))
+
     def test_rejects_result_bound_to_wrong_assignment_or_version(self):
         from master_a_dynamic_v4.work_result import WorkResultRejected
 

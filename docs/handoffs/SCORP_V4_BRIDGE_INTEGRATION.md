@@ -58,6 +58,13 @@ The helper methods are intentionally small. They do not let a Worker mutate the
 root contract, raise concurrency automatically, bypass authentication, or
 declare completion. Completion remains the independent V4 acceptance gate.
 
+For the higher-level loop, import
+`master_a_dynamic_v4.MasterAController`. Call `start()`, `apply_plan()`, and
+`run_cycles()`; the latter stops on `BLOCKED`, `TERMINAL`, `IDLE`, or its hard
+cycle cap. Passing no response decoder uses the built-in
+`decode_work_result_response()` parser, which accepts only a standalone or
+fenced JSON `WORK_RESULT/1` object and rejects explanatory prose.
+
 ## Quick simulated check
 
 The gateway tests use a fake browser engine and verify the local path:

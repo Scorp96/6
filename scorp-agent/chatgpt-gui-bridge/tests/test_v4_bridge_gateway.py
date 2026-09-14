@@ -97,7 +97,7 @@ class V4GatewayTests(unittest.TestCase):
                 })
                 history = controller.run_cycles(
                     lambda claim: 'return WORK_RESULT/1 for ' + claim.task_id,
-                    lambda row: json.loads(row['response_json']),
+                    None,
                     max_cycles=4,
                 )
                 self.assertEqual(['DISPATCHED', 'DISPATCHED', 'IDLE'], [item.status for item in history])

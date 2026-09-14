@@ -14,8 +14,9 @@ import json
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from .models import AcceptanceStatus, CommitResult, sha256_json
+from .models import CommitResult, sha256_json
 from .scheduler import AssignmentClaim, SchedulerError, WorkerFenceError
+from .work_result import decode_work_result_response
 
 
 class ControllerRejected(ValueError):
@@ -155,7 +156,7 @@ class MasterAController:
     def step(
         self,
         worker_prompt_factory: Callable[[AssignmentClaim], str],
-        worker_response_decoder: Callable[[Mapping[str, Any]], Mapping[str, Any]],
+        worker_response_decoder: Callable[[Mapping[str, Any]], Mapping[str, Any]] | None = None,
     ) -> ControllerStep:
         """Run one bounded dispatch/reconcile/verify pass.
 
@@ -216,7 +217,7 @@ class MasterAController:
     def run_cycles(
         self,
         worker_prompt_factory: Callable[[AssignmentClaim], str],
-        worker_response_decoder: Callable[[Mapping[str, Any]], Mapping[str, Any]],
+        worker_response_decoder: Callable[[Mapping[str, Any]], Mapping[str, Any]] | None = None,
         *,
         max_cycles: int = 32,
     ) -> tuple[ControllerStep, ...]:
@@ -294,7 +295,11 @@ class MasterAController:
             raise ControllerRejected("WORK_RESULT_RESPONSE_INVALID_JSON") from exc
         if not isinstance(response, Mapping):
             raise ControllerRejected("WORK_RESULT_RESPONSE_NOT_MAPPING")
-        payload = worker_response_decoder(captured)
+        payload = (
+            decode_work_result_response(response)
+            if worker_response_decoder is None
+            else worker_response_decoder(captured)
+        )
         if not isinstance(payload, Mapping):
             raise ControllerRejected("WORK_RESULT_DECODER_NOT_MAPPING")
         if str(payload.get("work_result_version") or "") != "1":
