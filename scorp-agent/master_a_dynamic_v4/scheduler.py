@@ -206,7 +206,13 @@ class Scheduler:
         current = _aware(now)
         if lease_seconds < 1:
             raise SchedulerError("LEASE_SECONDS_INVALID")
-        if limit < 1:
+        try:
+            requested_limit = int(limit)
+        except (TypeError, ValueError):
+            raise SchedulerError("V4_WORKER_LIMIT_INVALID")
+        if requested_limit > self.max_workers:
+            raise SchedulerError("V4_WORKER_LIMIT_INVALID")
+        if requested_limit < 1:
             return []
         self.recover_expired_leases(now=current)
         stamp = _timestamp(current)
@@ -242,7 +248,7 @@ class Scheduler:
                 for number in range(1, self.max_workers + 1)
                 if f"worker-slot-{number}" not in occupied
             ]
-            capacity = min(limit, len(free_slots))
+            capacity = min(requested_limit, len(free_slots))
             if capacity == 0:
                 return []
 

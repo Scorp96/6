@@ -33,6 +33,22 @@ class DynamicWorkerTests(unittest.TestCase):
         )
         return store, scheduler, worktree
 
+    def test_scheduler_rejects_limit_above_configured_capacity(self):
+        from master_a_dynamic_v4.scheduler import SchedulerError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler, worktree = self.make_runtime(root)
+            try:
+                scheduler.enqueue_graph([
+                    {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "one.txt"], "dependencies": []}
+                ])
+                with self.assertRaisesRegex(SchedulerError, "V4_WORKER_LIMIT_INVALID"):
+                    scheduler.claim_runnable(master_epoch=0, limit=3)
+                self.assertEqual("QUEUED", scheduler.get_task("T1")["state"])
+            finally:
+                store.close()
+
     def test_two_slots_queue_extra_work_then_release_dependency(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
