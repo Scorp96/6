@@ -7,9 +7,10 @@ left untouched.
 
 ## Candidate location
 
-- Repository: `Scorp96/666`
-- Branch: `feature/v4-master-a-dynamic-workers`
-- Worktree: `C:\ScorpAgent\worktrees\v4-transaction-core`
+- Repository: `Scorp96/6`
+- Branch: `main`
+- Candidate commit: `e6612a994c0b094e00669a9e5854c3dfa2df4edb`
+- Worktree: `C:\ScorpAgent\_publish_git6`
 - V4 package: `scorp-agent/master_a_dynamic_v4`
 - Bridge seam: `scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py`
 - Browser seam: `scorp-agent/chatgpt-gui-bridge/gui_engine.py`
@@ -42,8 +43,10 @@ The normal sequence is:
    immutable root contract.
 2. `enqueue_graph(tasks)` records the dependency graph and path scopes.
 3. `claim_workers()` atomically leases at most two runnable assignments.
-4. A Worker submits a bounded `HANDOFF` or `BLOCKER`; the Master verifies the
-   candidate result before the task becomes `VERIFIED`.
+4. A Worker submits a version-bound structured `WORK_RESULT`; the Master
+   independently verifies its identity, content hash and evidence before the
+   task becomes `ACCEPTED`. Legacy `HANDOFF` results are migration-only and
+   cannot satisfy the new completion gate.
 5. `prepare_browser_intent()` persists the prompt intent before any browser
    action.
 6. `submit_intent()` routes the intent through the browser adapter. A complete
@@ -57,9 +60,11 @@ declare completion. Completion remains the independent V4 acceptance gate.
 
 ## Quick simulated check
 
-The gateway tests use a fake browser engine and verify the full local path:
+The gateway tests use a fake browser engine and verify the local path:
 contract -> dependency graph -> two-slot Worker claim -> verified Worker result
--> persisted browser intent -> response capture -> completed outbox. They do not
+-> persisted browser intent -> response capture -> completed outbox. The real
+code fixture additionally executes T1/T2/T3 and the independent completion
+gate. These tests do not
 call GitHub, Windows MCP, Chrome, or a paid model API.
 
 ## Legacy compatibility and deprecation boundary
