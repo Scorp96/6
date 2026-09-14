@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import sqlite3
 from collections.abc import Mapping
 from typing import Any
 
@@ -83,6 +84,12 @@ class BrowserAdapter:
                 reason=f"OPERATOR_GENERATION_FENCED:{exc}",
                 observation={"side_effect": "NOT_ATTEMPTED", "reason": str(exc)},
             )
+        except sqlite3.Error as exc:
+            # A failed SQLite durability fence is not an ambiguous browser
+            # result: the external call has not started and must never be
+            # attempted.  Do not call block_intent here because the same
+            # database failure may make a second write unsafe.
+            raise BrowserAdapterError("SQLITE_WRITE_FAILED") from exc
         try:
             # Recheck after the durable MAY_HAVE_SUBMITTED fence and directly
             # before the external call. A pause/cancel committed in between

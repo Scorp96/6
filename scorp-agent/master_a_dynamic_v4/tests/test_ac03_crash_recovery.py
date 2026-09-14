@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import pathlib
+import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 class FakeEngine:
@@ -132,6 +134,25 @@ class CrashRecoveryTests(unittest.TestCase):
                 self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
                 self.assertEqual("SUBMIT_EXCEPTION_AMBIGUOUS", result["ambiguity_reason"])
                 self.assertEqual("RuntimeError", __import__("json").loads(result["observation_json"])["error_type"])
+            finally:
+                store.close()
+
+    def test_sqlite_write_failure_before_intent_fence_fails_closed_without_browser_io(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter, BrowserAdapterError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, engine, _ = self.make_runtime(root)
+            try:
+                with patch.object(
+                    store,
+                    "begin_possible_submit",
+                    side_effect=sqlite3.OperationalError("database or disk is full"),
+                ):
+                    with self.assertRaisesRegex(BrowserAdapterError, "SQLITE_WRITE_FAILED"):
+                        BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual(0, engine.submit_count)
+                self.assertEqual("PREPARED", store.get_intent("intent-ac03")["state"])
             finally:
                 store.close()
 
