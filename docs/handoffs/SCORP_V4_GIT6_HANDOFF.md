@@ -25,7 +25,7 @@ snapshot is `C:\ScorpAgent\v4-source-4246ac13` and the isolated installed lab is
 manifest SHA-256 is
 `6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6`.
 
-**TEST_VERIFIED:** 111/111 V4 tests, 468/468 GUI bridge tests, compileall,
+**TEST_VERIFIED:** 111/111 V4 tests, 469/469 GUI bridge tests, compileall,
 manifest/install identity, the installed-lab short recovery soak, and the
 installed isolated CSV validate/aggregate/report operations passed. The short
 soak ran 5.004342 seconds with peak concurrency 2, 61 slot reuses, two scheduler

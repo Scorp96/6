@@ -322,6 +322,7 @@
       "observed_at": "2026-09-14T15:46:36.8299717Z",
       "send_attempted": false
     },
-    "handoff_tool_commit": "18468c66ae302fb986e2d6c71c3aacdb42dbfb05"
+    "handoff_tool_commit": "a1d177a5567d88d645b804e40dc5e13f3fd79b81",
+    "candidate_validation_entrypoint": "CANDIDATE_VALIDATION=PASS (V4 111/111; bridge 469/469; broker 8+7+7+7; compileall)"
   }
 }
