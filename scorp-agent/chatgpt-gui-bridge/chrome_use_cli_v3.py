@@ -70,3 +70,19 @@ class ChromeUseCliV3:
             return json.loads(text)
         except Exception as exc:
             raise ValueError("CHROME_USE_INVALID_JSON") from exc
+
+    async def prepare_interactive(self, session, *, timeout_seconds=30):
+        """Surface this session before reading controls that depend on visibility.
+
+        Chrome Use drives extension-connected tabs in the background by default.
+        ChatGPT's controlled composer can expose the textbox while withholding
+        the post-fill Send control until the tab is visible. Keep this as an
+        explicit capability on the Chrome Use adapter so injected test/fake
+        clients do not need to emulate browser visibility semantics.
+        """
+
+        return await self.run_json(
+            session,
+            "bringToFront",
+            timeout_seconds=timeout_seconds,
+        )

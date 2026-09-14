@@ -517,11 +517,25 @@ class ChromeUseActorDriverV3:
         payload = await self.cli.run_json(session, "read", timeout_seconds=self.timeout_seconds)
         return "Focused Window: Chrome\n" + url + "\n" + _render_payload(payload)
 
+    async def _prepare_interactive(self, session):
+        """Request foreground rendering when the transport supports it.
+
+        The driver is also used with deterministic fake clients in offline
+        tests. Only the Chrome Use adapter advertises this capability, so tests
+        and alternate transports retain their existing call contract.
+        """
+
+        prepare = getattr(self.cli, "prepare_interactive", None)
+        if callable(prepare):
+            await prepare(session, timeout_seconds=self.timeout_seconds)
+
     async def _editor_ref(self, session):
+        await self._prepare_interactive(session)
         payload = await self.cli.run_json(session, "snapshot", "-i", timeout_seconds=self.timeout_seconds)
         return _editor_ref_from_snapshot(payload)
 
     async def _send_ref(self, session):
+        await self._prepare_interactive(session)
         payload = await self.cli.run_json(session, "snapshot", "-i", timeout_seconds=self.timeout_seconds)
         try:
             return _send_ref_from_snapshot(payload)

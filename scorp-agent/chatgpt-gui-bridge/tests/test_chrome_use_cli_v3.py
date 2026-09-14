@@ -6,6 +6,24 @@ from chrome_use_cli_v3 import ChromeUseCliV3, _default_runner
 
 
 class ChromeUseCliV3Tests(unittest.TestCase):
+    def test_prepare_interactive_surfaces_the_bound_session(self):
+        calls = []
+
+        async def runner(argv, timeout_seconds):
+            calls.append((list(argv), timeout_seconds))
+            return 0, '{"success":true}', ''
+
+        cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner)
+        self.assertEqual(
+            {"success": True},
+            asyncio.run(cli.prepare_interactive('scorp-p0-a', timeout_seconds=4)),
+        )
+        self.assertEqual(
+            ['--session', 'scorp-p0-a', '--json', 'bringToFront'],
+            calls[0][0][1:],
+        )
+        self.assertEqual(4, calls[0][1])
+
     def test_run_json_binds_explicit_session_and_parses_json(self):
         calls = []
 

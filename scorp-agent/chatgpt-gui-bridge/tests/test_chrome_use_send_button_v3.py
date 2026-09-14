@@ -21,7 +21,31 @@ class FakeCli:
         return value
 
 
+class ForegroundAwareFakeCli(FakeCli):
+    async def prepare_interactive(self, session, *, timeout_seconds=30):
+        self.calls.append((session, ["bringToFront"], timeout_seconds))
+        return {"success": True}
+
+
 class ChromeUseSendButtonV3Tests(unittest.TestCase):
+    def test_driver_prepares_chrome_use_visibility_before_control_snapshots(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = ForegroundAwareFakeCli()
+            cli.responses = [
+                {"data": {"refs": {"e11": {"name": "Message ChatGPT", "role": "textbox"}}}},
+                {"data": {"refs": {"e20": {"name": "Send", "role": "button"}}}},
+            ]
+            driver = ChromeUseActorDriverV3(
+                cli,
+                pathlib.Path(td) / "chrome-use-driver-v3.json",
+            )
+            self.assertEqual("@e11", asyncio.run(driver._editor_ref("session-visible")))
+            self.assertEqual("@e20", asyncio.run(driver._send_ref("session-visible")))
+            self.assertEqual(
+                ["bringToFront", "snapshot", "bringToFront", "snapshot"],
+                [args[0] for _, args, _ in cli.calls],
+            )
+
     def test_submit_clicks_unique_accessibility_send_button_instead_of_pressing_enter(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()
