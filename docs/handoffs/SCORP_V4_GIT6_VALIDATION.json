@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "3ccd41febc0a5766c508235b13e2c6bf82314744",
+  "validated_commit": "49b0647b0bce3d721f8245c9b9d1160ddad245f6",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -19,8 +19,8 @@
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 417,
-      "observed": "417 tests passed, including the real V4 gateway write-worker loop with verified detached Git worktree, durable execution intent, and the two-Worker dependency loop"
+      "tests_run": 419,
+      "observed": "419 tests passed, including the operator-gated Master A runtime parser/send gate, the real V4 gateway write-worker loop, and the two-Worker dependency loop"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -67,6 +67,7 @@
     "The live candidate evidence remains harmless fixed-marker browser work; the new controller integration proves the full T1/T2 -> T3 -> IDLE loop only with an injected engine.",
     "The built-in response decoder rejects prose and accepts only standalone or fenced JSON WORK_RESULT/1; run_cycles is capped and stops on BLOCKED, TERMINAL, or IDLE.",
     "MasterAController now routes an optional execution_request through a durable LOCAL_EXECUTION action_intent/outbox lifecycle; MAY_HAVE_SUBMITTED is committed before subprocess execution, receipts are captured and finalized, and unresolved local intents are never replayed automatically.",
-    "The real V4 gateway integration now exercises a write-scoped Worker request: GitWorktreeManager verifies a clean temporary repository and detached base before LocalExecutionAdapter runs, and the resulting receipt is stored with the candidate result."
+    "The real V4 gateway integration now exercises a write-scoped Worker request: GitWorktreeManager verifies a clean temporary repository and detached base before LocalExecutionAdapter runs, and the resulting receipt is stored with the candidate result.",
+    "The operator-gated v4_master_controller_runtime.py is now the handoff entry point: without --send it performs no browser or SQLite action; with the gate it loads one plan, runs a bounded MasterAController loop, and stops on explicit blockers or the cycle cap."
   ]
 }
