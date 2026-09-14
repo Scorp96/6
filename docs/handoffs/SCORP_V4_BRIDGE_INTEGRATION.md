@@ -145,6 +145,9 @@ Worker sessions are protected persistent resources; diagnostics must be
 explicitly registered and retired. A diagnostic is stopped only when no active
 turn references its session, and a stop timeout becomes `CLEANUP_BLOCKED` with
 no blind retry. Session labels and tab colors are not state-machine evidence.
+For operator access, `tools/v4_session_lifecycle.py list` is read-only and
+`retire` accepts only one explicitly named session or turn with the exact
+candidate binding; no global cleanup operation is exposed.
 
 ## Quick simulated check
 

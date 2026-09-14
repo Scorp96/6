@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 4d984632643289cb98a223d527867b6c8c431763 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_4d98463.json `
-  --manifest-sha256 f10abfa828ff922f546ac8455dedfb0315e153a85c0ef1cc29fb99bad1245455
+  --candidate-commit 9a6ad04e50fd5dd76716585d2bd22a285dc7cff6 `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_9a6ad04.json `
+  --manifest-sha256 06a8d7a2206b0b624ffa76c1f7b4099d6689417596ad6d03bb1b57a8e577784c
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -170,9 +170,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 4d984632643289cb98a223d527867b6c8c431763 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_4d98463.json `
-  --manifest-sha256 f10abfa828ff922f546ac8455dedfb0315e153a85c0ef1cc29fb99bad1245455 `
+  --candidate-commit 9a6ad04e50fd5dd76716585d2bd22a285dc7cff6 `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_9a6ad04.json `
+  --manifest-sha256 06a8d7a2206b0b624ffa76c1f7b4099d6689417596ad6d03bb1b57a8e577784c `
   --send
 ```
 
@@ -199,6 +199,23 @@ references are gone. A timeout during `session stop` is recorded as
 are identifiers only; they do not carry status semantics. The lifecycle record,
 not color or natural-language claims, is the authority for ACTIVE, RETIRED, and
 cleanup state.
+
+To inspect or retire one named session, use
+`scorp-agent/chatgpt-gui-bridge/tools/v4_session_lifecycle.py`. `list` is
+read-only. `retire` requires an exact candidate manifest binding and either a
+single `--session` or a single `--turn-id`; `--stop` affects only that named
+session. The command has no global cleanup option and never invokes
+`session prune` or `close --all`:
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_session_lifecycle.py list `
+  --driver-state-path C:\ScorpAgent\v4-runtime\driver.json
+```
+
+Use the `retire` form only after reviewing the lifecycle report and the exact
+candidate manifest. A persistent Master or Worker stop requires the explicit
+`--allow-persistent` flag and is still recorded as a separate cleanup action.
 
 ### Monitor and privileged recovery boundaries
 

@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `4d984632643289cb98a223d527867b6c8c431763`。该身份与 `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`、`SCORP_V4_GIT6_CANDIDATE_MANIFEST_4d98463.json` 和 `SCORP_V4_GIT6_PREFLIGHT_4d98463.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
+当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `9a6ad04e50fd5dd76716585d2bd22a285dc7cff6`。该身份与 `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`、`SCORP_V4_GIT6_CANDIDATE_MANIFEST_9a6ad04.json` 和 `SCORP_V4_GIT6_PREFLIGHT_9a6ad04.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
 
 ## 先判断你现在是哪一种模式
 
@@ -74,6 +74,11 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_supervisor_runtime.py
 Master/Worker 默认持久且受保护，诊断会话必须显式退休；活动引用存在时不得
 停止共享会话，停止超时记录为 `CLEANUP_BLOCKED`。标签颜色只是可视化标识，不能
 作为状态或完成证据。
+
+操作员如需治理截图中的历史 session，只能使用
+`tools/v4_session_lifecycle.py list` 查看，或对一个明确的 `--session` /
+`--turn-id` 执行 `retire`。这个入口要求候选提交绑定，并且没有全局
+`session prune` 或 `close --all` 操作。
 
 ## 网页 GPT 应该收到什么
 
