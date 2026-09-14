@@ -1,0 +1,40 @@
+{
+  "format": "scorp-v4-two-worker-live-canary-failure/1",
+  "project_id": "scorp-v4-live-31622f1-20260914-232500",
+  "result": "BLOCKED",
+  "reason": "LIVE_CANARY_EXCEPTION_FAIL_CLOSED",
+  "error_type": "RuntimeError",
+  "error_message_sha256": "fc08b3be95c8bb83b8639cded1edd816bddce04c2b6c72627e5d7d555b647148",
+  "retry_count": 0,
+  "intents": [
+    {
+      "intent_id": "worker-intent-assignment-5d423cfd273b4df5bc1b31734cc70e7d",
+      "state": "BLOCKED_AMBIGUOUS",
+      "conversation_url": null,
+      "remote_identity": null,
+      "ambiguity_reason": "CONVERSATION_URL_MISSING"
+    },
+    {
+      "intent_id": "worker-intent-assignment-4cbd311462704697a4a59046f0f41ccf",
+      "state": "BLOCKED_AMBIGUOUS",
+      "conversation_url": null,
+      "remote_identity": null,
+      "ambiguity_reason": "CONVERSATION_URL_MISSING"
+    }
+  ],
+  "observed_at_utc": "2026-09-14T15:25:53.068042Z",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
+  "driver_state_path": "C:\\ScorpAgent\\31622f1-live-20260914-232500\\driver.json",
+  "read_only_reconciliation": {
+    "performed": true,
+    "retries_after_ambiguity": 0,
+    "url": "https://chatgpt.com/",
+    "conversation_urls": [],
+    "dialog_heading": "请求过于频繁",
+    "dialog_text": "你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。请稍等几分钟后再重试。",
+    "source": "chrome-use --json read/snapshot for both named Worker sessions",
+    "observed_at_utc": "2026-09-14T15:26:00Z"
+  },
+  "operator_action": "FAIL_CLOSED_NO_BLIND_RETRY"
+}

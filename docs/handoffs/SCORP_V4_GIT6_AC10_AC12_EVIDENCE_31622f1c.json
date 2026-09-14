@@ -1,0 +1,75 @@
+{
+  "format": "scorp-v4-git6-install-evidence/2",
+  "candidate_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
+  "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+  "manifest_file_count": 44,
+  "manifest_sha256": "b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473",
+  "install_receipt": {
+    "database": "C:\\ScorpAgent\\v4-core-lab-31622f1c\\state.sqlite3",
+    "format": "scorp-v4-lab-install-receipt/1",
+    "installed_at": "2026-09-14T15:24:23.585821Z",
+    "interpreter": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-31622f1c",
+    "manifest_sha256": "b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473",
+    "protected_after_sha256": "91140001d20a5ddf3e2025c8b90f5bc7d821810fb4097f6da1692f142f9a7777",
+    "protected_before_sha256": "91140001d20a5ddf3e2025c8b90f5bc7d821810fb4097f6da1692f142f9a7777",
+    "source_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
+    "source_tree": "C:\\ScorpAgent\\v4-source-31622f1c"
+  },
+  "short_soak_receipt": {
+    "actual_duration_seconds": 5.01561799999763,
+    "browser_intents": 22,
+    "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+    "concurrency_peak": 2,
+    "database": "C:\\ScorpAgent\\v4-core-lab-31622f1c\\short-soak.sqlite3",
+    "database_sha256": "3743116276b923e14c8bb91f773c62650c7045bdb801fceec78fe7f3e0381d15",
+    "duplicate_submits": 0,
+    "ended_at": "2026-09-14T15:24:47.384752Z",
+    "environment": {
+      "cpu_count": 8,
+      "os": "Windows-11-10.0.26200-SP0",
+      "processor": "Intel64 Family 6 Model 142 Stepping 11, GenuineIntel",
+      "python": "3.14.7",
+      "sqlite": "3.53.1",
+      "sqlite_pragmas": {
+        "busy_timeout": 5000,
+        "foreign_keys": 1,
+        "journal_mode": "delete",
+        "synchronous": 2
+      }
+    },
+    "errors": 0,
+    "format": "scorp-v4-short-soak-receipt/1",
+    "long_duration_stability_proven": false,
+    "max_recovery_seconds": 0.037616699999489356,
+    "recovery_limit_seconds": 2.0,
+    "requested_duration_seconds": 5.0,
+    "scheduler_recoveries": 2,
+    "slot_reuse_count": 64,
+    "started_at": "2026-09-14T15:24:42.369126Z",
+    "status": "PASS",
+    "submit_attempts": 22,
+    "task_cycles": 22,
+    "tasks_verified": 66,
+    "throughput_tasks_per_second": 13.158896869743904
+  },
+  "real_code_workload_local": {
+    "status": "PASS",
+    "command": "python -B -m master_a_dynamic_v4.csv_workload.cli C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-orders.csv --output C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-report.json",
+    "exit_code": 0,
+    "input": "C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-orders.csv",
+    "output": "C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-report.json",
+    "output_sha256": "f86a3aaaae25cce30ea46e28aa126182bb8717ae84db55f76585773403d53ecf",
+    "observed_report": {
+      "categories": {
+        "alpha": "3.50",
+        "beta": "0.50"
+      },
+      "row_count": 3,
+      "total": "4.00"
+    },
+    "scope": "installed isolated lab; local CLI execution only; not browser Worker execution"
+  },
+  "production_mutated": false,
+  "long_duration_stability_proven": false
+}

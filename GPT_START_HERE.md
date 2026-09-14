@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 0fe44642575332c9460e6ee9f2182de3671fa6dd `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_0fe4464.json `
-  --manifest-sha256 63a2d0f1e974cc90293f84a62f2d0384bfbf98da629c593f5a1531850c12de39
+  --candidate-commit 31622f1c3c358540146d95e1cf769cc09601610c `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json `
+  --manifest-sha256 b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -170,9 +170,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 0fe44642575332c9460e6ee9f2182de3671fa6dd `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_0fe4464.json `
-  --manifest-sha256 63a2d0f1e974cc90293f84a62f2d0384bfbf98da629c593f5a1531850c12de39 `
+  --candidate-commit 31622f1c3c358540146d95e1cf769cc09601610c `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json `
+  --manifest-sha256 b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473 `
   --send
 ```
 
@@ -442,14 +442,14 @@ Do not use real customer data, credentials, private files, or production
 commands in the canary. A successful simulated test is not evidence of a real
 browser canary.
 
-The current repository also contains
-`docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json`. It records a fresh
-real Windows + authenticated ChatGPT Chrome run using candidate
-`0fe44642575332c9460e6ee9f2182de3671fa6dd`: two independent Worker channels
-produced two distinct `/c/<id>` conversation URLs and both fixed-marker responses
-were captured. The run used harmless prompts only, recorded two submit actions
-and zero duplicate submits, and did not perform repository work. It is live
-browser evidence for the transport path, not production acceptance.
+The previous code candidate `0fe4464` has a historical fixed-marker live pass in
+`docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json`. The current code candidate
+`31622f1c` was tested with a fresh SQLite database and fresh Worker sessions, but
+both intents ended `BLOCKED_AMBIGUOUS/CONVERSATION_URL_MISSING`. Read-only Chrome
+inspection showed the root URL and the ChatGPT `请求过于频繁` rate-limit dialog.
+The failure receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`.
+No retry was performed. Therefore the current candidate has no new
+`LIVE_VERIFIED` pass; the prior pass must not be reused as current-candidate proof.
 
 For a new live check, use
 `scorp-agent/chatgpt-gui-bridge/tools/v4_live_two_worker_canary.py`. It refuses
@@ -483,19 +483,21 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Code candidate: `0fe44642575332c9460e6ee9f2182de3671fa6dd` on `main`.
+- Code candidate: `31622f1c3c358540146d95e1cf769cc09601610c` on `main`.
 - Repository checkout: `C:\ScorpAgent\_publish_git6`.
-- Clean source snapshot: `C:\ScorpAgent\v4-source-0fe4464`.
-- Isolated lab: `C:\ScorpAgent\v4-core-lab-0fe4464`.
-- Manifest: `docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_0fe4464.json` (internal SHA-256 `63a2d0f1e974cc90293f84a62f2d0384bfbf98da629c593f5a1531850c12de39`).
-- Live receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json`.
+- Clean source snapshot: `C:\ScorpAgent\v4-source-31622f1c`.
+- Isolated lab: `C:\ScorpAgent\v4-core-lab-31622f1c`.
+- Manifest: `docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json` (internal SHA-256 `b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473`).
+- Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`.
+- Prior-candidate live pass: `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json` (historical only).
 - Current structured validation: `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`.
 
-The current result is `TEST_VERIFIED` and `LIVE_VERIFIED`; it is not `ACCEPTED`.
-The live canary proves two isolated harmless Worker submissions and two captured
-responses. It does not prove a real repository task over ChatGPT, live crash/restart
-recovery, scheduled-task registration, production cutover, or long-duration
-unattended stability. Do not claim those gates pass.
+The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is `BLOCKED` by the ChatGPT rate limit, and it is not `ACCEPTED`.
+The prior live canary proves two isolated harmless Worker submissions for candidate
+`0fe4464`. The current candidate has a fail-closed rate-limit blocker and no new
+conversation. It does not prove a real repository task over ChatGPT, live
+crash/restart recovery, scheduled-task registration, production cutover, or
+long-duration unattended stability. Do not claim those gates pass.
 
 An ordinary web GPT cannot infer or invoke local Windows, SQLite, Python, or
 Chrome Use control merely by reading GitHub. It must either work through an

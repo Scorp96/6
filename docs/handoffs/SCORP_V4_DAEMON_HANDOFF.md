@@ -70,19 +70,18 @@ browser reconcile and Send remain separate gates.
 
 ## Current evidence boundary
 
-- `TEST_VERIFIED`: V4 suite 103/103 and GUI bridge suite 467/467 on the bundled
-  Windows Python runtime; the two Worker dispatch, independent reconcile, and
-  owned-tab isolation regressions are included.
-  PowerShell parser and Python compilation checks pass when run against the
-  candidate checkout.
-- `LIVE_VERIFIED`: the fresh current-candidate two-Worker browser canary passed
-  after the owned-tab and `press Enter` fixes. Both Workers created separate
-  conversations, both fixed-marker responses were captured, and duplicate
-  submits were zero. This is a connectivity and transport result, not a real
-  repository workload or unattended-soak acceptance.
-- `ACCEPTED`: not reached. Production registration, current-candidate Chrome
-  reconcile, restart recovery and Windows unattended evidence are still
-  required.
+- `TEST_VERIFIED`: V4 suite 109/109 and GUI bridge suite 467/467 on the bundled
+  Windows Python runtime; task-context migration/prompt propagation, bounded CSV
+  output, two Worker dispatch, independent reconcile, and owned-tab isolation are
+  included. The installed lab and short recovery soak also passed.
+- `LIVE_VERIFIED`: current candidate `31622f1c` is `BLOCKED`, not PASS. A fresh
+  canary durably prepared both intents, but ChatGPT returned a `请求过于频繁`
+  rate-limit dialog at the root URL, so no `/c/<id>` was observed. The failure
+  receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`;
+  `retry_count` is zero and no blind retry occurred.
+- `ACCEPTED`: not reached. A current-candidate browser pass, real repository
+  workload through live Workers, restart recovery, production registration and
+  long-duration unattended evidence are still required.
 
 ## Fresh live canary result
 
@@ -110,16 +109,16 @@ browser submissions concurrently. This fixes the orchestration serialization
 defect. The subsequent fresh run and its current-candidate PASS are recorded
 below; the earlier ambiguous sessions remain historical fail-closed evidence.
 
-## Current live PASS receipt
+## Historical live PASS receipt (prior candidate)
 
 After the `press Enter` fallback and owned-tab isolation fixes, a fresh canary
-was run against candidate `0fe4464`. It used a new SQLite database, new driver
+was run against prior candidate `0fe4464`. It used a new SQLite database, new driver
 state, and two new Chrome Use sessions. Both results reached
 `RESPONSE_CAPTURED` with distinct conversation URLs, two submit actions, two
 response messages, and zero duplicate submits. The receipt is
 `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json`; its SHA-256 is
 `3D73E787C19CD007C4D7ADB08C2D8B8EF40069A3CDF11212CFF7BEF378B23DCD`.
 
-This PASS is bound to the fixed candidate commit and proves the two-Worker
+This historical PASS is bound to the prior candidate commit and proves the two-Worker
 browser transport and SQLite intent/reconcile path. It does not prove the real
 CSV Git workload, production cutover, restart recovery, or a 24-hour soak.

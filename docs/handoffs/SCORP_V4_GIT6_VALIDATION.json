@@ -3,9 +3,9 @@
   "source_repository": "Scorp96/666 (historical source)",
   "target_repository": "Scorp96/6",
   "target_branch": "main",
-  "code_candidate_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
-  "validated_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
-  "evidence_record_commit": "b3be4a5d01941c3dc263e2a78ebf386c395534b7",
+  "code_candidate_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
+  "validated_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
+  "evidence_record_commit": "pending-document-commit",
   "validation_scope": "current-code-candidate-plus-isolated-lab-plus-fresh-real-browser-canary",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -15,11 +15,14 @@
       "Master A task graph with two dynamic Worker slots",
       "fail-closed browser intent and ambiguous-submit recording",
       "owned fresh browser tabs and independent Worker reconciliation",
-      "CSV real-code workload with T1/T2 parallel and T3 dependency"
+      "durable task context propagated into assignment recovery and Worker prompts",
+      "CSV real-code workload with T1/T2 parallel and T3 dependency",
+      "bounded CSV CLI output for isolated worktree artifacts"
     ],
     "MISSING": [
-      "production cutover authorization and scheduled-task registration",
+      "current-candidate live browser canary after external rate-limit clears",
       "real CSV workload executed through live ChatGPT Worker conversations",
+      "production cutover authorization and scheduled-task registration",
       "long-duration unattended stability evidence"
     ],
     "INCORRECT": [],
@@ -34,8 +37,8 @@
       "status": "TEST_VERIFIED",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 103,
-      "observed": "103 tests passed, including transaction/fencing, dynamic two-Worker dispatch, owned-tab isolation, independent reconciliation, CSV workload and acceptance gates"
+      "tests_run": 109,
+      "observed": "109 tests passed, including SQLite task-context migration/recovery, Worker prompt propagation, bounded CSV output, transaction/fencing, dynamic two-Worker dispatch, owned-tab isolation and acceptance gates"
     },
     {
       "id": "bridge_full_regression",
@@ -55,37 +58,46 @@
     {
       "id": "candidate_manifest_and_install",
       "status": "TEST_VERIFIED",
-      "command": "install_manifest.py against code candidate 0fe44642575332c9460e6ee9f2182de3671fa6dd",
+      "command": "install_manifest.py against code candidate 31622f1c3c358540146d95e1cf769cc09601610c",
       "exit_code": 0,
-      "observed": "41-file manifest and isolated install receipt matched; protected-root hash was unchanged before and after install",
-      "source_tree": "C:\\ScorpAgent\\v4-source-0fe4464",
-      "lab_root": "C:\\ScorpAgent\\v4-core-lab-0fe4464",
-      "manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_0fe4464.json",
-      "manifest_sha256": "63a2d0f1e974cc90293f84a62f2d0384bfbf98da629c593f5a1531850c12de39"
+      "observed": "41-file candidate manifest plus three current regression files and isolated install receipt matched; protected-root hash was unchanged before and after install",
+      "source_tree": "C:\\ScorpAgent\\v4-source-31622f1c",
+      "lab_root": "C:\\ScorpAgent\\v4-core-lab-31622f1c",
+      "manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json",
+      "manifest_sha256": "b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473"
     },
     {
       "id": "short_recovery_soak",
       "status": "TEST_VERIFIED",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-0fe4464 --duration-seconds 5 --output C:\\ScorpAgent\\v4-soak-0fe4464.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-31622f1c --duration-seconds 5 --output C:\\ScorpAgent\\v4-soak-31622f1c.json",
       "exit_code": 0,
-      "observed": "5.101647 seconds; 25 cycles; 75 verified tasks; peak concurrency 2; 73 slot reuses; 2 scheduler recoveries; 0 duplicate submits; 0 errors",
-      "evidence": "docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_0fe4464.json",
+      "observed": "5.015618 seconds; 22 cycles; 66 verified tasks; peak concurrency 2; 64 slot reuses; 2 scheduler recoveries; 0 duplicate submits; 0 errors",
+      "evidence": "docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_31622f1c.json",
       "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
       "long_duration_stability_proven": false
     },
     {
       "id": "real_browser_two_worker_canary",
-      "status": "LIVE_VERIFIED",
+      "status": "BLOCKED",
       "command": "v4_live_two_worker_canary.py --send-canary (fresh Windows interactive session and authenticated ChatGPT Chrome)",
-      "exit_code": 0,
-      "observed": "Two independent Worker sessions each submitted once, each produced a distinct /c/<id> conversation and a captured fixed-marker response; duplicate_submits=0",
-      "evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json",
-      "receipt_sha256": "3D73E787C19CD007C4D7ADB08C2D8B8EF40069A3CDF11212CFF7BEF378B23DCD",
+      "exit_code": 2,
+      "observed": "Both Worker intents were durably prepared but ended BLOCKED_AMBIGUOUS with CONVERSATION_URL_MISSING; read-only Chrome evidence showed root URL and a ChatGPT 请求过于频繁 rate-limit dialog; retry_count=0",
+      "evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json",
+      "receipt_sha256": "886C2AE4959DA30A0C289AD64A2FB0CFEC6287803D7D73234B4FF807791A9557",
       "limitations": [
-        "harmless fixed-marker prompts only",
-        "does not prove a real repository task through ChatGPT",
-        "does not prove unattended restart recovery or production cutover"
+        "No blind retry was performed",
+        "Current candidate has no new LIVE_VERIFIED browser pass",
+        "The prior 0fe4464 fixed-marker pass remains historical evidence only"
       ]
+    },
+    {
+      "id": "real_code_workload_local_lab",
+      "status": "TEST_VERIFIED",
+      "command": "python -B -m master_a_dynamic_v4.csv_workload.cli C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-orders.csv --output C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-report.json",
+      "exit_code": 0,
+      "observed": "Installed isolated lab produced deterministic JSON with alpha=3.50, beta=0.50, row_count=3, total=4.00",
+      "artifact_sha256": "f86a3aaaae25cce30ea46e28aa126182bb8717ae84db55f76585773403d53ecf",
+      "scope": "local CLI execution only; not a browser Worker run"
     }
   ],
   "production_cutover": {
@@ -95,13 +107,19 @@
   },
   "result": {
     "TEST_VERIFIED": true,
-    "LIVE_VERIFIED": true,
+    "LIVE_VERIFIED": false,
     "ACCEPTED": false,
     "acceptance_blockers": [
+      "CURRENT_CANDIDATE_BROWSER_CANARY_BLOCKED_BY_CHATGPT_RATE_LIMIT",
       "REAL_CODE_WORKLOAD_OVER_BROWSER_NOT_RUN",
       "RESTART_AND_CRASH_RECOVERY_OVER_LIVE_BROWSER_NOT_PROVEN",
       "PRODUCTION_CUTOVER_NOT_AUTHORIZED",
       "LONG_DURATION_STABILITY_NOT_PROVEN"
     ]
+  },
+  "prior_candidate_live_evidence": {
+    "candidate_code_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
+    "evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json",
+    "status": "LIVE_VERIFIED_FOR_PRIOR_CANDIDATE_ONLY"
   }
 }

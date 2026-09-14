@@ -11,36 +11,38 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `0fe44642575332c9460e6ee9f2182de3671fa6dd`
+- Current candidate: `31622f1c3c358540146d95e1cf769cc09601610c`
 - Reasoning controller: **GPT-5.6 Sol**
 
 ## Current superseding status (2026-09-14)
 
 This section and `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json` supersede older
 local-candidate paragraphs below when they differ. The current runtime code is
-commit `0fe44642575332c9460e6ee9f2182de3671fa6dd` on `main`. The clean source
-snapshot is `C:\ScorpAgent\v4-source-0fe4464` and the isolated installed lab is
-`C:\ScorpAgent\v4-core-lab-0fe4464`. The 41-file candidate manifest is
-`docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_0fe4464.json`; its internal
+commit `31622f1c3c358540146d95e1cf769cc09601610c` on `main`. The clean source
+snapshot is `C:\ScorpAgent\v4-source-31622f1c` and the isolated installed lab is
+`C:\ScorpAgent\v4-core-lab-31622f1c`. The candidate manifest is
+`docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json`; its internal
 manifest SHA-256 is
-`63a2d0f1e974cc90293f84a62f2d0384bfbf98da629c593f5a1531850c12de39`.
+`b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473`.
 
-**TEST_VERIFIED:** 103/103 V4 tests, 467/467 GUI bridge tests, compileall,
-manifest/install identity, and the installed-lab short recovery soak passed.
-The short soak ran 5.101647 seconds with peak concurrency 2, 73 slot reuses,
-two scheduler recoveries, zero duplicate submits, and zero errors. Its browser
-scope is an injected fake engine driving the real adapter state machine.
+**TEST_VERIFIED:** 109/109 V4 tests, 467/467 GUI bridge tests, compileall,
+manifest/install identity, the installed-lab short recovery soak, and the
+installed isolated CSV CLI workload passed. The short soak ran 5.015618 seconds
+with peak concurrency 2, 64 slot reuses, two scheduler recoveries, zero
+duplicate submits, and zero errors. Its browser scope is an injected fake
+engine driving the real adapter state machine.
 
-**LIVE_VERIFIED:** `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json` is a
-fresh Windows + authenticated ChatGPT Chrome receipt bound to the code candidate.
-It records two independently owned Worker tabs, two distinct `/c/<id>` URLs,
-two captured fixed-marker responses, two submit actions, and zero duplicate
-submits. The receipt SHA-256 is
-`3D73E787C19CD007C4D7ADB08C2D8B8EF40069A3CDF11212CFF7BEF378B23DCD`.
+**LIVE_VERIFIED:** current candidate `31622f1c` is currently `BLOCKED`, not PASS.
+Its fresh canary durably prepared both Worker intents, but both ended
+`BLOCKED_AMBIGUOUS` with `CONVERSATION_URL_MISSING`. Read-only Chrome evidence
+showed `https://chatgpt.com/` and a `请求过于频繁` rate-limit dialog. The failure
+receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`; no blind
+retry was made. The prior `0fe4464` pass remains historical evidence only.
 
-**ACCEPTED: NO.** The remaining gates are a real repository workload executed
-through live ChatGPT Workers, live crash/restart recovery across browser side
-effect boundaries, authorized production cutover, and long-duration unattended
+**ACCEPTED: NO.** The remaining gates are a current-candidate live browser pass
+after the external rate limit clears, a real repository workload executed through
+live ChatGPT Workers, live crash/restart recovery across browser side-effect
+boundaries, authorized production cutover, and long-duration unattended
 stability. No production state or scheduled task was changed.
 
 
