@@ -1,0 +1,36 @@
+{
+  "format": "scorp-v4-two-worker-live-canary/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
+  "observed_at_utc": "2026-09-14T14:53:20.130241Z",
+  "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
+  "project_id": "scorp-v4-live-760a7d7-r3-20260914-225234",
+  "master_epoch": 0,
+  "worker_count": 2,
+  "submit_actions": 2,
+  "response_messages": 2,
+  "duplicate_submits": 0,
+  "records": [
+    {
+      "intent_id": "worker-intent-assignment-54a4beebc6734022ba13d6c21469407c",
+      "channel": "worker/worker-slot-1",
+      "conversation_url": "https://chatgpt.com/c/6aa80a4b-bc70-83e9-a2d9-8cdb3336d02e",
+      "state": "RESPONSE_CAPTURED",
+      "response_sha256": "6747c16fec89a355b3b9418f7ae6d87112487bdff6c06e748f6a31261c082861",
+      "marker": "SCORP_V4_WORKER_CANARY_ACK_1"
+    },
+    {
+      "intent_id": "worker-intent-assignment-7ea0036e45ba4ab185aa9242308e9df6",
+      "channel": "worker/worker-slot-2",
+      "conversation_url": "https://chatgpt.com/c/6aa80a4d-3b14-83ee-9d99-c2df0bcb4592",
+      "state": "RESPONSE_CAPTURED",
+      "response_sha256": "f168105751d1af1bd54a7a242289b20761797e1490f89fc16980730c9a15032d",
+      "marker": "SCORP_V4_WORKER_CANARY_ACK_2"
+    }
+  ],
+  "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
+  "limitations": [
+    "Prompts are harmless fixed-marker connectivity checks and do not perform repository work.",
+    "This does not authorize production cutover or an unattended soak."
+  ]
+}
