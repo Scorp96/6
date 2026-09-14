@@ -168,7 +168,8 @@ browser or bypass authentication, so `RESUME_REQUIRED` is a durable handoff
 signal rather than proof that a new ChatGPT window has already been created.
 
 For a local monitor process, import `master_a_dynamic_v4.MasterSupervisor` and
-call `run_once()` on a bounded interval. It renews an active Master lease. If
+call `run_loop()` with an interval and either a stop event or an iteration
+bound. It renews an active Master lease. If
 the lease expired, it first acquires a new `master_epoch`, then invokes the
 injected physical-session `rebind_callback`. Without that callback it returns
 `RESUME_REQUIRED` without advancing the epoch; if the callback fails it ends
@@ -177,6 +178,11 @@ does not open Chrome, create a ChatGPT conversation, or bypass login itself.
 Windows Task Scheduler or another local monitor may call this seam, while the
 browser adapter remains responsible for authentication, session creation, and
 read-only reconciliation of ambiguous submits.
+
+`run_loop()` returns `SupervisorLoopResult` with every decision and a stop
+reason. It stops on `TERMINAL`, `BLOCKED`, or an unresolved
+`RESUME_REQUIRED`, so a Windows monitor can report the blocker instead of
+creating an uncontrolled retry loop.
 
 ### Structured Worker result contract
 

@@ -95,6 +95,13 @@ the epoch unchanged and leaves the decision at `RESUME_REQUIRED`; a callback
 failure ends the unbound epoch when supported, returns `BLOCKED`, and must be
 reported for operator recovery.
 
+For a persistent monitor, call `MasterSupervisor.run_loop()` with a finite
+`max_iterations` for a scheduled probe or a caller-owned stop event for a
+long-lived process. The returned `SupervisorLoopResult` contains the complete
+decision sequence and the reason the loop stopped. This host loop is local
+control-plane code; it still requires an injected physical browser callback
+before it can claim that a ChatGPT session was rebound.
+
 The local process follows a durable `action_intents/outbox` lifecycle. SQLite
 commits `MAY_HAVE_SUBMITTED` before `subprocess.run`; a captured receipt is
 stored as `RESPONSE_CAPTURED` and the outbox is finalized. If a restart finds

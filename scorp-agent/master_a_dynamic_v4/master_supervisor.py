@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import dataclasses
+import time
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -23,6 +24,15 @@ class SupervisorDecision:
     watchdog: Mapping[str, Any]
     heartbeat: Mapping[str, Any] | None = None
     resume: Mapping[str, Any] | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class SupervisorLoopResult:
+    """Bounded outcome from a local monitor loop."""
+
+    status: str
+    stop_reason: str
+    decisions: tuple[SupervisorDecision, ...]
 
 
 class MasterSupervisor:
@@ -117,6 +127,54 @@ class MasterSupervisor:
             reason="WATCHDOG_STATUS_UNKNOWN",
             watchdog=watchdog,
         )
+
+    def run_loop(
+        self,
+        *,
+        interval_seconds: float = 30.0,
+        max_iterations: int | None = None,
+        stop_event: Any | None = None,
+        sleep: Callable[[float], Any] = time.sleep,
+        on_decision: Callable[[SupervisorDecision], Any] | None = None,
+    ) -> SupervisorLoopResult:
+        """Poll until a stop condition, a caller stop event, or a bound.
+
+        This is intentionally a host-process seam. It never opens a browser or
+        catches a blocker and keeps retrying it. A finite ``max_iterations`` is
+        useful for Task Scheduler probes; a long-lived monitor can provide a
+        stop event and omit the bound.
+        """
+
+        interval = float(interval_seconds)
+        if interval < 0:
+            raise ValueError("SUPERVISOR_INTERVAL_INVALID")
+        if max_iterations is not None and int(max_iterations) <= 0:
+            raise ValueError("SUPERVISOR_ITERATION_BOUND_INVALID")
+        decisions: list[SupervisorDecision] = []
+        while True:
+            decision = self.run_once()
+            decisions.append(decision)
+            if on_decision is not None:
+                on_decision(decision)
+            if decision.status in {"TERMINAL", "BLOCKED", "RESUME_REQUIRED"}:
+                return SupervisorLoopResult(
+                    status=decision.status,
+                    stop_reason=decision.reason,
+                    decisions=tuple(decisions),
+                )
+            if max_iterations is not None and len(decisions) >= int(max_iterations):
+                return SupervisorLoopResult(
+                    status=decision.status,
+                    stop_reason="MAX_ITERATIONS",
+                    decisions=tuple(decisions),
+                )
+            if stop_event is not None and bool(stop_event.is_set()):
+                return SupervisorLoopResult(
+                    status=decision.status,
+                    stop_reason="STOP_EVENT",
+                    decisions=tuple(decisions),
+                )
+            sleep(interval)
 
     @staticmethod
     def _mapping(value: Any, error: str) -> Mapping[str, Any]:

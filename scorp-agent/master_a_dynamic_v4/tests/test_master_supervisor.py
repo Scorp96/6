@@ -55,6 +55,43 @@ class MasterSupervisorTests(unittest.TestCase):
         self.assertEqual(0, controller.heartbeats)
         self.assertEqual(0, controller.resumes)
 
+    def test_loop_stops_on_terminal_and_reports_decisions(self):
+        from master_a_dynamic_v4.master_supervisor import MasterSupervisor
+
+        controller = _Controller([{"status": "MASTER_ACTIVE"}, {"status": "TERMINAL"}])
+        sleeps = []
+        result = MasterSupervisor(controller).run_loop(
+            interval_seconds=0.25,
+            sleep=sleeps.append,
+        )
+        self.assertEqual("TERMINAL", result.status)
+        self.assertEqual("MASTER_TERMINAL", result.stop_reason)
+        self.assertEqual(2, len(result.decisions))
+        self.assertEqual([0.25], sleeps)
+
+    def test_loop_honors_iteration_bound(self):
+        from master_a_dynamic_v4.master_supervisor import MasterSupervisor
+
+        controller = _Controller([{"status": "MASTER_ACTIVE"}, {"status": "MASTER_ACTIVE"}])
+        result = MasterSupervisor(controller).run_loop(
+            interval_seconds=0,
+            max_iterations=2,
+            sleep=lambda _seconds: None,
+        )
+        self.assertEqual("MASTER_ACTIVE", result.status)
+        self.assertEqual("MAX_ITERATIONS", result.stop_reason)
+        self.assertEqual(2, len(result.decisions))
+
+    def test_loop_rejects_invalid_bounds(self):
+        from master_a_dynamic_v4.master_supervisor import MasterSupervisor
+
+        controller = _Controller([{"status": "MASTER_ACTIVE"}])
+        supervisor = MasterSupervisor(controller)
+        with self.assertRaisesRegex(ValueError, "SUPERVISOR_INTERVAL_INVALID"):
+            supervisor.run_loop(interval_seconds=-1, max_iterations=1)
+        with self.assertRaisesRegex(ValueError, "SUPERVISOR_ITERATION_BOUND_INVALID"):
+            supervisor.run_loop(interval_seconds=0, max_iterations=0)
+
 
 class _Controller:
     def __init__(self, decisions):
