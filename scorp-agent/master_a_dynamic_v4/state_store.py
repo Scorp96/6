@@ -1013,6 +1013,22 @@ class StateStore:
                 ).fetchone()
             )
 
+    def get_browser_binding(
+        self, project_id: str, channel: str
+    ) -> dict[str, Any] | None:
+        """Read one logical browser binding without changing its generation."""
+
+        project = str(project_id or "").strip()
+        name = str(channel or "").strip()
+        if not project or not name:
+            raise StoreInvariantError("BROWSER_BINDING_LOOKUP_INVALID")
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM browser_bindings WHERE project_id=? AND channel=?",
+                (project, name),
+            ).fetchone()
+            return dict(row) if row is not None else None
+
     def record_release_candidate(
         self,
         project_id: str,

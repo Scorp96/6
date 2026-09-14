@@ -184,6 +184,13 @@ reason. It stops on `TERMINAL`, `BLOCKED`, or an unresolved
 `RESUME_REQUIRED`, so a Windows monitor can report the blocker instead of
 creating an uncontrolled retry loop.
 
+The existing browser bridge provides the safe callback implementation in
+`scorp-agent/chatgpt-gui-bridge/v4_physical_rebind.py`. It proves the existing
+Master conversation with an authenticated, read-only snapshot and records the
+binding evidence. It does not send a prompt during rebind. A caller can inject
+`ReadOnlyBrowserRebinder(...)` as `rebind_callback` when constructing the
+supervisor.
+
 ### Structured Worker result contract
 
 The machine result validator is in

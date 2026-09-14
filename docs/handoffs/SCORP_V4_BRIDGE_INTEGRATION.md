@@ -102,6 +102,16 @@ decision sequence and the reason the loop stopped. This host loop is local
 control-plane code; it still requires an injected physical browser callback
 before it can claim that a ChatGPT session was rebound.
 
+The bridge-side callback implementation is
+`v4_physical_rebind.ReadOnlyBrowserRebinder`. It loads the existing logical
+Master conversation binding from SQLite, checks the injected authentication
+probe, reads the canonical conversation through `snapshot_conversation()`,
+and records read-only rebind evidence. It never creates a conversation, fills
+the composer, or clicks Send. Authentication failure, missing binding, URL
+mismatch, or snapshot failure raises `PhysicalRebindError`, which the
+supervisor turns into `BLOCKED` and cleans up through the controller epoch
+end path.
+
 The local process follows a durable `action_intents/outbox` lifecycle. SQLite
 commits `MAY_HAVE_SUBMITTED` before `subprocess.run`; a captured receipt is
 stored as `RESPONSE_CAPTURED` and the outbox is finalized. If a restart finds
