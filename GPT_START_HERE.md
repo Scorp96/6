@@ -91,6 +91,29 @@ Workers, and never imports or starts the legacy JSON relay. It is a readiness
 check, not a browser canary and not a production daemon. Set `SCORP_PYTHON` to
 an existing Python executable when the `python` command is not on PATH.
 
+### No-send composer diagnostic
+
+Before authorizing any live canary send, use the dedicated fill-only
+diagnostic. It opens an already-authenticated ChatGPT session, fills a fixed
+harmless marker, allows the candidate's controlled-input key-event repair, and
+then records whether a unique Send control is visible. It never creates a V4
+browser intent, never clicks, and never sends. Use a fresh driver-state path
+and an evidence path outside production state:
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
+  --run-fill-only `
+  --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
+  --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json
+```
+
+`READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
+control in that session. `BLOCKED_SEND_CONTROL_MISSING` or an authentication
+challenge must remain blocked. Neither result proves `/c/<id>` creation or a
+Worker response; those require a separately reviewed, explicitly authorized
+canary.
+
 ## Candidate V4 sequence
 
 Use `scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py` as the explicit

@@ -85,6 +85,14 @@ fail-closed send gate: without `--send-canary` it performs no browser action.
 Use a fresh SQLite path and an already authenticated Chrome Use session when
 running it.
 
+Before using that send-gated runner, use
+`scorp-agent/chatgpt-gui-bridge/tools/v4_browser_fill_diagnostic.py` with
+`--run-fill-only`. It fills one fixed marker in a fresh session, applies the
+same key-event repair as the candidate driver, reports
+`READY_TO_SEND_NO_CLICK` or a blocked diagnostic, and never creates a V4
+intent or clicks Send. A ready result is a composer-control check only; it is
+not evidence of `/c/<id>` creation or Worker response capture.
+
 ## Acceptance language
 
 Offline tests demonstrate code behavior only. Real browser evidence must be
