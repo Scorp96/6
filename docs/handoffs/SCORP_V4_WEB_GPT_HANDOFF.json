@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+  "candidate_commit": "210dcf64a5445c7509bc09d528fa18d0cf8bb662",
   "evidence_binding": {
-    "validated_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+    "validated_commit": "210dcf64a5445c7509bc09d528fa18d0cf8bb662",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_ee64ca4.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_ee64ca4.json",
-    "binding_note": "This handoff describes the ee64ca4 code candidate; later commits contain documentation and evidence artifacts only."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_210dcf6.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_210dcf6.json",
+    "binding_note": "This handoff describes the 210dcf6 code candidate; its browser selector/diagnostic change is offline-tested, while current live fill-send-conversation evidence remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -60,7 +60,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "offline_and_injected_only; fresh current browser AC07/AC08 remain NOT_RUN"
+      "current_candidate_evidence": "offline_and_injected_only; user-provided R4 report remains FAIL/BLOCKED/NOT_RUN for fresh current browser AC07/AC08"
     }
   },
   "handoff_sequence": [

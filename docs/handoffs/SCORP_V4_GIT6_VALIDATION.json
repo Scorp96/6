@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+  "validated_commit": "210dcf64a5445c7509bc09d528fa18d0cf8bb662",
   "validation_scope": "repository-candidate-plus-isolated-lab",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -19,8 +19,8 @@
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 432,
-      "observed": "432 tests passed, including concurrent two-Worker controller dispatch, Chrome Use state-file race protection, safe post-fill send-control diagnostics, the operator-gated runtime, the real V4 gateway loop, and the read-only local-interface preflight"
+      "tests_run": 434,
+      "observed": "434 tests passed, including concurrent two-Worker controller dispatch, Chrome Use state-file race protection, safe post-fill send-control diagnostics with editor/prompt context, the operator-gated runtime, the real V4 gateway loop, and the read-only local-interface preflight"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -50,30 +50,30 @@
     },
     {
       "id": "experimental_install_identity",
-      "command": "install_manifest.py against detached candidate ee64ca4",
+      "command": "install_manifest.py against detached candidate 210dcf6",
       "exit_code": 0,
-      "observed": "38-file manifest and install receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-ee64ca4; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_ee64ca4.json"
+      "observed": "38-file manifest and install receipt matched; stable protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-210dcf6-r1; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_210dcf6.json"
     },
     {
       "id": "short_recovery_soak",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-ee64ca4 --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-ee64ca4.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-210dcf6-r1 --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-210dcf6-r1.json",
       "exit_code": 0,
-      "observed": "10.1970091 seconds actual; 48 cycles; 144 verified tasks; peak concurrency 2; 142 slot reuses; 2 scheduler recoveries; 48 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_ee64ca4.json"
+      "observed": "10.0807260 seconds actual; 49 cycles; 147 verified tasks; peak concurrency 2; 145 slot reuses; 2 scheduler recoveries; 49 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_210dcf6.json"
     },
     {
       "id": "supervisor_runtime_probe",
-      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-ee64ca4\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-ee64ca4 --max-iterations 1",
+      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-210dcf6-r1\\state.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-210dcf6-r1 --max-iterations 1",
       "exit_code": 0,
-      "observed": "Installed 38-file candidate attached to an existing Master lease, renewed it once, included attached epoch in summary, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_ee64ca4.json"
+      "observed": "Installed 38-file candidate attached to an existing Master lease, renewed it once, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_210dcf6.json"
     },
     {
       "id": "local_interface_preflight",
-      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-ee64ca4\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-ee64ca4",
+      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-210dcf6-r1\\state.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-210dcf6-r1",
       "exit_code": 0,
-      "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE, and included the web-GPT packet entrypoint; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_ee64ca4.json"
+      "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_210dcf6.json"
     }
   ],
-  "real_browser_canary": "HISTORICAL_PASS_NOT_BOUND_TO_VALIDATED_COMMIT; see docs/handoffs/SCORP_V4_GIT6_TWO_WORKER_LIVE_CANARY.json",
+  "real_browser_canary": "FAIL/BLOCKED/NOT_RUN for current candidate; user-provided R4 report remains un-replayed and has no raw artifact binding",
   "github_write_test": "NOT_RUN",
   "production_cutover": "NOT_AUTHORIZED_NOT_ATTEMPTED",
   "long_duration_stability_proven": false,
@@ -97,11 +97,14 @@
     "MasterSupervisor is an explicit local monitor seam: it renews the durable lease, acquires a new epoch after expiry, and requires an injected physical browser rebind callback; it does not open Chrome or claim authentication recovery.",
     "AC10 and AC12 are PASS only for the isolated candidate/lab evidence recorded in the current machine-readable receipts; the lab is not production and the soak browser engine is injected, not live ChatGPT.",
     "The current candidate also has a bounded supervisor runtime entrypoint: it attaches to an existing lease, journals decisions, and forbids browser sends; --rebind is read-only physical-session verification.",
-    "The current code candidate is ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81; later Git commits contain documentation and evidence artifacts only.",
     "The web-GPT handoff package and read-only preflight explicitly report that Git visibility does not grant direct local Windows control; local execution remains an operator or connector responsibility.",
     "The controller now dispatches up to two independent browser claims concurrently and consumes results in claim order; this is covered by a synchronization regression test but has not yet been proven in a fresh live canary.",
     "ChromeUseActorDriverV3 now serializes shared state-file read/modify/write transitions across driver instances and exposes non-sensitive post-fill send-control diagnostics; it does not claim that the real ChatGPT send button or conversation promotion is fixed.",
-    "A user-provided R4 report identified a current real-browser failure at fill/send/conversation promotion. It is recorded as an external report without raw artifact binding, so it is not promoted to machine-readable PASS evidence."
+    "A user-provided R4 report identified a current real-browser failure at fill/send/conversation promotion. It is recorded as an external report without raw artifact binding, so it is not promoted to machine-readable PASS evidence.",
+    "The current code candidate is 210dcf64a5445c7509bc09d528fa18d0cf8bb662; the browser driver now accepts accessibility aliases and preserves safe post-fill diagnostics including editor reference and prompt hash.",
+    "The browser selector/diagnostic change is covered by 12 focused actor-driver tests and the 434-test bridge regression, but it does not prove that a live ChatGPT Send click creates /c/<id>.",
+    "The isolated AC10/AC12 evidence uses lab C:\\ScorpAgent\\v4-core-lab-210dcf6-r1 and stable protected roots; the volatile C:\\ScorpAgent\\state-v4 tree was excluded after its active-task evidence changed during the first install attempt and is not claimed protected in this receipt.",
+    "The 10-second soak uses an injected fake browser engine and is a short recovery check, not a 24-hour stability or live ChatGPT acceptance."
   ],
   "external_runtime_report": {
     "classification": "USER_PROVIDED_REPORT_NOT_REPLAYED_BY_THIS_AGENT",
