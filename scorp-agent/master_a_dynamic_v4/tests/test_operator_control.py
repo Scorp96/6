@@ -167,6 +167,27 @@ class OperatorControlTests(unittest.TestCase):
             ).fetchone()
         self.assertEqual("OBJECTIVE_SUPERSEDED", event[0])
 
+    def test_superseded_operator_fence_rejects_new_graph_admission(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler, SchedulerError
+
+        worktree = self.root / "superseded-worktree"
+        worktree.mkdir()
+        response = self.service.execute(
+            self.request("supersede-graph", "project.supersede", payload={"objective_sha256": "d" * 64})
+        )
+        self.assertEqual("OK", response["status"])
+        scheduler = Scheduler(self.store, "p1", PathPolicy([worktree]), max_workers=2)
+        with self.assertRaisesRegex(SchedulerError, "OPERATOR_STATE_FENCED"):
+            scheduler.enqueue_graph([
+                {
+                    "task_id": "T1",
+                    "objective_sha256": "e" * 64,
+                    "resource_scope": [worktree / "one.txt"],
+                    "dependencies": [],
+                }
+            ])
+
 
 if __name__ == "__main__":
     unittest.main()

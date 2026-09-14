@@ -145,6 +145,12 @@ class Scheduler:
                 "SELECT 1 FROM project_state WHERE project_id=?", (self.project_id,)
             ).fetchone() is None:
                 raise SchedulerError("PROJECT_NOT_FOUND")
+            control = conn.execute(
+                "SELECT operator_state FROM operator_controls WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if control is not None and str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+                raise SchedulerError("OPERATOR_STATE_FENCED")
             for task in normalized:
                 identity = {
                     "objective_sha256": task["objective_sha256"],
