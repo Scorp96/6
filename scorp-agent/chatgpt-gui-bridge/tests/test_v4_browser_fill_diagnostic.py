@@ -6,7 +6,10 @@ import tempfile
 import unittest
 
 from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3
-from tools.v4_browser_fill_diagnostic import run_fill_diagnostic
+from tools.v4_browser_fill_diagnostic import (
+    run_fill_diagnostic,
+    validate_candidate_binding,
+)
 
 
 class FakeCli:
@@ -25,6 +28,20 @@ class FakeCli:
 
 
 class V4BrowserFillDiagnosticTests(unittest.TestCase):
+    def test_candidate_binding_requires_exact_commit_and_manifest_hash(self):
+        manifest = {
+            "candidate_commit": "a" * 40,
+            "manifest_sha256": "b" * 64,
+        }
+        self.assertEqual(
+            manifest,
+            validate_candidate_binding(manifest, "a" * 40, "b" * 64),
+        )
+        with self.assertRaisesRegex(ValueError, "DIAGNOSTIC_CANDIDATE_MISMATCH"):
+            validate_candidate_binding(manifest, "c" * 40, "b" * 64)
+        with self.assertRaisesRegex(ValueError, "DIAGNOSTIC_MANIFEST_HASH_INVALID"):
+            validate_candidate_binding(manifest, "a" * 40, "not-a-hash")
+
     def test_fill_diagnostic_never_clicks_and_records_ready_send_control(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli([

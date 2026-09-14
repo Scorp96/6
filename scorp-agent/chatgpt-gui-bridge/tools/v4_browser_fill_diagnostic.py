@@ -14,6 +14,7 @@ import datetime as dt
 import hashlib
 import json
 import pathlib
+import re
 import sys
 from typing import Any
 
@@ -36,6 +37,28 @@ from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
 DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
 ROOT_URL = "https://chatgpt.com/"
 DEFAULT_MARKER = "SCORP_V4_FILL_ONLY_DIAGNOSTIC"
+
+
+def validate_candidate_binding(
+    manifest: Any,
+    candidate_commit: str,
+    manifest_sha256: str,
+) -> dict[str, Any]:
+    """Require a diagnostic receipt to identify one exact candidate manifest."""
+
+    if not isinstance(manifest, dict):
+        raise ValueError("DIAGNOSTIC_MANIFEST_INVALID")
+    commit = str(candidate_commit or "").strip().lower()
+    digest = str(manifest_sha256 or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise ValueError("DIAGNOSTIC_CANDIDATE_INVALID")
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("DIAGNOSTIC_MANIFEST_HASH_INVALID")
+    if str(manifest.get("candidate_commit") or "").strip().lower() != commit:
+        raise ValueError("DIAGNOSTIC_CANDIDATE_MISMATCH")
+    if str(manifest.get("manifest_sha256") or "").strip().lower() != digest:
+        raise ValueError("DIAGNOSTIC_MANIFEST_MISMATCH")
+    return dict(manifest)
 
 
 def _now() -> str:
@@ -121,6 +144,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--executable", default=DEFAULT_EXECUTABLE)
     parser.add_argument("--driver-state-path", required=True, type=pathlib.Path)
     parser.add_argument("--evidence-path", required=True, type=pathlib.Path)
+    parser.add_argument("--candidate-commit", required=True, help="40-hex code candidate commit")
+    parser.add_argument("--candidate-manifest", required=True, type=pathlib.Path)
+    parser.add_argument("--manifest-sha256", required=True, help="64-hex candidate manifest SHA-256")
     parser.add_argument("--session", default="scorp-v4-fill-diagnostic")
     parser.add_argument("--turn-id", default="fill-diagnostic-turn")
     parser.add_argument("--marker", default=DEFAULT_MARKER)
@@ -139,6 +165,8 @@ async def _run_cli(args: argparse.Namespace) -> int:
         raise RuntimeError("CHROME_USE_EXECUTABLE_MISSING")
     args.driver_state_path.parent.mkdir(parents=True, exist_ok=True)
     args.evidence_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads(args.candidate_manifest.read_text(encoding="utf-8"))
+    manifest = validate_candidate_binding(manifest, args.candidate_commit, args.manifest_sha256)
     cli = ChromeUseCliV3(executable=str(executable))
     driver = ChromeUseActorDriverV3(cli, args.driver_state_path, timeout_seconds=30)
     evidence = await run_fill_diagnostic(
@@ -148,7 +176,9 @@ async def _run_cli(args: argparse.Namespace) -> int:
         turn_id=str(args.turn_id),
         marker=str(args.marker),
     )
-    evidence["candidate_code_commit"] = "runtime-provided"
+    evidence["candidate_code_commit"] = str(args.candidate_commit).strip().lower()
+    evidence["candidate_manifest_sha256"] = str(manifest["manifest_sha256"]).strip().lower()
+    evidence["candidate_manifest_path"] = str(args.candidate_manifest.resolve())
     evidence["executable"] = str(executable)
     args.evidence_path.write_text(
         json.dumps(evidence, ensure_ascii=False, indent=2) + "\n",
