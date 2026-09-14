@@ -57,6 +57,15 @@ class BrowserAdapter:
         }:
             raise BrowserAdapterError(f"INTENT_STATE_INVALID: {current['state']}")
 
+        try:
+            self.store.assert_intent_generation(intent_id)
+        except StoreInvariantError as exc:
+            return self.store.block_intent(
+                intent_id,
+                reason=f"OPERATOR_GENERATION_FENCED:{exc}",
+                observation={"side_effect": "NOT_ATTEMPTED", "reason": str(exc)},
+            )
+
         auth = self.engine.auth_state(current["channel"])
         auth_status = str((auth or {}).get("status") or "UNKNOWN_AUTH_STATE")
         if auth_status != "AUTHENTICATED":
@@ -66,7 +75,14 @@ class BrowserAdapter:
                 observation=dict(auth or {"status": "UNKNOWN_AUTH_STATE"}),
             )
 
-        persisted = self.store.begin_possible_submit(intent_id)
+        try:
+            persisted = self.store.begin_possible_submit(intent_id)
+        except StoreInvariantError as exc:
+            return self.store.block_intent(
+                intent_id,
+                reason=f"OPERATOR_GENERATION_FENCED:{exc}",
+                observation={"side_effect": "NOT_ATTEMPTED", "reason": str(exc)},
+            )
         self._crash("after_may_have_submitted")
         try:
             observation = self.engine.submit(self._engine_intent(persisted))

@@ -446,6 +446,11 @@ class MasterAController:
             "lease_token": claim.lease_token,
             "request": dict(request),
         }
+        get_control = getattr(self.gateway.store, "get_operator_control", None)
+        if callable(get_control):
+            control = get_control(self.project_id)
+            intent_payload["operator_generation"] = int(control["operator_generation"])
+            intent_payload["objective_generation"] = int(control["objective_generation"])
         try:
             intent = self.gateway.store.prepare_intent(
                 self.project_id,

@@ -6,6 +6,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from .operator_control import OperatorControlService
 from .runtime_protocol import RuntimeRequest, build_response
 from .state_store import StateStore, StoreInvariantError
 
@@ -22,9 +23,14 @@ class RuntimeCommandService:
         self.store = store
         self.daemon_epoch = int(daemon_epoch)
         self.actor = str(actor or "runtime")
+        self.operator = OperatorControlService(
+            store, daemon_epoch=self.daemon_epoch, actor=self.actor
+        )
 
     def execute(self, request: RuntimeRequest) -> dict[str, Any]:
         try:
+            if request.is_mutation:
+                return self.operator.execute(request)
             if request.command == "runtime.status":
                 result = self._runtime_status(request.project_id)
             elif request.command == "project.status":

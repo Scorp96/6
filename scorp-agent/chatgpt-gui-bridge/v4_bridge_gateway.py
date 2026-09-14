@@ -245,6 +245,11 @@ class V4BridgeGateway:
             },
             "required_response": "WORK_RESULT/1",
         }
+        get_control = getattr(self.store, "get_operator_control", None)
+        if callable(get_control):
+            control = get_control(self.project_id)
+            payload["operator_generation"] = int(control["operator_generation"])
+            payload["objective_generation"] = int(control["objective_generation"])
         if metadata:
             payload["metadata"] = dict(metadata)
         return self.store.prepare_intent(
@@ -286,6 +291,11 @@ class V4BridgeGateway:
             "prompt": text,
             "prompt_sha256": prompt_sha256,
         }
+        get_control = getattr(self.store, "get_operator_control", None)
+        if callable(get_control):
+            control = get_control(self.project_id)
+            payload["operator_generation"] = int(control["operator_generation"])
+            payload["objective_generation"] = int(control["objective_generation"])
         if metadata:
             payload["metadata"] = dict(metadata)
         return self.store.prepare_intent(

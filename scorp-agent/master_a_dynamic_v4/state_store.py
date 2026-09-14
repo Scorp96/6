@@ -1097,6 +1097,48 @@ class StateStore:
                 raise StoreInvariantError("OUTBOX_NOT_FOUND")
             return dict(row)
 
+    @staticmethod
+    def _check_intent_generation_row(conn: sqlite3.Connection, row: Mapping[str, Any]) -> None:
+        """Fence new side effects whose durable operator generation is stale.
+
+        Old imported intents may not carry generation fields and remain
+        reconcilable for migration compatibility. Every new browser/local
+        intent created by the V4 adapters carries both fields.
+        """
+        payload = json.loads(str(row["payload_json"]))
+        if not isinstance(payload, Mapping):
+            raise StoreInvariantError("INTENT_PAYLOAD_INVALID")
+        if "operator_generation" not in payload and "objective_generation" not in payload:
+            return
+        if "operator_generation" not in payload or "objective_generation" not in payload:
+            raise StoreInvariantError("OPERATOR_GENERATION_BINDING_INVALID")
+        control = conn.execute(
+            "SELECT operator_state,operator_generation,objective_generation FROM operator_controls WHERE project_id=?",
+            (str(row["project_id"]),),
+        ).fetchone()
+        if control is None:
+            raise StoreInvariantError("OPERATOR_CONTROL_NOT_FOUND")
+        try:
+            operator_generation = int(payload["operator_generation"])
+            objective_generation = int(payload["objective_generation"])
+        except (TypeError, ValueError) as exc:
+            raise StoreInvariantError("OPERATOR_GENERATION_BINDING_INVALID") from exc
+        if (
+            str(control["operator_state"]) != "ACTIVE"
+            or operator_generation != int(control["operator_generation"])
+            or objective_generation != int(control["objective_generation"])
+        ):
+            raise StoreInvariantError("OPERATOR_GENERATION_FENCED")
+
+    def assert_intent_generation(self, intent_id: str) -> None:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("INTENT_NOT_FOUND")
+            self._check_intent_generation_row(conn, row)
+
     def begin_possible_submit(self, intent_id: str) -> dict[str, Any]:
         with self._transaction() as conn:
             row = conn.execute(
@@ -1109,6 +1151,7 @@ class StateStore:
                 IntentState.VERIFIED_NOT_SUBMITTED.value,
             }:
                 raise StoreInvariantError(f"INTENT_NOT_SUBMITTABLE state={row['state']}")
+            self._check_intent_generation_row(conn, row)
             attempt = int(row["attempt"])
             if row["state"] == IntentState.VERIFIED_NOT_SUBMITTED.value:
                 attempt += 1
