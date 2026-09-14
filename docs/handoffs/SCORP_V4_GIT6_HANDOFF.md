@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `7a2724d0c5ee5e5c57e19a42168f9131b0fe1f17`
+- Current candidate: `93166fe262c4e8916f7eb7100dc274e2d1bf352a`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is
@@ -85,5 +85,6 @@ The fresh machine-readable record is
 commit above. It explicitly records browser canary, GitHub write, production
 cutover, and long-duration stability as unverified where no current evidence
 exists.
+
 
 

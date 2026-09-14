@@ -9,7 +9,7 @@ left untouched.
 
 - Repository: `Scorp96/6`
 - Branch: `main`
-- Candidate commit: `7a2724d0c5ee5e5c57e19a42168f9131b0fe1f17`
+- Candidate commit: `93166fe262c4e8916f7eb7100dc274e2d1bf352a`
 - Worktree: `C:\ScorpAgent\_publish_git6`
 - V4 package: `scorp-agent/master_a_dynamic_v4`
 - Bridge seam: `scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py`
@@ -94,5 +94,6 @@ SQLite-backed until it is explicitly launched through this seam.
 Those checks require a separately authorized canary. This handoff therefore
 describes a runnable candidate integration and its tested boundaries, not a
 production completion claim.
+
 
 

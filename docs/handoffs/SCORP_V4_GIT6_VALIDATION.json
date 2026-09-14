@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "7a2724d0c5ee5e5c57e19a42168f9131b0fe1f17",
+  "validated_commit": "93166fe262c4e8916f7eb7100dc274e2d1bf352a",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,8 +12,8 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 67,
-      "observed": "67 tests passed, including MasterAController plan validation, two-worker dispatch, ambiguity fencing, restart no-resubmit, and bounded run_cycles"
+      "tests_run": 68,
+      "observed": "68 tests passed, including MasterAController bounded run_cycles and strict Worker response decoder"
     },
     {
       "id": "bridge_full_regression",
@@ -64,6 +64,7 @@
     "The two-worker live browser side effects were initiated before the final 2148dc3 commit; final code performed read-only reconciliation and has dedicated transient-URL regression tests, so the live record is not an immutable release-signature proof.",
     "The guarded canary runner was revalidated after 78df38a: if a valid persisted driver binding exists after a transient URL observation, it performs read-only confirmation before reconciliation and never blind-resends.",
     "MasterAController now provides start/apply_plan/step/run_cycles/watchdog/completion as a model-agnostic control surface; controller integration is offline with an injected engine and does not expand live-browser evidence.",
-    "The live candidate evidence remains harmless fixed-marker browser work; the new controller integration proves the full T1/T2 -> T3 -> IDLE loop only with an injected engine."
+    "The live candidate evidence remains harmless fixed-marker browser work; the new controller integration proves the full T1/T2 -> T3 -> IDLE loop only with an injected engine.",
+    "The built-in response decoder rejects prose and accepts only standalone or fenced JSON WORK_RESULT/1; run_cycles is capped and stops on BLOCKED, TERMINAL, or IDLE."
   ]
 }
