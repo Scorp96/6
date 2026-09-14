@@ -9,11 +9,75 @@ import unittest
 from tools.v4_live_two_worker_canary import (
     dispatch_intents_concurrently,
     failure_evidence,
+    reconcile_intent_until_terminal,
     main,
 )
 
 
 class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
+    def test_reconcile_keeps_other_worker_independent_after_one_failure(self):
+        class Store:
+            def __init__(self):
+                self.confirmed = []
+
+            def get_intent(self, intent_id):
+                return {
+                    "intent_id": intent_id,
+                    "state": "BLOCKED_AMBIGUOUS",
+                    "conversation_url": None,
+                }
+
+            def confirm_submitted(self, intent_id, **kwargs):
+                self.confirmed.append((intent_id, kwargs))
+
+        class Adapter:
+            def __init__(self):
+                self.calls = []
+
+            def reconcile(self, intent_id):
+                self.calls.append(intent_id)
+                if intent_id == "intent-1":
+                    return {"state": "BLOCKED_AMBIGUOUS", "ambiguity_reason": "BAD_ACK"}
+                return {
+                    "state": "RESPONSE_CAPTURED",
+                    "conversation_url": "https://chatgpt.com/c/intent-2",
+                    "response_sha256": "2" * 64,
+                }
+
+        class Gateway:
+            def __init__(self):
+                self.store = Store()
+                self.adapter = Adapter()
+
+        class Driver:
+            def turn_binding(self, intent_id):
+                return {"conversation_url": f"https://chatgpt.com/c/{intent_id}"}
+
+        gateway = Gateway()
+        async def run():
+            return await asyncio.gather(
+                reconcile_intent_until_terminal(
+                    gateway,
+                    Driver(),
+                    {"intent_id": "intent-1"},
+                    {"state": "BLOCKED_AMBIGUOUS"},
+                    max_attempts=2,
+                    sleep_seconds=0,
+                ),
+                reconcile_intent_until_terminal(
+                    gateway,
+                    Driver(),
+                    {"intent_id": "intent-2"},
+                    {"state": "BLOCKED_AMBIGUOUS"},
+                    max_attempts=2,
+                    sleep_seconds=0,
+                ),
+            )
+        results = asyncio.run(run())
+        self.assertEqual("BLOCKED_AMBIGUOUS", results[0]["state"])
+        self.assertEqual("RESPONSE_CAPTURED", results[1]["state"])
+        self.assertEqual({"intent-1", "intent-2"}, set(gateway.adapter.calls))
+
     def test_worker_intents_are_submitted_concurrently(self):
         barrier = threading.Barrier(2)
 

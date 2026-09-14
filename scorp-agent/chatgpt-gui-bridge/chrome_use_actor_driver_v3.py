@@ -689,7 +689,13 @@ class ChromeUseActorDriverV3:
         session = self.bind_turn(turn_id, conversation_url, actor_kind=actor_kind)
         target = _canonical_url(conversation_url) if conversation_url is not None else _ROOT_URL
         if conversation_url is None:
-            await self.cli.run_json(session, "open", target, timeout_seconds=self.timeout_seconds)
+            open_new_tab = getattr(self.cli, "open_new_tab", None)
+            if callable(open_new_tab):
+                await open_new_tab(session, target, timeout_seconds=self.timeout_seconds)
+            else:
+                # Alternate/fake transports may not expose tab ownership;
+                # retain their existing navigation contract.
+                await self.cli.run_json(session, "open", target, timeout_seconds=self.timeout_seconds)
             observed_root = await self._get_url(session)
             if observed_root != target:
                 raise ValueError("ACTOR_GUI_FOCUSED_CONVERSATION_MISMATCH")
@@ -711,16 +717,14 @@ class ChromeUseActorDriverV3:
                 # The first key-event repair only restores the controlled
                 # editor state.  If the accessibility tree still has no Send
                 # control, submit the same intent once with the CLI's explicit
-                # keyboard-submit flag.  A later URL check decides whether it
+                # Enter command.  A later URL check decides whether it
                 # actually created a conversation; there is no blind retry.
                 await self.cli.run_json(
                     session,
-                    "type",
+                    "press",
+                    "Enter",
+                    "--selector",
                     editor_ref,
-                    prompt,
-                    "--key-events",
-                    "--clear",
-                    "--enter",
                     timeout_seconds=self.timeout_seconds,
                 )
             except TimeoutError as timeout_error:

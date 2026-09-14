@@ -15,7 +15,6 @@ import json
 import pathlib
 import re
 import sys
-import time
 from collections.abc import Mapping
 
 
@@ -78,6 +77,49 @@ async def dispatch_intents_concurrently(gateway: V4BridgeGateway, intent_ids: li
             return_exceptions=True,
         )
     )
+
+
+async def reconcile_intent_until_terminal(
+    gateway: V4BridgeGateway,
+    driver: ChromeUseActorDriverV3,
+    intent: Mapping[str, object],
+    initial_result,
+    *,
+    max_attempts: int = 8,
+    sleep_seconds: float = 4.0,
+):
+    """Reconcile one Worker independently so another Worker cannot be skipped."""
+
+    intent_id = str(intent["intent_id"])
+    result = initial_result
+    for attempt in range(max(1, int(max_attempts))):
+        if isinstance(result, Mapping) and result.get("state") == "RESPONSE_CAPTURED":
+            return dict(result)
+        if attempt + 1 >= max(1, int(max_attempts)):
+            break
+        if sleep_seconds:
+            await asyncio.sleep(float(sleep_seconds))
+        current = await asyncio.to_thread(gateway.store.get_intent, intent_id)
+        if (
+            current.get("state") in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS"}
+            and not current.get("conversation_url")
+        ):
+            bound_url = _driver_bound_url(driver, intent_id)
+            if bound_url:
+                remote = hashlib.sha256(
+                    f"{intent_id}|{bound_url}".encode("utf-8")
+                ).hexdigest()
+                gateway.store.confirm_submitted(
+                    intent_id,
+                    conversation_url=bound_url,
+                    remote_identity=remote,
+                    observation={
+                        "source": "driver_binding_read_only_reconcile",
+                        "conversation_url": bound_url,
+                    },
+                )
+        result = await asyncio.to_thread(gateway.adapter.reconcile, intent_id)
+    return dict(result) if isinstance(result, Mapping) else result
 
 
 def _reply_matches(snapshot: str, expected: str) -> bool:
@@ -192,32 +234,30 @@ async def run_canary(args: argparse.Namespace) -> int:
         submitted = await dispatch_intents_concurrently(
             gateway, [str(intent["intent_id"]) for _, _, intent in prepared]
         )
-        for (claim, marker, intent), submitted_result in zip(prepared, submitted, strict=True):
-            if isinstance(submitted_result, Exception):
-                raise submitted_result
-            result = submitted_result
-            for _ in range(8):
-                if result.get("state") == "RESPONSE_CAPTURED":
-                    break
-                time.sleep(4)
-                current = gateway.store.get_intent(str(intent["intent_id"]))
-                if current.get("state") in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS"} and not current.get("conversation_url"):
-                    bound_url = _driver_bound_url(driver, str(intent["intent_id"]))
-                    if bound_url:
-                        remote = hashlib.sha256(
-                            f"{intent['intent_id']}|{bound_url}".encode("utf-8")
-                        ).hexdigest()
-                        gateway.store.confirm_submitted(
-                            str(intent["intent_id"]),
-                            conversation_url=bound_url,
-                            remote_identity=remote,
-                            observation={"source": "driver_binding_read_only_reconcile", "conversation_url": bound_url},
-                        )
-                result = gateway.adapter.reconcile(str(intent["intent_id"]))
-            if result.get("state") != "RESPONSE_CAPTURED":
-                raise RuntimeError(
-                    f"WORKER_RESPONSE_NOT_CAPTURED:{intent['intent_id']}:{result.get('state')}:{result.get('ambiguity_reason')}"
+        reconciled = await asyncio.gather(
+            *(
+                reconcile_intent_until_terminal(
+                    gateway,
+                    driver,
+                    intent,
+                    submitted_result,
                 )
+                if not isinstance(submitted_result, Exception)
+                else asyncio.sleep(0, result=submitted_result)
+                for (_, _, intent), submitted_result in zip(prepared, submitted, strict=True)
+            ),
+            return_exceptions=True,
+        )
+        failures = []
+        for (_, marker, intent), result in zip(prepared, reconciled, strict=True):
+            if isinstance(result, Exception):
+                failures.append(f"WORKER_RESPONSE_EXCEPTION:{intent['intent_id']}:{type(result).__name__}")
+                continue
+            if not isinstance(result, Mapping) or result.get("state") != "RESPONSE_CAPTURED":
+                failures.append(
+                    f"WORKER_RESPONSE_NOT_CAPTURED:{intent['intent_id']}:{result.get('state') if isinstance(result, Mapping) else type(result).__name__}:{result.get('ambiguity_reason') if isinstance(result, Mapping) else ''}"
+                )
+                continue
             records.append(
                 {
                     "intent_id": intent["intent_id"],
@@ -228,6 +268,8 @@ async def run_canary(args: argparse.Namespace) -> int:
                     "marker": marker,
                 }
             )
+        if failures:
+            raise RuntimeError(";".join(failures))
         evidence = {
             "format": "scorp-v4-two-worker-live-canary/1",
             "repository": "Scorp96/6",

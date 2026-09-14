@@ -114,3 +114,14 @@ class ChromeUseCliV3:
             "bringToFront",
             timeout_seconds=timeout_seconds,
         )
+
+    async def open_new_tab(self, session, url, *, timeout_seconds=30):
+        """Create an owned tab before starting a new ChatGPT conversation."""
+
+        return await self.run_json(
+            session,
+            "tab",
+            "new",
+            str(url),
+            timeout_seconds=timeout_seconds,
+        )

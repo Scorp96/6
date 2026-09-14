@@ -24,6 +24,12 @@ class FakeCli:
         return value
 
 
+class NewTabFakeCli(FakeCli):
+    async def open_new_tab(self, session, url, *, timeout_seconds=30):
+        self.calls.append((session, ['tab', 'new', url], timeout_seconds))
+        return {'success': True, 'data': {'url': url}}
+
+
 class ChromeUseActorDriverV3Tests(unittest.TestCase):
     def _driver(self, td, cli):
         return ChromeUseActorDriverV3(cli, pathlib.Path(td) / 'chrome-use-driver-v3.json', sleeper=lambda _: asyncio.sleep(0))
@@ -325,6 +331,31 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             click_calls = [args for _, args, _ in cli.calls if args and args[0] == 'click']
             self.assertEqual([['click', '@e20']], click_calls)
 
+    def test_new_worker_turn_uses_a_new_owned_tab(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = NewTabFakeCli()
+            conversation = 'https://chatgpt.com/c/new-owned-tab'
+            cli.responses = [
+                {'data': {'value': 'https://chatgpt.com/'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {'data': {'refs': {
+                    'e11': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                    'e20': {'name': 'Send', 'role': 'button'},
+                }}},
+                {'success': True},
+                {'data': {'value': conversation}},
+                {'success': True, 'data': {'broughtToFront': True}},
+                {'data': {'snapshot': 'submitted in new owned tab'}},
+            ]
+            driver = self._driver(td, cli)
+            result = asyncio.run(driver.submit_prompt(
+                prompt='hello', turn_id='turn-new-owned-tab', actor_kind='WORKER', conversation_url=None
+            ))
+            self.assertIn(conversation, result)
+            self.assertEqual(['tab', 'new', 'https://chatgpt.com/'], cli.calls[0][1])
+            self.assertFalse(any(args and args[0] == 'open' for _, args, _ in cli.calls))
+
     def test_submit_does_not_key_event_retry_when_stop_generating_is_visible(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()
@@ -358,7 +389,7 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
                 {'success': True},
                 # The repair restored the editor but the Send control is still
-                # absent, so the driver may use exactly one Enter fallback.
+                # absent, so the driver may use exactly one explicit Enter key.
                 {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
                 {'success': True},
                 {'data': {'value': conversation}},
@@ -372,12 +403,11 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertIn(conversation, result)
             type_calls = [args for _, args, _ in cli.calls if args and args[0] == 'type']
             self.assertEqual(
-                [
-                    ['type', '@e11', 'hello', '--key-events', '--clear'],
-                    ['type', '@e11', 'hello', '--key-events', '--clear', '--enter'],
-                ],
+                [['type', '@e11', 'hello', '--key-events', '--clear']],
                 type_calls,
             )
+            press_calls = [args for _, args, _ in cli.calls if args and args[0] == 'press']
+            self.assertEqual([['press', 'Enter', '--selector', '@e11']], press_calls)
             self.assertFalse(any(args and args[0] == 'click' for _, args, _ in cli.calls))
 
     def test_submit_accepts_chatgpt_root_query_redirect_before_new_conversation(self):
