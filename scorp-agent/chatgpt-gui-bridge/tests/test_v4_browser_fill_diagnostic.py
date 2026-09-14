@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import pathlib
 import tempfile
 import unittest
@@ -9,6 +10,7 @@ from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3
 from tools.v4_browser_fill_diagnostic import (
     run_fill_diagnostic,
     validate_candidate_binding,
+    write_diagnostic_evidence,
 )
 
 
@@ -28,6 +30,14 @@ class FakeCli:
 
 
 class V4BrowserFillDiagnosticTests(unittest.TestCase):
+    def test_diagnostic_receipt_is_atomic_and_self_hashing(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / "evidence.json"
+            record = write_diagnostic_evidence(path, {"status": "READY_TO_SEND_NO_CLICK", "click_performed": False})
+            stored = path.read_text(encoding="utf-8")
+            self.assertEqual(record["artifact_sha256"], json.loads(stored)["artifact_sha256"])
+            self.assertFalse(path.with_name("evidence.json.tmp").exists())
+
     def test_candidate_binding_requires_exact_commit_and_manifest_hash(self):
         manifest = {
             "candidate_commit": "a" * 40,

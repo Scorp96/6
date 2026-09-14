@@ -32,6 +32,7 @@ from chrome_use_actor_driver_v3 import (  # noqa: E402
     _sha,
 )
 from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
+from master_a_dynamic_v4.models import sha256_json  # noqa: E402
 
 
 DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
@@ -67,6 +68,23 @@ def _now() -> str:
 
 def _safe_error(exc: BaseException) -> dict[str, str]:
     return {"type": type(exc).__name__, "message": str(exc)}
+
+
+def write_diagnostic_evidence(path: pathlib.Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """Atomically write a self-hashing diagnostic receipt."""
+
+    record = dict(payload)
+    record["artifact_sha256"] = sha256_json(record)
+    destination = pathlib.Path(path).resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(destination.name + ".tmp")
+    temporary.write_text(
+        json.dumps(record, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    temporary.replace(destination)
+    return record
 
 
 async def run_fill_diagnostic(
@@ -199,11 +217,7 @@ async def _run_cli(args: argparse.Namespace) -> int:
     evidence["candidate_manifest_sha256"] = str(manifest["manifest_sha256"]).strip().lower()
     evidence["candidate_manifest_path"] = str(args.candidate_manifest.resolve())
     evidence["executable"] = str(executable)
-    args.evidence_path.write_text(
-        json.dumps(evidence, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    evidence = write_diagnostic_evidence(args.evidence_path, evidence)
     print(json.dumps(evidence, ensure_ascii=False, separators=(",", ":")))
     return 0 if evidence.get("status") == "READY_TO_SEND_NO_CLICK" else 2
 
