@@ -154,6 +154,103 @@ def _driver_bound_url(driver: ChromeUseActorDriverV3, intent_id: str) -> str | N
     return None
 
 
+async def cleanup_canary_lifecycle(
+    driver: ChromeUseActorDriverV3,
+    store,
+    intent_ids: list[str],
+    *,
+    auth_session: str | None,
+) -> dict[str, object]:
+    """Stop only canary sessions whose side effects have a terminal proof.
+
+    A captured response (or positive proof that nothing was submitted) makes
+    the corresponding Worker turn safe to retire.  MAY_HAVE_SUBMITTED and
+    BLOCKED_AMBIGUOUS turns are deliberately preserved for reconciliation and
+    are never stopped here.  The dedicated auth-probe session is temporary and
+    has no submit intent, so it is always retired and any cleanup failure is
+    recorded rather than retried.
+    """
+
+    retired_turn_ids: list[str] = []
+    preserved: list[dict[str, object]] = []
+    for raw_intent_id in intent_ids:
+        intent_id = str(raw_intent_id)
+        try:
+            current = store.get_intent(intent_id)
+        except Exception as exc:
+            preserved.append(
+                {
+                    "intent_id": intent_id,
+                    "state": "UNKNOWN",
+                    "reason": "INTENT_LOOKUP_FAILED",
+                    "error_type": type(exc).__name__,
+                }
+            )
+            continue
+        state = str(current.get("state") or "UNKNOWN")
+        if state not in {"RESPONSE_CAPTURED", "VERIFIED_NOT_SUBMITTED"}:
+            preserved.append(
+                {
+                    "intent_id": intent_id,
+                    "state": state,
+                    "reason": "NON_TERMINAL_OR_AMBIGUOUS",
+                }
+            )
+            continue
+        binding = driver.turn_binding(intent_id)
+        session = str((binding or {}).get("session") or "")
+        if not session.startswith("scorp-p0-turn-"):
+            preserved.append(
+                {
+                    "intent_id": intent_id,
+                    "state": state,
+                    "reason": "WORKER_SESSION_NOT_TEMPORARY",
+                    "session": session or None,
+                }
+            )
+            continue
+        try:
+            result = await driver.retire_turn(
+                intent_id,
+                reason="live canary terminal result",
+                stop=True,
+                allow_persistent=True,
+            )
+        except Exception as exc:
+            preserved.append(
+                {
+                    "intent_id": intent_id,
+                    "state": state,
+                    "reason": "WORKER_CLEANUP_BLOCKED",
+                    "error_type": type(exc).__name__,
+                }
+            )
+            continue
+        retired_turn_ids.append(intent_id)
+
+    auth_result: dict[str, object] | None = None
+    if auth_session:
+        try:
+            auth_result = dict(
+                await driver.retire_session(
+                    auth_session,
+                    reason="live canary auth probe complete",
+                    stop=True,
+                )
+            )
+        except Exception as exc:
+            auth_result = {
+                "status": "CLEANUP_BLOCKED",
+                "session": str(auth_session),
+                "error_type": type(exc).__name__,
+            }
+    return {
+        "retired_turn_ids": retired_turn_ids,
+        "preserved": preserved,
+        "auth_session": auth_result,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SCORP V4 real two-Worker browser canary")
     parser.add_argument("--send-canary", action="store_true", help="required to send the two harmless prompts")
@@ -180,11 +277,13 @@ async def run_canary(args: argparse.Namespace) -> int:
     cli = ChromeUseCliV3(executable=str(executable))
     expected_by_intent: dict[str, str] = {}
     driver = ChromeUseActorDriverV3(cli, args.driver_state_path, timeout_seconds=45)
+    auth_session = "scorp-v4-live-auth-" + hashlib.sha256(str(args.project_id).encode()).hexdigest()[:12]
+    prepared_intent_ids: list[str] = []
+    driver.register_session(auth_session, role="DIAGNOSTIC")
 
     async def auth_probe(channel: str):
-        session = "scorp-v4-live-auth-" + hashlib.sha256(str(args.project_id).encode()).hexdigest()[:12]
-        await cli.run_json(session, "open", "https://chatgpt.com/", timeout_seconds=30)
-        page = await cli.run_json(session, "read", timeout_seconds=30)
+        await cli.run_json(auth_session, "open", "https://chatgpt.com/", timeout_seconds=30)
+        page = await cli.run_json(auth_session, "read", timeout_seconds=30)
         text = json.dumps(page, ensure_ascii=False)
         return classify_chatgpt_snapshot(text, channel)
 
@@ -226,6 +325,7 @@ async def run_canary(args: argparse.Namespace) -> int:
             )
             intent = gateway.prepare_worker_intent(claim, prompt, metadata={"canary_marker": marker})
             expected_by_intent[str(intent["intent_id"])] = marker
+            prepared_intent_ids.append(str(intent["intent_id"]))
             prepared.append((claim, marker, intent))
         submitted = await dispatch_intents_concurrently(
             gateway, [str(intent["intent_id"]) for _, _, intent in prepared]
@@ -266,6 +366,12 @@ async def run_canary(args: argparse.Namespace) -> int:
             )
         if failures:
             raise RuntimeError(";".join(failures))
+        lifecycle_cleanup = await cleanup_canary_lifecycle(
+            driver,
+            gateway.store,
+            prepared_intent_ids,
+            auth_session=auth_session,
+        )
         evidence = {
             "format": "scorp-v4-two-worker-live-canary/1",
             "repository": "Scorp96/6",
@@ -279,6 +385,7 @@ async def run_canary(args: argparse.Namespace) -> int:
             "response_messages": len(records),
             "duplicate_submits": 0,
             "records": records,
+            "lifecycle_cleanup": lifecycle_cleanup,
             "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
             "limitations": [
                 "Prompts are harmless fixed-marker connectivity checks and do not perform repository work.",
@@ -293,7 +400,14 @@ async def run_canary(args: argparse.Namespace) -> int:
             pending = gateway.store.pending_intents()
         except Exception:
             pending = []
+        lifecycle_cleanup = await cleanup_canary_lifecycle(
+            driver,
+            gateway.store,
+            prepared_intent_ids,
+            auth_session=auth_session,
+        )
         receipt = failure_evidence(project_id=str(args.project_id), error=exc, intents=pending)
+        receipt["lifecycle_cleanup"] = lifecycle_cleanup
         args.evidence_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(receipt, ensure_ascii=False, separators=(",", ":")))
         return 2

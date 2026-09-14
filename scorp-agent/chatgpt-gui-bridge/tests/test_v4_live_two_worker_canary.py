@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from tools.v4_live_two_worker_canary import (
+    cleanup_canary_lifecycle,
     dispatch_intents_concurrently,
     failure_evidence,
     reconcile_intent_until_terminal,
@@ -15,6 +16,46 @@ from tools.v4_live_two_worker_canary import (
 
 
 class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
+    def test_cleanup_closes_auth_and_only_terminal_worker_sessions(self):
+        class Store:
+            def __init__(self):
+                self.states = {
+                    "intent-done": {"state": "RESPONSE_CAPTURED"},
+                    "intent-ambiguous": {"state": "MAY_HAVE_SUBMITTED"},
+                }
+
+            def get_intent(self, intent_id):
+                return self.states[intent_id]
+
+        class Driver:
+            def __init__(self):
+                self.calls = []
+
+            def turn_binding(self, turn_id):
+                return {"session": "scorp-p0-turn-" + turn_id}
+
+            async def retire_turn(self, turn_id, **kwargs):
+                self.calls.append(("turn", turn_id, kwargs))
+                return {"status": "RETIRED", "cleanup": "STOPPED"}
+
+            async def retire_session(self, session, **kwargs):
+                self.calls.append(("session", session, kwargs))
+                return {"status": "RETIRED", "cleanup": "STOPPED"}
+
+        driver = Driver()
+        result = asyncio.run(
+            cleanup_canary_lifecycle(
+                driver,
+                Store(),
+                ["intent-done", "intent-ambiguous"],
+                auth_session="auth-session",
+            )
+        )
+        self.assertEqual(["intent-done"], result["retired_turn_ids"])
+        self.assertEqual("STOPPED", result["auth_session"]["cleanup"])
+        self.assertEqual(2, len(driver.calls))
+        self.assertEqual("MAY_HAVE_SUBMITTED", result["preserved"][0]["state"])
+
     def test_reconcile_keeps_other_worker_independent_after_one_failure(self):
         class Store:
             def __init__(self):
