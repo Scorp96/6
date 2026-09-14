@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "7c5e99886e7a0ba200e76258e87316b61d8ca41d",
+  "validated_commit": "08b139ca8cdddb8779cf929d476bae15ec0d226e",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,15 +12,15 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 75,
-      "observed": "75 tests passed, including durable local execution intent recovery, assignment-scoped path checks, and MasterAController execution_request routing"
+      "tests_run": 78,
+      "observed": "78 tests passed, including durable local execution recovery, assignment-scoped path checks, and verified Git worktree isolation for write assignments"
     },
     {
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
       "tests_run": 416,
-      "observed": "416 tests passed, including the real V4 gateway loop with a durable allowlisted local execution intent and the two-Worker dependency loop"
+      "observed": "416 tests passed, including the V4 gateway structured Worker loop and browser bridge regression suite"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -66,6 +66,7 @@
     "MasterAController now provides start/apply_plan/step/run_cycles/watchdog/completion as a model-agnostic control surface; controller integration is offline with an injected engine and does not expand live-browser evidence.",
     "The live candidate evidence remains harmless fixed-marker browser work; the new controller integration proves the full T1/T2 -> T3 -> IDLE loop only with an injected engine.",
     "The built-in response decoder rejects prose and accepts only standalone or fenced JSON WORK_RESULT/1; run_cycles is capped and stops on BLOCKED, TERMINAL, or IDLE.",
-    "MasterAController now routes an optional execution_request through a durable LOCAL_EXECUTION action_intent/outbox lifecycle; MAY_HAVE_SUBMITTED is committed before subprocess execution, receipts are captured and finalized, and unresolved local intents are never replayed automatically."
+    "MasterAController now routes an optional execution_request through a durable LOCAL_EXECUTION action_intent/outbox lifecycle; MAY_HAVE_SUBMITTED is committed before subprocess execution, receipts are captured and finalized, and unresolved local intents are never replayed automatically.",
+    "Write-capable execution requests now require GitWorktreeManager: a clean repository, verified base commit, detached worktree inside assignment scope, and clean HEAD are recorded before the Worker process starts; existing targets and dirty baselines are rejected."
   ]
 }
