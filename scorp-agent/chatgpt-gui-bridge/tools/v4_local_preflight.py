@@ -56,6 +56,7 @@ def build_report(
         "scorp-agent/master_a_dynamic_v4",
         "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py",
         "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
+        "scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py",
     ]
     present = {item: (root / item).exists() for item in required}
     missing = [item for item, exists in present.items() if not exists]

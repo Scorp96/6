@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import pathlib
+import tempfile
+import unittest
+
+
+SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "tools" / "v4_web_gpt_packet.py"
+
+
+def load_packet():
+    spec = importlib.util.spec_from_file_location("v4_web_gpt_packet", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+class V4WebGptPacketTests(unittest.TestCase):
+    def _fixture(self, root: pathlib.Path, *, candidate: str = "a" * 40):
+        (root / "GPT_START_HERE.md").write_text("start\n", encoding="utf-8")
+        (root / "scripts").mkdir()
+        (root / "scripts" / "run-candidate-validation.ps1").write_text("# test\n", encoding="utf-8")
+        bridge = root / "scorp-agent" / "chatgpt-gui-bridge"
+        (root / "scorp-agent" / "master_a_dynamic_v4").mkdir(parents=True)
+        (bridge / "tools").mkdir(parents=True)
+        for name in (
+            "v4_master_controller_runtime.py",
+            "v4_master_supervisor_runtime.py",
+            "v4_web_gpt_packet.py",
+        ):
+            (bridge / "tools" / name).write_text("# test\n", encoding="utf-8")
+        (root / "docs" / "handoffs").mkdir(parents=True)
+        (root / "docs" / "handoffs" / "SCORP_V4_GIT6_VALIDATION.json").write_text(
+            json.dumps({"validated_commit": candidate}), encoding="utf-8"
+        )
+        (root / "docs" / "handoffs" / "SCORP_V4_WEB_GPT_HANDOFF.json").write_text(
+            json.dumps({
+                "candidate_commit": candidate,
+                "target_repository": "Scorp96/6",
+                "authority": {"git": "evidence_only"},
+                "evidence_binding": {"validated_commit": candidate},
+            }),
+            encoding="utf-8",
+        )
+        (root / "docs" / "handoffs" / "SCORP_V4_WEB_GPT_HANDOFF.md").write_text(
+            f"candidate {candidate}\n", encoding="utf-8"
+        )
+        database = root / "state.sqlite3"
+        database.write_bytes(b"sqlite-placeholder")
+        return database
+
+    def test_packet_contains_preflight_and_pasteable_web_gpt_boundary(self):
+        packet = load_packet()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            database = self._fixture(root)
+            result = packet.build_packet(root, database_path=database, allowed_root=root)
+            self.assertEqual("READY", result["status"])
+            self.assertEqual("UNAVAILABLE", result["preflight"]["capabilities"]["web_gpt_direct_local_control"]["status"])
+            self.assertIn("WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE", result["prompt"])
+            self.assertIn("preflight", result)
+
+    def test_packet_blocks_when_handoff_and_validation_candidates_differ(self):
+        packet = load_packet()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            database = self._fixture(root)
+            handoff = json.loads((root / "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json").read_text())
+            handoff["candidate_commit"] = "b" * 40
+            (root / "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json").write_text(json.dumps(handoff), encoding="utf-8")
+            result = packet.build_packet(root, database_path=database, allowed_root=root)
+            self.assertEqual("BLOCKED", result["status"])
+            self.assertEqual("CANDIDATE_VERSION_MISMATCH", result["blockers"][0]["code"])
+
+
+if __name__ == "__main__":
+    unittest.main()

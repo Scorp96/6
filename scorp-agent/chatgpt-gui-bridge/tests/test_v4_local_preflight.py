@@ -31,6 +31,7 @@ class V4LocalPreflightTests(unittest.TestCase):
             (bridge / "tools").mkdir(parents=True)
             (bridge / "tools" / "v4_master_controller_runtime.py").write_text("# test\n", encoding="utf-8")
             (bridge / "tools" / "v4_master_supervisor_runtime.py").write_text("# test\n", encoding="utf-8")
+            (bridge / "tools" / "v4_web_gpt_packet.py").write_text("# test\n", encoding="utf-8")
             database = root / "state.sqlite3"
             database.write_bytes(b"sqlite-placeholder")
             report = preflight.build_report(
@@ -44,6 +45,7 @@ class V4LocalPreflightTests(unittest.TestCase):
             self.assertEqual("READY", report["capabilities"]["offline_validation"]["status"])
             self.assertEqual("READY", report["capabilities"]["sqlite_master_monitor"]["status"])
             self.assertEqual("BLOCKED_MISSING_BROWSER_CONFIG", report["capabilities"]["browser_rebind"]["status"])
+            self.assertTrue(report["required_paths"]["scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py"])
 
     def test_cli_outputs_json_and_fails_closed_for_missing_repository_files(self):
         preflight = load_preflight()
