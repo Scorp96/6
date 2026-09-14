@@ -54,6 +54,18 @@ class OperatorControlTests(unittest.TestCase):
         self.assertEqual("REJECTED", conflict["status"])
         self.assertEqual("RUNTIME_RECEIPT_IDEMPOTENCY_CONFLICT", conflict["error"]["code"])
 
+    def test_identical_request_replays_after_store_reopen(self):
+        request = self.request("pause-reopen", "project.pause")
+        first = self.service.execute(request)
+        self.store.close()
+        reopened = StateStore(self.root / "runtime.sqlite", [self.root])
+        try:
+            replay = OperatorControlService(reopened, daemon_epoch=1).execute(request)
+            self.assertEqual(first, replay)
+            self.assertEqual(1, reopened.get_project_state("p1")["state_version"])
+        finally:
+            reopened.close()
+
     def test_wrong_cas_and_daemon_epoch_are_rejected_without_transition(self):
         wrong_version = self.service.execute(self.request("bad-v", "project.pause", state_version=9))
         self.assertEqual("REJECTED", wrong_version["status"])
