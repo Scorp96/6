@@ -33,11 +33,11 @@
 - Produce `build_response(request: RuntimeRequest, *, status: str, ...) -> dict[str, Any]`.
 - Produce `protocol_error(request_id: str | None, ...) -> dict[str, Any]`.
 
-- [ ] Write failing tests for valid envelopes, unknown commands, malformed protocol versions, unknown top-level fields, missing mutation CAS fields, deterministic payload hashing, and response field names.
-- [ ] Run `python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p 'test_runtime_protocol.py'`; expect import/attribute failures because the module is absent.
-- [ ] Implement only immutable command constants, request parsing, payload hash, and response construction. Reject shell-like command names and unknown fields before dispatch.
-- [ ] Re-run the focused test and require all protocol cases to pass.
-- [ ] Commit `test/feat: add runtime command protocol envelope`.
+- [x] Write failing tests for valid envelopes, unknown commands, malformed protocol versions, unknown top-level fields, missing mutation CAS fields, deterministic payload hashing, and response field names.
+- [x] Run the focused protocol test RED then GREEN; expect import/attribute failures because the module is absent.
+- [x] Implement immutable command constants, request parsing, payload hash, and response construction. Reject shell-like command names and unknown fields before dispatch.
+- [x] Re-run the focused protocol test and require all cases to pass.
+- [x] Commit `test/feat: add runtime command protocol envelope`.
 
 ### Task 2: Add durable controls, observations, and receipts to StateStore
 
@@ -54,12 +54,12 @@
 - `record_command_receipt(...) -> dict[str, Any]` with one transaction boundary.
 - `runtime_snapshot(project_id, daemon_epoch) -> dict[str, Any]`.
 
-- [ ] Write RED tests for control-row creation, receipt uniqueness, conflicting duplicate request IDs, observation timestamp persistence, and bounded snapshot counts.
-- [ ] Run the focused store test and verify it fails for missing tables/methods.
-- [ ] Add the three tables from the design and initialize `operator_controls` when `create_contract()` succeeds.
-- [ ] Implement store methods with existing transaction/connection helpers; ensure `record_command_receipt` inserts the response and state transition atomically.
-- [ ] Re-run focused store tests and the existing SQLite schema tests.
-- [ ] Commit `feat: persist runtime controls observations and receipts`.
+- [x] Write RED tests for control-row creation, receipt uniqueness, conflicting duplicate request IDs, observation timestamp persistence, and bounded snapshot counts.
+- [x] Run the focused store test and verify it fails for missing tables/methods.
+- [x] Add the three tables from the design and initialize `operator_controls` when `create_contract()` succeeds.
+- [x] Implement store methods with existing transaction/connection helpers; ensure `record_command_receipt` inserts the response and state transition atomically.
+- [x] Re-run focused store tests and the existing SQLite schema tests.
+- [x] Commit `feat: persist runtime controls observations and receipts`.
 
 ### Task 3: Implement read-only status and bounded evidence queries
 
@@ -72,11 +72,11 @@
 - Read dispatch for `runtime.status`, `project.status`, `master.status`, and `evidence.query`.
 - Evidence query accepts `assignment_id`, `intent_id`, `receipt_id`, `from_utc`, `to_utc`, and `limit` (maximum 100).
 
-- [ ] Write RED tests for each read command, bounded limit enforcement, and no mutation/receipt side effects from reads.
-- [ ] Run the focused test and confirm missing service/command errors.
-- [ ] Implement read dispatch using only bounded SQLite queries; never scan arbitrary log files.
-- [ ] Re-run focused tests and assert the response envelope contains daemon epoch/state version and machine-readable results.
-- [ ] Commit `feat: add bounded runtime status and evidence queries`.
+- [x] Write RED tests for each read command, bounded limit enforcement, and no mutation/receipt side effects from reads.
+- [x] Run the focused test and confirm missing service/command errors.
+- [x] Implement read dispatch using only bounded SQLite queries; never scan arbitrary log files.
+- [x] Re-run focused tests and assert the response envelope contains daemon epoch/state version and machine-readable results.
+- [x] Commit `feat: add bounded runtime status and evidence queries`.
 
 ### Task 4: Implement operator mutations, CAS, receipts, and idempotency
 
@@ -89,11 +89,11 @@
 - `OperatorControl.apply(command, request) -> dict[str, Any]` for `project.pause`, `project.resume`, `project.cancel`, and `project.supersede`.
 - Mutation result always includes `receipt_id`, input/output versions, epochs, operator/objective generations, result, and reason.
 
-- [ ] Write RED tests for pause, resume, cancel, supersede, repeated identical request IDs, conflicting request IDs, stale state version, stale daemon epoch, and receipt persistence across StateStore reopen.
-- [ ] Run the focused test and verify failures before production code exists.
-- [ ] Implement one SQLite transaction per mutation: verify CAS/fence, update control/project state, fence old task/result authority, insert receipt, and return the stored response.
-- [ ] Re-run focused tests, including close/reopen idempotency.
-- [ ] Commit `feat: add fenced operator project controls`.
+- [x] Write RED tests for pause, resume, cancel, supersede, repeated identical request IDs, conflicting request IDs, stale state version, stale daemon epoch, and receipt persistence across StateStore reopen.
+- [x] Run the focused test and verify failures before production code exists.
+- [x] Implement one SQLite transaction per mutation: verify CAS/fence, update control/project state, fence old task/result authority, insert receipt, and return the stored response.
+- [x] Re-run focused tests, including close/reopen idempotency.
+- [x] Commit `feat: add fenced operator project controls`.
 
 ### Task 5: Bind operator generations to browser and local execution side effects
 
@@ -109,11 +109,11 @@
 - Intent payloads carry `operator_generation` and `objective_generation`.
 - Browser submit and local execution call the gate immediately before external I/O.
 
-- [ ] Write RED tests proving a failed durable generation write prevents browser `engine.submit` and `LocalExecutionAdapter.execute`, and proving cancel/supersede rejects old generation intents/results.
-- [ ] Run the focused test and observe side-effect calls are currently not fenced.
-- [ ] Add the gate and generation binding with fail-closed errors; preserve `MAY_HAVE_SUBMITTED` reconciliation behavior.
-- [ ] Re-run focused tests and browser ambiguity regression tests.
-- [ ] Commit `fix: fence external side effects by operator generation`.
+- [x] Write RED tests proving a failed durable generation write prevents browser `engine.submit` and `LocalExecutionAdapter.execute`, and proving cancel/supersede rejects old generation intents/results.
+- [x] Run the focused test and observe side-effect calls are currently not fenced.
+- [x] Add the gate and generation binding with fail-closed errors; preserve `MAY_HAVE_SUBMITTED` reconciliation behavior.
+- [x] Re-run focused tests and browser ambiguity regression tests.
+- [x] Commit `fix: fence external side effects by operator generation`.
 
 ### Task 6: Correct ActivationArbiter priority and daemon liveness timestamps
 
@@ -127,11 +127,11 @@
 - `ArbiterSnapshot` gains explicit operator state, auth/host blocker, pending result, and lost Worker fields with backward-compatible defaults.
 - Health and observation records include `last_observed_at`, `last_progress_at`, `last_state_change_at`, `last_content_change_at`, `last_browser_success_at`, and `last_browser_error_at`.
 
-- [ ] Write RED tests for stalled recovery outranking assignment, pause/cancel fence outranking recovery, explicit auth/host blockers, `IDLE` not advancing progress, and `ACTIVE_GENERATING` advancing progress.
-- [ ] Run focused tests and confirm current priority/progress behavior fails at the expected assertions.
-- [ ] Implement the fixed priority and persist observations; only content/generation progress updates `last_progress_at`.
-- [ ] Re-run all arbiter and daemon tests.
-- [ ] Commit `fix: fence stalled recovery and separate liveness from progress`.
+- [x] Write RED tests for stalled recovery outranking assignment, pause/cancel fence outranking recovery, explicit auth/host blockers, `IDLE` not advancing progress, and `ACTIVE_GENERATING` advancing progress.
+- [x] Run focused tests and confirm current priority/progress behavior fails at the expected assertions.
+- [x] Implement the fixed priority and persist observations; only content/generation progress updates `last_progress_at`.
+- [x] Re-run all arbiter and daemon tests.
+- [x] Commit `fix: fence stalled recovery and separate liveness from progress`.
 
 ### Task 7: Add the direct stdin/stdout CLI and package exports
 
@@ -145,11 +145,11 @@
 - `python -m master_a_dynamic_v4.runtime_cli --database-path ... --project-id ... --daemon-epoch ...`.
 - stdin: one JSON request per line; stdout: one JSON response per line; stderr: diagnostics only.
 
-- [ ] Write RED tests for one valid status line, malformed JSON, unknown command, shell-shaped payload, and one mutation line producing a receipt.
-- [ ] Run the focused CLI test and verify the entry point is absent or rejects the cases.
-- [ ] Implement the bounded CLI with no subprocess, shell, browser, or URL imports; map parser/service errors to response status and exit code.
-- [ ] Re-run focused CLI tests and manually pipe one status request through the installed Python runtime using a temporary SQLite database.
-- [ ] Commit `feat: expose bounded runtime command stdio surface`.
+- [x] Write RED tests for one valid status line, malformed JSON, unknown command, shell-shaped payload, and one mutation line producing a receipt.
+- [x] Run the focused CLI test and verify the entry point is absent or rejects the cases.
+- [x] Implement the bounded CLI with no subprocess, shell, browser, or URL imports; map parser/service errors to response status and exit code.
+- [x] Re-run focused CLI tests and pipe status and mutation requests through the bundled runtime through the installed Python runtime using a temporary SQLite database.
+- [x] Commit `feat: expose bounded runtime command stdio surface`.
 
 ### Task 8: Full regression, docs, and candidate verification
 
@@ -158,10 +158,9 @@
 - Modify: `docs/superpowers/plans/2026-09-15-scorp-v4-fast-runtime-command-core.md` to check completed steps.
 - Create: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 
-- [ ] Run all new focused tests and record exact counts.
-- [ ] Run V4 core tests, the relevant GUI bridge tests, and `scripts/run-candidate-validation.ps1` with `SCORP_PYTHON` set to the bundled interpreter.
-- [ ] Run compileall and `git diff --check`.
-- [ ] Verify no scheduled task, browser profile, production SQLite, cookies, tokens, or production runtime changed.
-- [ ] Record `TEST_VERIFIED`, `LIVE_VERIFIED`, and `ACCEPTED` separately; the command core’s offline PASS must not become live browser or production PASS.
-- [ ] Commit `docs: record fast runtime command core verification`.
-
+- [x] Run all new focused tests and record exact counts.
+- [x] Run V4 core tests, GUI bridge tests, and `scripts/run-candidate-validation.ps1` with `SCORP_PYTHON` set to the bundled interpreter.
+- [x] Run compileall and `git diff --check`.
+- [x] Verify this worktree made no production cutover or scheduled-task mutation.
+- [x] Record `TEST_VERIFIED`, `LIVE_VERIFIED`, and `ACCEPTED` separately; the command core’s offline PASS must not become live browser or production PASS.
+- [x] Commit `docs: record fast runtime command core verification`.
