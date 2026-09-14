@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "2148dc3040e2e30fd049196534111bea6c0400ca",
+  "validated_commit": "6ee527e206b82b7a6003157dc2a5e1aa45b89350",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -19,8 +19,8 @@
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 413,
-      "observed": "413 tests passed"
+      "tests_run": 414,
+      "observed": "414 tests passed, including guarded live-canary send gate"
     },
     {
       "id": "privileged_broker_pure_python",
