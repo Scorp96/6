@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "a90ee333385f7d6039ed0d51d8273cee867f8914",
+  "candidate_commit": "b4d71294957f741e9bdb3969ee75310324f8acc1",
   "evidence_binding": {
-    "validated_commit": "a90ee333385f7d6039ed0d51d8273cee867f8914",
+    "validated_commit": "b4d71294957f741e9bdb3969ee75310324f8acc1",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_a90ee33.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_a90ee33.json",
-    "binding_note": "This handoff describes the a90ee33 code candidate; runtime startup now requires exact candidate binding, Chrome Use lifecycle hygiene is tested, and current live fill-send-conversation evidence remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_b4d7129.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_b4d7129.json",
+    "binding_note": "This handoff describes the b4d7129 code candidate; runtime startup now requires exact candidate binding, Chrome Use lifecycle hygiene is tested, and current live fill-send-conversation evidence remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

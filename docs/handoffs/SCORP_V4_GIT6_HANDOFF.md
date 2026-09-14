@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `a90ee333385f7d6039ed0d51d8273cee867f8914`
+- Current candidate: `b4d71294957f741e9bdb3969ee75310324f8acc1`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is
@@ -109,12 +109,12 @@ cutover, and long-duration stability as unverified where no current evidence
 exists.
 
 The isolated installation and short local recovery evidence are stored in
-`SCORP_V4_GIT6_CANDIDATE_MANIFEST_a90ee33.json`,
-`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_a90ee33.json`, and
-`SCORP_V4_GIT6_AC12_SHORT_SOAK_a90ee33.json`. The installed monitor probe is
-recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_a90ee33.json`. AC10 covers a
+`SCORP_V4_GIT6_CANDIDATE_MANIFEST_b4d7129.json`,
+`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_b4d7129.json`, and
+`SCORP_V4_GIT6_AC12_SHORT_SOAK_b4d7129.json`. The installed monitor probe is
+recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_b4d7129.json`. AC10 covers a
 41-file candidate install with unchanged protected-root hashes. AC12 covers a
-10.15 s run with 49 cycles, two Worker slots, 145 slot reuses, two scheduler
+10.12 s run with 48 cycles, two Worker slots, 142 slot reuses, two scheduler
 recoveries, and zero duplicate submits or errors. The browser engine is
 injected and local; this does not upgrade the real-browser or production
 status.
@@ -122,13 +122,14 @@ status.
 The web-GPT handoff and read-only local capability report are
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md`,
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json`, and
-`SCORP_V4_GIT6_PREFLIGHT_a90ee33.json`. The preflight reports
+`SCORP_V4_GIT6_PREFLIGHT_b4d7129.json`. The preflight reports
 `web_gpt_direct_local_control=UNAVAILABLE` until an actual local connector or
 operator-owned host is present.
 
 ## R4 live-browser finding
 
-A user-provided R4 report found a real-path failure after the composer was located: the previous serial controller waited on Worker-1, left its intent at `MAY_HAVE_SUBMITTED` with no conversation URL or response, and never dispatched Worker-2. The current candidate includes the serial-dispatch fix, shared driver-state locking, controlled-composer repair, a guarded single key-event Enter fallback, accessibility-aware selector matching, safe post-fill diagnostics containing the editor reference and prompt hash, and explicit Chrome Use session lifecycle accounting. Master and Worker sessions are protected persistent resources; diagnostic sessions are retired only after their active turns are gone, and cleanup timeouts are recorded as `CLEANUP_BLOCKED`. A fresh current-candidate fill-only diagnostic produced `READY_TO_SEND_NO_CLICK` with editor `@e118` and Send `@e126`; its receipt is `SCORP_V4_GIT6_FILL_DIAGNOSTIC_a90ee33.json` and records zero clicks/submits. The actual `fill → click/send → /c/<id>` path remains `FAIL/BLOCKED/NOT_RUN` because no send was performed. The colored labels in the user screenshot are treated as identifiers only and were not independently replayed as runtime evidence.
+A user-provided R4 report found a real-path failure after the composer was located: the previous serial controller waited on Worker-1, left its intent at `MAY_HAVE_SUBMITTED` with no conversation URL or response, and never dispatched Worker-2. The current candidate includes the serial-dispatch fix, shared driver-state locking, controlled-composer repair, a guarded single key-event Enter fallback, accessibility-aware selector matching, safe post-fill diagnostics containing the editor reference and prompt hash, and explicit Chrome Use session lifecycle accounting. Master and Worker sessions are protected persistent resources; diagnostic sessions are retired only after their active turns are gone, and cleanup timeouts are recorded as `CLEANUP_BLOCKED`. A fresh current-candidate fill-only diagnostic produced `READY_TO_SEND_NO_CLICK` with editor `@e119` and Send `@e121`; its receipt is `SCORP_V4_GIT6_FILL_DIAGNOSTIC_b4d7129.json` and records zero clicks/submits. The actual `fill → click/send → /c/<id>` path remains `FAIL/BLOCKED/NOT_RUN` because no send was performed. The colored labels in the user screenshot are treated as identifiers only and were not independently replayed as runtime evidence.
+
 
 
 
