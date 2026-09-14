@@ -73,6 +73,14 @@ than the legacy GitHub executor and is intended for the isolated real-code
 fixture; it is not evidence of production permission or browser-side exactly
 once behavior.
 
+`MasterAController` can optionally receive this adapter. A structured
+`execution_request` in a Worker response is then executed and attached as a
+receipt before the result is admitted. The adapter checks both the global
+allowed roots and the claim's assignment-level `resource_scope`; a successful
+local receipt causes the result content hash to be recomputed. Missing adapter,
+invalid request, nonzero exit, or scope mismatch leaves the Worker result
+unaccepted.
+
 ## Quick simulated check
 
 The gateway tests use a fake browser engine and verify the local path:

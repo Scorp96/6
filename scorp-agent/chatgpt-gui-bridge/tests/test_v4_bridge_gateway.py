@@ -70,6 +70,29 @@ class StructuredWorkerEngine(FakeEngine):
         }
 
 
+class StructuredExecutionWorkerEngine(StructuredWorkerEngine):
+    def __init__(self, source_path):
+        super().__init__()
+        self.source_path = pathlib.Path(source_path)
+
+    def submit(self, intent):
+        response = super().submit(intent)
+        result = response['response']
+        result['execution_request'] = {
+            'module': 'master_a_dynamic_v4.csv_workload.cli',
+            'args': [str(self.source_path)],
+            'working_directory': str(self.source_path.parent),
+            'resource_paths': [str(self.source_path)],
+            'access_mode': 'read',
+            'timeout_seconds': 10,
+        }
+        # The controller adds the local receipt before SQLite validation.
+        from master_a_dynamic_v4.work_result import result_content_sha256
+        result['result_sha256'] = result_content_sha256(result)
+        response['response'] = result
+        return response
+
+
 class V4GatewayTests(unittest.TestCase):
     def test_master_controller_runs_real_gateway_two_worker_structured_loop(self):
         from master_a_dynamic_v4.master_controller import MasterAController
@@ -105,6 +128,47 @@ class V4GatewayTests(unittest.TestCase):
                 self.assertEqual({'T1', 'T2'}, {item['task_id'] for item in history[0].outcomes})
                 self.assertEqual(['T3'], [item['task_id'] for item in history[1].outcomes])
                 self.assertEqual({'ACCEPTED'}, {gateway.scheduler.get_task(task)['state'] for task in ('T1', 'T2', 'T3')})
+            finally:
+                gateway.close()
+
+    def test_master_controller_executes_allowlisted_local_worker_request(self):
+        from master_a_dynamic_v4.execution_adapter import LocalExecutionAdapter
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            source = worktree / 'orders.csv'
+            source.write_text('order_id,category,amount\nO-1,alpha,1.20\n', encoding='utf-8', newline='')
+            engine = StructuredExecutionWorkerEngine(source)
+            gateway = V4BridgeGateway(root / 'state.sqlite3', 'project-exec-controller', [worktree], engine)
+            adapter = LocalExecutionAdapter([worktree], python_executable=sys.executable, pythonpath=sys_path)
+            try:
+                controller = MasterAController(gateway, 'master-exec-controller', execution_adapter=adapter)
+                controller.start({'objective': 'run allowlisted CSV worker'}, {'required': ['AC-EXEC']})
+                controller.apply_plan({
+                    'project_id': 'project-exec-controller',
+                    'master_identity': 'A',
+                    'tasks': [{
+                        'task_id': 'T1',
+                        'objective_sha256': '1' * 64,
+                        'resource_scope': [source],
+                        'access_mode': 'read',
+                        'dependencies': [],
+                        'acceptance_criteria_ids': ['AC-EXEC'],
+                    }],
+                })
+                history = controller.run_cycles(lambda claim: 'return WORK_RESULT/1', max_cycles=2)
+                self.assertEqual(['DISPATCHED', 'IDLE'], [item.status for item in history])
+                self.assertEqual('ACCEPTED', gateway.scheduler.get_task('T1')['state'])
+                with gateway.store._connection() as conn:
+                    result_row = conn.execute(
+                        "SELECT payload_json FROM candidate_results WHERE project_id=?",
+                        ('project-exec-controller',),
+                    ).fetchone()
+                self.assertIsNotNone(result_row)
+                self.assertIn('execution_receipt', json.loads(result_row['payload_json']))
+                self.assertEqual(1, engine.submits)
             finally:
                 gateway.close()
 

@@ -183,6 +183,16 @@ current real-code check runs the allowlisted CSV CLI in an isolated directory;
 a live browser Worker still needs its own authorized canary and structured
 `WORK_RESULT/1` response.
 
+When a Worker result contains an optional `execution_request`,
+`MasterAController` routes it through the injected `LocalExecutionAdapter`
+before admitting the result. The request is restricted to module, argument,
+working-directory, resource-scope, access-mode, and timeout fields; the
+adapter rechecks the assignment's own `resource_scope`, not only the global
+allowed root. A successful receipt is added to the candidate result and its
+content hash is recomputed before SQLite verification. If no adapter is
+configured, or the local process fails, the result is rejected and the task
+does not advance.
+
 The implementation is in
 `scorp-agent/master_a_dynamic_v4/master_controller.py`, with an actual
 `V4BridgeGateway` integration test in

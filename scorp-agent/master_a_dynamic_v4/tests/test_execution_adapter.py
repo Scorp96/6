@@ -97,6 +97,44 @@ class ExecutionAdapterTests(unittest.TestCase):
                     expected_assignment_id="different-assignment",
                 )
 
+    def test_rejects_same_root_path_outside_assignment_scope(self):
+        from master_a_dynamic_v4.execution_adapter import ExecutionAdapterRejected, LocalExecutionAdapter
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            assigned = root / "assigned.csv"
+            unrelated = root / "unrelated.csv"
+            assigned.write_text("order_id,category,amount\nO-1,alpha,1.20\n", encoding="utf-8")
+            unrelated.write_text("order_id,category,amount\nO-2,beta,2.30\n", encoding="utf-8")
+            adapter = LocalExecutionAdapter([root], python_executable=sys.executable, pythonpath=pathlib.Path(__file__).parents[2])
+            with self.assertRaisesRegex(ExecutionAdapterRejected, "RESOURCE_OUTSIDE_ASSIGNMENT_SCOPE"):
+                adapter.execute(
+                    self.make_claim(root),
+                    module="master_a_dynamic_v4.csv_workload.cli",
+                    args=[str(unrelated)],
+                    working_directory=root,
+                    resource_paths=[unrelated],
+                    access_mode="read",
+                )
+
+    def test_rejects_access_mode_downgrade_or_upgrade(self):
+        from master_a_dynamic_v4.execution_adapter import ExecutionAdapterRejected, LocalExecutionAdapter
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            source = root / "orders.csv"
+            source.write_text("order_id,category,amount\nO-1,alpha,1.20\n", encoding="utf-8")
+            adapter = LocalExecutionAdapter([root], python_executable=sys.executable, pythonpath=pathlib.Path(__file__).parents[2])
+            with self.assertRaisesRegex(ExecutionAdapterRejected, "CLAIM_ACCESS_MODE_MISMATCH"):
+                adapter.execute(
+                    self.make_claim(root, mode="write"),
+                    module="master_a_dynamic_v4.csv_workload.cli",
+                    args=[str(source)],
+                    working_directory=root,
+                    resource_paths=[source],
+                    access_mode="read",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

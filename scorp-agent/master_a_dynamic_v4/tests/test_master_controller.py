@@ -54,6 +54,39 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual(2, len(gateway.claimed))
         self.assertEqual(2, len(gateway.verified))
 
+    def test_controller_routes_structured_execution_request_through_adapter(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        adapter = _FakeExecutionAdapter()
+        controller = MasterAController(gateway, "master-session", execution_adapter=adapter)
+        controller.start({"objective": "execute bounded local work"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        def decode(row):
+            result = _result_for(row)
+            result["execution_request"] = {
+                "module": "master_a_dynamic_v4.csv_workload.cli",
+                "args": [],
+                "working_directory": "C:/lab",
+                "resource_paths": ["C:/lab/T1.txt"],
+                "access_mode": "write",
+                "timeout_seconds": 5,
+            }
+            return result
+
+        step = controller.step(lambda claim: "run bounded task", decode)
+        self.assertEqual("DISPATCHED", step.status)
+        self.assertEqual(1, len(adapter.calls))
+        self.assertTrue(all("execution_receipt" in payload for _, payload in gateway.verified))
+        self.assertEqual("master_a_dynamic_v4.csv_workload.cli", adapter.calls[0]["module"])
+
     def test_ambiguous_browser_state_is_left_for_reconciliation(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 
@@ -235,6 +268,35 @@ class _FakeGateway:
         from master_a_dynamic_v4.models import AcceptanceStatus
 
         return AcceptanceDecision(AcceptanceStatus.BLOCKED, ("MISSING_EVIDENCE:AC_CONTROLLER",))
+
+
+class _FakeExecutionReceipt:
+    exit_code = 0
+
+    def as_dict(self):
+        return {
+            "assignment_id": "assignment-placeholder",
+            "task_id": "T1",
+            "command": ["python", "-m", "module"],
+            "working_directory": "C:/lab",
+            "exit_code": 0,
+            "stdout": "ok",
+            "stderr": "",
+            "stdout_sha256": "a" * 64,
+            "stderr_sha256": "b" * 64,
+            "artifact_sha256": {},
+            "started_at": "2026-09-14T00:00:00Z",
+            "finished_at": "2026-09-14T00:00:01Z",
+        }
+
+
+class _FakeExecutionAdapter:
+    def __init__(self):
+        self.calls = []
+
+    def execute(self, claim, **request):
+        self.calls.append(dict(request))
+        return _FakeExecutionReceipt()
 
 
 def _result_for_claim(claim):

@@ -70,6 +70,29 @@ def _tail(value: str, limit: int) -> str:
     return text if len(text) <= limit else text[-limit:]
 
 
+def _inside_assignment_scope(path: pathlib.Path, scopes: Iterable[str | pathlib.Path]) -> bool:
+    """Return whether a path is within one assignment resource boundary.
+
+    A scope that currently exists as a directory permits descendants. A file
+    scope, including a not-yet-created output file, permits that exact path.
+    This keeps a Worker from widening its request to another file merely
+    because both files share the same global allowed root.
+    """
+
+    candidate = path.resolve(strict=False)
+    for raw_scope in scopes:
+        scope = pathlib.Path(raw_scope).resolve(strict=False)
+        if scope.exists() and scope.is_dir():
+            try:
+                if os.path.commonpath([os.path.normcase(str(candidate)), os.path.normcase(str(scope))]) == os.path.normcase(str(scope)):
+                    return True
+            except ValueError:
+                continue
+        elif os.path.normcase(str(candidate)) == os.path.normcase(str(scope)):
+            return True
+    return False
+
+
 class LocalExecutionAdapter:
     """Run a small, explicit command surface inside an assignment scope."""
 
@@ -116,6 +139,13 @@ class LocalExecutionAdapter:
             raise ExecutionAdapterRejected("CLAIM_EPOCH_MISMATCH")
         if expected_lease_token is not None and str(getattr(claim, "lease_token", "")) != str(expected_lease_token):
             raise ExecutionAdapterRejected("CLAIM_LEASE_MISMATCH")
+        claim_mode = str(getattr(claim, "access_mode", "") or "").strip().lower()
+        requested_mode = str(access_mode or "").strip().lower()
+        if claim_mode != requested_mode:
+            raise ExecutionAdapterRejected("CLAIM_ACCESS_MODE_MISMATCH")
+        claim_scopes = tuple(getattr(claim, "resource_scope", ()) or ())
+        if not claim_scopes:
+            raise ExecutionAdapterRejected("CLAIM_SCOPE_MISSING")
         module_name = str(module or "").strip()
         if module_name not in self.allowed_modules:
             raise ExecutionAdapterRejected("MODULE_NOT_ALLOWLISTED")
@@ -131,6 +161,8 @@ class LocalExecutionAdapter:
             authorized = self.path_policy.authorize([cwd, *scoped], access_mode)
         except (FileNotFoundError, PathBoundaryError) as exc:
             raise ExecutionAdapterRejected(str(exc)) from exc
+        if any(not _inside_assignment_scope(pathlib.Path(value), claim_scopes) for value in authorized[1:]):
+            raise ExecutionAdapterRejected("RESOURCE_OUTSIDE_ASSIGNMENT_SCOPE")
         authorized_keys = {os.path.normcase(str(pathlib.Path(value).resolve(strict=False))) for value in authorized}
         normalized_args: list[str] = []
         for raw in args:
@@ -142,6 +174,8 @@ class LocalExecutionAdapter:
                     self.path_policy.authorize([resolved], access_mode)
                 except PathBoundaryError as exc:
                     raise ExecutionAdapterRejected(str(exc)) from exc
+                if not _inside_assignment_scope(resolved, claim_scopes):
+                    raise ExecutionAdapterRejected("ARGUMENT_OUTSIDE_ASSIGNMENT_SCOPE")
                 if os.path.normcase(str(resolved)) not in authorized_keys and not any(
                     os.path.commonpath([os.path.normcase(str(resolved)), root]) == root
                     for root in (os.path.normcase(str(pathlib.Path(item).resolve(strict=False))) for item in authorized)

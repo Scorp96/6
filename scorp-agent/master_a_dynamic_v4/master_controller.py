@@ -16,7 +16,8 @@ from typing import Any
 
 from .models import CommitResult, sha256_json
 from .scheduler import AssignmentClaim, SchedulerError, WorkerFenceError
-from .work_result import decode_work_result_response
+from .execution_adapter import ExecutionAdapterRejected
+from .work_result import decode_work_result_response, result_content_sha256
 
 
 class ControllerRejected(ValueError):
@@ -56,7 +57,7 @@ class MasterAController:
         }
     )
 
-    def __init__(self, gateway: Any, session_id: str):
+    def __init__(self, gateway: Any, session_id: str, *, execution_adapter: Any | None = None):
         self.gateway = gateway
         self.project_id = str(getattr(gateway, "project_id", "") or "").strip()
         self.session_id = str(session_id or "").strip()
@@ -66,6 +67,7 @@ class MasterAController:
             raise ControllerRejected("MASTER_SESSION_ID_MISSING")
         self.master_epoch: int | None = None
         self.plan_hash: str | None = None
+        self.execution_adapter = execution_adapter
 
     def start(
         self,
@@ -302,8 +304,16 @@ class MasterAController:
         )
         if not isinstance(payload, Mapping):
             raise ControllerRejected("WORK_RESULT_DECODER_NOT_MAPPING")
+        payload = dict(payload)
         if str(payload.get("work_result_version") or "") != "1":
             raise ControllerRejected("WORK_RESULT_VERSION_UNSUPPORTED")
+        execution_request = payload.get("execution_request")
+        if execution_request is not None:
+            if self.execution_adapter is None:
+                raise ControllerRejected("EXECUTION_ADAPTER_UNAVAILABLE")
+            receipt = self._execute_request(claim, execution_request)
+            payload["execution_receipt"] = receipt
+            payload["result_sha256"] = result_content_sha256(payload)
         result_id = self.gateway.record_structured_worker_result(claim, payload=payload)
         self.gateway.verify_worker_result(
             result_id,
@@ -317,6 +327,59 @@ class MasterAController:
             "intent_state": state,
             "result_id": result_id,
         }
+
+    def _execute_request(self, claim: AssignmentClaim, request: Any) -> dict[str, Any]:
+        """Run one Worker-proposed local action through the bounded adapter."""
+
+        if not isinstance(request, Mapping):
+            raise ControllerRejected("EXECUTION_REQUEST_INVALID")
+        allowed = {
+            "module",
+            "args",
+            "working_directory",
+            "resource_paths",
+            "access_mode",
+            "timeout_seconds",
+        }
+        if set(request) - allowed:
+            raise ControllerRejected("EXECUTION_REQUEST_UNKNOWN_FIELD")
+        args = request.get("args", [])
+        resources = request.get("resource_paths", [])
+        if not isinstance(args, Sequence) or isinstance(args, (str, bytes)):
+            raise ControllerRejected("EXECUTION_REQUEST_ARGS_INVALID")
+        if not isinstance(resources, Sequence) or isinstance(resources, (str, bytes)):
+            raise ControllerRejected("EXECUTION_REQUEST_RESOURCES_INVALID")
+        mode = str(request.get("access_mode") or claim.access_mode).strip().lower()
+        if mode != str(claim.access_mode).strip().lower():
+            raise ControllerRejected("EXECUTION_REQUEST_ACCESS_MODE_MISMATCH")
+        try:
+            timeout_seconds = int(request.get("timeout_seconds", 300))
+        except (TypeError, ValueError) as exc:
+            raise ControllerRejected("EXECUTION_REQUEST_TIMEOUT_INVALID") from exc
+        try:
+            receipt = self.execution_adapter.execute(
+                claim,
+                module=str(request.get("module") or ""),
+                args=[str(item) for item in args],
+                working_directory=str(request.get("working_directory") or ""),
+                resource_paths=[str(item) for item in resources],
+                access_mode=mode,
+                expected_assignment_id=claim.assignment_id,
+                expected_master_epoch=claim.master_epoch,
+                expected_lease_token=claim.lease_token,
+                timeout_seconds=timeout_seconds,
+            )
+        except ExecutionAdapterRejected as exc:
+            raise ControllerRejected(f"LOCAL_EXECUTION_REJECTED:{exc}") from exc
+        if int(receipt.exit_code) != 0:
+            raise ControllerRejected(f"LOCAL_EXECUTION_FAILED:{receipt.exit_code}")
+        if hasattr(receipt, "as_dict"):
+            value = receipt.as_dict()
+        elif isinstance(receipt, Mapping):
+            value = dict(receipt)
+        else:
+            raise ControllerRejected("EXECUTION_RECEIPT_INVALID")
+        return value
 
     def _require_epoch(self) -> int:
         if self.master_epoch is None:
