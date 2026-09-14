@@ -1,0 +1,42 @@
+{
+  "format": "scorp-v4-two-worker-live-canary/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "2148dc3040e2e30fd049196534111bea6c0400ca",
+  "observed_at_utc": "2026-09-14T09:13:39.805696Z",
+  "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
+  "project_id": "scorp-v4-live-two-worker-canary",
+  "master_epoch": 0,
+  "worker_count": 2,
+  "submit_actions": 2,
+  "response_messages": 2,
+  "duplicate_submits": 0,
+  "records": [
+    {
+      "intent_id": "worker-intent-assignment-cfd0c81123d8480e827df4570c698c4d",
+      "channel": "worker/worker-slot-1",
+      "state": "RESPONSE_CAPTURED",
+      "attempt": 1,
+      "conversation_url": "https://chatgpt.com/c/6aa7b837-8d90-83e8-afb6-08fa2932dc5f",
+      "response_sha256": "6747c16fec89a355b3b9418f7ae6d87112487bdff6c06e748f6a31261c082861",
+      "response_marker": "SCORP_V4_WORKER_CANARY_ACK_1"
+    },
+    {
+      "intent_id": "worker-intent-assignment-dbdb363c49914783abc293578078b9e7",
+      "channel": "worker/worker-slot-2",
+      "state": "RESPONSE_CAPTURED",
+      "attempt": 1,
+      "conversation_url": "https://chatgpt.com/c/6aa7b9c7-51a0-83ee-b94d-f07f9e1831d7",
+      "response_sha256": "f168105751d1af1bd54a7a242289b20761797e1490f89fc16980730c9a15032d",
+      "response_marker": "SCORP_V4_WORKER_CANARY_ACK_2"
+    }
+  ],
+  "adapter_submission_path": "PASS_SIDE_EFFECTS",
+  "adapter_response_capture": "PASS_AFTER_EXPLICIT_EXTERNAL_RECONCILIATION",
+  "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
+  "limitations": [
+    "Prompts were harmless fixed-marker connectivity checks and did not perform repository work.",
+    "The first and second driver runs encountered transient URL identity observations; durable intents stayed non-complete and were reconciled from positive read-only browser evidence without resubmission.",
+    "The corrected driver now rejects WEB placeholders and polls for canonical /c/<id>; unit regression covers both behaviors.",
+    "This proves two real browser channels and response capture after recovery, not production cutover or unattended soak."
+  ]
+}

@@ -226,6 +226,16 @@ Do not use real customer data, credentials, private files, or production
 commands in the canary. A successful simulated test is not evidence of a real
 browser canary.
 
+The current repository also contains
+`docs/handoffs/SCORP_V4_GIT6_TWO_WORKER_LIVE_CANARY.json`. It records one real
+run through `ChromeUseActorDriverV3`, `V4 BrowserAdapter`, and
+`V4BridgeGateway`: two distinct Worker channels produced two distinct ChatGPT
+conversation URLs and both fixed-marker responses were captured. The run used
+harmless prompts only. Its transient URL observations were reconciled from
+positive read-only browser evidence without resubmitting; the record therefore
+proves real two-channel submission and recovery, not repository code work or a
+production unattended run.
+
 ## Production boundary
 
 Do not replace the Windows scheduled task, copy state into production, or change
