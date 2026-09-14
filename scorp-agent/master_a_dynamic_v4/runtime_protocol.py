@@ -179,3 +179,27 @@ def error_response(
         "receipt_id": None,
         "error": {"code": code, "detail": detail},
     }
+
+
+def protocol_error(
+    request_id: str | None = None,
+    *,
+    code: str,
+    detail: str = "",
+    status: str = "REJECTED",
+    command: str = "",
+    project_id: str = "",
+) -> dict[str, Any]:
+    """Planned public name for malformed-envelope responses.
+
+    ``error_response`` remains the implementation name for compatibility with
+    the CLI; both functions produce the identical versioned envelope.
+    """
+    return error_response(
+        str(request_id or ""),
+        status=status,
+        code=code,
+        detail=detail,
+        command=command,
+        project_id=project_id,
+    )

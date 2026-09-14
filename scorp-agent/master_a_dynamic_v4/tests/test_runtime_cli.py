@@ -52,7 +52,7 @@ class RuntimeCliTests(unittest.TestCase):
             stderr = io.StringIO()
             with patch("sys.stdin", stdin), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 code = main([
-                    "--database", str(db), "--project-id", "p1", "--allowed-root", str(root),
+                    "--database-path", str(db), "--project-id", "p1", "--allowed-root", str(root),
                     "--daemon-epoch", "1",
                 ])
             self.assertEqual(0, code)

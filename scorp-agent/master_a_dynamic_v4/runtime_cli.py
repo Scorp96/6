@@ -20,7 +20,7 @@ from .state_store import StateStore, StoreInvariantError
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="scorp-runtime")
-    parser.add_argument("--database", required=True)
+    parser.add_argument("--database", "--database-path", dest="database", required=True)
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--allowed-root", action="append", required=True)
     parser.add_argument("--daemon-epoch", required=True, type=int)

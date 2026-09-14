@@ -377,6 +377,11 @@ class StateStore:
             value["response"] = json.loads(str(value.pop("response_json")))
             return value
 
+    # Public names retained by the runtime command plan. Keep the explicit
+    # runtime_* methods as the canonical implementation names.
+    def get_command_receipt(self, request_id: str) -> dict[str, Any] | None:
+        return self.get_runtime_command_receipt(request_id)
+
     def record_runtime_command_receipt(
         self,
         *,
@@ -429,6 +434,9 @@ class StateStore:
             value = dict(conn.execute("SELECT * FROM runtime_command_receipts WHERE request_id=?", (request_id,)).fetchone())
             value["response"] = json.loads(str(value.pop("response_json")))
             return value
+
+    def record_command_receipt(self, **kwargs: Any) -> dict[str, Any]:
+        return self.record_runtime_command_receipt(**kwargs)
 
     def get_contract(self, project_id: str) -> dict[str, Any]:
         with self._connection() as conn:
@@ -1135,6 +1143,118 @@ class StateStore:
             if row is None:
                 raise StoreInvariantError("OUTBOX_NOT_FOUND")
             return dict(row)
+
+    def external_side_effect_gate(
+        self,
+        project_id: str,
+        operator_generation: int,
+        objective_generation: int,
+    ) -> dict[str, Any]:
+        """Validate a generation token immediately before external I/O.
+
+        The returned record is evidence for the caller; the method performs no
+        browser, process, filesystem, or network operation. A paused,
+        cancelled, superseded, or stale token raises a fail-closed invariant.
+        """
+        project = str(project_id or "").strip()
+        try:
+            operator = int(operator_generation)
+            objective = int(objective_generation)
+        except (TypeError, ValueError) as exc:
+            raise StoreInvariantError("OPERATOR_GENERATION_INVALID") from exc
+        if operator < 0 or objective < 0:
+            raise StoreInvariantError("OPERATOR_GENERATION_INVALID")
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT operator_state,operator_generation,objective_generation,objective_sha256,updated_at FROM operator_controls WHERE project_id=?",
+                (project,),
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("OPERATOR_CONTROL_NOT_FOUND")
+            if str(row["operator_state"]) != "ACTIVE":
+                raise StoreInvariantError(f"OPERATOR_STATE_FENCED:{row['operator_state']}")
+            if operator != int(row["operator_generation"]):
+                raise StoreInvariantError("OPERATOR_GENERATION_FENCED")
+            if objective != int(row["objective_generation"]):
+                raise StoreInvariantError("OBJECTIVE_GENERATION_FENCED")
+            return {
+                "status": "ALLOWED",
+                "project_id": project,
+                "operator_state": str(row["operator_state"]),
+                "operator_generation": int(row["operator_generation"]),
+                "objective_generation": int(row["objective_generation"]),
+                "objective_sha256": str(row["objective_sha256"]),
+                "updated_at": str(row["updated_at"]),
+            }
+
+    def runtime_snapshot(self, project_id: str, daemon_epoch: int) -> dict[str, Any]:
+        """Return one bounded SQLite-only snapshot for local status callers."""
+        project = str(project_id or "").strip()
+        if not project:
+            raise StoreInvariantError("PROJECT_ID_EMPTY")
+        with self._connection() as conn:
+            state = conn.execute(
+                "SELECT project_id,state_version,master_epoch,status,phase,completion_candidate_commit,updated_at FROM project_state WHERE project_id=?",
+                (project,),
+            ).fetchone()
+            if state is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            contract = conn.execute(
+                "SELECT contract_sha256 FROM contracts WHERE project_id=?", (project,)
+            ).fetchone()
+            control = conn.execute(
+                "SELECT * FROM operator_controls WHERE project_id=?", (project,)
+            ).fetchone()
+            observation = conn.execute(
+                "SELECT * FROM runtime_observations WHERE project_id=?", (project,)
+            ).fetchone()
+            daemon = conn.execute(
+                "SELECT daemon_epoch,owner_id,heartbeat_at,lease_until FROM daemon_leases WHERE project_id=?",
+                (project,),
+            ).fetchone()
+            master = conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? ORDER BY CASE WHEN state='ACTIVE' THEN 0 ELSE 1 END, heartbeat_at DESC LIMIT 1",
+                (project,),
+            ).fetchone()
+            active_workers = int(conn.execute(
+                "SELECT COUNT(*) FROM leases WHERE project_id=? AND state='ACTIVE'",
+                (project,),
+            ).fetchone()[0])
+            queued = int(conn.execute(
+                "SELECT COUNT(*) FROM task_nodes WHERE project_id=? AND state='QUEUED'",
+                (project,),
+            ).fetchone()[0])
+            running = int(conn.execute(
+                "SELECT COUNT(*) FROM task_nodes WHERE project_id=? AND state IN ('RUNNING','ASSIGNED')",
+                (project,),
+            ).fetchone()[0])
+            ambiguous = int(conn.execute(
+                "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS')",
+                (project,),
+            ).fetchone()[0])
+            pending_results = int(conn.execute(
+                "SELECT COUNT(*) FROM candidate_results WHERE project_id=? AND verification_state='PENDING'",
+                (project,),
+            ).fetchone()[0])
+            decision = conn.execute(
+                "SELECT payload_json FROM events WHERE project_id=? AND kind='ACTIVATION_DECISION' ORDER BY created_at DESC LIMIT 1",
+                (project,),
+            ).fetchone()
+        return {
+            "project_id": project,
+            "daemon_epoch": int(daemon_epoch),
+            "contract_sha256": str(contract[0]) if contract is not None else None,
+            "project": dict(state),
+            "operator": dict(control) if control is not None else None,
+            "observation": dict(observation) if observation is not None else None,
+            "daemon": dict(daemon) if daemon is not None else None,
+            "master": dict(master) if master is not None else None,
+            "workers": {"active": active_workers, "capacity": 2, "free": max(0, 2 - active_workers)},
+            "tasks": {"queued": queued, "running": running},
+            "reconciliation": {"ambiguous_intents": ambiguous, "pending_results": pending_results},
+            "pending_results": pending_results,
+            "last_decision": json.loads(str(decision[0])) if decision is not None else None,
+        }
 
     @staticmethod
     def _check_intent_generation_row(conn: sqlite3.Connection, row: Mapping[str, Any]) -> None:

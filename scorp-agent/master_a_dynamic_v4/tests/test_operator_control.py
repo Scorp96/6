@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import datetime as dt
 from pathlib import Path
 
 from master_a_dynamic_v4.operator_control import OperatorControlService
@@ -85,6 +86,31 @@ class OperatorControlTests(unittest.TestCase):
         self.assertEqual("REJECTED", response["status"])
         self.assertEqual("OBJECTIVE_SHA256_REQUIRED", response["error"]["code"])
         self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
+
+    def test_cancel_fences_active_assignments_leases_and_pending_results(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+
+        worktree = self.root / "worktree"
+        worktree.mkdir()
+        scheduler = Scheduler(self.store, "p1", PathPolicy([worktree]), max_workers=2)
+        scheduler.enqueue_graph([
+            {"task_id": "T1", "objective_sha256": "a" * 64, "resource_scope": [worktree / "one.txt"], "dependencies": []}
+        ])
+        claim = scheduler.claim_runnable(master_epoch=0, now=dt.datetime.now(dt.timezone.utc))[0]
+        result_id = scheduler.record_candidate(
+            claim.assignment_id,
+            lease_token=claim.lease_token,
+            master_epoch=0,
+            kind="HANDOFF",
+            payload={"artifact_sha256": "b" * 64, "result_sha256": "b" * 64},
+        )
+        response = self.service.execute(self.request("cancel-fence", "project.cancel"))
+        self.assertEqual("OK", response["status"])
+        with self.store._connection() as conn:
+            self.assertEqual("FENCED", conn.execute("SELECT state FROM assignments WHERE assignment_id=?", (claim.assignment_id,)).fetchone()[0])
+            self.assertEqual("FENCED", conn.execute("SELECT state FROM leases WHERE assignment_id=?", (claim.assignment_id,)).fetchone()[0])
+            self.assertEqual("STALE", conn.execute("SELECT verification_state FROM candidate_results WHERE result_id=?", (result_id,)).fetchone()[0])
 
 
 if __name__ == "__main__":

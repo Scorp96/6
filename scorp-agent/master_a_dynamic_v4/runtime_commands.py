@@ -19,16 +19,40 @@ class RuntimeCommandService:
     browser. Every query is bounded in SQL and returns JSON-compatible data.
     """
 
-    def __init__(self, store: StateStore, *, daemon_epoch: int, actor: str = "runtime"):
+    def __init__(
+        self,
+        store: StateStore,
+        project_id: str | None = None,
+        actor_id: str | None = None,
+        *,
+        daemon_epoch: int | None = None,
+        actor: str | None = None,
+    ):
         self.store = store
-        self.daemon_epoch = int(daemon_epoch)
-        self.actor = str(actor or "runtime")
+        self.project_id = str(project_id or "").strip()
+        self.actor = str(actor_id or actor or "runtime")
+        self.actor_id = self.actor
+        if daemon_epoch is None and self.project_id:
+            with self.store._connection() as conn:
+                row = conn.execute(
+                    "SELECT daemon_epoch FROM daemon_leases WHERE project_id=?",
+                    (self.project_id,),
+                ).fetchone()
+            daemon_epoch = int(row[0]) if row is not None else 0
+        self.daemon_epoch = int(daemon_epoch or 0)
         self.operator = OperatorControlService(
             store, daemon_epoch=self.daemon_epoch, actor=self.actor
         )
 
     def execute(self, request: RuntimeRequest) -> dict[str, Any]:
         try:
+            if self.project_id and request.project_id != self.project_id:
+                return build_response(
+                    request,
+                    status="REJECTED",
+                    daemon_epoch=self.daemon_epoch,
+                    error={"code": "PROJECT_SCOPE_MISMATCH"},
+                )
             if request.is_mutation:
                 return self.operator.execute(request)
             if request.command == "runtime.status":
@@ -164,15 +188,18 @@ class RuntimeCommandService:
             raise StoreInvariantError("EVIDENCE_LIMIT_INVALID") from exc
         if limit < 1 or limit > 100:
             raise StoreInvariantError("EVIDENCE_LIMIT_INVALID")
-        allowed = {"limit", "assignment_id", "intent_id", "receipt_id", "since", "until"}
+        allowed = {
+            "limit", "assignment_id", "intent_id", "receipt_id",
+            "since", "until", "from_utc", "to_utc",
+        }
         unknown = set(payload) - allowed
         if unknown:
             raise StoreInvariantError("EVIDENCE_FILTER_UNKNOWN")
         assignment_filter = str(payload.get("assignment_id") or "")
         intent_filter = str(payload.get("intent_id") or "")
         receipt_filter = str(payload.get("receipt_id") or "")
-        since = str(payload.get("since") or "")
-        until = str(payload.get("until") or "")
+        since = str(payload.get("from_utc") or payload.get("since") or "")
+        until = str(payload.get("to_utc") or payload.get("until") or "")
 
         def matches(item: Mapping[str, Any], *, timestamp_key: str) -> bool:
             timestamp = str(item.get(timestamp_key) or "")

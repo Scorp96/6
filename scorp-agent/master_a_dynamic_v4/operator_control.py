@@ -32,6 +32,7 @@ class OperatorControlService:
                 daemon_epoch=self.daemon_epoch,
                 error={"code": "COMMAND_NOT_MUTATION"},
             )
+
         receipt_id = f"receipt-{request.request_id}"
         try:
             with self.store._transaction() as conn:
@@ -118,6 +119,27 @@ class OperatorControlService:
                     """,
                     (status, operator_generation, objective_generation, objective_sha, now, request.project_id),
                 )
+                if request.command in {"project.cancel", "project.supersede"}:
+                    # Fence every still-authoritative piece of work before the
+                    # receipt is committed. Historical rows remain for audit,
+                    # but queued/running work and unverified results cannot be
+                    # admitted by a later Master epoch.
+                    conn.execute(
+                        "UPDATE assignments SET state='FENCED',updated_at=? WHERE project_id=? AND state NOT IN ('FENCED','VERIFIED','ACCEPTED')",
+                        (now, request.project_id),
+                    )
+                    conn.execute(
+                        "UPDATE leases SET state='FENCED',released_at=? WHERE project_id=? AND state='ACTIVE'",
+                        (now, request.project_id),
+                    )
+                    conn.execute(
+                        "UPDATE task_nodes SET state='FENCED',updated_at=? WHERE project_id=? AND state NOT IN ('VERIFIED','ACCEPTED','FENCED')",
+                        (now, request.project_id),
+                    )
+                    conn.execute(
+                        "UPDATE candidate_results SET verification_state='STALE' WHERE project_id=? AND verification_state NOT IN ('STALE','REJECTED')",
+                        (request.project_id,),
+                    )
                 event_id = f"runtime-command-{request.request_id}"
                 conn.execute(
                     "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
@@ -172,6 +194,15 @@ class OperatorControlService:
                 daemon_epoch=self.daemon_epoch,
                 error={"code": str(exc).split(":", 1)[0], "detail": str(exc)},
             )
+
+    def apply(self, command: str | RuntimeRequest, request: RuntimeRequest | None = None) -> dict[str, Any]:
+        """Planned API alias; accepts either a request or (command, request)."""
+        target = command if isinstance(command, RuntimeRequest) else request
+        if target is None:
+            raise ValueError("RUNTIME_REQUEST_REQUIRED")
+        if isinstance(command, str) and target.command != command:
+            raise ValueError("RUNTIME_COMMAND_MISMATCH")
+        return self.execute(target)
 
     def _reject_and_record(self, conn, request, receipt_id, state, control, reason, now):
         if state is None:

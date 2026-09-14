@@ -330,6 +330,12 @@ class Scheduler:
                 raise WorkerFenceError("MASTER_EPOCH_FENCED")
             if str(state["status"]) != "ACTIVE":
                 return []
+            control = conn.execute(
+                "SELECT operator_state FROM operator_controls WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if control is not None and str(control["operator_state"]) != "ACTIVE":
+                return []
 
             active_rows = conn.execute(
                 """
