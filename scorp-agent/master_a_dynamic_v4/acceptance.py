@@ -99,19 +99,23 @@ class AcceptanceValidator:
                 if not candidates:
                     blockers.add(f"MISSING_EVIDENCE:{acceptance_name}")
                     continue
-                receipt = candidates[-1]
-                result = str(receipt["result"])
-                if result == "FAIL":
-                    failed = True
-                    blockers.add(f"EVIDENCE_FAILED:{acceptance_name}")
-                elif result != "PASS":
-                    blockers.add(f"EVIDENCE_NOT_PASS:{acceptance_name}:{result}")
-                blockers.update(evidence_blockers(
-                    dict(receipt),
-                    candidate_commit=candidate,
-                    contract_sha256=str(contract["contract_sha256"]),
-                    artifact_hashes=authoritative_artifacts,
-                ))
+                # Evidence receipts are append-only and there is no revocation or
+                # supersession field.  Every receipt for a required acceptance
+                # therefore remains authoritative: selecting one by ref/name
+                # would let a later-looking PASS hide an unresolved counterclaim.
+                for receipt in candidates:
+                    result = str(receipt["result"])
+                    if result == "FAIL":
+                        failed = True
+                        blockers.add(f"EVIDENCE_FAILED:{acceptance_name}")
+                    elif result != "PASS":
+                        blockers.add(f"EVIDENCE_NOT_PASS:{acceptance_name}:{result}")
+                    blockers.update(evidence_blockers(
+                        dict(receipt),
+                        candidate_commit=candidate,
+                        contract_sha256=str(contract["contract_sha256"]),
+                        artifact_hashes=authoritative_artifacts,
+                    ))
 
             required_tasks = conn.execute(
                 "SELECT task_id,state FROM task_nodes WHERE project_id=? AND required=1 ORDER BY task_id",

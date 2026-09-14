@@ -112,7 +112,7 @@
     "The current code candidate is a385f7b362cf87ba194fd8ba9c119771db44c42a; runtime startup requires an exact candidate manifest and SHA-256 before browser or SQLite side effects.",
     "ChromeUseActorDriverV3 now records lifecycle metadata, protects persistent Master/Worker sessions, retires diagnostic sessions only after active references clear, and records cleanup timeouts as CLEANUP_BLOCKED.",
     "The user-provided colored Chrome labels and stuck get-url observation were not independently replayed; they are retained as a user report, not PASS evidence.",
-    "The explicit v4_session_lifecycle.py command provides read-only listing and named-session retirement; global session prune and close-all cleanup are forbidden and covered by four unit tests.",
+    "The explicit v4_session_lifecycle.py command provides read-only listing and named-session retirement; global session prune and close-all cleanup are forbidden and covered by five unit tests.",
     "The session lifecycle command now persists an atomic evidence JSON with artifact_sha256 for every listed or retired action when an evidence path is supplied.",
     "An isolated command smoke retired a named DIAGNOSTIC session without stopping Chrome and persisted C:\\\\ScorpAgent\\\\v4-lifecycle-demo\\\\retirement.json with artifact_sha256=88260899fa6510ec5df9b6c55cf0c61bafdedba2f3794afbce6c0803180fcadf."
   ],
@@ -131,3 +131,4 @@
     "candidate_binding": "candidate_commit and candidate_manifest_sha256 are required and checked before browser actions"
   }
 }
+

@@ -196,6 +196,46 @@ class FalseCompletionTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_unresolved_counterevidence_cannot_be_hidden_by_a_later_named_pass(self):
+        with tempfile.TemporaryDirectory() as td:
+            store, contract = self.make_store(pathlib.Path(td))
+            try:
+                # The lexical order is intentional: an invalid/blocked receipt
+                # sorts before the PASS receipt.  Both must remain effective.
+                store.record_evidence_receipt(
+                    "project-ac04",
+                    "a-blocked",
+                    acceptance_id="AC04",
+                    result="BLOCKED",
+                    candidate_commit=CANDIDATE,
+                    contract_sha256=contract["contract_sha256"],
+                    artifact_sha256=ARTIFACT,
+                    command_or_action="browser reconcile",
+                    observed_state={"status": "BLOCKED_AMBIGUOUS"},
+                    raw_output_reference="C:/evidence/blocked.txt",
+                    started_at="2026-09-14T13:00:00Z",
+                    finished_at="2026-09-14T13:00:01Z",
+                )
+                store.record_evidence_receipt(
+                    "project-ac04",
+                    "z-pass",
+                    acceptance_id="AC04",
+                    result="PASS",
+                    candidate_commit=CANDIDATE,
+                    contract_sha256=contract["contract_sha256"],
+                    artifact_sha256=ARTIFACT,
+                    command_or_action="python -B -m unittest test_ac04_false_completion -v",
+                    observed_state={"exit_code": 0, "tests_run": 1, "failures": 0},
+                    raw_output_reference="C:/evidence/pass.txt",
+                    started_at="2026-09-14T13:00:00Z",
+                    finished_at="2026-09-14T13:00:01Z",
+                )
+                decision = self.evaluate(store)
+                self.assertEqual("BLOCKED", decision.status.value)
+                self.assertIn("EVIDENCE_NOT_PASS:AC04:BLOCKED", decision.blockers)
+            finally:
+                store.close()
+
 
 if __name__ == "__main__":
     unittest.main()
