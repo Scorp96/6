@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit f26d2015a4ac923225cec55b73f50ab9296cdf82 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_f26d201.json `
-  --manifest-sha256 4dba329ea0d4d8a7be46f22c260aedaef89019f3d791e73f79d36294688ce8d7
+  --candidate-commit 5c4a127f03642778799c65abdf04aa1fbdddcb9e `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_5c4a127.json `
+  --manifest-sha256 d8fb7ce7eefd55494a03df1df23c92097ced9223b1a054c80d29782e21f8c21f
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send

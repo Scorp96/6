@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "f26d2015a4ac923225cec55b73f50ab9296cdf82",
+  "candidate_commit": "5c4a127f03642778799c65abdf04aa1fbdddcb9e",
   "evidence_binding": {
-    "validated_commit": "f26d2015a4ac923225cec55b73f50ab9296cdf82",
+    "validated_commit": "5c4a127f03642778799c65abdf04aa1fbdddcb9e",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_f26d201.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_f26d201.json",
-    "binding_note": "This handoff describes the f26d201 code candidate; controlled-composer repair and the no-send diagnostic are tested, while current live fill-send-conversation evidence remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_5c4a127.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_5c4a127.json",
+    "binding_note": "This handoff describes the 5c4a127 code candidate; controlled-composer repair and candidate-bound no-send diagnostic are tested, while current live fill-send-conversation evidence remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
