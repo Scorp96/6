@@ -1,29 +1,52 @@
 {
   "format": "scorp-v4-git6-validation/1",
-  "source_repository": "Scorp96/666",
+  "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validation_scope": "repository-copy-offline",
+  "validated_commit": "e6612a994c0b094e00669a9e5854c3dfa2df4edb",
+  "validation_scope": "repository-candidate-offline",
+  "reasoning_model": "GPT-5.6 Sol",
+  "worker_capacity": 2,
   "commands": [
     {
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 46,
-      "observed": "46 tests passed"
+      "tests_run": 56,
+      "observed": "56 tests passed, including structured Worker results and real CSV completion gate"
     },
     {
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 403,
-      "observed": "403 tests passed"
+      "tests_run": 410,
+      "observed": "410 tests passed"
+    },
+    {
+      "id": "privileged_broker_pure_python",
+      "command": "python -B -m unittest discover -s tests -p test_broker_core.py/test_broker_client.py/test_broker_ops.py/test_install_contract.py (cwd=scorp-agent/privileged-broker)",
+      "exit_code": 0,
+      "tests_run": 29,
+      "observed": "29 tests passed; Windows service integration was not claimed"
     },
     {
       "id": "python_compile",
-      "command": "python -B -m compileall -q scorp-agent/master_a_dynamic_v4 scorp-agent/chatgpt-gui-bridge",
+      "command": "python -B -m compileall -q scorp-agent/master_a_dynamic_v4 scorp-agent/chatgpt-gui-bridge scorp-agent/privileged-broker",
       "exit_code": 0,
       "observed": "compileall passed"
+    },
+    {
+      "id": "runtime_probe",
+      "command": ".\\scorp-agent\\chatgpt-gui-bridge\\run-v4-candidate.ps1",
+      "exit_code": 0,
+      "observed": "reasoning_model=GPT-5.6 Sol; worker_capacity=2; queue_authority=sqlite; browser_io=NOT_ATTEMPTED"
+    },
+    {
+      "id": "real_code_workload",
+      "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_real_code_acceptance.py",
+      "exit_code": 0,
+      "tests_run": 1,
+      "observed": "T1/T2 parallel, T3 dependency continuation, independent acceptance PASS"
     }
   ],
   "real_browser_canary": "NOT_RUN_FOR_THIS_REPOSITORY_COPY",
@@ -31,5 +54,11 @@
   "production_cutover": "NOT_AUTHORIZED_NOT_ATTEMPTED",
   "long_duration_stability_proven": false,
   "production_mutated": false,
-  "credentials_uploaded": false
+  "credentials_uploaded": false,
+  "paid_model_api": "FORBIDDEN_NOT_USED",
+  "notes": [
+    "Ordinary web GPT does not receive local Windows control merely by reading this repository.",
+    "The browser adapter requires an explicitly configured, already-authenticated Windows MCP or Chrome Use driver.",
+    "The candidate is delivered to GitHub main; installing it into the user's production scheduled task remains a separate authorized step."
+  ]
 }
