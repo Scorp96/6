@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "5c4a127f03642778799c65abdf04aa1fbdddcb9e",
+  "candidate_commit": "87dc77101259e3473b9407bbce92c67aa7f0d73b",
   "evidence_binding": {
-    "validated_commit": "5c4a127f03642778799c65abdf04aa1fbdddcb9e",
+    "validated_commit": "87dc77101259e3473b9407bbce92c67aa7f0d73b",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_5c4a127.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_5c4a127.json",
-    "binding_note": "This handoff describes the 5c4a127 code candidate; controlled-composer repair and candidate-bound no-send diagnostic are tested, while current live fill-send-conversation evidence remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_87dc771.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_87dc771.json",
+    "binding_note": "This handoff describes the 87dc771 code candidate; controlled-composer repair, guarded single key-event Enter fallback, and candidate-bound no-send diagnostic are tested, while current live fill-send-conversation evidence remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
