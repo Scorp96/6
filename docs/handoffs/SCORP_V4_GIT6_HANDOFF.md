@@ -92,5 +92,14 @@ commit above. It explicitly records browser canary, GitHub write, production
 cutover, and long-duration stability as unverified where no current evidence
 exists.
 
+The isolated installation and short local recovery evidence are now stored in
+`SCORP_V4_GIT6_CANDIDATE_MANIFEST_75aa02f.json`,
+`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_75aa02f.json`, and
+`SCORP_V4_GIT6_AC12_SHORT_SOAK_75aa02f.json`. AC10 covers a 27-file detached
+candidate install with unchanged protected-root hashes. AC12 covers a 10.17 s
+run with 49 cycles, two Worker slots, slot reuse, two scheduler recoveries, and
+zero duplicate submits or errors. Its browser engine is injected and local;
+this does not upgrade the real-browser or production status.
+
 
 
