@@ -88,6 +88,8 @@ class ActivationArbiter:
 
         if value.project_status in {"COMPLETE", "HARD_BLOCKED", "TERMINAL"}:
             action, reason = "TERMINAL", "PROJECT_TERMINAL"
+        elif str(value.operator_state) == "EMERGENCY_STOPPED":
+            action, reason = "EMERGENCY_STOP", "OPERATOR_EMERGENCY_STOPPED"
         elif str(value.operator_state) not in {"", "ACTIVE", "RUNNING"}:
             action, reason = "BLOCKED", f"OPERATOR_FENCE_{str(value.operator_state).upper()}"
         elif value.auth_blocked or value.auth_host_blocker:

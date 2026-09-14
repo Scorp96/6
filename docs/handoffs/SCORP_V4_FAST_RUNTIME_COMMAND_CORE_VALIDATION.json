@@ -4,10 +4,10 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "bb0cb07a9ae580e272efce9a05e3ca2a95f8644b",
+  "implementation_commit": "PENDING_COMMIT_AFTER_EMERGENCY_STOP_FIX",
   "verification": {
     "test_verified": {
-      "v4_core_tests": {"result": "PASS", "count": 146},
+      "v4_core_tests": {"result": "PASS", "count": 149},
       "gui_bridge_tests": {"result": "PASS", "count": 475, "pythonpath": ["scorp-agent", "scorp-agent/chatgpt-gui-bridge"]},
       "compileall": "PASS",
       "git_diff_check": "PASS",
@@ -27,6 +27,7 @@
     "runtime.status, runtime.snapshot, project.status, master.status, worker.status, evidence.query",
     "request actor plus response master_epoch/generation and optional stale-master/generation fencing",
     "project.pause, project.resume, project.cancel, project.supersede with CAS and request idempotency",
+    "project.emergency_stop with durable EMERGENCY_STOPPED fence and idempotent recovery-safe resume",
     "generation fencing before browser and local execution side effects",
     "SQLite write failure before browser intent fence fails closed without browser I/O",
     "public compatibility APIs for protocol_error, runtime_snapshot, external_side_effect_gate, and OperatorControl.apply",
@@ -41,6 +42,7 @@
     "Windows scheduled-task production cutover",
     "live Chrome Use submission and two-new-conversation end-to-end proof",
     "24-hour unattended soak",
-    "native Astra acceptance; this task used the requested Sol compatibility route"
+    "native Astra acceptance; this task used the requested Sol compatibility route",
+    "live ChatGPT preflight remains blocked by the observed request-rate limit; no external send was attempted"
   ]
 }

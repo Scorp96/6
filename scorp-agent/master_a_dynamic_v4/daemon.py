@@ -123,7 +123,7 @@ class LocalDaemon:
         handler = self.action_handlers.get(decision.action)
         if decision.action in {"TERMINAL"}:
             status = "TERMINAL"
-        elif decision.action in {"RECONCILE_AMBIGUOUS", "BLOCKED", "FENCE_STALE_RESULTS", "RESUME_MASTER", "RECOVER_STALLED"} and handler is None:
+        elif decision.action in {"EMERGENCY_STOP", "RECONCILE_AMBIGUOUS", "BLOCKED", "FENCE_STALE_RESULTS", "RESUME_MASTER", "RECOVER_STALLED"} and handler is None:
             status = "BLOCKED"
             error = f"ACTION_HANDLER_REQUIRED:{decision.action}"
         elif handler is not None:

@@ -32,6 +32,7 @@ class RuntimeProtocolTests(unittest.TestCase):
         }).payload_sha256)
         self.assertIn("runtime.status", READ_COMMANDS)
         self.assertIn("project.pause", MUTATION_COMMANDS)
+        self.assertIn("project.emergency_stop", MUTATION_COMMANDS)
 
     def test_mutation_requires_cas_fields(self):
         with self.assertRaisesRegex(RuntimeProtocolError, "EXPECTED_STATE_VERSION_REQUIRED"):

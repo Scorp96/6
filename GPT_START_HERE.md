@@ -180,7 +180,7 @@ Reads are `runtime.status`, `runtime.snapshot`, `project.status`,
 `master.status`, `worker.status`, and bounded `evidence.query`. Responses
 include `actor`, `daemon_epoch`, `state_version`, `master_epoch`, and the
 operator `generation`. Mutations are `project.pause`, `project.resume`,
-`project.cancel`, and `project.supersede`; each mutation must include both
+`project.cancel`, `project.supersede`, and `project.emergency_stop`; each mutation must include both
 `expected_state_version` and `expected_daemon_epoch` and may bind
 `expected_master_epoch` and `expected_generation`. New projects use the
 explicit operator state `RUNNING`; old imported `ACTIVE` rows remain readable

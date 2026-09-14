@@ -33,6 +33,7 @@ MUTATION_COMMANDS = frozenset(
         "project.resume",
         "project.cancel",
         "project.supersede",
+        "project.emergency_stop",
     }
 )
 ALL_COMMANDS = READ_COMMANDS | MUTATION_COMMANDS

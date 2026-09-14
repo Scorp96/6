@@ -120,6 +120,7 @@ class OperatorControlService:
                     "project.resume": "RUNNING",
                     "project.cancel": "CANCELLED",
                     "project.supersede": "RUNNING",
+                    "project.emergency_stop": "EMERGENCY_STOPPED",
                 }[request.command]
                 phase = "OPERATOR_FENCE" if request.command != "project.resume" else "RUNNING"
                 next_version = int(state["state_version"]) + 1
@@ -134,7 +135,7 @@ class OperatorControlService:
                     """,
                     (status, operator_generation, objective_generation, objective_sha, now, request.project_id),
                 )
-                if request.command in {"project.cancel", "project.supersede"}:
+                if request.command in {"project.cancel", "project.supersede", "project.emergency_stop"}:
                     # Fence every still-authoritative piece of work before the
                     # receipt is committed. Historical rows remain for audit,
                     # but queued/running work and unverified results cannot be

@@ -124,6 +124,26 @@ class OperatorControlTests(unittest.TestCase):
             self.assertEqual("FENCED", conn.execute("SELECT state FROM leases WHERE assignment_id=?", (claim.assignment_id,)).fetchone()[0])
             self.assertEqual("STALE", conn.execute("SELECT verification_state FROM candidate_results WHERE result_id=?", (result_id,)).fetchone()[0])
 
+    def test_emergency_stop_is_durable_fenced_and_resume_requires_new_generation(self):
+        response = self.service.execute(self.request("stop-1", "project.emergency_stop"))
+        self.assertEqual("OK", response["status"])
+        control = self.store.get_operator_control("p1")
+        self.assertEqual("EMERGENCY_STOPPED", control["operator_state"])
+        self.assertEqual(1, control["operator_generation"])
+        self.assertEqual("EMERGENCY_STOPPED", self.store.get_project_state("p1")["status"])
+
+        resumed = self.service.execute(self.request("resume-1", "project.resume", state_version=1))
+        self.assertEqual("OK", resumed["status"])
+        control = self.store.get_operator_control("p1")
+        self.assertEqual("RUNNING", control["operator_state"])
+        self.assertEqual(2, control["operator_generation"])
+
+    def test_emergency_stop_is_idempotent_and_fences_new_work(self):
+        first = self.service.execute(self.request("stop-2", "project.emergency_stop"))
+        second = self.service.execute(self.request("stop-2", "project.emergency_stop"))
+        self.assertEqual(first, second)
+        self.assertEqual("EMERGENCY_STOPPED", self.store.get_operator_control("p1")["operator_state"])
+
 
 if __name__ == "__main__":
     unittest.main()

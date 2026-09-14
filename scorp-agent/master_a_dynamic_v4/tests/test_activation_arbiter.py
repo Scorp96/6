@@ -113,6 +113,17 @@ class ActivationArbiterTests(unittest.TestCase):
         )
         self.assertEqual("WAKE_MASTER", wake.action)
 
+    def test_emergency_stop_has_explicit_priority_before_ambiguous_reconcile(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p", project_status="ACTIVE", master_epoch=1, daemon_epoch=2,
+                master_active=True, active_workers=1, free_slots=1, ready_tasks=1,
+                ambiguous_intents=1, operator_state="EMERGENCY_STOPPED",
+            )
+        )
+        self.assertEqual("EMERGENCY_STOP", decision.action)
+        self.assertEqual("OPERATOR_EMERGENCY_STOPPED", decision.reason)
+
     def test_idle_is_distinct_from_liveness_failure(self):
         decision = self.arbiter.decide(
             ArbiterSnapshot(
