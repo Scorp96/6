@@ -11,32 +11,32 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `4246ac13f36e86d67c902228b8280a4840d47963`
+- Current candidate: `55cc17326ec614f7cda2e4878b15adde1acf60d9`
 - Reasoning controller: **GPT-5.6 Sol**
 
 ## Current superseding status (2026-09-14)
 
 This section and `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json` supersede older
 local-candidate paragraphs below when they differ. The current runtime code is
-commit `4246ac13f36e86d67c902228b8280a4840d47963` on `main`. The clean source
-snapshot is `C:\ScorpAgent\v4-source-4246ac13` and the isolated installed lab is
-`C:\ScorpAgent\v4-core-lab-4246ac13`. The candidate manifest is
-`docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json`; its internal
+commit `55cc17326ec614f7cda2e4878b15adde1acf60d9` on `main`. The clean source
+snapshot is `C:\ScorpAgent\v4-source-55cc173` and the isolated installed lab is
+`C:\ScorpAgent\v4-core-lab-55cc173`. The candidate manifest is
+`docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json`; its internal
 manifest SHA-256 is
-`6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6`.
+`ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389`.
 
-**TEST_VERIFIED:** 111/111 V4 tests, 469/469 GUI bridge tests, compileall,
+**TEST_VERIFIED:** 111/111 V4 tests, 472/472 GUI bridge tests, compileall,
 manifest/install identity, the installed-lab short recovery soak, and the
 installed isolated CSV validate/aggregate/report operations passed. The short
-soak ran 5.004342 seconds with peak concurrency 2, 61 slot reuses, two scheduler
+soak ran 5.169128 seconds with peak concurrency 2, 67 slot reuses, two scheduler
 recoveries, zero duplicate submits, and zero errors. Its browser scope is an
 injected fake engine driving the real adapter state machine.
 
-**LIVE_VERIFIED:** current candidate `4246ac13` has no current-candidate live
+**LIVE_VERIFIED:** current candidate `55cc173` has no current-candidate live
 PASS. The immediately preceding fresh candidate attempt was durably blocked by
 ChatGPT's `请求过于频繁` rate-limit dialog; the prior send-attempt receipt is
 `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`, and a fresh read-only
-check is recorded in `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json`.
+check is recorded in `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json`.
 No retry was made, so this remains a fail-closed external precondition rather
 than a pass. The prior
 `0fe4464` pass remains historical evidence only.
@@ -147,7 +147,7 @@ The isolated installation and short local recovery evidence are stored in
 `SCORP_V4_GIT6_AC10_AC12_EVIDENCE_b4d7129.json`, and
 `SCORP_V4_GIT6_AC12_SHORT_SOAK_b4d7129.json`. The installed monitor probe is
 recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_b4d7129.json`. AC10 covers a
-41-file candidate install with unchanged protected-root hashes. AC12 covers a
+46-file candidate install with unchanged protected-root hashes. AC12 covers a
 10.12 s run with 48 cycles, two Worker slots, 142 slot reuses, two scheduler
 recoveries, and zero duplicate submits or errors. The browser engine is
 injected and local; this does not upgrade the real-browser or production

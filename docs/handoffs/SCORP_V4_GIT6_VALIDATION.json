@@ -3,8 +3,8 @@
   "source_repository": "Scorp96/666 (historical source)",
   "target_repository": "Scorp96/6",
   "target_branch": "main",
-  "code_candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
-  "validated_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+  "code_candidate_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
+  "validated_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
   "evidence_record_commit": "58d33e53997013b01f9808569e7ba874c9b77e15",
   "validation_scope": "current-code-candidate-plus-isolated-lab-plus-fresh-real-browser-canary",
   "reasoning_model": "GPT-5.6 Sol",
@@ -45,8 +45,8 @@
       "status": "TEST_VERIFIED",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 469,
-      "observed": "469 tests passed, including current-live-gate packet binding, SCORP_PYTHON validation-script contract, Chrome Use serialization, composer repair, live canary orchestration and lifecycle fencing"
+      "tests_run": 472,
+      "observed": "472 tests passed, including rate-limit auth classification, current-live-gate packet binding, SCORP_PYTHON validation-script contract, Chrome Use command serialization, controlled composer repair, live canary orchestration and lifecycle fencing"
     },
     {
       "id": "python_compile",
@@ -58,21 +58,21 @@
     {
       "id": "candidate_manifest_and_install",
       "status": "TEST_VERIFIED",
-      "command": "install_manifest.py against code candidate 4246ac13f36e86d67c902228b8280a4840d47963",
+      "command": "install_manifest.py against code candidate 55cc17326ec614f7cda2e4878b15adde1acf60d9",
       "exit_code": 0,
-      "observed": "41-file candidate manifest and isolated install receipt matched; protected-root hash was unchanged before and after install",
-      "source_tree": "C:\\ScorpAgent\\v4-source-4246ac13",
-      "lab_root": "C:\\ScorpAgent\\v4-core-lab-4246ac13",
-      "manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json",
-      "manifest_sha256": "6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6"
+      "observed": "46-file candidate manifest and isolated install receipt matched; protected-root hash was unchanged before and after install",
+      "source_tree": "C:\\ScorpAgent\\v4-source-55cc173",
+      "lab_root": "C:\\ScorpAgent\\v4-core-lab-55cc173",
+      "manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json",
+      "manifest_sha256": "ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389"
     },
     {
       "id": "short_recovery_soak",
       "status": "TEST_VERIFIED",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-4246ac13 --duration-seconds 5 --output C:\\ScorpAgent\\v4-soak-4246ac13.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-55cc173 --duration-seconds 5 --output C:\\ScorpAgent\\v4-soak-55cc173.json",
       "exit_code": 0,
-      "observed": "5.004342 seconds; 21 cycles; 63 verified tasks; peak concurrency 2; 61 slot reuses; 2 scheduler recoveries; 0 duplicate submits; 0 errors",
-      "evidence": "docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_4246ac13.json",
+      "observed": "5.169128 seconds; 23 cycles; 69 verified tasks; peak concurrency 2; 67 slot reuses; 2 scheduler recoveries; 0 duplicate submits; 0 errors",
+      "evidence": "docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_55cc173.json",
       "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
       "long_duration_stability_proven": false
     },
@@ -93,7 +93,7 @@
     {
       "id": "real_code_workload_local_lab",
       "status": "TEST_VERIFIED",
-      "command": "python -B -m master_a_dynamic_v4.csv_workload.cli C:\\ScorpAgent\\v4-core-lab-4246ac13\\live-orders.csv --operation report --output C:\\ScorpAgent\\v4-core-lab-4246ac13\\live-report.json",
+      "command": "python -B -m master_a_dynamic_v4.csv_workload.cli C:\\ScorpAgent\\v4-core-lab-55cc173\\live-orders.csv --operation report --output C:\\ScorpAgent\\v4-core-lab-55cc173\\live-report.json",
       "exit_code": 0,
       "observed": "Installed isolated lab produced validate, aggregate and report outputs: alpha=3.50, beta=0.50, row_count=3, total=4.00",
       "artifact_sha256": "f86a3aaaae25cce30ea46e28aa126182bb8717ae84db55f76585773403d53ecf",
@@ -104,7 +104,7 @@
       "status": "TEST_VERIFIED",
       "command": "scripts/run-candidate-validation.ps1 (SCORP_PYTHON fixed runtime)",
       "exit_code": 0,
-      "observed": "CANDIDATE_VALIDATION=PASS; V4 111/111; GUI bridge 469/469; privileged broker 8+7+7+7; compileall passed",
+      "observed": "CANDIDATE_VALIDATION=PASS; V4 111/111; GUI bridge 472/472; privileged broker 8+7+7+7; compileall passed",
       "scope": "offline validation only; no browser send and no production mutation"
     }
   ],
@@ -131,18 +131,27 @@
     "status": "LIVE_VERIFIED_FOR_PRIOR_CANDIDATE_ONLY"
   },
   "current_candidate_live_gate": {
-    "candidate_code_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "candidate_code_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
     "status": "BLOCKED_EXTERNAL_PRECONDITION",
     "last_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
     "last_failure": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the rate-limit blocker cleared.",
-    "read_only_preflight_candidate": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "read_only_preflight_candidate": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
     "read_only_preflight_status": "BLOCKED_EXTERNAL_PRECONDITION",
-    "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json",
+    "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json",
     "read_only_preflight_observed_at": "2026-09-14T15:46:36.8299717Z",
     "last_send_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c"
   },
   "handoff_tool_commit": "a1d177a5567d88d645b804e40dc5e13f3fd79b81",
-  "handoff_tool_scope": "v4_web_gpt_packet.py current-live-gate binding; run-candidate-validation.ps1 SCORP_PYTHON override; tests cover both"
+  "handoff_tool_scope": "v4_web_gpt_packet.py current-live-gate binding; run-candidate-validation.ps1 SCORP_PYTHON override; tests cover both",
+  "current_candidate_artifacts": {
+    "manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json",
+    "manifest_sha256": "ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389",
+    "install_evidence": "docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_55cc173.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_55cc173.json",
+    "read_only_browser_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json",
+    "source_tree": "C:\\ScorpAgent\\v4-source-55cc173",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-55cc173"
+  }
 }

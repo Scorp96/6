@@ -12,16 +12,16 @@
     "target_branch": "main",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core",
     "target_worktree": "C:\\ScorpAgent\\_publish_git6",
-    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-4246ac13",
-    "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963"
+    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-55cc173",
+    "candidate_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9"
   },
   "artifacts": {
     "machine_readable_spec": "docs/handoffs/SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
     "handoff_markdown": "docs/handoffs/SCORP_V4_HANDOFF.md",
     "pdf": "CANCELLED_BY_USER",
     "current_validation": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "current_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json",
-    "current_install_evidence": "docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_4246ac13.json",
+    "current_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json",
+    "current_install_evidence": "docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_55cc173.json",
     "current_live_browser_canary": "docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json"
   },
   "runtime": {
@@ -299,12 +299,12 @@
     "UNEXPECTED_PRODUCTION_MUTATION",
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
-  "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+  "candidate_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
   "evidence_commit": "58d33e53997013b01f9808569e7ba874c9b77e15",
   "current_evidence": {
-    "runtime_code_candidate": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "runtime_code_candidate": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
     "evidence_record_commit": "58d33e53997013b01f9808569e7ba874c9b77e15",
-    "manifest_sha256": "6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6",
+    "manifest_sha256": "ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389",
     "test_verified": true,
     "live_verified": false,
     "accepted": false,
@@ -316,13 +316,13 @@
       "LONG_DURATION_STABILITY_NOT_PROVEN"
     ],
     "live_read_only_preflight": {
-      "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+      "candidate_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
       "status": "BLOCKED_EXTERNAL_PRECONDITION",
-      "evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json",
-      "observed_at": "2026-09-14T15:46:36.8299717Z",
+      "evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json",
+      "observed_at": "2026-09-14T16:04:15.6935258Z",
       "send_attempted": false
     },
     "handoff_tool_commit": "a1d177a5567d88d645b804e40dc5e13f3fd79b81",
-    "candidate_validation_entrypoint": "CANDIDATE_VALIDATION=PASS (V4 111/111; bridge 469/469; broker 8+7+7+7; compileall)"
+    "candidate_validation_entrypoint": "CANDIDATE_VALIDATION=PASS (V4 111/111; bridge 472/472; broker 8+7+7+7; compileall)"
   }
 }

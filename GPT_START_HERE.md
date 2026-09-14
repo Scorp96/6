@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 4246ac13f36e86d67c902228b8280a4840d47963 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json `
-  --manifest-sha256 6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6
+  --candidate-commit 55cc17326ec614f7cda2e4878b15adde1acf60d9 `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json `
+  --manifest-sha256 ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -170,9 +170,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 4246ac13f36e86d67c902228b8280a4840d47963 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json `
-  --manifest-sha256 6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6 `
+  --candidate-commit 55cc17326ec614f7cda2e4878b15adde1acf60d9 `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json `
+  --manifest-sha256 ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389 `
   --send
 ```
 
@@ -446,9 +446,9 @@ The previous code candidate `0fe4464` has a historical fixed-marker live pass in
 `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json`. The immediately prior
 candidate `31622f1c` then hit a fresh ChatGPT `请求过于频繁` rate-limit dialog;
 its fail-closed receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`.
-The current candidate `4246ac13` was not blindly retried after that ambiguous
+The current candidate `55cc173` was not blindly retried after that ambiguous
 browser side effect. A fresh read-only check is recorded in
-`docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json` and still shows
+`docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json` and still shows
 the `请求过于频繁` dialog. Current-candidate live verification remains blocked
 until a later read-only check shows the rate limit cleared.
 
@@ -484,13 +484,13 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Code candidate: `4246ac13f36e86d67c902228b8280a4840d47963` on `main`.
+- Code candidate: `55cc17326ec614f7cda2e4878b15adde1acf60d9` on `main`.
 - Handoff tooling patches through `a1d177a5567d88d645b804e40dc5e13f3fd79b81`; packet live-gate binding and the `SCORP_PYTHON` validation override are validated separately and do not change the runtime candidate manifest.
 - Repository checkout: `C:\ScorpAgent\_publish_git6`.
-- Clean source snapshot: `C:\ScorpAgent\v4-source-4246ac13`.
-- Isolated lab: `C:\ScorpAgent\v4-core-lab-4246ac13`.
-- Manifest: `docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json` (internal SHA-256 `6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6`).
-- Current-candidate live gate: blocked by the current read-only rate-limit evidence in `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json`; do not retry blindly.
+- Clean source snapshot: `C:\ScorpAgent\v4-source-55cc173`.
+- Isolated lab: `C:\ScorpAgent\v4-core-lab-55cc173`.
+- Manifest: `docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json` (internal SHA-256 `ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389`).
+- Current-candidate live gate: blocked by the current read-only rate-limit evidence in `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json`; do not retry blindly.
 - Prior live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`.
 - Prior-candidate live pass: `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json` (historical only).
 - Current structured validation: `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`.
