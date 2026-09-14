@@ -1,0 +1,37 @@
+name: Scorp GPT Native V4 Portable CI
+
+on:
+  push:
+    branches:
+      - scorp-gpt-native-v4
+  workflow_dispatch:
+
+jobs:
+  pwsh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse V4.1 PowerShell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($file in @('./scorp-agent/executor-v4.1.ps1','./scorp-agent/runner-v4.1.ps1','./scorp-agent/bootstrap-v4.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List *
+              throw "Parse failed: $file"
+            }
+            Write-Host "PARSE PASS $file"
+          }
+      - name: Static no-Codex execution path
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($file in @('./scorp-agent/executor-v4.1.ps1','./scorp-agent/runner-v4.1.ps1')) {
+            $text = Get-Content -Raw $file
+            if ($text -match '(?i)codex\s+exec|codex\.exe') { throw "Codex execution reference found: $file" }
+          }
+          Write-Host 'NO CODEX EXECUTION PATH'

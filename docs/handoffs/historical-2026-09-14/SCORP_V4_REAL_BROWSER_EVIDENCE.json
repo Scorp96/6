@@ -1,0 +1,18 @@
+{
+  "format": "scorp-v4-real-browser-evidence/1",
+  "candidate_commit": "682005bb1edab6149517b2fa7398fd63dbda945f",
+  "browser": "Chrome",
+  "profile": "scorpion",
+  "chatgpt_login_state": "AUTHENTICATED_PLUS_VISIBLE",
+  "captcha_or_verification_challenge": false,
+  "marker": "SCORP_V4_REAL_BROWSER_GATE::682005bb1edab614::20260914",
+  "expected_ack": "SCORP_V4_REAL_BROWSER_ACK::682005bb1edab614",
+  "conversation_url": "https://chatgpt.com/c/6aa72e9c-289c-83e8-8672-8bd40ff1b65d",
+  "marker_count": 1,
+  "ack_count": 1,
+  "generation_active_after_ack": false,
+  "submit_actions": 1,
+  "duplicate_submits": 0,
+  "status": "PASS",
+  "scope": "REAL_LOGIN_REAL_SINGLE_SUBMIT_REAL_RESPONSE; NOT_CRASH_INJECTION"
+}

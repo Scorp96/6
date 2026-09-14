@@ -1,0 +1,16 @@
+{
+  "format": "scorp-v4-protected-path-manifest/1",
+  "candidate_commit": "682005bb1edab6149517b2fa7398fd63dbda945f",
+  "capture_scope": "RECURSIVE_FILE_SHA256_AND_SIZE",
+  "before_install_sha256": "ac6d6b8ce0e3a8babb56e8afe9291352b10947aa7a06fd0f72f3ad2e4c7f7b5b",
+  "after_install_sha256": "ac6d6b8ce0e3a8babb56e8afe9291352b10947aa7a06fd0f72f3ad2e4c7f7b5b",
+  "fresh_post_install_sha256": "ac6d6b8ce0e3a8babb56e8afe9291352b10947aa7a06fd0f72f3ad2e4c7f7b5b",
+  "all_equal": true,
+  "roots": {
+    "C:\\ScorpAgent\\state-v3\\active": {"exists": true, "file_count": 24, "total_bytes": 103610},
+    "C:\\ScorpAgent\\state-v4": {"exists": true, "file_count": 5052, "total_bytes": 16265145},
+    "C:\\ScorpAgent\\gpt-native-v4": {"exists": true, "file_count": 10, "total_bytes": 122339},
+    "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime": {"exists": true, "file_count": 2023, "total_bytes": 47406271}
+  },
+  "production_mutated": false
+}

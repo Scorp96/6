@@ -1,0 +1,38 @@
+name: Scorp Master Worker V3 CI
+
+on:
+  push:
+    branches:
+      - scorp-master-worker-v3
+  workflow_dispatch:
+
+jobs:
+  python311-logic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install bridge runtime dependency
+        run: python -m pip install --disable-pip-version-check 'mcp==2.2.0'
+
+      - name: Compile bridge Python
+        run: python -m compileall -q scorp-agent/chatgpt-gui-bridge
+
+      - name: Address binding regression gate
+        working-directory: scorp-agent/chatgpt-gui-bridge
+        run: |
+          python -m unittest -v \
+            tests.test_chrome_acquisition_target_binding_v3 \
+            tests.test_windows_mcp_actor_driver_address_binding_v3 \
+            tests.test_windows_mcp_actor_driver_url_binding_v3 \
+            tests.test_windows_mcp_actor_driver_poll_binding_v3 \
+            tests.test_conversation_reuse
+
+      - name: Full GUI bridge regression
+        working-directory: scorp-agent/chatgpt-gui-bridge
+        run: python -m unittest discover -s tests -p 'test_*.py' -v

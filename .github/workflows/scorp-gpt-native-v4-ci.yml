@@ -1,0 +1,119 @@
+name: Scorp GPT Native V4 CI
+
+on:
+  push:
+    branches:
+      - scorp-gpt-native-v4
+  workflow_dispatch:
+
+jobs:
+  powershell51:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse PowerShell files
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(
+            '.\scorp-agent\executor-v4.1.ps1',
+            '.\scorp-agent\runner-v4.1.ps1',
+            '.\scorp-agent\bootstrap-v4.ps1'
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | Format-List *
+              throw "PowerShell parse failed: $file"
+            }
+            Write-Host "PARSE PASS $file"
+          }
+
+      - name: Executor self-test
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.\scorp-agent\executor-v4.1.ps1' -SelfTest -MutexName ('Local\ScorpV4CI-' + [guid]::NewGuid().ToString('N')) 2>&1
+          $text = $out -join "`n"
+          Write-Host $text
+          if ($LASTEXITCODE -ne 0 -or $text -notmatch 'SELFTEST PASS') { throw 'executor self-test failed' }
+
+      - name: Runner health action
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP ('scorp-v4-ci-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          $envPath = Join-Path $root 'health-envelope.json'
+          $resultPath = Join-Path $root 'health-result.json'
+          $logPath = Join-Path $root 'health.log'
+          $gatePath = Join-Path $root 'gate.txt'
+          $envObj = [ordered]@{
+            protocol_version = 'scorp.exec/v4'
+            task_id = 'ci-health'
+            issue_number = 1
+            claim_token = 'claim-ci-health'
+            action_id = 'ci-health-0001'
+            action_kind = 'health'
+            working_directory = $null
+            timeout_seconds = 30
+            safety_class = 'standard'
+            authorization = $null
+            expected_preconditions = $null
+            payload = @{}
+            evidence_requirements = @('health')
+            continuation_hint = $null
+          }
+          [IO.File]::WriteAllText($envPath, ($envObj | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding($false)))
+          [IO.File]::WriteAllText($gatePath, 'GO', (New-Object Text.UTF8Encoding($false)))
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.\scorp-agent\runner-v4.1.ps1' -EnvelopePath $envPath -ResultPath $resultPath -LogPath $logPath -StartGatePath $gatePath -GateWaitSeconds 5
+          if ($LASTEXITCODE -ne 0) { throw "health runner exit=$LASTEXITCODE" }
+          $result = Get-Content -Raw $resultPath | ConvertFrom-Json
+          $result | ConvertTo-Json -Depth 10 | Write-Host
+          if ($result.status -cne 'SUCCEEDED' -or $result.action_id -cne 'ci-health-0001') { throw 'health result mismatch' }
+
+      - name: Runner atomic file write and exact replace
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $target = Join-Path $env:USERPROFILE 'scorp-v4-ci-target.txt'
+          Remove-Item $target -Force -ErrorAction SilentlyContinue
+          function Invoke-Envelope($actionId, $kind, $payload) {
+            $root = Join-Path $env:RUNNER_TEMP $actionId
+            New-Item -ItemType Directory -Force -Path $root | Out-Null
+            $envPath = Join-Path $root 'envelope.json'
+            $resultPath = Join-Path $root 'result.json'
+            $logPath = Join-Path $root 'runner.log'
+            $gatePath = Join-Path $root 'gate.txt'
+            $obj = [ordered]@{
+              protocol_version='scorp.exec/v4'; task_id='ci-file'; issue_number=2; claim_token='claim-ci-file'; action_id=$actionId; action_kind=$kind;
+              working_directory=$null; timeout_seconds=30; safety_class='standard'; authorization=$null; expected_preconditions=$null; payload=$payload; evidence_requirements=@(); continuation_hint=$null
+            }
+            [IO.File]::WriteAllText($envPath, ($obj | ConvertTo-Json -Depth 12), (New-Object Text.UTF8Encoding($false)))
+            [IO.File]::WriteAllText($gatePath, 'GO', (New-Object Text.UTF8Encoding($false)))
+            & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File '.\scorp-agent\runner-v4.1.ps1' -EnvelopePath $envPath -ResultPath $resultPath -LogPath $logPath -StartGatePath $gatePath -GateWaitSeconds 5
+            $code = $LASTEXITCODE
+            $r = Get-Content -Raw $resultPath | ConvertFrom-Json
+            if ($code -ne 0 -or $r.status -cne 'SUCCEEDED') { throw "action failed $actionId status=$($r.status) exit=$code" }
+            return $r
+          }
+          $r1 = Invoke-Envelope 'ci-write-0001' 'file_write' ([ordered]@{path=$target;content='alpha';expected_sha256=$null;must_not_exist=$true})
+          $sha = $r1.evidence.sha256
+          $r2 = Invoke-Envelope 'ci-replace-0001' 'file_replace_exact' ([ordered]@{path=$target;old_text='alpha';new_text='beta';expected_sha256=$sha;expected_match_count=1})
+          if ((Get-Content -Raw $target) -cne 'beta') { throw 'file replace content mismatch' }
+          Write-Host "FILE ACTIONS PASS sha=$($r2.evidence.sha256)"
+
+      - name: No Codex execution path
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @('.\scorp-agent\executor-v4.1.ps1','.\scorp-agent\runner-v4.1.ps1')
+          foreach ($file in $files) {
+            $text = Get-Content -Raw $file
+            if ($text -match '(?i)codex\s+exec|codex\.exe') { throw "Codex execution reference found in $file" }
+          }
+          Write-Host 'CODEX EXECUTION PATH ABSENT'

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scorp.exec/v4",
+  "title": "Scorp GPT-Native Execution Envelope V4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "task_id",
+    "action_id",
+    "action_kind",
+    "timeout_seconds",
+    "safety_class",
+    "payload"
+  ],
+  "properties": {
+    "protocol_version": {"const": "scorp.exec/v4"},
+    "task_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "issue_number": {"type": ["integer", "null"], "minimum": 1},
+    "claim_token": {"type": ["string", "null"], "maxLength": 128},
+    "action_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{8,160}$"},
+    "action_kind": {
+      "enum": ["powershell", "process", "file_read", "file_write", "file_replace_exact", "git", "health", "privileged_broker"]
+    },
+    "working_directory": {"type": ["string", "null"], "maxLength": 1024},
+    "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 1800},
+    "safety_class": {"enum": ["standard", "approved_admin"]},
+    "authorization": {"type": ["string", "null"], "maxLength": 128},
+    "expected_preconditions": {"type": ["object", "null"]},
+    "payload": {"type": "object"},
+    "evidence_requirements": {"type": ["array", "null"], "items": {"type": "string"}},
+    "continuation_hint": {"type": ["string", "null"], "maxLength": 4000}
+  }
+}

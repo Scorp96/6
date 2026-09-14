@@ -1,0 +1,120 @@
+{
+  "format": "scorp-v4-verification/1",
+  "phase": "FINAL_EVIDENCE_PENDING_REVIEW",
+  "observed_commit": "682005bb1edab6149517b2fa7398fd63dbda945f",
+  "commands": [
+    {
+      "id": "v4_unit",
+      "command": "PYTHONPATH=scorp-agent python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -v",
+      "exit_code": 0,
+      "tests_run": 42,
+      "observed": "42 tests in 4.077s, OK"
+    },
+    {
+      "id": "bridge_full_regression",
+      "command": "python -B -m unittest discover -s tests -v (cwd=scorp-agent/chatgpt-gui-bridge)",
+      "exit_code": 0,
+      "tests_run": 397,
+      "observed": "397 tests in 11.654s, OK"
+    },
+    {
+      "id": "python_compile",
+      "command": "compile every Python source under scorp-agent/master_a_dynamic_v4 with built-in compile()",
+      "exit_code": 0,
+      "tests_run": 35,
+      "observed": "PYTHON_COMPILE_PASS files=35"
+    },
+    {
+      "id": "git_diff_check",
+      "command": "git diff --check",
+      "exit_code": 0,
+      "observed": "no whitespace errors"
+    },
+    {
+      "id": "powershell_v4_critical",
+      "command": "scorp-agent/tests/v4-critical-hardening.ps1",
+      "exit_code": 0,
+      "observed": "V4_CRITICAL_HARDENING_PASS"
+    },
+    {
+      "id": "powershell_v4_production",
+      "command": "scorp-agent/tests/v4-production-hardening.ps1",
+      "exit_code": 0,
+      "observed": "V4_PRODUCTION_HARDENING_PASS"
+    },
+    {
+      "id": "powershell_v4_selfheal",
+      "command": "scorp-agent/tests/v4-selfheal-hardening.ps1",
+      "exit_code": 0,
+      "observed": "V4_SELFHEAL_HARDENING_PASS"
+    },
+    {
+      "id": "reference_scan",
+      "command": "fixed-string reference scan across scorp-agent and docs for every V3 component and protected path",
+      "exit_code": 0,
+      "observed": "15 named targets scanned; every legacy target retained and classified"
+    },
+    {
+      "id": "lab_install",
+      "command": "install-lab.ps1 with candidate 682005bb and guarded protected roots",
+      "exit_code": 0,
+      "observed": "INSTALL_IDENTITY_PASS; protected before=after=ac6d6b8ce0e3a8babb56e8afe9291352b10947aa7a06fd0f72f3ad2e4c7f7b5b"
+    },
+    {
+      "id": "ac12_short_soak",
+      "command": "installed candidate soak_harness --duration-seconds 10",
+      "exit_code": 0,
+      "observed": "10.201350s; 48 cycles; 144 tasks; 14.115778 tasks/s; recoveries=2; duplicates=0; errors=0"
+    },
+    {
+      "id": "real_browser_gate",
+      "command": "one uniquely marked prompt in a new Chrome ChatGPT conversation",
+      "exit_code": 0,
+      "observed": "authenticated Plus; marker_count=1; ack_count=1; submit_actions=1; duplicate_submits=0"
+    }
+  ],
+  "reference_counts": {
+    "project_state_v3.py": 6,
+    "session_registry_v3.py": 6,
+    "worker_conversation_pool_v3.py": 8,
+    "master_state_transition_v3.py": 7,
+    "durable_actor_transport_v3.py": 9,
+    "parallel_master_worker_relay_v3.py": 9,
+    "executor-v4.ps1": 3,
+    "executor-v4.1.ps1": 12,
+    "runner-v4.ps1": 4,
+    "runner-v4.1.ps1": 10,
+    "windows_mcp_actor_driver_v3.py": 8,
+    "C:\\ScorpAgent\\state-v3\\active": 15,
+    "C:\\ScorpAgent\\state-v4": 15,
+    "C:\\ScorpAgent\\gpt-native-v4": 4,
+    "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime": 7
+  },
+  "acceptance": {
+    "AC01": "PASS_CODE_LEVEL",
+    "AC02": "PASS_CODE_LEVEL",
+    "AC03": "PASS_REAL_STORE_FAKE_BROWSER_CRASH_INJECTION",
+    "AC04": "PASS_CODE_LEVEL",
+    "AC05": "PASS_CODE_LEVEL",
+    "AC06": "PASS_CODE_LEVEL",
+    "AC07": "PASS_REAL_BROWSER_SINGLE_SUBMIT_PLUS_UNIT_RECOVERY",
+    "AC08": "PASS_REAL_CHATGPT_LOGIN_GATE",
+    "AC09": "PASS_CODE_LEVEL",
+    "AC10": "PASS_NAMED_LAB_INSTALL",
+    "AC11": "PASS_FROZEN_CANDIDATE",
+    "AC12": "PASS_SHORT_SOAK_PERFORMANCE"
+  },
+  "artifact_sha256": {
+    "candidate_manifest": "4f8f449bd467f57acb8e02b681e8b0b60e48233d7fb837f9330459f3bd57543c",
+    "lab_install_receipt": "f35ec0fa922fa1c3b0fb70168f81d84d5b21c8c80cf876d57bde93d74e1c02b3",
+    "short_soak_receipt": "92e818f084b5039865ec146f63bdef36567b8673bd837df585c86c461e1cacb8",
+    "real_browser_evidence": "57d82868d93eafea3fed59526f1060d2032f9bfb8837bb6242b608db76837cc5",
+    "protected_path_manifest": "252f435af21b5116c2a636ee837fffb2e5e7700856b79737060583c29171086d",
+    "yaml_spec_before_final_verification": "4ac55b2e026e50bcae3920524aa79e9a582363806b35464658bf08cd48c87fa1"
+  },
+  "deprecation_policy": "SOFT_DEPRECATE",
+  "pdf": "CANCELLED_BY_USER",
+  "long_duration_stability_proven": false,
+  "production_mutated": false,
+  "production_cutover_authorized": false
+}

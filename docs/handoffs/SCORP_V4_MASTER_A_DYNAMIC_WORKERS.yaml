@@ -1,0 +1,246 @@
+{
+  "spec_version": "scorp-v4-master-a-dynamic-workers/1.0",
+  "status": "IMPLEMENTATION_CANDIDATE",
+  "generated_from": "approved-design-2026-09-13",
+  "repository": {
+    "slug": "Scorp96/666",
+    "baseline_branch": "p0/chatgpt-transport-bakeoff",
+    "baseline_commit": "e87a9f70c55622e5ca742284e00918e13552f8ac",
+    "candidate_branch": "feature/v4-master-a-dynamic-workers",
+    "worktree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core",
+    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab"
+  },
+  "artifacts": {
+    "machine_readable_spec": "docs/handoffs/SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
+    "handoff_markdown": "docs/handoffs/SCORP_V4_HANDOFF.md",
+    "pdf": "CANCELLED_BY_USER"
+  },
+  "runtime": {
+    "host_count": 1,
+    "operating_system": "Windows",
+    "requires_interactive_login": true,
+    "requires_existing_chatgpt_login": true,
+    "paid_model_api_allowed": false,
+    "new_cloud_service_allowed": false,
+    "production_cutover_authorized": false
+  },
+  "authority": {
+    "type": "SQLITE_ONLY",
+    "master_identity": "A",
+    "master_can_write_sql": false,
+    "worker_results_are": "CANDIDATE_EVIDENCE",
+    "completion_authority": "DETERMINISTIC_ACCEPTANCE_VALIDATOR",
+    "external_io_inside_transaction": false
+  },
+  "sqlite": {
+    "journal_mode": "DELETE",
+    "synchronous": "FULL",
+    "foreign_keys": true,
+    "busy_timeout_ms": 5000,
+    "transaction_begin": "IMMEDIATE",
+    "tables": [
+      "contracts",
+      "project_state",
+      "task_nodes",
+      "task_dependencies",
+      "assignments",
+      "leases",
+      "events",
+      "transitions",
+      "action_intents",
+      "outbox",
+      "browser_bindings",
+      "candidate_results",
+      "evidence_receipts",
+      "review_deadlines",
+      "review_findings",
+      "release_candidates",
+      "imported_snapshots",
+      "schema_migrations"
+    ]
+  },
+  "commit_contract": {
+    "signature": "StateStore.commit(expected_version, master_epoch, transition_id, proposal, evidence_refs)",
+    "results": [
+      "COMMITTED",
+      "ALREADY_COMMITTED",
+      "VERSION_CONFLICT",
+      "FENCED",
+      "REJECTED"
+    ],
+    "same_transition_same_content": "ALREADY_COMMITTED",
+    "same_transition_different_content": "REJECTED",
+    "old_epoch": "FENCED",
+    "stale_version": "VERSION_CONFLICT",
+    "single_winner_per_version": true
+  },
+  "master": {
+    "logical_identity": "A",
+    "fence": "master_epoch",
+    "browser_rebind_changes_identity": false,
+    "allowed_proposals": [
+      "TASK_GRAPH",
+      "ASSIGNMENTS",
+      "INTEGRATION",
+      "RETRY",
+      "REPLAN",
+      "COMPLETION_REQUEST"
+    ],
+    "self_acceptance_allowed": false
+  },
+  "workers": {
+    "default_concurrency": 2,
+    "excess_work": "DURABLE_QUEUE",
+    "identity_fields": [
+      "worker_id",
+      "assignment_id",
+      "slot_id",
+      "lease_token"
+    ],
+    "reject_if": [
+      "DEPENDENCY_UNSATISFIED",
+      "WRITE_RESOURCE_CONFLICT",
+      "OLD_EPOCH",
+      "EXPIRED_OR_MISMATCHED_LEASE",
+      "PATH_OUTSIDE_ALLOWLIST"
+    ],
+    "result_authority": "CANDIDATE_ONLY"
+  },
+  "browser_adapter": {
+    "methods": ["submit_once", "reconcile", "rebind"],
+    "states": [
+      "PREPARED",
+      "MAY_HAVE_SUBMITTED",
+      "CONFIRMED_SUBMITTED",
+      "RESPONSE_CAPTURED",
+      "VERIFIED_NOT_SUBMITTED",
+      "BLOCKED_AMBIGUOUS"
+    ],
+    "persist_before_possible_submit": "MAY_HAVE_SUBMITTED",
+    "timeout_means_not_submitted": false,
+    "missing_url_means_not_submitted": false,
+    "retry_requires": "VERIFIED_NOT_SUBMITTED",
+    "blocked_auth_states": [
+      "WINDOWS_NOT_LOGGED_IN",
+      "WINDOWS_SESSION_UNAVAILABLE",
+      "CHATGPT_LOGGED_OUT",
+      "CAPTCHA",
+      "VERIFICATION_CHALLENGE",
+      "UNKNOWN_AUTH_STATE"
+    ]
+  },
+  "completion": {
+    "requires": [
+      "CONTRACT_HASH_MATCH",
+      "ALL_REQUIRED_TASKS_VERIFIED",
+      "ALL_REQUIRED_RESULTS_VERIFIED",
+      "NO_ACTIVE_WORKERS",
+      "NO_UNPROCESSED_RESULTS",
+      "NO_SUBMISSION_AMBIGUITY",
+      "ALL_REQUIRED_EVIDENCE_BOUND_TO_CANDIDATE_AND_ARTIFACT_HASHES",
+      "NO_BLOCKING_FINDINGS"
+    ],
+    "rejects": [
+      "EMPTY_EVIDENCE",
+      "SELF_ASSERTED_PASS",
+      "ACTIVE_WORKER",
+      "PENDING_MAY_HAVE_SUBMITTED",
+      "BLOCKED_AMBIGUOUS",
+      "STALE_CANDIDATE_RECEIPT"
+    ]
+  },
+  "migration": {
+    "json_input_mode": "IMPORTED_SNAPSHOT",
+    "json_output_mode": "READ_ONLY_EXPORT",
+    "preserve_original_sha256": true,
+    "invent_history": false,
+    "dual_authority_writes": false,
+    "missing_root_contract": "BLOCKED"
+  },
+  "review": {
+    "deadline_is_durable": true,
+    "finding_inbox_is_append_only": true,
+    "late_counter_evidence_is_preserved": true,
+    "late_blocking_finding_reblocks_completion": true
+  },
+  "workload": {
+    "T1": "STRICT_CSV_READ_AND_ERROR_HANDLING",
+    "T2": "DECIMAL_CATEGORY_AGGREGATION",
+    "T3": "STABLE_JSON_CLI_DEPENDS_ON_T1_T2",
+    "T1_T2_parallel": true,
+    "fixed_success_strings_are_evidence": false
+  },
+  "acceptance": {
+    "AC01": {"title": "concurrent CAS", "status": "PASS", "evidence_scope": "UNIT_RACE_5_REPEATS"},
+    "AC02": {"title": "idempotency and fencing", "status": "PASS", "evidence_scope": "UNIT_AND_SQLITE"},
+    "AC03": {"title": "crash recovery", "status": "PASS", "evidence_scope": "REAL_STORE_FAKE_BROWSER"},
+    "AC04": {"title": "false completion rejection", "status": "PASS", "evidence_scope": "DETERMINISTIC_VALIDATOR"},
+    "AC05": {"title": "two-slot dynamic Workers and dependencies", "status": "PASS", "evidence_scope": "UNIT_AND_SHORT_SOAK"},
+    "AC06": {"title": "permission and path boundary", "status": "PASS", "evidence_scope": "UNIT_AND_PROTECTED_MANIFEST"},
+    "AC07": {"title": "browser rebind and no duplicate submit", "status": "PASS", "evidence_scope": "REAL_BROWSER_SINGLE_SUBMIT_PLUS_UNIT_RECOVERY"},
+    "AC08": {"title": "login and verification blocker", "status": "PASS", "evidence_scope": "REAL_CHATGPT_PLUS_LOGIN_GATE"},
+    "AC09": {"title": "review deadline and late counter-evidence", "status": "PASS", "evidence_scope": "UNIT_APPEND_ONLY_REVIEW"},
+    "AC10": {"title": "candidate and experimental install identity", "status": "PASS", "evidence_scope": "NAMED_LAB_INSTALL"},
+    "AC11": {"title": "full regression", "status": "PASS", "evidence_scope": "42_V4_PLUS_397_BRIDGE_PLUS_POWERSHELL"},
+    "AC12": {
+      "title": "short performance and recovery soak",
+      "status": "PASS",
+      "mode": "SHORT_SOAK_PERFORMANCE",
+      "requested_duration_seconds": 10,
+      "requires": [
+        "REAL_ELAPSED_DURATION",
+        "TWO_DYNAMIC_WORKERS",
+        "SLOT_REUSE",
+        "SCHEDULER_RECOVERY",
+        "ZERO_DUPLICATE_SUBMITS",
+        "ZERO_ERRORS",
+        "MEASURED_THROUGHPUT_AND_ENVIRONMENT"
+      ],
+      "long_duration_stability_proven": false
+    }
+  },
+  "deprecation": {
+    "policy": "SOFT_DEPRECATE",
+    "delete_before_production_cutover": false,
+    "legacy_components": [
+      "project_state_v3.py",
+      "session_registry_v3.py",
+      "worker_conversation_pool_v3.py",
+      "master_state_transition_v3.py",
+      "durable_actor_transport_v3.py",
+      "parallel_master_worker_relay_v3.py",
+      "executor-v4.ps1",
+      "executor-v4.1.ps1",
+      "runner-v4.ps1",
+      "runner-v4.1.ps1",
+      "windows_mcp_actor_driver_v3.py"
+    ],
+    "deletion_requires": [
+      "REFERENCE_SCAN",
+      "MIGRATION_TESTS",
+      "FULL_REGRESSION",
+      "AUTHORIZED_PRODUCTION_CUTOVER",
+      "ARCHIVED_ROLLBACK_EVIDENCE"
+    ]
+  },
+  "protected_paths": [
+    "C:\\ScorpAgent\\state-v3\\active",
+    "C:\\ScorpAgent\\state-v4",
+    "C:\\ScorpAgent\\gpt-native-v4",
+    "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime"
+  ],
+  "stop_conditions": [
+    "RUNTIME_PROFILE_CONFLICT",
+    "WORKTREE_OR_BRANCH_OWNERSHIP_CONFLICT",
+    "BASELINE_DRIFT",
+    "OVERLAPPING_USER_MODIFICATIONS",
+    "INVALID_SQLITE_PRAGMA",
+    "MISSING_ROOT_CONTRACT",
+    "UNCERTAIN_BROWSER_SUBMISSION",
+    "LOGIN_OR_VERIFICATION_CHALLENGE",
+    "UNEXPECTED_PRODUCTION_MUTATION",
+    "UNRECOVERABLE_REGRESSION_FAILURE"
+  ],
+  "candidate_commit": "682005bb1edab6149517b2fa7398fd63dbda945f",
+  "evidence_commit": "RECORDED_EXTERNALLY_AFTER_EVIDENCE_COMMIT"
+}

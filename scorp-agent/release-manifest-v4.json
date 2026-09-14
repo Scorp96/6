@@ -1,0 +1,35 @@
+{
+    "protocol_version":  "scorp.exec/v4-release-manifest",
+    "release":  "gpt-native-v4.1-privileged-broker-integration-prod-forward-port",
+    "pinning":  "bootstrap CommitSha is authoritative; every artifact Git blob must match this manifest",
+    "files":  {
+                  "scorp-agent/executor-v4.1.ps1":  {
+                                                        "git_blob_sha":  "f550450d7c1b808cf647227f7bacbc84f377e570",
+                                                        "sha256":  "computed-at-bootstrap"
+                                                    },
+                  "scorp-agent/runner-v4.1.ps1":  {
+                                                      "git_blob_sha":  "f2510523b5ec9a440fe1a5004d65863a2188bc8a",
+                                                      "sha256":  "computed-at-bootstrap"
+                                                  },
+                  "scorp-agent/executor-v4.schema.json":  {
+                                                              "git_blob_sha":  "7e97a8e27bc7f5b126e6855c6625e790d3eb483a",
+                                                              "sha256":  "computed-at-bootstrap"
+                                                          },
+                  "scorp-agent/bootstrap-v4.ps1":  {
+                                                       "git_blob_sha":  "5516c66b8bbf981a3b4d94fba910b075438c62db",
+                                                       "sha256":  "computed-at-bootstrap"
+                                                   },
+                  "scorp-agent/tests/v4-critical-hardening.ps1":  {
+                                                                      "git_blob_sha":  "f3f2b0f6d4112d6df0b8d6130fc33d0bb4a970ee",
+                                                                      "sha256":  "computed-at-bootstrap"
+                                                                  },
+                  "scorp-agent/tests/v4-production-hardening.ps1":  {
+                                                                        "git_blob_sha":  "612f61a37d1da5bed96dfe1e66cf439f65f230c9",
+                                                                        "sha256":  "computed-at-bootstrap"
+                                                                    },
+                  "scorp-agent/tests/v4-selfheal-hardening.ps1":  {
+                                                                      "git_blob_sha":  "7bbeffd82fb96fe785c4113d4f5b7d245aa954d1",
+                                                                      "sha256":  "computed-at-bootstrap"
+                                                                  }
+              }
+}

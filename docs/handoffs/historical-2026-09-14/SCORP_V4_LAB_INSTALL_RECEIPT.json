@@ -1,0 +1,12 @@
+{
+  "database": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
+  "format": "scorp-v4-lab-install-receipt/1",
+  "installed_at": "2026-09-13T23:14:11.358464Z",
+  "interpreter": "C:\\Users\\scorp\\AppData\\Local\\Python\\bin\\python.exe",
+  "lab_root": "C:\\ScorpAgent\\v4-core-lab",
+  "manifest_sha256": "1c51c64c1c573fdeb5a026b22f1b40dfe1594c254b62b4f0816b6acc9971dc35",
+  "protected_after_sha256": "ac6d6b8ce0e3a8babb56e8afe9291352b10947aa7a06fd0f72f3ad2e4c7f7b5b",
+  "protected_before_sha256": "ac6d6b8ce0e3a8babb56e8afe9291352b10947aa7a06fd0f72f3ad2e4c7f7b5b",
+  "source_commit": "682005bb1edab6149517b2fa7398fd63dbda945f",
+  "source_tree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core"
+}

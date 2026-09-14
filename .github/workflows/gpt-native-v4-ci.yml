@@ -1,0 +1,113 @@
+name: GPT Native V4 CI
+
+on:
+  push:
+    branches:
+      - scorp-gpt-native-v4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pwsh-core-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse V4.1 scripts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $paths = @(
+            'scorp-agent/executor-v4.1.ps1',
+            'scorp-agent/runner-v4.1.ps1',
+            'scorp-agent/bootstrap-v4.ps1',
+            'scorp-agent/tests/v4-critical-hardening.ps1',
+            'scorp-agent/tests/v4-production-hardening.ps1',
+            'scorp-agent/tests/v4-selfheal-hardening.ps1'
+          )
+          foreach ($path in $paths) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$path :: $($_.Message)" }
+              throw "PowerShell parse failed: $path"
+            }
+          }
+
+      - name: Validate schema and release manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $null = Get-Content ./scorp-agent/executor-v4.schema.json -Raw | ConvertFrom-Json
+          $manifest = Get-Content ./scorp-agent/release-manifest-v4.json -Raw | ConvertFrom-Json
+          if ([string]$manifest.protocol_version -cne 'scorp.exec/v4-release-manifest') { throw 'invalid release manifest protocol' }
+          $required = @(
+            'scorp-agent/executor-v4.1.ps1',
+            'scorp-agent/runner-v4.1.ps1',
+            'scorp-agent/executor-v4.schema.json',
+            'scorp-agent/bootstrap-v4.ps1',
+            'scorp-agent/tests/v4-critical-hardening.ps1',
+            'scorp-agent/tests/v4-production-hardening.ps1'
+          )
+          foreach ($path in $required) {
+            $entry = $manifest.files.PSObject.Properties[$path]
+            if ($null -eq $entry) { throw "manifest entry missing: $path" }
+            $expected = ([string]$entry.Value.git_blob_sha).ToLowerInvariant()
+            $actual = (& git hash-object -- $path).Trim().ToLowerInvariant()
+            if ($LASTEXITCODE -ne 0 -or $actual -cne $expected) { throw "manifest blob mismatch: $path expected=$expected actual=$actual" }
+          }
+
+      - name: V4.1 executor self-test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = & ./scorp-agent/executor-v4.1.ps1 -SelfTest -MutexName ("ScorpV4CiSelfTest-" + [guid]::NewGuid().ToString('N')) 2>&1
+          $out | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0) { throw "self-test exit=$LASTEXITCODE" }
+          if (($out -join "`n") -notmatch 'SELFTEST PASS') { throw 'SELFTEST PASS marker missing' }
+
+      - name: Critical hardening regression gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = & ./scorp-agent/tests/v4-critical-hardening.ps1 -ExecutorPath ./scorp-agent/executor-v4.1.ps1 2>&1
+          $out | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0 -or (($out -join "`n") -notmatch 'V4_CRITICAL_HARDENING_PASS')) { throw 'critical hardening regression failed' }
+
+      - name: Production hardening regression gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = & ./scorp-agent/tests/v4-production-hardening.ps1 -ExecutorPath ./scorp-agent/executor-v4.1.ps1 -RunnerPath ./scorp-agent/runner-v4.1.ps1 -BootstrapPath ./scorp-agent/bootstrap-v4.ps1 2>&1
+          $out | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0 -or (($out -join "`n") -notmatch 'V4_PRODUCTION_HARDENING_PASS')) { throw 'production hardening regression failed' }
+
+      - name: Executor self-heal regression gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = & ./scorp-agent/tests/v4-selfheal-hardening.ps1 -BootstrapPath ./scorp-agent/bootstrap-v4.ps1 2>&1
+          $out | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0 -or (($out -join "`n") -notmatch 'V4_SELFHEAL_HARDENING_PASS')) { throw 'self-heal hardening regression failed' }
+
+      - name: No Codex invocation
+        shell: pwsh
+        run: |
+          $targets = @(
+            'scorp-agent/executor-v4.1.ps1',
+            'scorp-agent/runner-v4.1.ps1',
+            'scorp-agent/bootstrap-v4.ps1'
+          )
+          $matches = Select-String -Path $targets -Pattern '(?i)codex\s+exec|codex\.exe'
+          if ($matches) {
+            $matches | ForEach-Object { Write-Error $_ }
+            throw 'Codex invocation found in V4 runtime/bootstrap files'
+          }
+
+      - name: Diff hygiene
+        shell: bash
+        run: git diff --check HEAD^ HEAD

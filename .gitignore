@@ -1,0 +1,33 @@
+# Local Python output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local runtime, state, and evidence generated outside source control
+*.sqlite
+*.sqlite3
+*.db
+*.lock
+logs/
+state/
+state-*/
+runtime/
+venv/
+.venv/
+browser-profile/
+browser-profiles/
+
+# Credentials and secrets
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+credentials.json
+secrets.json
+token.json
+cookies.json
+
+# Candidate-local installation output
+v4-core-lab/
+chatgpt-gui-bridge-runtime/

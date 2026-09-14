@@ -1,0 +1,34 @@
+{
+  "format": "scorp-v4-acceptance-status/1",
+  "candidate_commit": "682005bb1edab6149517b2fa7398fd63dbda945f",
+  "evidence_commit": "RECORDED_EXTERNALLY_AFTER_EVIDENCE_COMMIT",
+  "validator": {
+    "status": "PASS",
+    "blockers": [],
+    "contract_sha256": "b65a3a9636b2dcec0e579459450d3ca0d86b21f4558056f91aeb51c0209bf7fb",
+    "database": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3"
+  },
+  "acceptance": {
+    "AC01": {"status": "PASS", "scope": "concurrent CAS; five repeated two-thread races"},
+    "AC02": {"status": "PASS", "scope": "idempotency, content conflict, epoch/version/lease fencing"},
+    "AC03": {"status": "PASS", "scope": "real SQLite/outbox with injected browser crash points"},
+    "AC04": {"status": "PASS", "scope": "read-only deterministic false-completion rejection"},
+    "AC05": {"status": "PASS", "scope": "two dynamic slots, queue, dependencies, short soak"},
+    "AC06": {"status": "PASS", "scope": "allowlist/reparse boundaries and protected-root zero change"},
+    "AC07": {"status": "PASS", "scope": "unit recovery plus one real browser submit/ACK"},
+    "AC08": {"status": "PASS", "scope": "real Chrome ChatGPT Plus login, no challenge; blocker simulations"},
+    "AC09": {"status": "PASS", "scope": "append-only deadline and late counter-evidence"},
+    "AC10": {"status": "PASS", "scope": "named lab install with candidate/file/database identity"},
+    "AC11": {"status": "PASS", "scope": "42 V4 + 397 bridge + three PowerShell suites + compile/diff"},
+    "AC12": {"status": "PASS", "scope": "10.201-second short performance/recovery soak", "long_duration_stability_proven": false}
+  },
+  "candidate_status": "PASS_EXPERIMENTAL_SCOPE",
+  "production_cutover": "NOT_AUTHORIZED_NOT_ATTEMPTED",
+  "production_mutated": false,
+  "pdf": "CANCELLED_BY_USER",
+  "limitations": [
+    "AC03 live-service crash injection was not performed; crash paths use the injected engine.",
+    "AC12 is a short performance/recovery test and does not prove 24-hour stability.",
+    "No merge, push, deployment, scheduled-task change, service change, or production switch was performed."
+  ]
+}

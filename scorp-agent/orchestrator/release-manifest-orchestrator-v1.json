@@ -1,0 +1,70 @@
+{
+    "protocol_version":  "scorp.orchestrator/release-manifest-v1",
+    "release":  "full-auto-orchestrator-v1",
+    "pinning":  "bootstrap CommitSha is authoritative; every listed artifact Git blob must match this manifest",
+    "executor_dependency_commit":  "4588799df1047a8ddd833e217698774c74bd29e6",
+    "install_root":  "C:\\ScorpAgent\\full-auto-orchestrator-v1",
+    "state_root":  "C:\\ScorpAgent\\orchestrator-v1",
+    "files":  {
+                  "scorp-agent/orchestrator-v1.ps1":  {
+                                                          "git_blob_sha":  "8a1eb92f16ff3462b4adb65c89f8fe51f6c56889",
+                                                          "sha256":  "computed-at-bootstrap"
+                                                      },
+                  "scorp-agent/orchestrator/store-v1.ps1":  {
+                                                                "git_blob_sha":  "9767abbd14cf7a47ac56cac95637894e3e3548a7",
+                                                                "sha256":  "computed-at-bootstrap"
+                                                            },
+                  "scorp-agent/orchestrator/registry-v1.ps1":  {
+                                                                   "git_blob_sha":  "420a76bfbe168d9cca7f22c440d865f8525ceba5",
+                                                                   "sha256":  "computed-at-bootstrap"
+                                                               },
+                  "scorp-agent/orchestrator/health-control-v1.ps1":  {
+                                                                         "git_blob_sha":  "91327581be5ec1ec5760d9b15cead237d27f3739",
+                                                                         "sha256":  "computed-at-bootstrap"
+                                                                     },
+                  "scorp-agent/orchestrator/router-v4.ps1":  {
+                                                                 "git_blob_sha":  "79f045f8bd8a60608d831141f7cec5aa704f6b02",
+                                                                 "sha256":  "computed-at-bootstrap"
+                                                             },
+                  "scorp-agent/orchestrator/continuation-v1.ps1":  {
+                                                                       "git_blob_sha":  "babe88358a22c2f5f2ad7196188841ae8b50bc97",
+                                                                       "sha256":  "computed-at-bootstrap"
+                                                                   },
+                  "scorp-agent/orchestrator/task-schema-v1.json":  {
+                                                                       "git_blob_sha":  "b1881b920d6e3faff5dbcbd06df0e1a2198912e2",
+                                                                       "sha256":  "computed-at-bootstrap"
+                                                                   },
+                  "scorp-agent/orchestrator/continuation-schema-v1.json":  {
+                                                                               "git_blob_sha":  "8739e2a189d9d1c4a10841b7144e7051073b03ee",
+                                                                               "sha256":  "computed-at-bootstrap"
+                                                                           },
+                  "scorp-agent/orchestrator/bootstrap-orchestrator-v1.ps1":  {
+                                                                                 "git_blob_sha":  "3abef251510effde4bdbe6eb2676f3f73b7becc6",
+                                                                                 "sha256":  "computed-at-bootstrap"
+                                                                             },
+                  "scorp-agent/tests/orchestrator-v1-contract-store.ps1":  {
+                                                                               "git_blob_sha":  "7c59f0b9460707a6df21a4b111b3d6e949e71880",
+                                                                               "sha256":  "computed-at-bootstrap"
+                                                                           },
+                  "scorp-agent/tests/orchestrator-v1-scheduler-control.ps1":  {
+                                                                                  "git_blob_sha":  "66b0934eaa0a3856e123338355752ec802a9177a",
+                                                                                  "sha256":  "computed-at-bootstrap"
+                                                                              },
+                  "scorp-agent/tests/orchestrator-v1-router-continuation.ps1":  {
+                                                                                    "git_blob_sha":  "0e5494481dd31e174fc5acf95fccd6f9d3e91ad6",
+                                                                                    "sha256":  "computed-at-bootstrap"
+                                                                                },
+                  "scorp-agent/tests/orchestrator-v1-recovery-deployment.ps1":  {
+                                                                                    "git_blob_sha":  "975275b92f65714888fd6be68b43b966b080681a",
+                                                                                    "sha256":  "computed-at-bootstrap"
+                                                                                },
+                  "scorp-agent/tests/orchestrator-v1-production-wiring.ps1":  {
+                                                                                  "git_blob_sha":  "dd31f91f47635e41f8869a299225b91c26204d0b",
+                                                                                  "sha256":  "computed-at-bootstrap"
+                                                                              },
+                  "scorp-agent/tests/orchestrator-v1-deployment-regression.ps1":  {
+                                                                                      "git_blob_sha":  "18cf6b7f4d72e7bf4db3748eadeedb51f44c2b5c",
+                                                                                      "sha256":  "computed-at-bootstrap"
+                                                                                  }
+              }
+}
