@@ -92,6 +92,11 @@ async def run_fill_diagnostic(
     }
     cleanup_error: dict[str, str] | None = None
     try:
+        # Diagnostics are the only sessions that may be stopped automatically.
+        # Register them before any browser action so a timeout still leaves an
+        # auditable lifecycle record rather than an orphaned Chrome target.
+        driver.register_session(session, role="DIAGNOSTIC")
+        driver.bind_turn(turn_id, None)
         await cli.run_json(session, "open", ROOT_URL, timeout_seconds=30)
         observed = await driver._get_url(session)
         record["opened_url"] = observed
@@ -99,7 +104,6 @@ async def run_fill_diagnostic(
             raise ValueError("FILL_DIAGNOSTIC_ROOT_URL_MISMATCH")
         editor_ref = await driver._editor_ref(session)
         record["editor_ref"] = editor_ref
-        driver.bind_turn(turn_id, None)
         await cli.run_json(session, "fill", editor_ref, marker, timeout_seconds=30)
         try:
             send_ref = await driver._send_ref_after_input_repair(session, editor_ref, marker)
@@ -131,8 +135,23 @@ async def run_fill_diagnostic(
     finally:
         if cleanup:
             try:
-                await cli.run_json(session, "session", "stop", timeout_seconds=30)
+                lifecycle = await driver.retire_turn(
+                    turn_id,
+                    reason="fill diagnostic complete",
+                    stop=True,
+                )
+                record["cleanup"] = lifecycle.get("cleanup")
             except Exception as exc:  # cleanup failure must remain visible, not hide the result
+                cleanup_error = _safe_error(exc)
+        else:
+            try:
+                lifecycle = await driver.retire_turn(
+                    turn_id,
+                    reason="fill diagnostic retained by operator",
+                    stop=False,
+                )
+                record["cleanup"] = lifecycle.get("cleanup")
+            except Exception as exc:
                 cleanup_error = _safe_error(exc)
         if cleanup_error is not None:
             record["cleanup_error"] = cleanup_error

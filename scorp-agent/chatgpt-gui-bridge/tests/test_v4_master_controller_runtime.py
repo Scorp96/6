@@ -47,6 +47,54 @@ class MasterControllerRuntimeTests(unittest.TestCase):
             self.assertFalse((root / "state.sqlite3").exists())
             self.assertFalse((root / "driver.json").exists())
 
+    def test_send_requires_exact_candidate_manifest_before_opening_browser(self):
+        runtime = load_runtime()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            plan = root / "plan.json"
+            plan.write_text(
+                json.dumps({
+                    "root_contract": {"project_id": "scorp-v4-master-runtime", "root_objective": "test"},
+                    "acceptance_contract": {"required": ["AC01"]},
+                    "plan": {"project_id": "scorp-v4-master-runtime", "master_identity": "A", "tasks": []},
+                }),
+                encoding="utf-8",
+            )
+            args = runtime.build_parser().parse_args(
+                [
+                    "--send",
+                    "--plan-json", str(plan),
+                    "--database-path", str(root / "state.sqlite3"),
+                    "--driver-state-path", str(root / "driver.json"),
+                    "--allowed-root", str(root),
+                ]
+            )
+            with self.assertRaisesRegex(RuntimeError, "CANDIDATE_BINDING_REQUIRED"):
+                runtime.run_runtime(args)
+            self.assertFalse((root / "state.sqlite3").exists())
+            self.assertFalse((root / "driver.json").exists())
+
+    def test_candidate_binding_accepts_canonical_manifest_hash(self):
+        runtime = load_runtime()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            core = {
+                "format": "scorp-v4-candidate-manifest/1",
+                "candidate_commit": "a" * 40,
+                "source_tree": str(root),
+                "files": {"example.py": {"sha256": "b" * 64, "size": 1}},
+            }
+            from master_a_dynamic_v4.models import sha256_json
+            manifest = {**core, "manifest_sha256": sha256_json(core)}
+            path = root / "manifest.json"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+            binding = runtime.validate_candidate_binding(
+                path,
+                candidate_commit="a" * 40,
+                manifest_sha256=manifest["manifest_sha256"],
+            )
+            self.assertEqual(manifest["manifest_sha256"], binding["manifest_sha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

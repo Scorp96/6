@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import threading
+import datetime as dt
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -13,6 +14,7 @@ from gui_transport import validate_conversation_url
 _ROOT_URL = "https://chatgpt.com/"
 _PROTOCOL = "scorp.chrome-use-driver/v1"
 _ALLOWED_ACTORS = {"MASTER", "WORKER"}
+_LIFECYCLE_ROLES = {"MASTER", "WORKER", "DIAGNOSTIC", "UNKNOWN"}
 _SEND_BUTTON_NAMES = {
     "发送提示",
     "发送提示词",
@@ -206,11 +208,18 @@ class ChromeUseActorDriverV3:
     def _load(self):
         with self._state_mutex:
             if not self.state_path.is_file():
-                return {"protocol_version": _PROTOCOL, "turns": {}, "conversations": {}}
+                return {"protocol_version": _PROTOCOL, "turns": {}, "conversations": {}, "sessions": {}}
             value = json.loads(self.state_path.read_text(encoding="utf-8-sig"))
             if not isinstance(value, dict) or value.get("protocol_version") != _PROTOCOL:
                 raise ValueError("CHROME_USE_DRIVER_STATE_INVALID")
             if not isinstance(value.get("turns"), dict) or not isinstance(value.get("conversations"), dict):
+                raise ValueError("CHROME_USE_DRIVER_STATE_INVALID")
+            # Older V4 state files predate lifecycle hygiene.  Migrate them
+            # in memory without changing their durable bindings until the next
+            # normal state transition saves the file.
+            if "sessions" not in value:
+                value["sessions"] = {}
+            if not isinstance(value.get("sessions"), dict):
                 raise ValueError("CHROME_USE_DRIVER_STATE_INVALID")
             return value
 
@@ -229,18 +238,73 @@ class ChromeUseActorDriverV3:
     def _conversation_session(url):
         return "scorp-p0-conv-" + _sha(url)[:16]
 
-    def bind_turn(self, turn_id, conversation_url):
+    @staticmethod
+    def _now():
+        return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+
+    @staticmethod
+    def _normalise_role(role):
+        value = str(role or "UNKNOWN").strip().upper()
+        if value not in _LIFECYCLE_ROLES:
+            raise ValueError("CHROME_USE_SESSION_ROLE_INVALID")
+        return value
+
+    def _touch_session(self, state, session, *, role="UNKNOWN", turn_id=None, conversation_url=None):
+        """Record ownership without changing the Chrome Use session itself."""
+
+        session = str(session or "").strip()
+        if not session:
+            raise ValueError("CHROME_USE_SESSION_ID_MISSING")
+        role = self._normalise_role(role)
+        now = self._now()
+        row = state["sessions"].get(session)
+        if not isinstance(row, dict):
+            row = {
+                "session": session,
+                "role": role,
+                "status": "ACTIVE",
+                "turn_ids": [],
+                "conversation_urls": [],
+                "created_at": now,
+                "updated_at": now,
+            }
+        elif row.get("status") == "RETIRED":
+            raise ValueError("CHROME_USE_SESSION_RETIRED")
+        if row.get("role") in (None, "UNKNOWN") and role != "UNKNOWN":
+            row["role"] = role
+        elif role != "UNKNOWN" and row.get("role") not in (role, "UNKNOWN"):
+            raise ValueError("CHROME_USE_SESSION_ROLE_CONFLICT")
+        if turn_id is not None and str(turn_id) not in row.setdefault("turn_ids", []):
+            row["turn_ids"].append(str(turn_id))
+        if conversation_url is not None and str(conversation_url) not in row.setdefault("conversation_urls", []):
+            row["conversation_urls"].append(str(conversation_url))
+        row["updated_at"] = now
+        state["sessions"][session] = row
+        return row
+
+    def bind_turn(self, turn_id, conversation_url, *, actor_kind=None):
         turn_id = str(turn_id or "").strip()
         if not turn_id:
             raise ValueError("ACTOR_GUI_TURN_ID_MISSING")
+        role = self._normalise_role(actor_kind or "UNKNOWN")
         with self._state_mutex:
             state = self._load()
             old = state["turns"].get(turn_id)
             if conversation_url is None:
                 if isinstance(old, dict) and old.get("session"):
+                    self._touch_session(state, old["session"], role=role, turn_id=turn_id)
+                    old["role"] = role if role != "UNKNOWN" else old.get("role", "UNKNOWN")
+                    old.setdefault("status", "ACTIVE")
+                    self._save(state)
                     return old["session"]
                 session = self._turn_session(turn_id)
-                state["turns"][turn_id] = {"session": session, "conversation_url": None}
+                state["turns"][turn_id] = {
+                    "session": session,
+                    "conversation_url": None,
+                    "role": role,
+                    "status": "ACTIVE",
+                }
+                self._touch_session(state, session, role=role, turn_id=turn_id)
                 self._save(state)
                 return session
             url = _canonical_url(conversation_url)
@@ -249,9 +313,133 @@ class ChromeUseActorDriverV3:
             if not session:
                 session = self._conversation_session(url)
                 state["conversations"][url] = {"session": session}
-            state["turns"][turn_id] = {"session": session, "conversation_url": url}
+            state["turns"][turn_id] = {
+                "session": session,
+                "conversation_url": url,
+                "role": role,
+                "status": "ACTIVE",
+            }
+            self._touch_session(state, session, role=role, turn_id=turn_id, conversation_url=url)
             self._save(state)
             return session
+
+    def register_session(self, session, *, role="DIAGNOSTIC", turn_id=None):
+        """Register an explicitly named session for lifecycle-managed cleanup."""
+
+        with self._state_mutex:
+            state = self._load()
+            self._touch_session(state, session, role=role, turn_id=turn_id)
+            self._save(state)
+        return str(session)
+
+    def lifecycle_snapshot(self):
+        """Return lifecycle metadata without probing or mutating Chrome."""
+
+        with self._state_mutex:
+            state = self._load()
+            return json.loads(json.dumps(state.get("sessions", {}), ensure_ascii=False))
+
+    def _active_turns_for_session(self, state, session):
+        return [
+            turn_id
+            for turn_id, row in state.get("turns", {}).items()
+            if isinstance(row, dict)
+            and row.get("session") == session
+            and row.get("status", "ACTIVE") == "ACTIVE"
+        ]
+
+    async def retire_turn(self, turn_id, *, reason, stop=False, allow_persistent=False):
+        """Retire one logical turn; stop Chrome only when its session is unreferenced."""
+
+        turn_id = str(turn_id or "").strip()
+        reason = str(reason or "").strip()
+        if not turn_id or not reason:
+            raise ValueError("CHROME_USE_RETIRE_ARGUMENT_MISSING")
+        with self._state_mutex:
+            state = self._load()
+            row = state["turns"].get(turn_id)
+            if not isinstance(row, dict) or not row.get("session"):
+                raise ValueError("CHROME_USE_TURN_BINDING_MISSING")
+            session = str(row["session"])
+            role = self._normalise_role(row.get("role", "UNKNOWN"))
+            if row.get("status") == "RETIRED":
+                return {
+                    "status": "ALREADY_RETIRED",
+                    "session": session,
+                    "active_turn_ids": self._active_turns_for_session(state, session),
+                    "cleanup": "ALREADY_RETIRED",
+                }
+            if stop and role in {"MASTER", "WORKER"} and not allow_persistent:
+                raise ValueError("CHROME_USE_PERSISTENT_SESSION_REFUSED")
+            row["status"] = "RETIRED"
+            row["retired_at"] = self._now()
+            row["retired_reason"] = reason
+            state["turns"][turn_id] = row
+            active = self._active_turns_for_session(state, session)
+            lifecycle = state["sessions"].get(session) or self._touch_session(state, session, role=role)
+            lifecycle["updated_at"] = self._now()
+            lifecycle["active_turn_ids"] = active
+            if not active:
+                lifecycle["status"] = "RETIRED"
+                lifecycle["retired_at"] = self._now()
+                lifecycle["retired_reason"] = reason
+            self._save(state)
+        cleanup = "NOT_REQUESTED"
+        if stop and not active:
+            try:
+                await self.cli.run_json(session, "session", "stop", timeout_seconds=self.timeout_seconds)
+                cleanup = "STOPPED"
+            except Exception as exc:
+                cleanup = "CLEANUP_BLOCKED"
+                with self._state_mutex:
+                    state = self._load()
+                    lifecycle = state["sessions"].setdefault(session, {})
+                    lifecycle["cleanup_status"] = cleanup
+                    lifecycle["cleanup_error_type"] = type(exc).__name__
+                    lifecycle["cleanup_error"] = str(exc)
+                    self._save(state)
+        return {"status": "RETIRED", "session": session, "active_turn_ids": active, "cleanup": cleanup}
+
+    async def retire_session(self, session, *, reason, stop=False, allow_persistent=False):
+        """Retire a temporary session; persistent Master/Worker sessions are fenced by default."""
+
+        session = str(session or "").strip()
+        reason = str(reason or "").strip()
+        if not session or not reason:
+            raise ValueError("CHROME_USE_RETIRE_ARGUMENT_MISSING")
+        with self._state_mutex:
+            state = self._load()
+            row = state["sessions"].get(session)
+            if not isinstance(row, dict):
+                raise ValueError("CHROME_USE_SESSION_UNKNOWN")
+            role = self._normalise_role(row.get("role", "UNKNOWN"))
+            if role in {"MASTER", "WORKER"} and not allow_persistent:
+                raise ValueError("CHROME_USE_PERSISTENT_SESSION_REFUSED")
+            if row.get("status") == "RETIRED":
+                return {"status": "ALREADY_RETIRED", "session": session, "cleanup": "ALREADY_RETIRED"}
+            active = self._active_turns_for_session(state, session)
+            if active:
+                raise ValueError("CHROME_USE_SESSION_HAS_ACTIVE_TURNS")
+            row["status"] = "RETIRED"
+            row["retired_at"] = self._now()
+            row["retired_reason"] = reason
+            state["sessions"][session] = row
+            self._save(state)
+        cleanup = "NOT_REQUESTED"
+        if stop:
+            try:
+                await self.cli.run_json(session, "session", "stop", timeout_seconds=self.timeout_seconds)
+                cleanup = "STOPPED"
+            except Exception as exc:
+                cleanup = "CLEANUP_BLOCKED"
+                with self._state_mutex:
+                    state = self._load()
+                    row = state["sessions"].setdefault(session, {})
+                    row["cleanup_status"] = cleanup
+                    row["cleanup_error_type"] = type(exc).__name__
+                    row["cleanup_error"] = str(exc)
+                    self._save(state)
+        return {"status": "RETIRED", "session": session, "cleanup": cleanup}
 
     def turn_binding(self, turn_id):
         with self._state_mutex:
@@ -283,6 +471,13 @@ class ChromeUseActorDriverV3:
             row["conversation_url"] = url
             state["turns"][turn_id] = row
             state["conversations"][url] = {"session": session}
+            self._touch_session(
+                state,
+                session,
+                role=row.get("role", "UNKNOWN"),
+                turn_id=turn_id,
+                conversation_url=url,
+            )
             self._save(state)
             return session
 
@@ -470,7 +665,7 @@ class ChromeUseActorDriverV3:
         actor_kind = str(actor_kind or "").strip().upper()
         if actor_kind not in _ALLOWED_ACTORS:
             raise ValueError("ACTOR_GUI_ACTOR_KIND_INVALID")
-        session = self.bind_turn(turn_id, conversation_url)
+        session = self.bind_turn(turn_id, conversation_url, actor_kind=actor_kind)
         target = _canonical_url(conversation_url) if conversation_url is not None else _ROOT_URL
         if conversation_url is None:
             await self.cli.run_json(session, "open", target, timeout_seconds=self.timeout_seconds)

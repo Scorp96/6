@@ -38,6 +38,70 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertTrue(first.startswith('scorp-p0-conv-'))
 
+    def test_lifecycle_records_roles_and_migrates_legacy_state(self):
+        with tempfile.TemporaryDirectory() as td:
+            state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'
+            state_path.write_text(json.dumps({
+                'protocol_version': 'scorp.chrome-use-driver/v1',
+                'turns': {},
+                'conversations': {},
+            }), encoding='utf-8')
+            driver = self._driver(td, FakeCli())
+            session = driver.bind_turn('master-turn', None, actor_kind='MASTER')
+            snapshot = driver.lifecycle_snapshot()
+            self.assertEqual('MASTER', snapshot[session]['role'])
+            self.assertEqual('ACTIVE', snapshot[session]['status'])
+            self.assertEqual(['master-turn'], snapshot[session]['turn_ids'])
+            persisted = json.loads(state_path.read_text(encoding='utf-8'))
+            self.assertIn('sessions', persisted)
+
+    def test_retire_diagnostic_stops_only_explicit_temporary_session_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [{'success': True}]
+            driver = self._driver(td, cli)
+            driver.register_session('diag-123', role='DIAGNOSTIC')
+            first = asyncio.run(driver.retire_session('diag-123', reason='diagnostic complete', stop=True))
+            second = asyncio.run(driver.retire_session('diag-123', reason='repeat cleanup', stop=True))
+            self.assertEqual('STOPPED', first['cleanup'])
+            self.assertEqual('ALREADY_RETIRED', second['status'])
+            self.assertEqual([['session', 'stop']], [args for _, args, _ in cli.calls])
+            self.assertEqual('RETIRED', driver.lifecycle_snapshot()['diag-123']['status'])
+
+    def test_retire_refuses_active_persistent_master_or_worker(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            master = driver.bind_turn('master-turn', None, actor_kind='MASTER')
+            with self.assertRaisesRegex(ValueError, 'PERSISTENT_SESSION_REFUSED'):
+                asyncio.run(driver.retire_session(master, reason='unsafe cleanup', stop=True))
+            self.assertEqual('ACTIVE', driver.lifecycle_snapshot()[master]['status'])
+
+    def test_retire_turn_does_not_stop_shared_session_until_all_turns_retire(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [{'success': True}]
+            driver = self._driver(td, cli)
+            url = 'https://chatgpt.com/c/shared-worker'
+            session = driver.bind_turn('worker-turn-1', url, actor_kind='WORKER')
+            self.assertEqual(session, driver.bind_turn('worker-turn-2', url, actor_kind='WORKER'))
+            first = asyncio.run(driver.retire_turn('worker-turn-1', reason='assignment complete', stop=True, allow_persistent=True))
+            self.assertEqual('NOT_REQUESTED', first['cleanup'])
+            self.assertEqual([], cli.calls)
+            second = asyncio.run(driver.retire_turn('worker-turn-2', reason='assignment complete', stop=True, allow_persistent=True))
+            self.assertEqual('STOPPED', second['cleanup'])
+            self.assertEqual([['session', 'stop']], [args for _, args, _ in cli.calls])
+
+    def test_cleanup_timeout_is_recorded_as_blocked_without_retry(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [TimeoutError('stuck chrome-use get url')]
+            driver = self._driver(td, cli)
+            driver.register_session('diag-timeout', role='DIAGNOSTIC')
+            result = asyncio.run(driver.retire_session('diag-timeout', reason='cleanup probe', stop=True))
+            self.assertEqual('CLEANUP_BLOCKED', result['cleanup'])
+            self.assertEqual('CLEANUP_BLOCKED', driver.lifecycle_snapshot()['diag-timeout']['cleanup_status'])
+            self.assertEqual(1, len(cli.calls))
+
     def test_parallel_turn_bindings_preserve_both_sessions_in_shared_state(self):
         with tempfile.TemporaryDirectory() as td:
             state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'

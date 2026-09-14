@@ -15,6 +15,7 @@ import dataclasses
 import hashlib
 import json
 import pathlib
+import re
 import sys
 from collections.abc import Mapping
 from typing import Any
@@ -32,6 +33,7 @@ from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
 from master_a_dynamic_v4.execution_adapter import LocalExecutionAdapter  # noqa: E402
 from master_a_dynamic_v4.git_worktree import GitWorktreeManager  # noqa: E402
 from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
+from master_a_dynamic_v4.models import sha256_json  # noqa: E402
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
 from v4_browser_engine import build_v4_browser_engine  # noqa: E402
 
@@ -87,6 +89,48 @@ def _load_plan(path: pathlib.Path) -> dict[str, Any]:
     }
 
 
+def validate_candidate_binding(
+    manifest_path: str | pathlib.Path | None,
+    *,
+    candidate_commit: str,
+    manifest_sha256: str,
+) -> dict[str, str]:
+    """Require an exact candidate manifest before any browser side effect."""
+
+    if manifest_path is None:
+        raise RuntimeError("CANDIDATE_BINDING_REQUIRED")
+    path = pathlib.Path(manifest_path).resolve()
+    if not path.is_file():
+        raise RuntimeError("CANDIDATE_MANIFEST_MISSING")
+    commit = str(candidate_commit or "").strip().lower()
+    digest = str(manifest_sha256 or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise RuntimeError("CANDIDATE_COMMIT_INVALID")
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise RuntimeError("CANDIDATE_MANIFEST_HASH_INVALID")
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("CANDIDATE_MANIFEST_INVALID") from exc
+    if not isinstance(manifest, Mapping):
+        raise RuntimeError("CANDIDATE_MANIFEST_INVALID")
+    if str(manifest.get("candidate_commit") or "").strip().lower() != commit:
+        raise RuntimeError("CANDIDATE_COMMIT_MISMATCH")
+    if str(manifest.get("manifest_sha256") or "").strip().lower() != digest:
+        raise RuntimeError("CANDIDATE_MANIFEST_HASH_MISMATCH")
+    try:
+        core = {key: manifest[key] for key in ("format", "candidate_commit", "source_tree", "files")}
+    except KeyError as exc:
+        raise RuntimeError("CANDIDATE_MANIFEST_INVALID") from exc
+    if sha256_json(core) != digest:
+        raise RuntimeError("CANDIDATE_MANIFEST_CANONICAL_HASH_MISMATCH")
+    return {
+        "candidate_commit": commit,
+        "manifest_sha256": digest,
+        "manifest_path": str(path),
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run one gated SCORP V4 Master A plan")
     parser.add_argument("--send", action="store_true", help="required before opening ChatGPT or creating state")
@@ -108,6 +152,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--candidate-commit", default="")
     parser.add_argument("--artifact-manifest", type=pathlib.Path)
+    parser.add_argument("--candidate-manifest", type=pathlib.Path)
+    parser.add_argument("--manifest-sha256", default="")
     parser.add_argument("--evidence-path", type=pathlib.Path)
     return parser
 
@@ -146,6 +192,11 @@ def run_runtime(args: argparse.Namespace) -> int:
     if not args.send:
         print(json.dumps({"status": "SEND_REQUIRED", "reason": "pass --send only after reviewing the plan and paths"}))
         return 2
+    candidate_binding = validate_candidate_binding(
+        args.candidate_manifest,
+        candidate_commit=args.candidate_commit,
+        manifest_sha256=args.manifest_sha256,
+    )
     plan = _load_plan(args.plan_json)
     executable = pathlib.Path(args.executable)
     if not executable.is_file():
@@ -211,6 +262,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             "browser_io": "ATTEMPTED",
             "reasoning_model": "GPT-5.6 Sol",
             "worker_capacity": 2,
+            "candidate_binding": candidate_binding,
         }
         if args.candidate_commit:
             artifacts: dict[str, str] = {}
