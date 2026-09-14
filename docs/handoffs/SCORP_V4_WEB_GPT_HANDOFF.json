@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "a385f7b362cf87ba194fd8ba9c119771db44c42a",
+  "candidate_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
   "evidence_binding": {
-    "validated_commit": "a385f7b362cf87ba194fd8ba9c119771db44c42a",
+    "validated_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_a385f7b.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_a385f7b.json",
-    "binding_note": "This handoff describes the a385f7b code candidate; runtime startup now requires exact candidate binding, Chrome Use lifecycle hygiene is tested, and current live fill-send-conversation evidence remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_8ee4414.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_8ee4414.json",
+    "binding_note": "This handoff describes the 8ee4414 code candidate; runtime startup now requires exact candidate binding, Chrome Use lifecycle hygiene is tested, and current live fill-send-conversation evidence remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -115,3 +115,4 @@
   ],
   "evidence_rule": "Every execution claim must name candidate_commit, command_or_action, observed_state_or_exit_code, raw_output_reference, and artifact hash."
 }
+

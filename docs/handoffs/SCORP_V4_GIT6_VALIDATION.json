@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "a385f7b362cf87ba194fd8ba9c119771db44c42a",
+  "validated_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
   "validation_scope": "repository-candidate-plus-isolated-lab",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,8 +12,8 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 88,
-      "observed": "88 tests passed, including two-Worker concurrent browser dispatch coverage, shared Chrome Use state binding protection, durable local execution recovery, assignment-scoped path checks, verified Git worktree isolation, MasterSupervisor lease/rebind fencing, and existing-session attachment"
+      "tests_run": 89,
+      "observed": "89 tests passed, including unresolved acceptance counterevidence rejection, two-Worker concurrent browser dispatch coverage, shared Chrome Use state binding protection, durable local execution recovery, assignment-scoped path checks, verified Git worktree isolation, MasterSupervisor lease/rebind fencing, and existing-session attachment"
     },
     {
       "id": "bridge_full_regression",
@@ -50,27 +50,27 @@
     },
     {
       "id": "experimental_install_identity",
-      "command": "install_manifest.py against candidate a385f7b",
+      "command": "install_manifest.py against candidate 8ee4414",
       "exit_code": 0,
-      "observed": "41-file manifest and install receipt matched; stable protected-root hashes before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-a385f7b; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_a385f7b.json"
+      "observed": "41-file manifest and install receipt matched; stable protected-root hashes before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-8ee4414; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_8ee4414.json"
     },
     {
       "id": "short_recovery_soak",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-a385f7b --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-a385f7b.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-8ee4414 --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-8ee4414.json",
       "exit_code": 0,
-      "observed": "10.0326628 seconds actual; 48 cycles; 144 verified tasks; peak concurrency 2; 142 slot reuses; 2 scheduler recoveries; 48 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_a385f7b.json"
+      "observed": "10.077436 seconds actual; 46 cycles; 138 verified tasks; peak concurrency 2; 136 slot reuses; 2 scheduler recoveries; 46 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_8ee4414.json"
     },
     {
       "id": "supervisor_runtime_probe",
-      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-a385f7b\\supervisor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-a385f7b --max-iterations 1",
+      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-8ee4414\\supervisor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-8ee4414 --max-iterations 1",
       "exit_code": 0,
-      "observed": "Installed candidate attached to a seeded Master lease, renewed it once, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_a385f7b.json"
+      "observed": "Installed candidate attached to a seeded Master lease, renewed it once, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_8ee4414.json"
     },
     {
       "id": "local_interface_preflight",
-      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-a385f7b\\supervisor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-a385f7b",
+      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-8ee4414\\supervisor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-8ee4414",
       "exit_code": 0,
-      "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_a385f7b.json"
+      "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_8ee4414.json"
     },
     {
       "id": "session_lifecycle_smoke",
@@ -107,9 +107,9 @@
     "The controller now dispatches up to two independent browser claims concurrently and consumes results in claim order; this is covered by a synchronization regression test but has not yet been proven in a fresh live canary.",
     "ChromeUseActorDriverV3 now serializes shared state-file read/modify/write transitions across driver instances and exposes non-sensitive post-fill send-control diagnostics; it does not claim that the real ChatGPT send button or conversation promotion is fixed.",
     "A user-provided R4 report identified a current real-browser failure at fill/send/conversation promotion. It is recorded as an external report without raw artifact binding, so it is not promoted to machine-readable PASS evidence.",
-    "The isolated AC10/AC12 evidence uses lab C:\\ScorpAgent\\v4-core-lab-87dc771 and three stable protected roots; the volatile C:\\ScorpAgent\\state-v4 tree is not claimed protected in this receipt.",
+    "The isolated AC10/AC12 evidence uses lab C:\\ScorpAgent\\v4-core-lab-8ee4414 and three stable protected roots; the volatile C:\\ScorpAgent\\state-v4 tree is not claimed protected in this receipt.",
     "The 10-second soak uses an injected fake browser engine and is a short recovery check, not a 24-hour stability or live ChatGPT acceptance.",
-    "The current code candidate is a385f7b362cf87ba194fd8ba9c119771db44c42a; runtime startup requires an exact candidate manifest and SHA-256 before browser or SQLite side effects.",
+    "The current code candidate is 8ee4414cc66e67f2fc0eb136f29a1b75f3adb710; runtime startup requires an exact candidate manifest and SHA-256 before browser or SQLite side effects.",
     "ChromeUseActorDriverV3 now records lifecycle metadata, protects persistent Master/Worker sessions, retires diagnostic sessions only after active references clear, and records cleanup timeouts as CLEANUP_BLOCKED.",
     "The user-provided colored Chrome labels and stuck get-url observation were not independently replayed; they are retained as a user report, not PASS evidence.",
     "The explicit v4_session_lifecycle.py command provides read-only listing and named-session retirement; global session prune and close-all cleanup are forbidden and covered by five unit tests.",
@@ -131,4 +131,3 @@
     "candidate_binding": "candidate_commit and candidate_manifest_sha256 are required and checked before browser actions"
   }
 }
-

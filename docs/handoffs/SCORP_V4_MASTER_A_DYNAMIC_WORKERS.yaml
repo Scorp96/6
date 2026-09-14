@@ -12,7 +12,7 @@
     "target_branch": "main",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core",
     "target_worktree": "C:\\ScorpAgent\\_publish_git6",
-    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-a385f7b"
+    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-8ee4414"
   },
   "artifacts": {
     "machine_readable_spec": "docs/handoffs/SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
@@ -294,6 +294,7 @@
     "UNEXPECTED_PRODUCTION_MUTATION",
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
-  "candidate_commit": "a385f7b362cf87ba194fd8ba9c119771db44c42a",
+  "candidate_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
   "evidence_commit": "RECORDED_EXTERNALLY_AFTER_EVIDENCE_COMMIT"
 }
+

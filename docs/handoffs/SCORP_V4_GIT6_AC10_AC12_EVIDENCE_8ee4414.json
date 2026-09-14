@@ -1,0 +1,160 @@
+{
+  "format": "scorp-v4-git6-install-evidence/1",
+  "candidate_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
+  "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+  "manifest_file_count": 41,
+  "manifest_sha256": "830596b1bee84078774cd7f12f823c2274bacd4a2be91bdbdcfd925c733eaf0b",
+  "install_receipt": {
+    "database": "C:\\ScorpAgent\\v4-core-lab-8ee4414\\state.sqlite3",
+    "format": "scorp-v4-lab-install-receipt/1",
+    "installed_at": "2026-09-14T13:20:02.198751Z",
+    "interpreter": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-8ee4414",
+    "manifest_sha256": "830596b1bee84078774cd7f12f823c2274bacd4a2be91bdbdcfd925c733eaf0b",
+    "protected_after_sha256": "afc51d3e76974b18ab1dbdb6d42e25151a4ea015b13faea18be41bbe7c558eff",
+    "protected_before_sha256": "afc51d3e76974b18ab1dbdb6d42e25151a4ea015b13faea18be41bbe7c558eff",
+    "source_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
+    "source_tree": "C:\\ScorpAgent\\v4-source-8ee4414"
+  },
+  "short_soak_receipt": {
+    "actual_duration_seconds": 10.077436000006855,
+    "browser_intents": 46,
+    "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+    "concurrency_peak": 2,
+    "database": "C:\\ScorpAgent\\v4-core-lab-8ee4414\\short-soak.sqlite3",
+    "database_sha256": "ac5f8f53dfb9a0f28921153bccf487be7525e6281354e07262cb2ecf172263b9",
+    "duplicate_submits": 0,
+    "ended_at": "2026-09-14T13:20:31.835322Z",
+    "environment": {
+      "cpu_count": 8,
+      "os": "Windows-11-10.0.26200-SP0",
+      "processor": "Intel64 Family 6 Model 142 Stepping 11, GenuineIntel",
+      "python": "3.14.7",
+      "sqlite": "3.53.1",
+      "sqlite_pragmas": {
+        "busy_timeout": 5000,
+        "foreign_keys": 1,
+        "journal_mode": "delete",
+        "synchronous": 2
+      }
+    },
+    "errors": 0,
+    "format": "scorp-v4-short-soak-receipt/1",
+    "long_duration_stability_proven": false,
+    "max_recovery_seconds": 0.03290310000011232,
+    "recovery_limit_seconds": 2.0,
+    "requested_duration_seconds": 10.0,
+    "scheduler_recoveries": 2,
+    "slot_reuse_count": 136,
+    "started_at": "2026-09-14T13:20:21.757878Z",
+    "status": "PASS",
+    "submit_attempts": 46,
+    "task_cycles": 46,
+    "tasks_verified": 138,
+    "throughput_tasks_per_second": 13.69395945555061,
+    "candidate_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-8ee4414"
+  },
+  "supervisor_runtime_receipt": {
+    "format": "scorp-v4-master-supervisor-run/1",
+    "candidate_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-8ee4414",
+    "database": "C:\\ScorpAgent\\v4-core-lab-8ee4414\\supervisor.sqlite3",
+    "status": "MASTER_ACTIVE",
+    "reason": "HEARTBEAT_RENEWED",
+    "heartbeat": {
+      "end_reason": null,
+      "ended_at": null,
+      "heartbeat_at": "2026-09-14T13:21:03.756607Z",
+      "lease_until": "2026-09-14T13:46:03.756607Z",
+      "master_epoch": 0,
+      "project_id": "scorp-v4-master-runtime",
+      "session_id": "master-a-runtime",
+      "started_at": "2026-09-14T13:21:03.179567Z",
+      "state": "ACTIVE"
+    },
+    "watchdog": {
+      "lease_until": "2026-09-14T13:46:03.179567Z",
+      "master_epoch": 0,
+      "project_id": "scorp-v4-master-runtime",
+      "session_id": "master-a-runtime",
+      "status": "MASTER_ACTIVE"
+    },
+    "browser_send": "FORBIDDEN",
+    "decision_log": "C:\\ScorpAgent\\v4-supervisor-8ee4414.jsonl"
+  },
+  "local_preflight_receipt": {
+    "allowed_root": "C:\\ScorpAgent\\v4-core-lab-8ee4414",
+    "blockers": [],
+    "capabilities": {
+      "browser_rebind": {
+        "driver_state": null,
+        "executable": null,
+        "reason": "An existing Chrome Use executable and driver-state path are required; login and CAPTCHA are never bypassed.",
+        "status": "BLOCKED_MISSING_BROWSER_CONFIG"
+      },
+      "browser_submission": {
+        "reason": "Preflight never sends a prompt. Submission requires the separate operator-gated runtime and a fresh review.",
+        "status": "EXPLICIT_OPERATOR_GATE"
+      },
+      "git_handoff": {
+        "authority": "SQLite_when_running_locally",
+        "reason": "Git can carry a structured plan and evidence, but this candidate does not make Git itself a local executor.",
+        "status": "MANUAL_OR_EXTERNAL_POLLING"
+      },
+      "offline_validation": {
+        "command": "scripts/run-candidate-validation.ps1",
+        "reason": "Repository entrypoints and a Python runtime are present.",
+        "status": "READY"
+      },
+      "sqlite_master_monitor": {
+        "command": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
+        "reason": "An existing SQLite database and allowed root were supplied.",
+        "status": "READY"
+      },
+      "web_gpt_direct_local_control": {
+        "reason": "A web GPT cannot gain Windows or SQLite permissions by reading Git alone.",
+        "required_transport": "local_host_connector_or_operator_handoff",
+        "status": "UNAVAILABLE"
+      }
+    },
+    "database_path": "C:\\ScorpAgent\\v4-core-lab-8ee4414\\supervisor.sqlite3",
+    "format": "scorp-v4-local-preflight/1",
+    "generated_at": "2026-09-14T13:21:47.054810Z",
+    "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
+    "overall_status": "READY",
+    "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "repo_root": "C:\\ScorpAgent\\_publish_git6",
+    "required_paths": {
+      "GPT_START_HERE.md": true,
+      "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py": true,
+      "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py": true,
+      "scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py": true,
+      "scorp-agent/master_a_dynamic_v4": true,
+      "scripts/run-candidate-validation.ps1": true
+    },
+    "candidate_commit": "8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-8ee4414"
+  },
+  "no_send_composer_diagnostic": {
+    "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_browser_fill_diagnostic.py",
+    "live_status": "NOT_RUN",
+    "unit_tests": 3,
+    "browser_clicks": 0,
+    "browser_submits": 0,
+    "candidate_binding_required": true
+  },
+  "session_lifecycle_command": {
+    "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_session_lifecycle.py",
+    "status": "OFFLINE_TESTED",
+    "global_cleanup": "FORBIDDEN",
+    "unit_tests": 5,
+    "receipt_writer": "HASHED_ATOMIC_JSON",
+    "smoke_status": "PASS",
+    "smoke_action": "retire named DIAGNOSTIC session without --stop",
+    "smoke_evidence_path": "C:\\ScorpAgent\\v4-lifecycle-demo\\retirement.json",
+    "smoke_artifact_sha256": "88260899fa6510ec5df9b6c55cf0c61bafdedba2f3794afbce6c0803180fcadf"
+  },
+  "production_mutated": false,
+  "long_duration_stability_proven": false
+}
