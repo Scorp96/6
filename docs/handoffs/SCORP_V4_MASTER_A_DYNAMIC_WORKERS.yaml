@@ -12,16 +12,16 @@
     "target_branch": "main",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core",
     "target_worktree": "C:\\ScorpAgent\\_publish_git6",
-    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-31622f1c",
-    "candidate_commit": "31622f1c3c358540146d95e1cf769cc09601610c"
+    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-4246ac13",
+    "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963"
   },
   "artifacts": {
     "machine_readable_spec": "docs/handoffs/SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
     "handoff_markdown": "docs/handoffs/SCORP_V4_HANDOFF.md",
     "pdf": "CANCELLED_BY_USER",
     "current_validation": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "current_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json",
-    "current_install_evidence": "docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_31622f1c.json",
+    "current_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json",
+    "current_install_evidence": "docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_4246ac13.json",
     "current_live_browser_canary": "docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json"
   },
   "runtime": {
@@ -299,12 +299,12 @@
     "UNEXPECTED_PRODUCTION_MUTATION",
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
-  "candidate_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
-  "evidence_commit": "bf9e733db3adbc0695e1c2af404215c9612cfed",
+  "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+  "evidence_commit": "pending-document-commit",
   "current_evidence": {
-    "runtime_code_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
-    "evidence_record_commit": "bf9e733db3adbc0695e1c2af404215c9612cfed",
-    "manifest_sha256": "b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473",
+    "runtime_code_candidate": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "evidence_record_commit": "pending-document-commit",
+    "manifest_sha256": "6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6",
     "test_verified": true,
     "live_verified": false,
     "accepted": false,

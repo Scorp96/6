@@ -70,15 +70,16 @@ browser reconcile and Send remain separate gates.
 
 ## Current evidence boundary
 
-- `TEST_VERIFIED`: V4 suite 109/109 and GUI bridge suite 467/467 on the bundled
-  Windows Python runtime; task-context migration/prompt propagation, bounded CSV
-  output, two Worker dispatch, independent reconcile, and owned-tab isolation are
-  included. The installed lab and short recovery soak also passed.
-- `LIVE_VERIFIED`: current candidate `31622f1c` is `BLOCKED`, not PASS. A fresh
-  canary durably prepared both intents, but ChatGPT returned a `请求过于频繁`
-  rate-limit dialog at the root URL, so no `/c/<id>` was observed. The failure
-  receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`;
-  `retry_count` is zero and no blind retry occurred.
+- `TEST_VERIFIED`: V4 suite 111/111 and GUI bridge suite 467/467 on the bundled
+  Windows Python runtime; task-context migration/prompt propagation, distinct
+  CSV validate/aggregate/report operations, two Worker dispatch, independent
+  reconcile, and owned-tab isolation are included. The installed lab and short
+  recovery soak also passed.
+- `LIVE_VERIFIED`: current candidate `4246ac13` has no current-candidate live
+  pass. The immediately preceding fresh candidate attempt hit the ChatGPT
+  `请求过于频繁` rate-limit dialog at the root URL; its fail-closed receipt is
+  `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`. No blind retry
+  occurred.
 - `ACCEPTED`: not reached. A current-candidate browser pass, real repository
   workload through live Workers, restart recovery, production registration and
   long-duration unattended evidence are still required.

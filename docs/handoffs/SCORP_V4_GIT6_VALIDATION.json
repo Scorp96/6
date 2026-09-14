@@ -3,9 +3,9 @@
   "source_repository": "Scorp96/666 (historical source)",
   "target_repository": "Scorp96/6",
   "target_branch": "main",
-  "code_candidate_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
-  "validated_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
-  "evidence_record_commit": "bf9e733db3adbc0695e1c2af404215c9612cfed",
+  "code_candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+  "validated_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+  "evidence_record_commit": "pending-document-commit",
   "validation_scope": "current-code-candidate-plus-isolated-lab-plus-fresh-real-browser-canary",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -37,8 +37,8 @@
       "status": "TEST_VERIFIED",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 109,
-      "observed": "109 tests passed, including SQLite task-context migration/recovery, Worker prompt propagation, bounded CSV output, transaction/fencing, dynamic two-Worker dispatch, owned-tab isolation and acceptance gates"
+      "tests_run": 111,
+      "observed": "111 tests passed, including SQLite task-context migration/recovery, Worker prompt propagation, distinct CSV validate/aggregate/report operations, bounded CSV output, transaction/fencing, dynamic two-Worker dispatch, owned-tab isolation and acceptance gates"
     },
     {
       "id": "bridge_full_regression",
@@ -58,44 +58,44 @@
     {
       "id": "candidate_manifest_and_install",
       "status": "TEST_VERIFIED",
-      "command": "install_manifest.py against code candidate 31622f1c3c358540146d95e1cf769cc09601610c",
+      "command": "install_manifest.py against code candidate 4246ac13f36e86d67c902228b8280a4840d47963",
       "exit_code": 0,
-      "observed": "41-file candidate manifest plus three current regression files and isolated install receipt matched; protected-root hash was unchanged before and after install",
-      "source_tree": "C:\\ScorpAgent\\v4-source-31622f1c",
-      "lab_root": "C:\\ScorpAgent\\v4-core-lab-31622f1c",
-      "manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json",
-      "manifest_sha256": "b66655f5c95a188bd508754d321d17261b5fb1588ec98c004d4a222a3beff473"
+      "observed": "41-file candidate manifest and isolated install receipt matched; protected-root hash was unchanged before and after install",
+      "source_tree": "C:\\ScorpAgent\\v4-source-4246ac13",
+      "lab_root": "C:\\ScorpAgent\\v4-core-lab-4246ac13",
+      "manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json",
+      "manifest_sha256": "6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6"
     },
     {
       "id": "short_recovery_soak",
       "status": "TEST_VERIFIED",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-31622f1c --duration-seconds 5 --output C:\\ScorpAgent\\v4-soak-31622f1c.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-4246ac13 --duration-seconds 5 --output C:\\ScorpAgent\\v4-soak-4246ac13.json",
       "exit_code": 0,
-      "observed": "5.015618 seconds; 22 cycles; 66 verified tasks; peak concurrency 2; 64 slot reuses; 2 scheduler recoveries; 0 duplicate submits; 0 errors",
-      "evidence": "docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_31622f1c.json",
+      "observed": "5.004342 seconds; 21 cycles; 63 verified tasks; peak concurrency 2; 61 slot reuses; 2 scheduler recoveries; 0 duplicate submits; 0 errors",
+      "evidence": "docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_4246ac13.json",
       "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
       "long_duration_stability_proven": false
     },
     {
       "id": "real_browser_two_worker_canary",
-      "status": "BLOCKED",
+      "status": "BLOCKED_EXTERNAL_PRECONDITION",
       "command": "v4_live_two_worker_canary.py --send-canary (fresh Windows interactive session and authenticated ChatGPT Chrome)",
-      "exit_code": 2,
-      "observed": "Both Worker intents were durably prepared but ended BLOCKED_AMBIGUOUS with CONVERSATION_URL_MISSING; read-only Chrome evidence showed root URL and a ChatGPT 请求过于频繁 rate-limit dialog; retry_count=0",
+      "exit_code": null,
+      "observed": "Not rerun for current candidate because the immediately preceding fresh candidate attempt ended BLOCKED_AMBIGUOUS under the active ChatGPT 请求过于频繁 rate-limit dialog; blind retry is forbidden until read-only evidence shows the precondition cleared",
       "evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json",
       "receipt_sha256": "886C2AE4959DA30A0C289AD64A2FB0CFEC6287803D7D73234B4FF807791A9557",
       "limitations": [
-        "No blind retry was performed",
-        "Current candidate has no new LIVE_VERIFIED browser pass",
-        "The prior 0fe4464 fixed-marker pass remains historical evidence only"
+        "The referenced failure was bound to prior candidate 31622f1c",
+        "Current candidate has no LIVE_VERIFIED browser pass",
+        "No retry was performed"
       ]
     },
     {
       "id": "real_code_workload_local_lab",
       "status": "TEST_VERIFIED",
-      "command": "python -B -m master_a_dynamic_v4.csv_workload.cli C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-orders.csv --output C:\\ScorpAgent\\v4-core-lab-31622f1c\\live-report.json",
+      "command": "python -B -m master_a_dynamic_v4.csv_workload.cli C:\\ScorpAgent\\v4-core-lab-4246ac13\\live-orders.csv --operation report --output C:\\ScorpAgent\\v4-core-lab-4246ac13\\live-report.json",
       "exit_code": 0,
-      "observed": "Installed isolated lab produced deterministic JSON with alpha=3.50, beta=0.50, row_count=3, total=4.00",
+      "observed": "Installed isolated lab produced validate, aggregate and report outputs: alpha=3.50, beta=0.50, row_count=3, total=4.00",
       "artifact_sha256": "f86a3aaaae25cce30ea46e28aa126182bb8717ae84db55f76585773403d53ecf",
       "scope": "local CLI execution only; not a browser Worker run"
     }
@@ -121,5 +121,13 @@
     "candidate_code_commit": "0fe44642575332c9460e6ee9f2182de3671fa6dd",
     "evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json",
     "status": "LIVE_VERIFIED_FOR_PRIOR_CANDIDATE_ONLY"
+  },
+  "current_candidate_live_gate": {
+    "candidate_code_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "status": "BLOCKED_EXTERNAL_PRECONDITION",
+    "last_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
+    "last_failure": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json",
+    "retry_count_after_ambiguity": 0,
+    "rule": "Do not retry until read-only browser evidence shows the rate-limit blocker cleared."
   }
 }

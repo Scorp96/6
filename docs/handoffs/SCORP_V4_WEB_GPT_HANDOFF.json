@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
+  "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
   "evidence_binding": {
-    "validated_commit": "31622f1c3c358540146d95e1cf769cc09601610c",
+    "validated_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_31622f1c.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_31622f1c.json",
-    "binding_note": "This handoff describes the 31622f1c code candidate; runtime startup now requires exact candidate binding, Chrome Use lifecycle hygiene is tested, and current candidate canary is blocked by the ChatGPT rate limit and recorded in SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json; the prior pass is historical and production acceptance remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_4246ac13.json",
+    "binding_note": "This handoff describes the 4246ac13 code candidate; runtime startup requires exact candidate binding, and the current browser gate is blocked by the prior ChatGPT rate-limit evidence in SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json; production acceptance remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -60,7 +60,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "current_candidate_live_canary_blocked_by_rate_limit; real_repository_workload_over_browser_not_run; production_cutover_not_authorized"
+      "current_candidate_evidence": "current_candidate_live_gate_blocked_by_prior_rate_limit; real_repository_workload_over_browser_not_run; production_cutover_not_authorized"
     }
   },
   "handoff_sequence": [
@@ -115,4 +115,3 @@
   ],
   "evidence_rule": "Every execution claim must name candidate_commit, command_or_action, observed_state_or_exit_code, raw_output_reference, and artifact hash."
 }
-
