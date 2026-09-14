@@ -60,6 +60,7 @@
     "Ordinary web GPT does not receive local Windows control merely by reading this repository.",
     "The browser adapter requires an explicitly configured, already-authenticated Windows MCP or Chrome Use driver.",
     "The candidate is delivered to GitHub main; installing it into the user's production scheduled task remains a separate authorized step.",
-    "A real two-Worker browser run used distinct worker-slot-1 and worker-slot-2 channels; both fixed-marker responses were captured after positive read-only reconciliation without duplicate sends."
+    "A real two-Worker browser run used distinct worker-slot-1 and worker-slot-2 channels; both fixed-marker responses were captured after positive read-only reconciliation without duplicate sends.",
+    "The two-worker live browser side effects were initiated before the final 2148dc3 commit; final code performed read-only reconciliation and has dedicated transient-URL regression tests, so the live record is not an immutable release-signature proof."
   ]
 }

@@ -234,7 +234,10 @@ conversation URLs and both fixed-marker responses were captured. The run used
 harmless prompts only. Its transient URL observations were reconciled from
 positive read-only browser evidence without resubmitting; the record therefore
 proves real two-channel submission and recovery, not repository code work or a
-production unattended run.
+production unattended run. The browser side effects began before the final
+`2148dc3` commit, so the record is operational evidence with partial commit
+binding; the final candidate's transient-URL behavior is covered by regression
+tests and was used for the read-only reconciliation.
 
 ## Production boundary
 

@@ -38,5 +38,7 @@
     "The first and second driver runs encountered transient URL identity observations; durable intents stayed non-complete and were reconciled from positive read-only browser evidence without resubmission.",
     "The corrected driver now rejects WEB placeholders and polls for canonical /c/<id>; unit regression covers both behaviors.",
     "This proves two real browser channels and response capture after recovery, not production cutover or unattended soak."
-  ]
+  ],
+  "runtime_code_binding": "PARTIAL_SUBMISSION_PRE_FINAL_COMMIT; FINAL_READ_ONLY_RECONCILIATION_ON_CANDIDATE",
+  "final_candidate_reconciliation": "PASS_READ_ONLY"
 }
