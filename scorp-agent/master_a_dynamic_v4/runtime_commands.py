@@ -291,10 +291,18 @@ class RuntimeCommandService:
                 item["kind"] = "action_intent"
                 raw_payload = json.loads(str(item.pop("payload_json")))
                 item["payload"] = raw_payload
+                nested_assignment = raw_payload.get("worker_assignment")
+                nested_assignment_id = (
+                    nested_assignment.get("assignment_id")
+                    if isinstance(nested_assignment, Mapping)
+                    else None
+                )
+                item["assignment_id"] = raw_payload.get("assignment_id") or nested_assignment_id
                 if not matches(item, timestamp_key="updated_at"):
                     continue
-                if assignment_filter and str(raw_payload.get("assignment_id") or "") != assignment_filter:
-                    continue
+                if assignment_filter:
+                    if str(item.get("assignment_id") or "") != assignment_filter:
+                        continue
                 if intent_filter and item["intent_id"] != intent_filter:
                     continue
                 items.append(item)

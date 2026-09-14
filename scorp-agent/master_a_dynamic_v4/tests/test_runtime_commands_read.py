@@ -79,6 +79,29 @@ class RuntimeReadCommandTests(unittest.TestCase):
         self.assertEqual("OK", selected["status"])
         self.assertEqual(["receipt-e1"], [item["receipt_id"] for item in selected["result"]["items"]])
 
+    def test_evidence_query_assignment_filter_matches_nested_worker_intent(self):
+        self.store.prepare_intent(
+            "p1",
+            "worker-intent-a1",
+            actor_id="worker-1",
+            channel="worker/worker-slot-1",
+            action_kind="CHATGPT_WORKER_SUBMIT",
+            payload={
+                "prompt": "run task",
+                "worker_assignment": {"assignment_id": "assignment-a1"},
+            },
+        )
+
+        selected = self.service.execute(
+            self.request("evidence.query", {"assignment_id": "assignment-a1", "limit": 10})
+        )
+
+        self.assertEqual("OK", selected["status"])
+        self.assertEqual(
+            ["worker-intent-a1"],
+            [item["intent_id"] for item in selected["result"]["items"]],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
