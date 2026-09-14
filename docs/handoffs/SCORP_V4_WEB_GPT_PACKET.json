@@ -8,13 +8,26 @@
   },
   "blockers": [],
   "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+  "current_live_gate": {
+    "candidate_code_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "last_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
+    "last_failure": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json",
+    "last_send_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
+    "read_only_preflight_candidate": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json",
+    "read_only_preflight_observed_at": "2026-09-14T15:46:36.8299717Z",
+    "read_only_preflight_status": "BLOCKED_EXTERNAL_PRECONDITION",
+    "retry_count_after_ambiguity": 0,
+    "rule": "Do not retry until read-only browser evidence shows the rate-limit blocker cleared.",
+    "status": "BLOCKED_EXTERNAL_PRECONDITION"
+  },
   "evidence_binding": {
     "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json",
     "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
     "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-14T15:46:00.868508Z",
+  "generated_at": "2026-09-14T15:50:15.991371Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
     "allowed_root": "C:\\ScorpAgent\\v4-packet-preflight-4246ac13",
@@ -53,7 +66,7 @@
     },
     "database_path": "C:\\ScorpAgent\\v4-packet-preflight-4246ac13\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-14T15:46:00.868452Z",
+    "generated_at": "2026-09-14T15:50:15.991319Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",

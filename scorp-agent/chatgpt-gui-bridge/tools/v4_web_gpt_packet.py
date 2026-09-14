@@ -103,6 +103,9 @@ def build_packet(
     )
     blockers.extend(preflight.get("blockers", []))
     status = "READY" if not blockers else "BLOCKED"
+    current_live_gate = validation.get("current_candidate_live_gate", {})
+    if not isinstance(current_live_gate, dict):
+        current_live_gate = {}
     return {
         "format": FORMAT,
         "generated_at": _now(),
@@ -115,6 +118,10 @@ def build_packet(
             "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
             "candidate_manifest": handoff.get("evidence_binding", {}).get("candidate_manifest"),
         },
+        # Keep the transient browser gate in the single-file packet so an
+        # ordinary web GPT does not mistake a ready-to-upload handoff for a
+        # live-browser acceptance result.
+        "current_live_gate": current_live_gate,
         "preflight": preflight,
         "blockers": blockers,
         "next_action": (
