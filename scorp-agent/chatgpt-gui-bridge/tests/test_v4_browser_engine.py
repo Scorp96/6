@@ -72,6 +72,20 @@ class V4BrowserEngineTests(unittest.TestCase):
         self.assertEqual("RESPONSE_CAPTURED", reconciled["status"])
         self.assertEqual(["https://chatgpt.com/c/engine-test"], driver.reconciles)
 
+    def test_reconcile_mismatched_conversation_is_ambiguous(self):
+        driver = FakeDriver("https://chatgpt.com/c/other-conversation\nSCORP_RESULT")
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=lambda snapshot, intent_id: {"kind": "HANDOFF"},
+        )
+        result = engine.reconcile({
+            **self.intent(),
+            "conversation_url": "https://chatgpt.com/c/engine-test",
+        })
+        self.assertEqual("AMBIGUOUS", result["status"])
+        self.assertEqual("CONVERSATION_URL_MISMATCH", result["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

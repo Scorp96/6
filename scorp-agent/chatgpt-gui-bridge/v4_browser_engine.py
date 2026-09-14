@@ -58,7 +58,10 @@ def build_v4_browser_engine(
         )
         snapshot = str(result or "")
         url = extract_conversation_url(snapshot)
-        parsed = response_parser(snapshot, request_id) if response_parser else None
+        if conversation_url and url and url != conversation_url:
+            parsed = None
+        else:
+            parsed = response_parser(snapshot, request_id) if response_parser else None
         response = dict(parsed) if isinstance(parsed, Mapping) else {}
         return response, snapshot, url
 
@@ -71,10 +74,17 @@ def build_v4_browser_engine(
         )
         text = str(snapshot or "")
         intent_id = str(intent.get("intent_id") or "")
+        observed_url = extract_conversation_url(text)
+        if observed_url and observed_url != url:
+            return {
+                "status": "AMBIGUOUS",
+                "reason": "CONVERSATION_URL_MISMATCH",
+                "conversation_url": observed_url,
+            }
         parsed = response_parser(text, intent_id) if response_parser else None
         if not isinstance(parsed, Mapping) or not parsed:
             return {"status": "AMBIGUOUS", "reason": "STRUCTURED_RESPONSE_NOT_CAPTURED"}
-        observed_url = extract_conversation_url(text) or url
+        observed_url = observed_url or url
         return {
             "status": "RESPONSE_CAPTURED",
             "conversation_url": observed_url,
