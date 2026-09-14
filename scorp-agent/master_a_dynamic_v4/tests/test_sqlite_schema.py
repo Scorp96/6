@@ -70,6 +70,24 @@ class SqliteSchemaTests(unittest.TestCase):
                 self.assertEqual("delete", second["journal_mode"])
                 self.assertEqual(5000, second["busy_timeout"])
 
+    def test_schema_v1_database_is_migrated_to_v2_for_daemon_leases(self):
+        StateStore, _ = self.load_api()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            db = root / "scorp-v4.sqlite3"
+            StateStore(db, allowed_roots=[root]).close()
+            conn = sqlite3.connect(db)
+            try:
+                conn.execute("UPDATE schema_migrations SET version=1")
+                conn.commit()
+            finally:
+                conn.close()
+            with StateStore(db, allowed_roots=[root]) as migrated:
+                with migrated._connection() as conn:
+                    versions = [row[0] for row in conn.execute("SELECT version FROM schema_migrations ORDER BY version")]
+                self.assertEqual([1, 2], versions)
+                self.assertIn("daemon_leases", migrated.table_names())
+
     def test_unsupported_schema_version_fails_closed(self):
         StateStore, StoreInvariantError = self.load_api()
         with tempfile.TemporaryDirectory() as td:

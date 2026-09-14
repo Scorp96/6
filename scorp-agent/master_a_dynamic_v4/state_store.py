@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class StoreInvariantError(RuntimeError):
@@ -115,7 +115,23 @@ class StateStore:
                     raise
                 rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
             versions = [int(row[0]) for row in rows]
-            if versions != [SCHEMA_VERSION]:
+            # Version 2 adds the daemon lease table.  The DDL above is
+            # idempotent, so recording the migration is sufficient for an
+            # existing V1 database and preserves the migration history.
+            if versions == [1] and SCHEMA_VERSION == 2:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (2, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = [1, 2]
+            valid_versions = {tuple(range(1, SCHEMA_VERSION + 1)), (SCHEMA_VERSION,)}
+            if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")
 
     def connection_settings(self) -> dict[str, Any]:
