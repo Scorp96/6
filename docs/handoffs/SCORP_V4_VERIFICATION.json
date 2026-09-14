@@ -1,6 +1,10 @@
 {
   "format": "scorp-v4-verification/1",
-  "phase": "FINAL_EVIDENCE_PENDING_REVIEW",
+  "phase": "HISTORICAL_SNAPSHOT_NOT_CURRENT",
+  "status": "HISTORICAL_NOT_CURRENT",
+  "superseded_by": "SCORP_V4_GIT6_VALIDATION.json",
+  "current_spec": "SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
+  "current_candidate_repository": "Scorp96/6",
   "observed_commit": "682005bb1edab6149517b2fa7398fd63dbda945f",
   "commands": [
     {

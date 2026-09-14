@@ -1,6 +1,12 @@
-# SCORP V4 verification record
+# SCORP V4 verification record — HISTORICAL SNAPSHOT
 
-## Current boundary
+> **Not current Git6 evidence.** This file records an older candidate and is
+> retained for provenance only. Do not use its real-browser, AC07, or AC08
+> `PASS` values for the current repository. The current source of truth is
+> [`SCORP_V4_GIT6_VALIDATION.json`](SCORP_V4_GIT6_VALIDATION.json), together
+> with [`SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml`](SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml).
+
+## Historical boundary
 
 Candidate `682005bb1edab6149517b2fa7398fd63dbda945f` passed the frozen-code
 regression, guarded named-lab installation, real browser/login gate, and the revised

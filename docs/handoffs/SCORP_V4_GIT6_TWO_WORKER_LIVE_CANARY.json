@@ -1,5 +1,7 @@
 {
   "format": "scorp-v4-two-worker-live-canary/1",
+  "status": "HISTORICAL_NOT_CURRENT",
+  "superseded_by": "SCORP_V4_GIT6_VALIDATION.json",
   "repository": "Scorp96/6",
   "candidate_code_commit": "2148dc3040e2e30fd049196534111bea6c0400ca",
   "observed_at_utc": "2026-09-14T09:13:39.805696Z",

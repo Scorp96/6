@@ -1,4 +1,11 @@
-# SCORP V4 Master A + Dynamic Workers — 最终交接
+# SCORP V4 Master A + Dynamic Workers — 历史交接快照
+
+> **状态：HISTORICAL_NOT_CURRENT。** 本文件保留旧候选的设计与证据，不能
+> 作为 `Scorp96/6` 当前版本的验收报告。当前交接入口是
+> [`GPT_START_HERE.md`](../../GPT_START_HERE.md)，当前机器可读验收是
+> [`SCORP_V4_GIT6_VALIDATION.json`](SCORP_V4_GIT6_VALIDATION.json)，规范源是
+> [`SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml`](SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml)。
+> 本文件中的旧 AC07/AC08 浏览器 PASS 只属于旧候选，当前版本仍按现行记录单独判定。
 
 日期：2026-09-14（Asia/Shanghai）
 仓库：`Scorp96/666`

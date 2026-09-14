@@ -1,5 +1,7 @@
 {
   "format": "scorp-v4-browser-canary/1",
+  "status": "HISTORICAL_NOT_CURRENT",
+  "superseded_by": "SCORP_V4_GIT6_VALIDATION.json",
   "repository": "Scorp96/6",
   "candidate_code_commit": "d11f773dcd636d7bf58b7f492fe670eae6d02b27",
   "observed_at_utc": "2026-09-14T08:40:34.9918307Z",
