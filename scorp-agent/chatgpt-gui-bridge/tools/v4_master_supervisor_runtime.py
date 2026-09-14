@@ -36,6 +36,7 @@ from master_a_dynamic_v4.master_supervisor import (  # noqa: E402
     SupervisorLoopResult,
 )
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
+from v4_auth import classify_chatgpt_snapshot  # noqa: E402
 
 
 DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
@@ -143,12 +144,7 @@ def _auth_probe(cli: Any, project_id: str):
         except Exception as exc:
             return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
         text = json.dumps(page, ensure_ascii=False)
-        lowered = text.casefold()
-        if any(token in lowered for token in ("登录", "log in", "sign up", "captcha", "验证码")):
-            return {"status": "AUTHENTICATION_REQUIRED", "channel": channel}
-        if "plus" not in lowered and "准备好了" not in text and "ready" not in lowered:
-            return {"status": "AUTH_PROBE_UNCERTAIN", "channel": channel}
-        return {"status": "AUTHENTICATED", "channel": channel}
+        return classify_chatgpt_snapshot(text, channel)
 
     return probe
 
