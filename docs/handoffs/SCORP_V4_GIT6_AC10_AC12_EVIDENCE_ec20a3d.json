@@ -50,7 +50,8 @@
     "submit_attempts": 35,
     "task_cycles": 35,
     "tasks_verified": 105,
-    "throughput_tasks_per_second": 10.334093161476195
+    "throughput_tasks_per_second": 10.334093161476195,
+    "candidate_commit": "ec20a3d360e1b2f1eb34a7f5a36c610b5a3345b2"
   },
   "supervisor_runtime_receipt": {
     "format": "scorp-v4-supervisor-runtime-evidence/1",
@@ -136,7 +137,8 @@
       "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py": true,
       "scorp-agent/master_a_dynamic_v4": true,
       "scripts/run-candidate-validation.ps1": true
-    }
+    },
+    "candidate_commit": "ec20a3d360e1b2f1eb34a7f5a36c610b5a3345b2"
   },
   "production_mutated": false,
   "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
