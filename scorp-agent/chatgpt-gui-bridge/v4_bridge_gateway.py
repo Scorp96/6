@@ -14,6 +14,7 @@ from typing import Any
 from master_a_dynamic_v4.browser_adapter import BrowserAdapter
 from master_a_dynamic_v4.acceptance import AcceptanceDecision, AcceptanceValidator
 from master_a_dynamic_v4.models import CommitResult
+from master_a_dynamic_v4.master_watchdog import MasterWatchdog
 from master_a_dynamic_v4.path_policy import PathPolicy
 from master_a_dynamic_v4.recovery import recover_pending_intents
 from master_a_dynamic_v4.scheduler import Scheduler, SchedulerError
@@ -56,6 +57,7 @@ class V4BridgeGateway:
         engine: Any,
         *,
         protected_roots: Sequence[str | pathlib.Path] = (),
+        master_ttl_seconds: int = 1500,
     ):
         self.store = StateStore(database_path, allowed_roots=allowed_roots)
         self.project_id = str(project_id or "").strip()
@@ -69,6 +71,9 @@ class V4BridgeGateway:
             max_workers=2,
         )
         self.adapter = BrowserAdapter(self.store, engine)
+        self.master_watchdog = MasterWatchdog(
+            self.store, self.project_id, ttl_seconds=int(master_ttl_seconds)
+        )
 
     def close(self) -> None:
         self.store.close()
@@ -92,6 +97,31 @@ class V4BridgeGateway:
         return self.store.advance_master_epoch(
             self.project_id, expected_epoch=int(expected_epoch)
         )
+
+    def start_master_session(self, session_id: str, *, now=None) -> dict[str, Any]:
+        """Start or resume one physical Master A session under a durable lease."""
+        return self.master_watchdog.start(session_id, now=now)
+
+    def heartbeat_master_session(
+        self, session_id: str, *, master_epoch: int, now=None
+    ) -> dict[str, Any]:
+        return self.master_watchdog.heartbeat(
+            session_id, master_epoch=int(master_epoch), now=now
+        )
+
+    def end_master_session(
+        self, session_id: str, *, master_epoch: int, reason: str, now=None
+    ) -> dict[str, Any]:
+        return self.master_watchdog.end(
+            session_id,
+            master_epoch=int(master_epoch),
+            reason=reason,
+            now=now,
+        )
+
+    def watchdog_once(self, *, now=None) -> dict[str, Any]:
+        """Return the fail-closed Master A liveness decision."""
+        return self.master_watchdog.run_once(now=now)
 
     def commit_master_proposal(
         self,
@@ -199,4 +229,5 @@ class V4BridgeGateway:
             "pending_intents": len(self.store.pending_intents()),
             "queue_authority": "sqlite",
             "legacy_json_role": "import_or_read_only_compatibility",
+            "master_session_authority": "sqlite.master_sessions",
         }

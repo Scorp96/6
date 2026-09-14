@@ -129,6 +129,31 @@ class V4GatewayTests(unittest.TestCase):
             finally:
                 gateway.close()
 
+    def test_master_session_watchdog_is_exposed_through_gateway(self):
+        import datetime as dt
+
+        start = dt.datetime(2026, 9, 14, tzinfo=dt.timezone.utc)
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            gateway = V4BridgeGateway(
+                root / 'state.sqlite3', 'project-session', [worktree], FakeEngine(), master_ttl_seconds=30
+            )
+            try:
+                gateway.ensure_contract({'objective': 'session'}, {'required': ['AC-SESSION']})
+                started = gateway.start_master_session('master-1', now=start)
+                self.assertEqual('ACTIVE', started['state'])
+                self.assertEqual('MASTER_ACTIVE', gateway.watchdog_once(now=start + dt.timedelta(seconds=1))['status'])
+                gateway.heartbeat_master_session(
+                    'master-1', master_epoch=started['master_epoch'], now=start + dt.timedelta(seconds=2)
+                )
+                expired = gateway.watchdog_once(now=start + dt.timedelta(seconds=40))
+                self.assertEqual('RESUME_REQUIRED', expired['status'])
+                replacement = gateway.start_master_session('master-2', now=start + dt.timedelta(seconds=41))
+                self.assertEqual(started['master_epoch'] + 1, replacement['master_epoch'])
+            finally:
+                gateway.close()
+
     def test_completion_check_is_read_only_and_blocks_missing_evidence(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)

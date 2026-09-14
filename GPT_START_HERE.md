@@ -152,11 +152,15 @@ merged into the newer task graph.
 The logical Master A must use the gateway facade instead of opening SQLite and
 editing tables itself. After `ensure_contract()` succeeds, the handoff order is:
 
-1. Read `describe()` and call `acquire_master_epoch(expected_epoch=...)`.
-2. Submit a validated proposal with `commit_master_proposal()` using the
+1. Call `start_master_session(session_id)` and retain its `master_epoch`.
+2. Send periodic `heartbeat_master_session()` calls and let a separate monitor
+   call `watchdog_once()`; `RESUME_REQUIRED` means the browser adapter must
+   rebind a new physical session before work resumes.
+3. Read `describe()` and submit a validated proposal with
+   `commit_master_proposal()` using the
    observed `state_version` and `master_epoch`.
-3. For a task graph, call `enqueue_graph()` and then `claim_workers(limit=2)`.
-4. Re-read state after each verified Worker result and submit the next proposal
+4. For a task graph, call `enqueue_graph()` and then `claim_workers(limit=2)`.
+5. Re-read state after each verified Worker result and submit the next proposal
    or a `REPLAN` proposal. A stale version or epoch returns a conflict/fenced
    result and must trigger a fresh read, never a blind retry.
 

@@ -33,6 +33,12 @@ advance `master_epoch` for a replacement, and emit an idempotent
 it does not claim that a new browser window was opened or that authentication was
 recovered.
 
+The bridge facade exposes this lifecycle through `start_master_session()`,
+`heartbeat_master_session()`, `watchdog_once()`, and
+`end_master_session()`. `describe()` remains read-only; a monitor must call
+`watchdog_once()` explicitly when it wants to advance an expired lease to a
+resume decision.
+
 The current candidate also validates structured, version-bound Worker results and
 the real CSV workload fixture: T1 and T2 run in parallel, T3 waits for both, and
 the independent completion validator returns `PASS`. Broker recovery and the
