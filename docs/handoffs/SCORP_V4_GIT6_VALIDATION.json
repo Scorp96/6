@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
+  "validated_commit": "ec20a3d360e1b2f1eb34a7f5a36c610b5a3345b2",
   "validation_scope": "repository-candidate-plus-isolated-lab",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -19,8 +19,8 @@
       "id": "bridge_full_regression",
       "command": "python -B -m unittest discover -s tests -p test_*.py (cwd=scorp-agent/chatgpt-gui-bridge)",
       "exit_code": 0,
-      "tests_run": 425,
-      "observed": "425 tests passed, including the operator-gated Master A runtime parser/send gate, the real V4 gateway write-worker loop, the two-Worker dependency loop, and the executable Master supervisor runtime"
+      "tests_run": 427,
+      "observed": "427 tests passed, including the operator-gated Master A runtime parser/send gate, the real V4 gateway write-worker loop, the two-Worker dependency loop, the executable Master supervisor runtime, and the read-only local-interface preflight"
     },
     {
       "id": "privileged_broker_pure_python",
@@ -50,21 +50,27 @@
     },
     {
       "id": "experimental_install_identity",
-      "command": "install-lab.ps1 against detached candidate c177c84",
+      "command": "install-lab.ps1 against detached candidate ec20a3d",
       "exit_code": 0,
-      "observed": "36-file manifest and install-lab.ps1 receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-c177c84; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_c177c84.json"
+      "observed": "37-file manifest and install-lab.ps1 receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-ec20a3d; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_ec20a3d.json"
     },
     {
       "id": "short_recovery_soak",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-c177c84 --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-c177c84.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-ec20a3d --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-ec20a3d.json",
       "exit_code": 0,
-      "observed": "10.0083725 seconds actual; 49 cycles; 147 verified tasks; peak concurrency 2; 145 slot reuses; 2 scheduler recoveries; 49 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_c177c84.json"
+      "observed": "10.1605432 seconds actual; 35 cycles; 105 verified tasks; peak concurrency 2; 103 slot reuses; 2 scheduler recoveries; 35 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_ec20a3d.json"
     },
     {
       "id": "supervisor_runtime_probe",
-      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-c177c84\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-c177c84 --max-iterations 1",
+      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-ec20a3d\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-ec20a3d --max-iterations 1",
       "exit_code": 0,
-      "observed": "Installed 36-file candidate attached to an existing Master lease, renewed it once, included the attached epoch in its summary, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_c177c84.json"
+      "observed": "Installed 37-file candidate attached to an existing Master lease, renewed it once, included attached epoch in summary, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_ec20a3d.json"
+    },
+    {
+      "id": "local_interface_preflight",
+      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py --repo-root C:\\ScorpAgent\\_publish_git6 --database-path C:\\ScorpAgent\\v4-core-lab-ec20a3d\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-ec20a3d",
+      "exit_code": 0,
+      "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_ec20a3d.json"
     }
   ],
   "real_browser_canary": "HISTORICAL_PASS_NOT_BOUND_TO_VALIDATED_COMMIT; see docs/handoffs/SCORP_V4_GIT6_TWO_WORKER_LIVE_CANARY.json",
@@ -91,7 +97,7 @@
     "MasterSupervisor is an explicit local monitor seam: it renews the durable lease, acquires a new epoch after expiry, and requires an injected physical browser rebind callback; it does not open Chrome or claim authentication recovery.",
     "AC10 and AC12 are PASS only for the isolated candidate/lab evidence recorded in the current machine-readable receipts; the lab is not production and the soak browser engine is injected, not live ChatGPT.",
     "The current candidate also has a bounded supervisor runtime entrypoint: it attaches to an existing lease, journals decisions, and forbids browser sends; --rebind is read-only physical-session verification.",
-    "The current code candidate is c177c843df318b9a48e1bd12f8c15cefdc9c86bd; later Git commits contain documentation and evidence artifacts only.",
-    "The isolated lab contains the full 36-file core plus browser-monitor dependency manifest; install-lab.ps1 preserved protected-root hashes, and the supervisor probe attached an existing epoch without browser sends."
+    "The current code candidate is ec20a3d360e1b2f1eb34a7f5a36c610b5a3345b2; later Git commits contain documentation and evidence artifacts only.",
+    "The web-GPT handoff package and read-only preflight explicitly report that Git visibility does not grant direct local Windows control; local execution remains an operator or connector responsibility."
   ]
 }
