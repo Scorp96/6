@@ -15,6 +15,10 @@ The repository includes two generations of the system:
   can use Windows MCP or Chrome Use through a logged-in browser session.
 - `scorp-agent/master_a_dynamic_v4/` is the SQLite transaction core with one
   logical Master A and two dynamic Worker slots.
+- `scorp-agent/master_a_dynamic_v4/master_controller.py` is the model-agnostic
+  Master A control surface. It turns one structured GPT plan into durable graph
+  admission, bounded Worker dispatch, recovery, and an independent completion
+  decision.
 - `scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py` and `gui_engine.py`
   connect the V4 core to the existing asynchronous GUI transport.
 

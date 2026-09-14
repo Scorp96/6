@@ -34,7 +34,77 @@ class FakeEngine:
         return {'status': 'AMBIGUOUS', 'reason': 'NO_PENDING_REMOTE_PROOF'}
 
 
+class StructuredWorkerEngine(FakeEngine):
+    def submit(self, intent):
+        self.submits += 1
+        assignment = intent['payload']['worker_assignment']
+        result = {
+            'work_result_version': '1',
+            'project_id': intent['project_id'],
+            'worker_id': assignment['worker_id'],
+            'assignment_id': assignment['assignment_id'],
+            'task_id': assignment['task_id'],
+            'objective_sha256': assignment['objective_sha256'],
+            'base_state_version': assignment['base_state_version'],
+            'candidate_commit': 'a' * 40,
+            'status': 'COMPLETE',
+            'scope_completed': [assignment['task_id']],
+            'scope_not_completed': [],
+            'deliverables': [{'path': assignment['task_id'] + '.txt'}],
+            'evidence': [{'kind': 'structured'}],
+            'acceptance_coverage': ['AC-CONTROLLER'],
+            'facts': ['worker completed bounded assignment'],
+            'inferences': [],
+            'unknowns': [],
+            'contradictions': [],
+            'followup_proposals': [],
+        }
+        from master_a_dynamic_v4.work_result import result_content_sha256
+        result['result_sha256'] = result_content_sha256(result)
+        self.worker_intents.append(dict(intent))
+        return {
+            'status': 'RESPONSE_CAPTURED',
+            'conversation_url': 'https://chatgpt.com/c/v4-controller',
+            'remote_identity': 'turn-v4-controller',
+            'response': result,
+        }
+
+
 class V4GatewayTests(unittest.TestCase):
+    def test_master_controller_runs_real_gateway_two_worker_structured_loop(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            gateway = V4BridgeGateway(
+                root / 'state.sqlite3', 'project-controller', [worktree], StructuredWorkerEngine()
+            )
+            try:
+                controller = MasterAController(gateway, 'master-controller')
+                controller.start(
+                    {'objective': 'run two structured workers'},
+                    {'required': ['AC-CONTROLLER']},
+                )
+                controller.apply_plan({
+                    'project_id': 'project-controller',
+                    'master_identity': 'A',
+                    'tasks': [
+                        {'task_id': 'T1', 'objective_sha256': '1' * 64, 'resource_scope': [worktree / 'a.txt'], 'dependencies': [], 'acceptance_criteria_ids': ['AC-CONTROLLER']},
+                        {'task_id': 'T2', 'objective_sha256': '2' * 64, 'resource_scope': [worktree / 'b.txt'], 'dependencies': [], 'acceptance_criteria_ids': ['AC-CONTROLLER']},
+                    ],
+                })
+                step = controller.step(
+                    lambda claim: 'return WORK_RESULT/1 for ' + claim.task_id,
+                    lambda row: json.loads(row['response_json']),
+                )
+                self.assertEqual('DISPATCHED', step.status)
+                self.assertEqual(2, len(step.outcomes))
+                self.assertEqual({'T1', 'T2'}, {item['task_id'] for item in step.outcomes})
+                self.assertEqual({'ACCEPTED'}, {gateway.scheduler.get_task(task)['state'] for task in ('T1', 'T2')})
+            finally:
+                gateway.close()
+
     def test_queue_config_rejects_legacy_control_plane_by_default(self):
         with self.assertRaises(ValueError):
             QueueConfig.for_repo('Scorp96/scorp-control-plane')

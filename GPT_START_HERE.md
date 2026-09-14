@@ -147,6 +147,36 @@ requires non-empty evidence and acceptance coverage. If Master A advances the
 project state after a Worker is assigned, the old result is fenced rather than
 merged into the newer task graph.
 
+### Master A controller workflow
+
+For an ordinary GPT handoff, use `master_a_dynamic_v4.MasterAController` as the
+control surface instead of manually sequencing the lower-level gateway calls.
+The controller accepts a structured plan produced by GPT, but never accepts
+natural-language claims as authority. Its normal sequence is:
+
+```text
+start(root_contract, acceptance_contract)
+        -> apply_plan({project_id, master_identity: "A", tasks: [...]})
+        -> repeat step(prompt_factory, response_decoder)
+        -> watchdog_once() / heartbeat()
+        -> completion(candidate_commit, artifact_hashes)
+```
+
+`step()` first reloads active claims, then fills free capacity up to two Worker
+slots. It persists each assignment-bound browser intent, refuses to resubmit an
+intent in `MAY_HAVE_SUBMITTED`, `CONFIRMED_SUBMITTED`, or
+`BLOCKED_AMBIGUOUS`, and admits a response only when the decoder returns a
+version-bound `WORK_RESULT/1` that the scheduler verifies. The decoder is an
+injected boundary for the existing browser transport; it is not a model API and
+does not grant local shell permissions to a web GPT.
+
+The implementation is in
+`scorp-agent/master_a_dynamic_v4/master_controller.py`, with an actual
+`V4BridgeGateway` integration test in
+`scorp-agent/chatgpt-gui-bridge/tests/test_v4_bridge_gateway.py`. This proves
+the local two-Worker structured loop with an injected engine; the existing live
+canary remains the only real browser evidence and uses harmless fixed markers.
+
 ## Master A control surface
 
 The logical Master A must use the gateway facade instead of opening SQLite and

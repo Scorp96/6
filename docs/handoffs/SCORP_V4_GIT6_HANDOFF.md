@@ -57,6 +57,14 @@ the real CSV workload fixture: T1 and T2 run in parallel, T3 waits for both, and
 the independent completion validator returns `PASS`. Broker recovery and the
 bridge functional heartbeat are covered by the candidate validation script.
 
+The higher-level `MasterAController` now wraps this seam for an ordinary GPT:
+`start()` acquires the logical Master lease, `apply_plan()` validates and records
+the task DAG, `step()` fills at most two dynamic Worker slots and admits only
+verified `WORK_RESULT/1`, and `completion()` delegates to the independent gate.
+It is model-agnostic by design: GPT supplies structured plans and response
+decoding, while SQLite and the gateway remain the authority. The controller's
+integration test is offline and does not imply a production browser deployment.
+
 The reproducible runner is
 `scorp-agent/chatgpt-gui-bridge/tools/v4_live_two_worker_canary.py`. It has a
 fail-closed send gate: without `--send-canary` it performs no browser action.
