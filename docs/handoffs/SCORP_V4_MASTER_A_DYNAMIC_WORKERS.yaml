@@ -300,10 +300,10 @@
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
   "candidate_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
-  "evidence_commit": "58d33e53997013b01f9808569e7ba874c9b77e15",
+  "evidence_commit": "93d6ff0118372136b044ad8f9b192afbff94bf19",
   "current_evidence": {
     "runtime_code_candidate": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
-    "evidence_record_commit": "58d33e53997013b01f9808569e7ba874c9b77e15",
+    "evidence_record_commit": "93d6ff0118372136b044ad8f9b192afbff94bf19",
     "manifest_sha256": "ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389",
     "test_verified": true,
     "live_verified": false,
