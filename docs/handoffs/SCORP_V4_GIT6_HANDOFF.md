@@ -39,6 +39,12 @@ The bridge facade exposes this lifecycle through `start_master_session()`,
 `watchdog_once()` explicitly when it wants to advance an expired lease to a
 resume decision.
 
+For dynamic browser work, the facade also exposes `prepare_worker_intent()` and
+`submit_worker_intent()`. Each live claim gets a deterministic intent and a
+distinct `worker/worker-slot-*` channel. The injected browser driver may create
+one new conversation per channel; the returned response is still only a
+candidate until `WORK_RESULT/1` validation and independent acceptance succeed.
+
 The current candidate also validates structured, version-bound Worker results and
 the real CSV workload fixture: T1 and T2 run in parallel, T3 waits for both, and
 the independent completion validator returns `PASS`. Broker recovery and the

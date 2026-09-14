@@ -160,7 +160,13 @@ editing tables itself. After `ensure_contract()` succeeds, the handoff order is:
    `commit_master_proposal()` using the
    observed `state_version` and `master_epoch`.
 4. For a task graph, call `enqueue_graph()` and then `claim_workers(limit=2)`.
-5. Re-read state after each verified Worker result and submit the next proposal
+5. For each live claim, call `prepare_worker_intent()` or
+   `submit_worker_intent()`. This persists an assignment-bound prompt on a
+   distinct `worker/worker-slot-*` channel; an injected browser engine can use
+   the missing conversation URL to create a new Worker chat. The response must
+   still be validated as `WORK_RESULT/1` and admitted with
+   `record_structured_worker_result()`.
+6. Re-read state after each verified Worker result and submit the next proposal
    or a `REPLAN` proposal. A stale version or epoch returns a conflict/fenced
    result and must trigger a fresh read, never a blind retry.
 

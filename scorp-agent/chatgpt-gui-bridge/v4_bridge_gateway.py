@@ -17,8 +17,8 @@ from master_a_dynamic_v4.models import CommitResult
 from master_a_dynamic_v4.master_watchdog import MasterWatchdog
 from master_a_dynamic_v4.path_policy import PathPolicy
 from master_a_dynamic_v4.recovery import recover_pending_intents
-from master_a_dynamic_v4.scheduler import Scheduler, SchedulerError
-from master_a_dynamic_v4.state_store import StateStore
+from master_a_dynamic_v4.scheduler import AssignmentClaim, Scheduler, SchedulerError, WorkerFenceError
+from master_a_dynamic_v4.state_store import StateStore, utc_now
 
 
 DEFAULT_QUEUE_REPO = "Scorp96/666"
@@ -181,6 +181,86 @@ class V4BridgeGateway:
     def record_structured_worker_result(self, claim, *, payload: Mapping[str, Any], now=None) -> str:
         """Admit a version-bound WorkResult through the V4 scheduler."""
         return self.scheduler.record_work_result(claim, payload=payload, now=now)
+
+    def prepare_worker_intent(
+        self,
+        claim: AssignmentClaim,
+        prompt: str,
+        *,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Persist one assignment-bound prompt for a distinct Worker channel.
+
+        The intent is durable and idempotent. A real browser engine receives a
+        worker channel with no pre-bound URL, so it may create one physical
+        ChatGPT conversation for that assignment. The lease and epoch are
+        checked before the intent is prepared; a stale claim cannot open a new
+        browser side effect.
+        """
+        if not isinstance(claim, AssignmentClaim) or claim.project_id != self.project_id:
+            raise WorkerFenceError("ASSIGNMENT_CLAIM_INVALID")
+        text = str(prompt or "")
+        if not text:
+            raise ValueError("PROMPT_EMPTY")
+        with self.store._connection() as conn:
+            row = conn.execute(
+                """
+                SELECT a.*,l.state AS lease_state,l.expires_at,s.master_epoch AS current_epoch
+                FROM assignments a
+                JOIN leases l ON l.assignment_id=a.assignment_id
+                JOIN project_state s ON s.project_id=a.project_id
+                WHERE a.assignment_id=? AND a.project_id=?
+                """,
+                (claim.assignment_id, self.project_id),
+            ).fetchone()
+        if row is None:
+            raise WorkerFenceError("ASSIGNMENT_NOT_FOUND")
+        if (
+            str(row["lease_token"]) != str(claim.lease_token)
+            or str(row["lease_state"]) != "ACTIVE"
+            or str(row["state"]) != "ACTIVE"
+            or int(row["master_epoch"]) != int(claim.master_epoch)
+            or int(row["current_epoch"]) != int(claim.master_epoch)
+            or str(row["expires_at"]) <= utc_now()
+        ):
+            raise WorkerFenceError("WORKER_FENCED")
+        prompt_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        payload: dict[str, Any] = {
+            "prompt": text,
+            "prompt_sha256": prompt_sha256,
+            "worker_assignment": {
+                "assignment_id": claim.assignment_id,
+                "task_id": claim.task_id,
+                "worker_id": claim.worker_id,
+                "slot_id": claim.slot_id,
+                "master_epoch": claim.master_epoch,
+                "base_state_version": claim.base_state_version,
+                "objective_sha256": claim.objective_sha256,
+                "resource_scope": list(claim.resource_scope),
+                "access_mode": claim.access_mode,
+            },
+            "required_response": "WORK_RESULT/1",
+        }
+        if metadata:
+            payload["metadata"] = dict(metadata)
+        return self.store.prepare_intent(
+            self.project_id,
+            f"worker-intent-{claim.assignment_id}",
+            actor_id=claim.worker_id,
+            channel=f"worker/{claim.slot_id}",
+            action_kind="CHATGPT_WORKER_SUBMIT",
+            payload=payload,
+        )
+
+    def submit_worker_intent(
+        self,
+        claim: AssignmentClaim,
+        prompt: str,
+        *,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        intent = self.prepare_worker_intent(claim, prompt, metadata=metadata)
+        return self.submit_intent(str(intent["intent_id"]))
 
     def verify_worker_result(self, result_id: str, *, result_sha256: str, now=None) -> None:
         self.scheduler.verify_candidate(result_id, result_sha256=result_sha256, now=now)

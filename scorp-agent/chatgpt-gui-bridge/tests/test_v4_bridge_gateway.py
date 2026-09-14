@@ -18,10 +18,12 @@ from master_a_dynamic_v4.scheduler import SchedulerError
 class FakeEngine:
     def __init__(self):
         self.submits = 0
+        self.worker_intents = []
     def auth_state(self, channel):
         return {'status': 'AUTHENTICATED', 'channel': channel}
     def submit(self, intent):
         self.submits += 1
+        self.worker_intents.append(dict(intent))
         return {
             'status': 'RESPONSE_CAPTURED',
             'conversation_url': 'https://chatgpt.com/c/v4-gateway',
@@ -151,6 +153,30 @@ class V4GatewayTests(unittest.TestCase):
                 self.assertEqual('RESUME_REQUIRED', expired['status'])
                 replacement = gateway.start_master_session('master-2', now=start + dt.timedelta(seconds=41))
                 self.assertEqual(started['master_epoch'] + 1, replacement['master_epoch'])
+            finally:
+                gateway.close()
+
+    def test_two_claims_prepare_distinct_worker_browser_intents(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            engine = FakeEngine()
+            gateway = V4BridgeGateway(root / 'state.sqlite3', 'project-workers', [worktree], engine)
+            try:
+                gateway.ensure_contract({'objective': 'two workers'}, {'required': ['AC-WORKERS']})
+                gateway.enqueue_graph([
+                    {'task_id': 'T1', 'objective_sha256': '1' * 64, 'resource_scope': [worktree / 'a.txt'], 'dependencies': []},
+                    {'task_id': 'T2', 'objective_sha256': '2' * 64, 'resource_scope': [worktree / 'b.txt'], 'dependencies': []},
+                ])
+                claims = gateway.claim_workers(master_epoch=0, limit=2)
+                self.assertEqual(2, len(claims))
+                first = gateway.submit_worker_intent(claims[0], 'Complete T1 and return WORK_RESULT/1')
+                second = gateway.submit_worker_intent(claims[1], 'Complete T2 and return WORK_RESULT/1')
+                self.assertEqual('COMPLETED', gateway.store.get_outbox_for_intent(first['intent_id'])['state'])
+                self.assertEqual('COMPLETED', gateway.store.get_outbox_for_intent(second['intent_id'])['state'])
+                self.assertEqual(2, engine.submits)
+                self.assertEqual({'worker/worker-slot-1', 'worker/worker-slot-2'}, {item['channel'] for item in engine.worker_intents})
+                self.assertEqual(2, len({item['actor_id'] for item in engine.worker_intents}))
             finally:
                 gateway.close()
 
