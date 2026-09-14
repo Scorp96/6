@@ -104,6 +104,13 @@ The machine sequence is:
    uncertain browser result remains recoverable and cannot be blindly retried.
 9. After restart call `recover()` before creating a new browser submission.
 
+The repository includes a repeatable real-code closure fixture in
+`master_a_dynamic_v4/tests/test_real_code_acceptance.py`. It runs the CSV
+reader, Decimal aggregator, and stable JSON report as T1/T2/T3, proves that
+T1 and T2 use the two available Worker slots, waits for both before T3, and
+requires the independent acceptance validator to return `PASS`. This proves
+the local engineering loop; it does not prove a live browser submission.
+
 The V4 package does not allow a Worker to rewrite the root contract, increase
 capacity, bypass a lease, or declare final completion.
 
