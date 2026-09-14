@@ -57,14 +57,18 @@ class ChatGptGuiEngine:
         prompt = str(payload.get("prompt") or "")
         if not prompt:
             raise ValueError("GUI_PROMPT_MISSING")
-        result = _run_sync(
-            self.run_turn(
-                prompt,
-                str(intent["intent_id"]),
-                timeout_seconds=self.timeout_seconds,
-                conversation_url=intent.get("conversation_url"),
-            )
-        )
+        run_kwargs = {
+            "timeout_seconds": self.timeout_seconds,
+            "conversation_url": intent.get("conversation_url"),
+        }
+        try:
+            accepts_actor_kind = "actor_kind" in inspect.signature(self.run_turn).parameters
+        except (TypeError, ValueError):
+            accepts_actor_kind = False
+        if accepts_actor_kind:
+            identity = f"{intent.get('channel', '')} {intent.get('actor_id', '')}".lower()
+            run_kwargs["actor_kind"] = "WORKER" if "worker" in identity else "MASTER"
+        result = _run_sync(self.run_turn(prompt, str(intent["intent_id"]), **run_kwargs))
         if not isinstance(result, (tuple, list)) or len(result) != 3:
             return {"status": "SUBMITTED", "reason": "BROWSER_RESULT_NOT_COMPLETE"}
         response, snapshot, conversation_url = result

@@ -139,6 +139,13 @@ launcher. It still points at the old JSON relay and `Scorp96/scorp-control-plane
 do not use it as proof that the V4 SQLite authority is running. A separate
 migration is required before that launcher can be replaced.
 
+To inject an existing Windows MCP or Chrome Use actor driver into V4, use
+`v4_browser_engine.build_v4_browser_engine(driver, auth_probe=..., response_parser=...)`.
+The authentication probe is read-only. The response parser is required for a
+`RESPONSE_CAPTURED` result; without it, the adapter returns `SUBMITTED` with a
+conversation URL and preserves the snapshot for reconciliation. A page snapshot
+alone is never accepted as structured completion evidence.
+
 ## Browser canary procedure
 
 Only run a real browser canary after the user explicitly authorizes sending the
