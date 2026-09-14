@@ -314,6 +314,13 @@
       "RESTART_AND_CRASH_RECOVERY_OVER_LIVE_BROWSER_NOT_PROVEN",
       "PRODUCTION_CUTOVER_NOT_AUTHORIZED",
       "LONG_DURATION_STABILITY_NOT_PROVEN"
-    ]
+    ],
+    "live_read_only_preflight": {
+      "candidate_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+      "status": "BLOCKED_EXTERNAL_PRECONDITION",
+      "evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json",
+      "observed_at": "2026-09-14T15:46:36.8299717Z",
+      "send_attempted": false
+    }
   }
 }

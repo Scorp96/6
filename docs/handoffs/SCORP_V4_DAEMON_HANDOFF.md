@@ -78,8 +78,10 @@ browser reconcile and Send remain separate gates.
 - `LIVE_VERIFIED`: current candidate `4246ac13` has no current-candidate live
   pass. The immediately preceding fresh candidate attempt hit the ChatGPT
   `请求过于频繁` rate-limit dialog at the root URL; its fail-closed receipt is
-  `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`. No blind retry
-  occurred.
+  `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`. A later read-only
+  check is recorded in
+  `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json` and shows the
+  dialog is still present. No blind retry occurred.
 - `ACCEPTED`: not reached. A current-candidate browser pass, real repository
   workload through live Workers, restart recovery, production registration and
   long-duration unattended evidence are still required.

@@ -128,6 +128,11 @@
     "last_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
     "last_failure": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json",
     "retry_count_after_ambiguity": 0,
-    "rule": "Do not retry until read-only browser evidence shows the rate-limit blocker cleared."
+    "rule": "Do not retry until read-only browser evidence shows the rate-limit blocker cleared.",
+    "read_only_preflight_candidate": "4246ac13f36e86d67c902228b8280a4840d47963",
+    "read_only_preflight_status": "BLOCKED_EXTERNAL_PRECONDITION",
+    "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json",
+    "read_only_preflight_observed_at": "2026-09-14T15:46:36.8299717Z",
+    "last_send_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c"
   }
 }

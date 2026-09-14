@@ -447,8 +447,10 @@ The previous code candidate `0fe4464` has a historical fixed-marker live pass in
 candidate `31622f1c` then hit a fresh ChatGPT `请求过于频繁` rate-limit dialog;
 its fail-closed receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`.
 The current candidate `4246ac13` was not blindly retried after that ambiguous
-browser side effect. Current-candidate live verification is therefore blocked
-until read-only evidence shows the rate limit cleared.
+browser side effect. A fresh read-only check is recorded in
+`docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json` and still shows
+the `请求过于频繁` dialog. Current-candidate live verification remains blocked
+until a later read-only check shows the rate limit cleared.
 
 For a new live check, use
 `scorp-agent/chatgpt-gui-bridge/tools/v4_live_two_worker_canary.py`. It refuses
@@ -487,7 +489,7 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Clean source snapshot: `C:\ScorpAgent\v4-source-4246ac13`.
 - Isolated lab: `C:\ScorpAgent\v4-core-lab-4246ac13`.
 - Manifest: `docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_4246ac13.json` (internal SHA-256 `6c6041c410c884dcb3e7fa573110a0b6957267e6d5f8ce33213155a141b915e6`).
-- Current-candidate live gate: blocked by the prior rate-limit evidence; do not retry blindly.
+- Current-candidate live gate: blocked by the current read-only rate-limit evidence in `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json`; do not retry blindly.
 - Prior live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`.
 - Prior-candidate live pass: `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json` (historical only).
 - Current structured validation: `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`.

@@ -1,0 +1,26 @@
+{
+  "format": "scorp-v4-live-browser-readonly-preflight/1",
+  "candidate_code_commit": "4246ac13f36e86d67c902228b8280a4840d47963",
+  "observed_at": "2026-09-14T15:46:36.8299717Z",
+  "status": "BLOCKED_EXTERNAL_PRECONDITION",
+  "operator_action": "READ_ONLY_NO_SEND",
+  "browser": {
+    "family": "chrome",
+    "profile": "scorpion",
+    "tab_id": "2033136529",
+    "tab_group": "scorp-p0-turn-305206b835508041",
+    "url": "https://chatgpt.com/",
+    "title": "ChatGPT"
+  },
+  "observed_state": {
+    "dialog_heading": "请求过于频繁",
+    "dialog_text": "你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。请稍等几分钟后再重试。",
+    "conversation_url_created": false,
+    "response_captured": false,
+    "send_clicked": false,
+    "v4_intent_created": false
+  },
+  "evidence_scope": "Current read-only browser observation only; no V4 canary intent was created and no external browser side effect was attempted.",
+  "retry_count_after_ambiguity": 0,
+  "rule": "Do not send or retry until a fresh read-only observation proves that the rate-limit dialog is cleared."
+}

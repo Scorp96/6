@@ -34,9 +34,11 @@ injected fake engine driving the real adapter state machine.
 
 **LIVE_VERIFIED:** current candidate `4246ac13` has no current-candidate live
 PASS. The immediately preceding fresh candidate attempt was durably blocked by
-ChatGPT's `请求过于频繁` rate-limit dialog; its receipt is
-`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`. No retry was made, so
-this remains a fail-closed external precondition rather than a pass. The prior
+ChatGPT's `请求过于频繁` rate-limit dialog; the prior send-attempt receipt is
+`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`, and a fresh read-only
+check is recorded in `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_4246ac13.json`.
+No retry was made, so this remains a fail-closed external precondition rather
+than a pass. The prior
 `0fe4464` pass remains historical evidence only.
 
 **ACCEPTED: NO.** The remaining gates are a current-candidate live browser pass
