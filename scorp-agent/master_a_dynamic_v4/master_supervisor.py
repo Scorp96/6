@@ -99,7 +99,7 @@ class MasterSupervisor:
                     resume=resume,
                 )
             return SupervisorDecision(
-                status="RESUME_REQUIRED",
+                status="MASTER_ACTIVE",
                 reason="RESUMED_AND_REBOUND",
                 watchdog=watchdog,
                 resume=resume,

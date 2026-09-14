@@ -3,12 +3,15 @@
   "status": "IMPLEMENTATION_CANDIDATE",
   "generated_from": "approved-design-2026-09-13",
   "repository": {
-    "slug": "Scorp96/6",
+    "slug": "Scorp96/666",
     "source_repository": "Scorp96/666",
+    "target_repository": "Scorp96/6",
     "baseline_branch": "p0/chatgpt-transport-bakeoff",
     "baseline_commit": "e87a9f70c55622e5ca742284e00918e13552f8ac",
-    "candidate_branch": "main",
-    "worktree": "C:\\ScorpAgent\\_publish_git6",
+    "candidate_branch": "feature/v4-master-a-dynamic-workers",
+    "target_branch": "main",
+    "worktree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core",
+    "target_worktree": "C:\\ScorpAgent\\_publish_git6",
     "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-6da3893"
   },
   "artifacts": {

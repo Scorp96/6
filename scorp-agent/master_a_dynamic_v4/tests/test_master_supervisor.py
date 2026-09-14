@@ -21,7 +21,7 @@ class MasterSupervisorTests(unittest.TestCase):
         controller = _Controller([{"status": "RESUME_REQUIRED"}])
         supervisor = MasterSupervisor(controller, rebind_callback=rebinds.append)
         decision = supervisor.run_once()
-        self.assertEqual("RESUME_REQUIRED", decision.status)
+        self.assertEqual("MASTER_ACTIVE", decision.status)
         self.assertEqual(1, controller.resumes)
         self.assertEqual([{"master_epoch": 2}], rebinds)
 
