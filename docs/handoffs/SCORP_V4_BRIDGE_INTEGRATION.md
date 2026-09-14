@@ -134,9 +134,17 @@ execution evidence; no force reset or automatic cleanup is performed.
 
 The operator entry point is
 `tools/v4_master_controller_runtime.py`. It reads one JSON plan, requires an
-explicit `--send` gate before opening Chrome, uses the existing authenticated
-ChatGPT session, and stops after a bounded number of controller cycles. The
-plan template is `docs/handoffs/SCORP_V4_MASTER_PLAN_TEMPLATE.json`.
+explicit `--send` gate **and** an exact candidate commit/manifest SHA binding
+before opening Chrome, uses the existing authenticated ChatGPT session, and
+stops after a bounded number of controller cycles. The plan template is
+`docs/handoffs/SCORP_V4_MASTER_PLAN_TEMPLATE.json`.
+
+The Chrome Use driver also owns a lifecycle ledger in its state file. Older
+files are migrated in memory and persisted on the next transition. Master and
+Worker sessions are protected persistent resources; diagnostics must be
+explicitly registered and retired. A diagnostic is stopped only when no active
+turn references its session, and a stop timeout becomes `CLEANUP_BLOCKED` with
+no blind retry. Session labels and tab colors are not state-machine evidence.
 
 ## Quick simulated check
 

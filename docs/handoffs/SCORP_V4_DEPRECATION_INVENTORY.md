@@ -8,6 +8,14 @@ The fixed-string scan found live code, tests, installers, and documentation refe
 for every named component; deletion would break rollback or the current production
 chain.
 
+The V4 Chrome Use driver state is now the lifecycle authority for the candidate
+browser seam. Legacy `sessions-v3.json` and `worker-conversation-pool-v3.json`
+remain migration and rollback inputs; they are not dual-write authorities. V4
+adds a `sessions` ledger to its own driver state, protects persistent
+Master/Worker sessions, and retires only explicitly registered diagnostic
+sessions. No cleanup command is allowed to use a global `session prune` or
+`close --all` policy.
+
 ## Component classification
 
 | Component | References | Current role | V4 treatment | Deletion gate |

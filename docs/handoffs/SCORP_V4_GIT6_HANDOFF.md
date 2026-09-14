@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `87dc77101259e3473b9407bbce92c67aa7f0d73b`
+- Current candidate: `1e69c0a8bb5dc5c3276f46625b5ab84d29fa0be8`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is
@@ -108,24 +108,24 @@ commit above. It explicitly records browser canary, GitHub write, production
 cutover, and long-duration stability as unverified where no current evidence
 exists.
 
-The isolated installation and short local recovery evidence are now stored in
-`SCORP_V4_GIT6_CANDIDATE_MANIFEST_87dc771.json`,
-`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_87dc771.json`, and
-`SCORP_V4_GIT6_AC12_SHORT_SOAK_87dc771.json`. The installed monitor probe is
-recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_87dc771.json`. AC10 covers a
-39-file detached
-candidate install with unchanged protected-root hashes. AC12 covers a 10.03 s
-run with 48 cycles, two Worker slots, 142 slot reuses, two scheduler recoveries, and
-zero duplicate submits or errors. The browser engine is injected and local;
-this does not upgrade the real-browser or production status.
+The isolated installation and short local recovery evidence are stored in
+`SCORP_V4_GIT6_CANDIDATE_MANIFEST_1e69c0a.json`,
+`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_1e69c0a.json`, and
+`SCORP_V4_GIT6_AC12_SHORT_SOAK_1e69c0a.json`. The installed monitor probe is
+recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_1e69c0a.json`. AC10 covers a
+39-file candidate install with unchanged protected-root hashes. AC12 covers a
+10.09 s run with 48 cycles, two Worker slots, 142 slot reuses, two scheduler
+recoveries, and zero duplicate submits or errors. The browser engine is
+injected and local; this does not upgrade the real-browser or production
+status.
 
 The web-GPT handoff and read-only local capability report are
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md`,
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json`, and
-`SCORP_V4_GIT6_PREFLIGHT_87dc771.json`. The preflight reports
+`SCORP_V4_GIT6_PREFLIGHT_1e69c0a.json`. The preflight reports
 `web_gpt_direct_local_control=UNAVAILABLE` until an actual local connector or
 operator-owned host is present.
 
 ## R4 live-browser finding
 
-A user-provided R4 report found a real-path failure after the composer was located: the previous serial controller waited on Worker-1, left its intent at `MAY_HAVE_SUBMITTED` with no conversation URL or response, and never dispatched Worker-2. The current candidate includes the serial-dispatch fix, shared driver-state locking, controlled-composer repair, a guarded single key-event Enter fallback, accessibility-aware selector matching, and safe post-fill diagnostics containing the editor reference and prompt hash. The fill-only diagnostic is available, but the actual `fill → send → /c/<id>` path remains `FAIL/BLOCKED/NOT_RUN` until a fresh harmless canary produces raw browser evidence.
+A user-provided R4 report found a real-path failure after the composer was located: the previous serial controller waited on Worker-1, left its intent at `MAY_HAVE_SUBMITTED` with no conversation URL or response, and never dispatched Worker-2. The current candidate includes the serial-dispatch fix, shared driver-state locking, controlled-composer repair, a guarded single key-event Enter fallback, accessibility-aware selector matching, safe post-fill diagnostics containing the editor reference and prompt hash, and explicit Chrome Use session lifecycle accounting. Master and Worker sessions are protected persistent resources; diagnostic sessions are retired only after their active turns are gone, and cleanup timeouts are recorded as `CLEANUP_BLOCKED`. The fill-only diagnostic is available, but the actual `fill → send → /c/<id>` path remains `FAIL/BLOCKED/NOT_RUN` until a fresh harmless canary produces raw browser evidence. The colored labels in the user screenshot are treated as identifiers only and were not independently replayed as runtime evidence.

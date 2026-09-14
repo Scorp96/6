@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `87dc77101259e3473b9407bbce92c67aa7f0d73b`。该身份与 `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`、`SCORP_V4_GIT6_CANDIDATE_MANIFEST_87dc771.json` 和 `SCORP_V4_GIT6_PREFLIGHT_87dc771.json` 一致。后续提交只增加交接文档和证据，不改变这份代码候选。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
+当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `1e69c0a8bb5dc5c3276f46625b5ab84d29fa0be8`。该身份与 `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`、`SCORP_V4_GIT6_CANDIDATE_MANIFEST_1e69c0a.json` 和 `SCORP_V4_GIT6_PREFLIGHT_1e69c0a.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
 
 ## 先判断你现在是哪一种模式
 
@@ -67,6 +67,13 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_supervisor_runtime.py
 这个入口只接管已有 SQLite 状态，不会凭空创建根合同或项目；没有活动租约时会报告阻塞。`--forever` 只应由明确负责生命周期的 Windows 宿主使用。`--rebind` 只启用已登录会话的只读快照和绑定核对，不创建新聊天、不填入提示词、不点击发送。
 
 真正需要浏览器发送时，必须准备结构化计划 JSON，并在审查路径、允许目录、浏览器状态和发送内容后，才使用 `v4_master_controller_runtime.py --send`。`--send` 是人工明确门禁，不是普通网页 GPT 自动获得的权限。登录失效、验证码或提交结果含糊时，运行必须停在 `BLOCKED`。
+
+当前运行还要求把 `--candidate-commit`、`--candidate-manifest` 和
+`--manifest-sha256` 一起传入；三者不匹配时，运行在打开 Chrome、创建 SQLite
+状态或产生浏览器意图前直接阻塞。Chrome Use 会话由 V4 驱动记录生命周期：
+Master/Worker 默认持久且受保护，诊断会话必须显式退休；活动引用存在时不得
+停止共享会话，停止超时记录为 `CLEANUP_BLOCKED`。标签颜色只是可视化标识，不能
+作为状态或完成证据。
 
 ## 网页 GPT 应该收到什么
 

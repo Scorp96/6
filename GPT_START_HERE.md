@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 87dc77101259e3473b9407bbce92c67aa7f0d73b `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_87dc771.json `
-  --manifest-sha256 8c26e0ff8b2f84e16af9eff43c7facb6dd67b24293126e2589f0ed7dc7d19d46
+  --candidate-commit 1e69c0a8bb5dc5c3276f46625b5ab84d29fa0be8 `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_1e69c0a.json `
+  --manifest-sha256 789b399f24164c1ee6f61e2d9072daf7b9e733865b7ee118457ca068d0c1a236
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -170,10 +170,14 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
+  --candidate-commit 1e69c0a8bb5dc5c3276f46625b5ab84d29fa0be8 `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_1e69c0a.json `
+  --manifest-sha256 789b399f24164c1ee6f61e2d9072daf7b9e733865b7ee118457ca068d0c1a236 `
   --send
 ```
 
-The script refuses to open Chrome unless `--send` is present. It loads one
+The script refuses to open Chrome unless `--send` and an exact candidate
+commit/manifest binding are present. It loads one
 structured root plan, starts one logical Master A, creates at most two dynamic
 Worker browser intents, accepts only `WORK_RESULT/1`, and routes any local
 execution request through the path and Git-worktree gates. A missing login,
@@ -182,6 +186,19 @@ plan is reported as a blocker; no login or verification challenge is bypassed.
 This entry point is a finite run with a cycle cap. `MasterWatchdog` remains the
 durable monitor signal for a separate local supervisor and is not silently
 represented as a continuously running service.
+
+### Chrome Use session lifecycle
+
+V4 records a lifecycle row for every driver session and migrates older
+driver-state files by adding `sessions` without deleting existing bindings.
+`MASTER` and `WORKER` sessions are persistent resources and cannot be stopped
+by ordinary cleanup. Diagnostic sessions must be registered as `DIAGNOSTIC` and
+retired explicitly; the driver stops them only after their active turn
+references are gone. A timeout during `session stop` is recorded as
+`CLEANUP_BLOCKED` and is never silently retried. Chrome labels and tab colors
+are identifiers only; they do not carry status semantics. The lifecycle record,
+not color or natural-language claims, is the authority for ACTIVE, RETIRED, and
+cleanup state.
 
 ### Monitor and privileged recovery boundaries
 
