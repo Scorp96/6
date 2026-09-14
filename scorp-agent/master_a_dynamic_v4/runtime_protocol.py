@@ -18,7 +18,14 @@ REQUEST_VERSION = "scorp.runtime.command/1"
 RESPONSE_VERSION = "scorp.runtime.response/1"
 
 READ_COMMANDS = frozenset(
-    {"runtime.status", "project.status", "master.status", "evidence.query"}
+    {
+        "runtime.status",
+        "runtime.snapshot",
+        "project.status",
+        "master.status",
+        "worker.status",
+        "evidence.query",
+    }
 )
 MUTATION_COMMANDS = frozenset(
     {
@@ -30,7 +37,12 @@ MUTATION_COMMANDS = frozenset(
 )
 ALL_COMMANDS = READ_COMMANDS | MUTATION_COMMANDS
 MUTATION_FIELDS = frozenset(
-    {"expected_state_version", "expected_daemon_epoch"}
+    {
+        "expected_state_version",
+        "expected_daemon_epoch",
+        "expected_master_epoch",
+        "expected_generation",
+    }
 )
 REQUEST_FIELDS = frozenset(
     {
@@ -38,8 +50,11 @@ REQUEST_FIELDS = frozenset(
         "request_id",
         "command",
         "project_id",
+        "actor",
         "expected_state_version",
         "expected_daemon_epoch",
+        "expected_master_epoch",
+        "expected_generation",
         "payload",
     }
 )
@@ -62,8 +77,11 @@ class RuntimeRequest:
     command: str
     project_id: str
     payload: dict[str, Any]
+    actor: str = "runtime"
     expected_state_version: int | None = None
     expected_daemon_epoch: int | None = None
+    expected_master_epoch: int | None = None
+    expected_generation: int | None = None
 
     @property
     def payload_sha256(self) -> str:
@@ -112,6 +130,13 @@ def parse_request(raw: Mapping[str, Any]) -> RuntimeRequest:
     expected_daemon_epoch = _optional_nonnegative_int(
         raw.get("expected_daemon_epoch"), "INVALID_EXPECTED_DAEMON_EPOCH"
     )
+    expected_master_epoch = _optional_nonnegative_int(
+        raw.get("expected_master_epoch"), "INVALID_EXPECTED_MASTER_EPOCH"
+    )
+    expected_generation = _optional_nonnegative_int(
+        raw.get("expected_generation"), "INVALID_EXPECTED_GENERATION"
+    )
+    actor = _require_text(raw.get("actor", "runtime"), "ACTOR_REQUIRED")
     if command in MUTATION_COMMANDS:
         if expected_state_version is None:
             raise RuntimeProtocolError("EXPECTED_STATE_VERSION_REQUIRED")
@@ -123,8 +148,11 @@ def parse_request(raw: Mapping[str, Any]) -> RuntimeRequest:
         command=command,
         project_id=project_id,
         payload=dict(payload),
+        actor=actor,
         expected_state_version=expected_state_version,
         expected_daemon_epoch=expected_daemon_epoch,
+        expected_master_epoch=expected_master_epoch,
+        expected_generation=expected_generation,
     )
 
 
@@ -134,6 +162,8 @@ def build_response(
     status: str,
     daemon_epoch: int | None = None,
     state_version: int | None = None,
+    master_epoch: int | None = None,
+    generation: int | None = None,
     result: Mapping[str, Any] | None = None,
     receipt_id: str | None = None,
     error: Mapping[str, Any] | None = None,
@@ -148,8 +178,11 @@ def build_response(
         "status": status,
         "command": request.command,
         "project_id": request.project_id,
+        "actor": request.actor,
         "daemon_epoch": daemon_epoch,
         "state_version": state_version,
+        "master_epoch": master_epoch,
+        "generation": generation,
         "result": dict(result or {}),
         "receipt_id": receipt_id,
         "error": dict(error) if error is not None else None,
@@ -173,8 +206,11 @@ def error_response(
         "status": status,
         "command": command,
         "project_id": project_id,
+        "actor": "runtime",
         "daemon_epoch": None,
         "state_version": None,
+        "master_epoch": None,
+        "generation": None,
         "result": {},
         "receipt_id": None,
         "error": {"code": code, "detail": detail},

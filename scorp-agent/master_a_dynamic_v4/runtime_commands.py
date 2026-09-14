@@ -56,11 +56,15 @@ class RuntimeCommandService:
             if request.is_mutation:
                 return self.operator.execute(request)
             if request.command == "runtime.status":
-                result = self._runtime_status(request.project_id)
+                result = self._runtime_status(request.project_id, actor=request.actor)
+            elif request.command == "runtime.snapshot":
+                result = self.store.runtime_snapshot(request.project_id, self.daemon_epoch)
             elif request.command == "project.status":
                 result = self._project_status(request.project_id)
             elif request.command == "master.status":
                 result = self._master_status(request.project_id)
+            elif request.command == "worker.status":
+                result = self._worker_status(request.project_id)
             elif request.command == "evidence.query":
                 result = self._evidence_query(request.project_id, request.payload)
             else:
@@ -71,11 +75,14 @@ class RuntimeCommandService:
                     error={"code": "COMMAND_NOT_READ_HANDLER"},
                 )
             state_version = int(self.store.get_project_state(request.project_id)["state_version"])
+            context = self._response_context(request.project_id)
             return build_response(
                 request,
                 status="OK",
                 daemon_epoch=self.daemon_epoch,
                 state_version=state_version,
+                master_epoch=context["master_epoch"],
+                generation=context["generation"],
                 result=result,
             )
         except (StoreInvariantError, ValueError) as exc:
@@ -85,6 +92,19 @@ class RuntimeCommandService:
                 daemon_epoch=self.daemon_epoch,
                 error={"code": str(exc).split(":", 1)[0], "detail": str(exc)},
             )
+
+    def _response_context(self, project_id: str) -> dict[str, int | None]:
+        with self.store._connection() as conn:
+            state = conn.execute(
+                "SELECT master_epoch FROM project_state WHERE project_id=?", (project_id,)
+            ).fetchone()
+            control = conn.execute(
+                "SELECT operator_generation FROM operator_controls WHERE project_id=?", (project_id,)
+            ).fetchone()
+        return {
+            "master_epoch": int(state[0]) if state is not None else None,
+            "generation": int(control[0]) if control is not None else None,
+        }
 
     def _control(self, project_id: str) -> dict[str, Any]:
         return self.store.get_operator_control(project_id)
@@ -111,7 +131,7 @@ class RuntimeCommandService:
                 "daemon": dict(daemon) if daemon is not None else None,
             }
 
-    def _runtime_status(self, project_id: str) -> dict[str, Any]:
+    def _runtime_status(self, project_id: str, *, actor: str | None = None) -> dict[str, Any]:
         snapshot = self._project_status(project_id)
         with self.store._connection() as conn:
             active_workers = int(conn.execute(
@@ -137,6 +157,7 @@ class RuntimeCommandService:
         master = self._master_status(project_id)
         return {
             "project_id": project_id,
+            "actor": str(actor or self.actor),
             "project": snapshot["project"],
             "operator": snapshot["operator"],
             "observation": snapshot["observation"],
@@ -146,6 +167,26 @@ class RuntimeCommandService:
             "workers": {"active": active_workers, "capacity": 2, "free": max(0, 2 - active_workers)},
             "tasks": {"queued": queued, "running": running},
             "reconciliation": {"ambiguous_intents": ambiguous, "pending_results": pending_results},
+        }
+
+    def _worker_status(self, project_id: str) -> dict[str, Any]:
+        with self.store._connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT a.assignment_id,a.task_id,a.worker_id,a.slot_id,a.master_epoch,
+                       a.state AS assignment_state,l.lease_token,l.state AS lease_state,
+                       l.expires_at,l.acquired_at
+                FROM assignments a
+                LEFT JOIN leases l ON l.assignment_id=a.assignment_id
+                WHERE a.project_id=? AND a.state NOT IN ('VERIFIED','ACCEPTED','FENCED')
+                ORDER BY a.created_at ASC LIMIT 2
+                """,
+                (project_id,),
+            ).fetchall()
+        return {
+            "project_id": project_id,
+            "capacity": 2,
+            "items": [dict(row) for row in rows],
         }
 
     def _master_status(self, project_id: str) -> dict[str, Any]:

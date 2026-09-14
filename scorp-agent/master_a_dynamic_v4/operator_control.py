@@ -24,6 +24,13 @@ class OperatorControlService:
         self.daemon_epoch = int(daemon_epoch)
         self.actor = str(actor or "operator")
 
+    def _actor_for_request(self, request: RuntimeRequest) -> str:
+        # ``runtime`` is the backwards-compatible protocol default.  A
+        # service-level actor remains authoritative for legacy callers that
+        # omit the new envelope actor; an explicit non-default actor is
+        # preserved in the durable receipt.
+        return request.actor if request.actor != "runtime" else self.actor
+
     def execute(self, request: RuntimeRequest) -> dict[str, Any]:
         if not request.is_mutation:
             return build_response(
@@ -82,6 +89,14 @@ class OperatorControlService:
                 if control is None:
                     return self._reject_and_record(
                         conn, request, receipt_id, state, control, "OPERATOR_CONTROL_NOT_FOUND", now
+                    )
+                if request.expected_master_epoch is not None and int(state["master_epoch"]) != int(request.expected_master_epoch):
+                    return self._reject_and_record(
+                        conn, request, receipt_id, state, control, "MASTER_EPOCH_CONFLICT", now
+                    )
+                if request.expected_generation is not None and int(control["operator_generation"]) != int(request.expected_generation):
+                    return self._reject_and_record(
+                        conn, request, receipt_id, state, control, "GENERATION_CONFLICT", now
                     )
                 if request.command == "project.supersede":
                     objective_sha = str(request.payload.get("objective_sha256") or "")
@@ -162,6 +177,8 @@ class OperatorControlService:
                     status="OK",
                     daemon_epoch=self.daemon_epoch,
                     state_version=next_version,
+                    master_epoch=int(state["master_epoch"]),
+                    generation=operator_generation,
                     receipt_id=receipt_id,
                     result={
                         "operator_state": status,
@@ -175,7 +192,7 @@ class OperatorControlService:
                     request=request,
                     receipt_id=receipt_id,
                     state=state,
-                    actor=self.actor,
+                    actor=self._actor_for_request(request),
                     control={
                         "operator_generation": operator_generation,
                         "objective_generation": objective_generation,
@@ -217,6 +234,8 @@ class OperatorControlService:
             status="REJECTED",
             daemon_epoch=self.daemon_epoch,
             state_version=int(state["state_version"]) if state is not None else None,
+            master_epoch=int(state["master_epoch"]) if state is not None else None,
+            generation=int(control["operator_generation"]) if control is not None else None,
             receipt_id=receipt_id,
             error={"code": reason},
         )
@@ -225,7 +244,7 @@ class OperatorControlService:
             request=request,
             receipt_id=receipt_id,
             state=state,
-            actor=self.actor,
+            actor=self._actor_for_request(request),
             control=control,
             status="REJECTED",
             reason=reason,

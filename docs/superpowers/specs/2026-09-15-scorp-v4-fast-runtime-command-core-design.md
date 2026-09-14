@@ -74,7 +74,9 @@ The request envelope is `scorp.runtime.command/1`:
 ```
 
 `request_id`, `command`, `project_id`, and an object `payload` are required.
-Mutation commands also require both expected values. Unknown top-level fields,
+An optional bounded `actor` identifies the logical caller. Mutation commands
+also require both expected values and may bind Master/generation expectations.
+Unknown top-level fields,
 unknown commands, non-object payloads, malformed versions, and unsafe command
 strings are rejected before any SQLite write.
 
@@ -87,8 +89,11 @@ The response envelope is `scorp.runtime.response/1`:
   "status": "OK",
   "command": "project.pause",
   "project_id": "project-id",
+  "actor": "gpt-master",
   "daemon_epoch": 4,
   "state_version": 18,
+  "master_epoch": 2,
+  "generation": 3,
   "result": {},
   "receipt_id": "receipt-...",
   "error": null
@@ -105,12 +110,14 @@ different command or payload is rejected as an idempotency conflict.
 | Command | Read/write | Behavior |
 | --- | --- | --- |
 | `runtime.status` | read | Return one bounded snapshot of daemon lease, project, operator state, master, Worker counts, ambiguity, progress, browser/auth blocker, and last decision. |
+| `runtime.snapshot` | read | Return the bounded StateStore runtime snapshot. |
 | `project.status` | read | Return the bounded project/control snapshot without log scanning. |
 | `project.pause` | mutation | Increment operator generation, set `PAUSED`, prevent new assignment and external side effects, and leave ambiguous intents for reconciliation. |
 | `project.resume` | mutation | Increment operator generation, set `ACTIVE`, and leave existing ambiguous effects unresolved until the normal reconciliation path proves them. |
 | `project.cancel` | mutation | Increment operator and objective generations, set `CANCELLED`, and fence old assignments/intents. Existing ambiguous effects remain reconcilable only. |
 | `project.supersede` | mutation | Increment both generations, replace the objective hash/contract generation, set `ACTIVE`, and mark old results stale/fenced. |
 | `master.status` | read | Return logical Master identity, epoch, lease, physical binding-known state, pending results/reconciliation, last decision, and last progress. |
+| `worker.status` | read | Return at most the two nonterminal logical Worker assignments and lease state. |
 | `evidence.query` | read | Query only bounded machine evidence by project, assignment, intent, receipt, and UTC time range, with `limit <= 100`. |
 
 ## Durable schema and transaction rules

@@ -17,13 +17,13 @@ $env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
   --daemon-epoch 1
 ```
 
-`--daemon-epoch` 必须是当前 SQLite daemon lease 的 epoch。读取命令是 `runtime.status`、`project.status`、`master.status` 和有界的 `evidence.query`。控制命令是 `project.pause`、`project.resume`、`project.cancel` 和 `project.supersede`；控制命令必须同时带 `expected_state_version`、`expected_daemon_epoch`，并使用新的 `request_id`。
+`--daemon-epoch` 必须是当前 SQLite daemon lease 的 epoch。读取命令是 `runtime.status`、`runtime.snapshot`、`project.status`、`master.status`、`worker.status` 和有界的 `evidence.query`。控制命令是 `project.pause`、`project.resume`、`project.cancel` 和 `project.supersede`；控制命令必须同时带 `expected_state_version`、`expected_daemon_epoch`，并使用新的 `request_id`。请求可带有界的 `actor`；响应会返回 `master_epoch` 和 operator `generation`，调用方可以用 `expected_master_epoch`、`expected_generation` 拒绝旧 Master 或旧控制代际。
 
-普通 GPT 的交接方式是：它只生成上述结构化 JSON 请求，读取 JSON 响应中的 `status`、`state_version`、`receipt_id` 和 `error`，然后根据 `runtime.status` 再构造下一次 CAS 请求。它不能把自然语言中的“继续”“重试”当作浏览器盲重发许可。`MAY_HAVE_SUBMITTED`、`BLOCKED_AMBIGUOUS`、登录失效、验证码和 Windows 交互会话不可用都必须暂停并报告。
+普通 GPT 的交接方式是：它只生成上述结构化 JSON 请求，读取 JSON 响应中的 `status`、`state_version`、`master_epoch`、`generation`、`receipt_id` 和 `error`，然后根据 `runtime.status` 再构造下一次 CAS 请求。它不能把自然语言中的“继续”“重试”当作浏览器盲重发许可。`MAY_HAVE_SUBMITTED`、`BLOCKED_AMBIGUOUS`、登录失效、验证码和 Windows 交互会话不可用都必须暂停并报告。
 
 ## 当前证据边界
 
-- `TEST_VERIFIED`: V4 核心 140 个测试通过，GUI 桥接 473 个测试通过，privileged broker 四组测试通过，候选验证脚本、compileall 和 `git diff --check` 通过。
+- `TEST_VERIFIED`: V4 核心 142 个测试通过，GUI 桥接 473 个测试通过，compileall 和 `git diff --check` 通过；privileged broker 的历史分组证据仍保留在上一候选记录中。
 - `LIVE_VERIFIED`: 本分支未重新点击真实 ChatGPT 提交；此前真实浏览器问题仍需单独 canary 核对。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
