@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import pathlib
 import tempfile
+import threading
 import unittest
 from dataclasses import dataclass
 
@@ -63,6 +64,26 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual({"T1", "T2"}, {item["task_id"] for item in step.outcomes})
         self.assertEqual(2, len(gateway.claimed))
         self.assertEqual(2, len(gateway.verified))
+
+    def test_controller_enters_two_browser_dispatches_before_either_finishes(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _ConcurrentFakeGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start({"objective": "parallel browser dispatch"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64), _task("T2", "b" * 64)],
+            }
+        )
+
+        step = controller.step(lambda claim: f"complete {claim.task_id}", lambda row: _result_for(row))
+
+        self.assertEqual("DISPATCHED", step.status)
+        self.assertEqual(2, gateway.submit_calls)
+        self.assertTrue(gateway.both_submits_entered)
 
     def test_controller_routes_structured_execution_request_through_adapter(self):
         from master_a_dynamic_v4.master_controller import MasterAController
@@ -316,6 +337,27 @@ class _FakeGateway:
         from master_a_dynamic_v4.models import AcceptanceStatus
 
         return AcceptanceDecision(AcceptanceStatus.BLOCKED, ("MISSING_EVIDENCE:AC_CONTROLLER",))
+
+
+class _ConcurrentFakeGateway(_FakeGateway):
+    """Make a serial controller fail so the test proves overlap, not count."""
+
+    def __init__(self, project_id):
+        super().__init__(project_id)
+        self._submit_lock = threading.Lock()
+        self._submit_entered = threading.Event()
+        self.both_submits_entered = False
+        self._submit_count = 0
+
+    def submit_intent(self, intent_id):
+        with self._submit_lock:
+            self._submit_count += 1
+            if self._submit_count == 2:
+                self.both_submits_entered = True
+                self._submit_entered.set()
+        if not self._submit_entered.wait(timeout=1.0):
+            raise RuntimeError("DISPATCH_DID_NOT_OVERLAP")
+        return super().submit_intent(intent_id)
 
 
 class _FakeExecutionReceipt:

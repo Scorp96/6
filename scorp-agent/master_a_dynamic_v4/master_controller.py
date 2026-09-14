@@ -9,6 +9,7 @@ browser-intent recovery, structured-result verification, and completion checks.
 from __future__ import annotations
 
 import dataclasses
+import concurrent.futures
 import hashlib
 import json
 from collections.abc import Callable, Mapping, Sequence
@@ -228,15 +229,39 @@ class MasterAController:
         claims = active + (list(self.gateway.claim_workers(master_epoch=epoch, limit=free)) if free else [])
         outcomes: list[dict[str, Any]] = []
         blockers: list[str] = []
-        for claim in claims:
-            try:
-                outcome = self._dispatch_claim(claim, worker_prompt_factory, worker_response_decoder)
-            except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
-                blockers.append(f"{claim.task_id}:{str(exc)}")
-                continue
-            if outcome.get("status") == "BLOCKED":
-                blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
-            outcomes.append(outcome)
+        # Browser I/O is the slow boundary.  Dispatch the two independent
+        # claims concurrently so a stalled Worker-1 cannot prevent Worker-2
+        # from receiving its own persisted intent.  Results are consumed in
+        # claim order to keep the controller's observable output deterministic.
+        if len(claims) > 1:
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=min(2, len(claims)),
+                thread_name_prefix="scorp-v4-worker-dispatch",
+            ) as pool:
+                futures = [
+                    pool.submit(self._dispatch_claim, claim, worker_prompt_factory, worker_response_decoder)
+                    for claim in claims
+                ]
+                dispatch_results = zip(claims, futures)
+                for claim, future in dispatch_results:
+                    try:
+                        outcome = future.result()
+                    except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
+                        blockers.append(f"{claim.task_id}:{str(exc)}")
+                        continue
+                    if outcome.get("status") == "BLOCKED":
+                        blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
+                    outcomes.append(outcome)
+        else:
+            for claim in claims:
+                try:
+                    outcome = self._dispatch_claim(claim, worker_prompt_factory, worker_response_decoder)
+                except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
+                    blockers.append(f"{claim.task_id}:{str(exc)}")
+                    continue
+                if outcome.get("status") == "BLOCKED":
+                    blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
+                outcomes.append(outcome)
         if blockers:
             status = "BLOCKED"
         elif outcomes:

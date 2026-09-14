@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import re
+import threading
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -13,6 +14,14 @@ _ROOT_URL = "https://chatgpt.com/"
 _PROTOCOL = "scorp.chrome-use-driver/v1"
 _ALLOWED_ACTORS = {"MASTER", "WORKER"}
 _SEND_BUTTON_NAMES = {"发送提示词", "发送消息", "send prompt", "send message", "send"}
+_STATE_LOCKS: dict[str, threading.RLock] = {}
+_STATE_LOCKS_GUARD = threading.Lock()
+
+
+def _state_lock(path: Path) -> threading.RLock:
+    key = str(path.resolve())
+    with _STATE_LOCKS_GUARD:
+        return _STATE_LOCKS.setdefault(key, threading.RLock())
 
 
 def _sha(value: str) -> str:
@@ -129,22 +138,28 @@ class ChromeUseActorDriverV3:
         self.timeout_seconds = int(timeout_seconds)
         if self.timeout_seconds <= 0:
             raise ValueError("CHROME_USE_DRIVER_TIMEOUT_INVALID")
+        # Multiple Worker browser submissions share this state file.  Protect
+        # the read/modify/write transitions across driver instances in the
+        # same host process; a fixed temp path without a lock loses bindings.
+        self._state_mutex = _state_lock(self.state_path)
 
     def _load(self):
-        if not self.state_path.is_file():
-            return {"protocol_version": _PROTOCOL, "turns": {}, "conversations": {}}
-        value = json.loads(self.state_path.read_text(encoding="utf-8-sig"))
-        if not isinstance(value, dict) or value.get("protocol_version") != _PROTOCOL:
-            raise ValueError("CHROME_USE_DRIVER_STATE_INVALID")
-        if not isinstance(value.get("turns"), dict) or not isinstance(value.get("conversations"), dict):
-            raise ValueError("CHROME_USE_DRIVER_STATE_INVALID")
-        return value
+        with self._state_mutex:
+            if not self.state_path.is_file():
+                return {"protocol_version": _PROTOCOL, "turns": {}, "conversations": {}}
+            value = json.loads(self.state_path.read_text(encoding="utf-8-sig"))
+            if not isinstance(value, dict) or value.get("protocol_version") != _PROTOCOL:
+                raise ValueError("CHROME_USE_DRIVER_STATE_INVALID")
+            if not isinstance(value.get("turns"), dict) or not isinstance(value.get("conversations"), dict):
+                raise ValueError("CHROME_USE_DRIVER_STATE_INVALID")
+            return value
 
     def _save(self, value):
-        self.state_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.state_path.with_name(self.state_path.name + ".tmp")
-        tmp.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
-        tmp.replace(self.state_path)
+        with self._state_mutex:
+            self.state_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.state_path.with_name(self.state_path.name + ".tmp")
+            tmp.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
+            tmp.replace(self.state_path)
 
     @staticmethod
     def _turn_session(turn_id):
@@ -158,54 +173,58 @@ class ChromeUseActorDriverV3:
         turn_id = str(turn_id or "").strip()
         if not turn_id:
             raise ValueError("ACTOR_GUI_TURN_ID_MISSING")
-        state = self._load()
-        old = state["turns"].get(turn_id)
-        if conversation_url is None:
-            if isinstance(old, dict) and old.get("session"):
-                return old["session"]
-            session = self._turn_session(turn_id)
-            state["turns"][turn_id] = {"session": session, "conversation_url": None}
+        with self._state_mutex:
+            state = self._load()
+            old = state["turns"].get(turn_id)
+            if conversation_url is None:
+                if isinstance(old, dict) and old.get("session"):
+                    return old["session"]
+                session = self._turn_session(turn_id)
+                state["turns"][turn_id] = {"session": session, "conversation_url": None}
+                self._save(state)
+                return session
+            url = _canonical_url(conversation_url)
+            entry = state["conversations"].get(url)
+            session = entry.get("session") if isinstance(entry, dict) else None
+            if not session:
+                session = self._conversation_session(url)
+                state["conversations"][url] = {"session": session}
+            state["turns"][turn_id] = {"session": session, "conversation_url": url}
             self._save(state)
             return session
-        url = _canonical_url(conversation_url)
-        entry = state["conversations"].get(url)
-        session = entry.get("session") if isinstance(entry, dict) else None
-        if not session:
-            session = self._conversation_session(url)
-            state["conversations"][url] = {"session": session}
-        state["turns"][turn_id] = {"session": session, "conversation_url": url}
-        self._save(state)
-        return session
 
     def turn_binding(self, turn_id):
-        row = self._load()["turns"].get(str(turn_id or "").strip())
+        with self._state_mutex:
+            row = self._load()["turns"].get(str(turn_id or "").strip())
         return dict(row) if isinstance(row, dict) else None
 
     def _session_for_url(self, url):
-        state = self._load()
-        row = state["conversations"].get(url)
-        if isinstance(row, dict) and row.get("session"):
-            return row["session"]
-        session = self._conversation_session(url)
-        state["conversations"][url] = {"session": session}
-        self._save(state)
-        return session
+        with self._state_mutex:
+            state = self._load()
+            row = state["conversations"].get(url)
+            if isinstance(row, dict) and row.get("session"):
+                return row["session"]
+            session = self._conversation_session(url)
+            state["conversations"][url] = {"session": session}
+            self._save(state)
+            return session
 
     def _promote(self, turn_id, url):
         url = _canonical_url(url)
-        state = self._load()
-        row = state["turns"].get(turn_id)
-        if not isinstance(row, dict) or not row.get("session"):
-            raise ValueError("CHROME_USE_TURN_BINDING_MISSING")
-        session = row["session"]
-        existing = state["conversations"].get(url)
-        if isinstance(existing, dict) and existing.get("session") not in {None, session}:
-            raise ValueError("CHROME_USE_CONVERSATION_SESSION_CONFLICT")
-        row["conversation_url"] = url
-        state["turns"][turn_id] = row
-        state["conversations"][url] = {"session": session}
-        self._save(state)
-        return session
+        with self._state_mutex:
+            state = self._load()
+            row = state["turns"].get(turn_id)
+            if not isinstance(row, dict) or not row.get("session"):
+                raise ValueError("CHROME_USE_TURN_BINDING_MISSING")
+            session = row["session"]
+            existing = state["conversations"].get(url)
+            if isinstance(existing, dict) and existing.get("session") not in {None, session}:
+                raise ValueError("CHROME_USE_CONVERSATION_SESSION_CONFLICT")
+            row["conversation_url"] = url
+            state["turns"][turn_id] = row
+            state["conversations"][url] = {"session": session}
+            self._save(state)
+            return session
 
     async def _get_url(self, session, *, timeout_seconds=None):
         timeout = self.timeout_seconds if timeout_seconds is None else float(timeout_seconds)

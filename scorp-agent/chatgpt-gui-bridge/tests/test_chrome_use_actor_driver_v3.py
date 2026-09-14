@@ -1,6 +1,9 @@
 import asyncio
+import concurrent.futures
+import json
 import pathlib
 import tempfile
+import time
 import unittest
 
 from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3
@@ -34,6 +37,26 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             second = driver.bind_turn('turn-beta', url)
             self.assertEqual(first, second)
             self.assertTrue(first.startswith('scorp-p0-conv-'))
+
+    def test_parallel_turn_bindings_preserve_both_sessions_in_shared_state(self):
+        with tempfile.TemporaryDirectory() as td:
+            state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'
+            driver = self._driver(td, FakeCli())
+            original_load = driver._load
+
+            def slow_load():
+                value = original_load()
+                time.sleep(0.03)
+                return value
+
+            driver._load = slow_load
+            turns = ('parallel-turn-one', 'parallel-turn-two')
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                sessions = list(pool.map(lambda turn: driver.bind_turn(turn, None), turns))
+
+            stored = json.loads(state_path.read_text(encoding='utf-8'))
+            self.assertEqual(set(turns), set(stored['turns']))
+            self.assertEqual(2, len(set(sessions)))
 
     def test_snapshot_fails_closed_when_exact_url_cannot_be_reacquired(self):
         with tempfile.TemporaryDirectory() as td:
