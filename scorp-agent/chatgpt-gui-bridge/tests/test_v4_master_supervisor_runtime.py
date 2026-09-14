@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import contextlib
+import io
 import json
 import pathlib
 import tempfile
@@ -90,7 +92,12 @@ class MasterSupervisorRuntimeTests(unittest.TestCase):
                     "--interval-seconds", "0",
                 ]
             )
-            self.assertEqual(0, runtime.run_runtime(args))
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(0, runtime.run_runtime(args))
+            summary = json.loads(output.getvalue())
+            self.assertEqual("MASTER_ACTIVE", summary["attached"]["status"])
+            self.assertEqual(0, summary["attached"]["master_epoch"])
             row = json.loads(log_path.read_text(encoding="utf-8").splitlines()[0])
             self.assertEqual("MASTER_ACTIVE", row["status"])
             self.assertFalse(row.get("rebind_enabled", False))

@@ -204,7 +204,7 @@ def run_runtime(args: argparse.Namespace) -> int:
     )
     try:
         controller = MasterAController(gateway, str(args.session_id))
-        controller.attach_existing_session()
+        attached = controller.attach_existing_session()
         rebind_callback = _build_rebind_callback(args, gateway)
         result = run_supervisor(
             controller,
@@ -220,6 +220,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             "decision_count": len(result.decisions),
             "project_id": str(args.project_id),
             "session_id": str(args.session_id),
+            "attached": attached,
             "rebind_enabled": bool(args.rebind),
             "browser_send": "FORBIDDEN",
             "decision_log": str(decision_log),
