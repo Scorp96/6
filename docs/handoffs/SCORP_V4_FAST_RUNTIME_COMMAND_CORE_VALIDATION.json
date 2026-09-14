@@ -7,7 +7,7 @@
   "implementation_commit": "21470e42ead8c5f89f8d02680de921cdaada0da1",
   "verification": {
     "test_verified": {
-      "v4_core_tests": {"result": "PASS", "count": 152},
+      "v4_core_tests": {"result": "PASS", "count": 153},
       "gui_bridge_tests": {"result": "PASS", "count": 475, "pythonpath": ["scorp-agent", "scorp-agent/chatgpt-gui-bridge"]},
       "compileall": "PASS",
       "git_diff_check": "PASS",
@@ -36,6 +36,7 @@
     "semantic append-only operator events committed with durable receipts",
     "ambiguous browser intents fence new ordinary scheduler claims",
     "operator-fenced projects reject new task graph admission",
+    "missing operator control fails closed for graph and assignment admission",
     "generation fencing before browser and local execution side effects",
     "SQLite write failure before browser intent fence fails closed without browser I/O",
     "public compatibility APIs for protocol_error, runtime_snapshot, external_side_effect_gate, and OperatorControl.apply",

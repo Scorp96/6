@@ -149,7 +149,9 @@ class Scheduler:
                 "SELECT operator_state FROM operator_controls WHERE project_id=?",
                 (self.project_id,),
             ).fetchone()
-            if control is not None and str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+            if control is None:
+                raise SchedulerError("OPERATOR_CONTROL_NOT_FOUND")
+            if str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
                 raise SchedulerError("OPERATOR_STATE_FENCED")
             for task in normalized:
                 identity = {
@@ -340,7 +342,9 @@ class Scheduler:
                 "SELECT operator_state FROM operator_controls WHERE project_id=?",
                 (self.project_id,),
             ).fetchone()
-            if control is not None and str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+            if control is None:
+                raise SchedulerError("OPERATOR_CONTROL_NOT_FOUND")
+            if str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
                 return []
             # New ordinary assignments must not bypass the arbiter's
             # reconciliation fence.  A MAY_HAVE_SUBMITTED or

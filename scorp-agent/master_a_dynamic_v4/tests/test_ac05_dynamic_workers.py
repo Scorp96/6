@@ -138,6 +138,22 @@ class DynamicWorkerTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_missing_operator_control_fails_closed_for_graph_and_claim_admission(self):
+        from master_a_dynamic_v4.scheduler import SchedulerError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler, worktree = self.make_runtime(root)
+            try:
+                with store._transaction() as conn:
+                    conn.execute("DELETE FROM operator_controls WHERE project_id=?", ("project-ac05",))
+                with self.assertRaisesRegex(SchedulerError, "OPERATOR_CONTROL_NOT_FOUND"):
+                    scheduler.enqueue_graph([
+                        {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "t1.txt"], "dependencies": []}
+                    ])
+            finally:
+                store.close()
+
     def test_wrong_lease_old_epoch_and_expired_lease_are_fenced(self):
         from master_a_dynamic_v4.scheduler import WorkerFenceError
 
