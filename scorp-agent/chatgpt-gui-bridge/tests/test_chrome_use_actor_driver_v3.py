@@ -176,6 +176,49 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual(['Stop generating'], raised.exception.diagnostics['button_names'])
             self.assertEqual(64, len(raised.exception.diagnostics['snapshot_sha256']))
 
+    def test_send_control_accepts_accessibility_aliases_and_shortcut_suffix(self):
+        from chrome_use_actor_driver_v3 import _send_ref_from_snapshot
+
+        self.assertEqual(
+            '@e20',
+            _send_ref_from_snapshot({
+                'data': {
+                    'refs': {
+                        'e20': {'aria-label': 'Send message (Ctrl+Enter)', 'role': 'button'},
+                    }
+                }
+            }),
+        )
+        self.assertEqual(
+            '@e21',
+            _send_ref_from_snapshot({
+                'data': {
+                    'refs': {
+                        'e21': {'label': '发送提示', 'role': 'button'},
+                    }
+                }
+            }),
+        )
+
+    def test_submit_send_diagnostic_binds_to_post_fill_editor_and_prompt_hash(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [
+                {'success': True},
+                {'data': {'value': 'https://chatgpt.com/'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {'data': {'refs': {'e21': {'name': 'Stop generating', 'role': 'button'}}}},
+            ]
+            driver = self._driver(td, cli)
+            with self.assertRaisesRegex(ValueError, 'CHROME_USE_SEND_REF_COUNT_0') as raised:
+                asyncio.run(driver.submit_prompt(
+                    prompt='hello', turn_id='turn-context', actor_kind='WORKER', conversation_url=None
+                ))
+            self.assertEqual('@e11', raised.exception.diagnostics['editor_ref'])
+            self.assertEqual(5, raised.exception.diagnostics['prompt_length'])
+            self.assertEqual(64, len(raised.exception.diagnostics['prompt_sha256']))
+
     def test_submit_accepts_chatgpt_root_query_redirect_before_new_conversation(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()

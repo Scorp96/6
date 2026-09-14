@@ -13,7 +13,14 @@ from gui_transport import validate_conversation_url
 _ROOT_URL = "https://chatgpt.com/"
 _PROTOCOL = "scorp.chrome-use-driver/v1"
 _ALLOWED_ACTORS = {"MASTER", "WORKER"}
-_SEND_BUTTON_NAMES = {"发送提示词", "发送消息", "send prompt", "send message", "send"}
+_SEND_BUTTON_NAMES = {
+    "发送提示",
+    "发送提示词",
+    "发送消息",
+    "send",
+    "send prompt",
+    "send message",
+}
 _STATE_LOCKS: dict[str, threading.RLock] = {}
 _STATE_LOCKS_GUARD = threading.Lock()
 
@@ -22,6 +29,7 @@ class SendControlResolutionError(ValueError):
     """Safe diagnostics for a post-fill snapshot without page text."""
 
     def __init__(self, reason: str, payload):
+        self.reason = reason
         rendered = _render_payload(payload)
         try:
             refs = _refs_from_snapshot(payload)
@@ -29,9 +37,11 @@ class SendControlResolutionError(ValueError):
             refs = {}
         button_names = sorted(
             {
-                " ".join(str(meta.get("name") or "").split())
+                _control_label(meta)
                 for meta in refs.values()
-                if isinstance(meta, dict) and str(meta.get("role") or "").strip().lower() == "button"
+                if isinstance(meta, dict)
+                and str(meta.get("role") or "").strip().lower() == "button"
+                and _control_label(meta)
             }
         )
         self.diagnostics = {
@@ -40,7 +50,17 @@ class SendControlResolutionError(ValueError):
             "ref_count": len(refs),
             "snapshot_sha256": _sha(rendered),
         }
-        super().__init__(reason)
+        self._refresh_message()
+
+    def _refresh_message(self):
+        super().__init__(
+            f"{self.reason};diagnostics="
+            + json.dumps(self.diagnostics, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        )
+
+    def add_context(self, **values):
+        self.diagnostics.update(values)
+        self._refresh_message()
 
 
 def _state_lock(path: Path) -> threading.RLock:
@@ -112,6 +132,22 @@ def _render_payload(value) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def _control_label(meta: dict) -> str:
+    """Return a stable accessibility label without reading page body text."""
+
+    for key in ("name", "aria-label", "ariaLabel", "label", "title", "description"):
+        value = " ".join(str(meta.get(key) or "").split())
+        if value:
+            return value
+    return ""
+
+
+def _send_control_name(meta: dict) -> str:
+    label = _control_label(meta).casefold()
+    # Chrome Use may append a keyboard shortcut to the accessible name.
+    return re.sub(r"\s*\([^)]*\)\s*$", "", label).strip()
+
+
 def _refs_from_snapshot(payload):
     if not isinstance(payload, dict):
         raise ValueError("CHROME_USE_EDITOR_SNAPSHOT_INVALID")
@@ -146,8 +182,7 @@ def _send_ref_from_snapshot(payload) -> str:
             continue
         if str(meta.get("role") or "").strip().lower() != "button":
             continue
-        name = " ".join(str(meta.get("name") or "").split()).casefold()
-        if name in _SEND_BUTTON_NAMES:
+        if _send_control_name(meta) in _SEND_BUTTON_NAMES:
             candidates.append(str(ref))
     candidates = sorted(set(candidates))
     if len(candidates) != 1:
@@ -374,7 +409,15 @@ class ChromeUseActorDriverV3:
             await self._ensure_url(session, target)
         editor_ref = await self._editor_ref(session)
         await self.cli.run_json(session, "fill", editor_ref, prompt, timeout_seconds=self.timeout_seconds)
-        send_ref = await self._send_ref(session)
+        try:
+            send_ref = await self._send_ref(session)
+        except SendControlResolutionError as exc:
+            exc.add_context(
+                editor_ref=editor_ref,
+                prompt_length=len(prompt),
+                prompt_sha256=_sha(prompt),
+            )
+            raise
         try:
             await self.cli.run_json(session, "click", send_ref, timeout_seconds=self.timeout_seconds)
         except TimeoutError:
