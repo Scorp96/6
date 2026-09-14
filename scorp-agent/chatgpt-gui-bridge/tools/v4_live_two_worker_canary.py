@@ -39,6 +39,36 @@ MARKERS = {
 }
 
 
+def failure_evidence(*, project_id: str, error: Exception, intents: list[Mapping[str, object]]) -> dict[str, object]:
+    """Build a fail-closed receipt after a live canary exception.
+
+    The receipt records durable intent states without replaying or changing
+    them. In particular, MAY_HAVE_SUBMITTED remains an operator reconcile
+    blocker rather than being converted into a retry.
+    """
+    safe_intents = []
+    for raw in intents:
+        safe_intents.append(
+            {
+                key: raw.get(key)
+                for key in ("intent_id", "state", "conversation_url", "remote_identity", "ambiguity_reason")
+                if key in raw
+            }
+        )
+    message = str(error)
+    return {
+        "format": "scorp-v4-two-worker-live-canary-failure/1",
+        "project_id": str(project_id),
+        "result": "BLOCKED",
+        "reason": "LIVE_CANARY_EXCEPTION_FAIL_CLOSED",
+        "error_type": type(error).__name__,
+        "error_message_sha256": hashlib.sha256(message.encode("utf-8")).hexdigest(),
+        "retry_count": 0,
+        "intents": safe_intents,
+        "observed_at_utc": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+
+
 def _reply_matches(snapshot: str, expected: str) -> bool:
     text = str(snapshot or "")
     positions = [(text.rfind(marker), marker) for marker in ("#### ChatGPT 说：", "#### ChatGPT said:")]
@@ -122,6 +152,7 @@ async def run_canary(args: argparse.Namespace) -> int:
         engine,
         master_ttl_seconds=300,
     )
+    records = []
     try:
         gateway.ensure_contract(
             {"objective": "harmless live two-worker connectivity canary", "canary": True},
@@ -135,7 +166,6 @@ async def run_canary(args: argparse.Namespace) -> int:
         claims = gateway.claim_workers(master_epoch=int(master["master_epoch"]), limit=2)
         if len(claims) != 2:
             raise RuntimeError(f"EXPECTED_TWO_CLAIMS:{len(claims)}")
-        records = []
         for claim in claims:
             marker = MARKERS.get(claim.slot_id)
             if marker is None:
@@ -201,6 +231,15 @@ async def run_canary(args: argparse.Namespace) -> int:
         args.evidence_path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(evidence, ensure_ascii=False, separators=(",", ":")))
         return 0
+    except Exception as exc:
+        try:
+            pending = gateway.store.pending_intents()
+        except Exception:
+            pending = []
+        receipt = failure_evidence(project_id=str(args.project_id), error=exc, intents=pending)
+        args.evidence_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(receipt, ensure_ascii=False, separators=(",", ":")))
+        return 2
     finally:
         gateway.close()
 

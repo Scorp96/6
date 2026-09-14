@@ -1,0 +1,19 @@
+{
+  "format": "scorp-v4-two-worker-live-canary-failure/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "167473a",
+  "project_id": "scorp-v4-live-7a08e0e-live-87425a77",
+  "result": "BLOCKED",
+  "reason": "LIVE_CANARY_EXCEPTION_FAIL_CLOSED",
+  "error_type": "RuntimeError",
+  "error": "CHROME_USE_EXIT_1: invalid_request EOF while parsing a value at line 1 column 0 (after 5 retries - daemon may be busy or unresponsive)",
+  "retry_count": 0,
+  "browser_send": "ATTEMPTED_ONCE",
+  "worker_2": "NOT_RUN",
+  "intent_state": "MAY_HAVE_SUBMITTED",
+  "conversation_url": null,
+  "response_captured": false,
+  "state_sha256": "3D687CFE18DE49FDCA32E4C0E492B71429E800C0445D623693F2E3CADD81743D",
+  "driver_state_sha256": "1CCD1C30F711877EB9946836556A182B1208FACA3B86D9EA0101C99B3FF12F40",
+  "observed_at_utc": "2026-09-14T14:21:43.397509Z"
+}

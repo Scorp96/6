@@ -77,3 +77,14 @@ browser reconcile and Send remain separate gates.
 - `ACCEPTED`: not reached. Production registration, current-candidate Chrome
   reconcile, restart recovery and Windows unattended evidence are still
   required.
+
+## Fresh live canary result
+
+On 2026-09-14, a fresh two-Worker canary was attempted against candidate
+`167473a` using a new SQLite database and driver state. Worker-1 reached the
+durable `MAY_HAVE_SUBMITTED` fence, then Chrome Use returned an EOF/daemon-busy
+error during `fill`; no URL or response was captured and Worker-2 was not
+started. The run was stopped without retrying. The read-only receipt is
+`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_167473a.json`; its result is
+`BLOCKED`, with `retry_count: 0`. This is LIVE_VERIFIED failure evidence, not
+an acceptance pass.

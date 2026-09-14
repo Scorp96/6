@@ -4,7 +4,7 @@ import pathlib
 import tempfile
 import unittest
 
-from tools.v4_live_two_worker_canary import main
+from tools.v4_live_two_worker_canary import failure_evidence, main
 
 
 class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
@@ -21,6 +21,19 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
             )
             self.assertEqual(2, result)
             self.assertFalse((root / "evidence.json").exists())
+
+    def test_failure_evidence_is_blocked_and_records_ambiguous_intent_without_retry(self):
+        receipt = failure_evidence(
+            project_id="p",
+            error=RuntimeError("daemon busy"),
+            intents=[
+                {"intent_id": "i", "state": "MAY_HAVE_SUBMITTED", "conversation_url": None},
+            ],
+        )
+        self.assertEqual("BLOCKED", receipt["result"])
+        self.assertEqual("RuntimeError", receipt["error_type"])
+        self.assertEqual(0, receipt["retry_count"])
+        self.assertEqual("MAY_HAVE_SUBMITTED", receipt["intents"][0]["state"])
 
 
 if __name__ == "__main__":

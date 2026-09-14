@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from collections.abc import Mapping
 from typing import Any
 
@@ -71,8 +72,20 @@ class BrowserAdapter:
             observation = self.engine.submit(self._engine_intent(persisted))
         except InjectedCrash:
             raise
-        except Exception:
-            raise
+        except Exception as exc:
+            # Once MAY_HAVE_SUBMITTED is durable, a transport exception is
+            # ambiguous even when the client reports an EOF before returning a
+            # response. Preserve the side-effect fence and make the blocker
+            # explicit; callers must reconcile read-only before any retry.
+            message = str(exc)
+            return self.store.block_intent(
+                intent_id,
+                reason="SUBMIT_EXCEPTION_AMBIGUOUS",
+                observation={
+                    "error_type": type(exc).__name__,
+                    "error_message_sha256": hashlib.sha256(message.encode("utf-8")).hexdigest(),
+                },
+            )
         self._crash("after_remote_submit")
         if not isinstance(observation, Mapping):
             return self.store.block_intent(

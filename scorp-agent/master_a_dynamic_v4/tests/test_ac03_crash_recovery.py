@@ -116,6 +116,25 @@ class CrashRecoveryTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_transport_exception_after_intent_fence_is_explicitly_blocked_ambiguous(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, engine, _ = self.make_runtime(root)
+
+            def failed_submit(_intent):
+                raise RuntimeError("CHROME_USE_EOF_DAEMON_BUSY")
+
+            engine.submit = failed_submit
+            try:
+                result = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
+                self.assertEqual("SUBMIT_EXCEPTION_AMBIGUOUS", result["ambiguity_reason"])
+                self.assertEqual("RuntimeError", __import__("json").loads(result["observation_json"])["error_type"])
+            finally:
+                store.close()
+
 
 if __name__ == "__main__":
     unittest.main()
