@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import unittest
 
 
@@ -73,7 +74,13 @@ class SpecContractTests(unittest.TestCase):
         self.assertEqual("SHORT_SOAK_PERFORMANCE", spec["acceptance"]["AC12"]["mode"])
         self.assertGreaterEqual(spec["acceptance"]["AC12"]["requested_duration_seconds"], 1)
         self.assertFalse(spec["acceptance"]["AC12"]["long_duration_stability_proven"])
-        self.assertEqual("682005bb1edab6149517b2fa7398fd63dbda945f", spec["candidate_commit"])
+        self.assertRegex(spec["candidate_commit"], re.compile(r"^[0-9a-f]{40}$"))
+        validation = json.loads(
+            (REPO_ROOT / "docs" / "handoffs" / "SCORP_V4_GIT6_VALIDATION.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(validation["validated_commit"], spec["candidate_commit"])
 
     def test_yaml_marks_legacy_paths_soft_deprecated_without_deletion(self):
         spec = self.load_spec()
