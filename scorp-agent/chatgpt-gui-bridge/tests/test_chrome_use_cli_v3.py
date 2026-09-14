@@ -58,6 +58,29 @@ class ChromeUseCliV3Tests(unittest.TestCase):
             asyncio.run(cli.run_json('scorp-p0-a', 'status', timeout_seconds=9))
         self.assertEqual(1, len(calls))
 
+    def test_run_json_serializes_commands_for_one_chrome_use_daemon(self):
+        active = 0
+        maximum = 0
+
+        async def runner(argv, timeout_seconds):
+            nonlocal active, maximum
+            active += 1
+            maximum = max(maximum, active)
+            await asyncio.sleep(0.03)
+            active -= 1
+            return 0, '{"ok":true}', ''
+
+        cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner)
+
+        async def exercise():
+            return await asyncio.gather(
+                cli.run_json('worker-a', 'read', timeout_seconds=2),
+                cli.run_json('worker-b', 'read', timeout_seconds=2),
+            )
+
+        self.assertEqual([{"ok": True}, {"ok": True}], asyncio.run(exercise()))
+        self.assertEqual(1, maximum)
+
     def test_default_runner_timeout_returns_even_when_child_keeps_pipes_open(self):
         class FakeProcess:
             def __init__(self):

@@ -3,6 +3,17 @@ from __future__ import annotations
 import asyncio
 import json
 import tempfile
+import threading
+
+
+_DAEMON_LOCKS: dict[str, threading.Lock] = {}
+_DAEMON_LOCKS_GUARD = threading.Lock()
+
+
+def _daemon_lock(executable: str) -> threading.Lock:
+    key = str(executable).strip().casefold()
+    with _DAEMON_LOCKS_GUARD:
+        return _DAEMON_LOCKS.setdefault(key, threading.Lock())
 
 
 async def _terminate_process(proc):
@@ -46,6 +57,7 @@ class ChromeUseCliV3:
         if not self.executable:
             raise ValueError("CHROME_USE_EXECUTABLE_EMPTY")
         self.runner = runner or _default_runner
+        self._daemon_mutex = _daemon_lock(self.executable)
 
     async def run_json(self, session, *args, timeout_seconds=30):
         session = str(session or "").strip()
@@ -61,7 +73,23 @@ class ChromeUseCliV3:
             "--json",
             *[str(value) for value in args],
         ]
-        returncode, stdout, stderr = await self.runner(argv, timeout_seconds)
+        # The Chrome Use relay is a single command daemon even when logical
+        # sessions differ. Serialize subprocess requests across driver
+        # instances so two Worker threads cannot make the relay return an EOF
+        # or ``daemon may be busy`` response. This is transport serialization,
+        # not a duplicate-submit retry; the durable browser intent remains the
+        # side-effect fence.
+        acquired = await asyncio.to_thread(
+            self._daemon_mutex.acquire,
+            True,
+            timeout_seconds,
+        )
+        if not acquired:
+            raise RuntimeError("CHROME_USE_DAEMON_BUSY_LOCAL_LOCK")
+        try:
+            returncode, stdout, stderr = await self.runner(argv, timeout_seconds)
+        finally:
+            self._daemon_mutex.release()
         if int(returncode) != 0:
             detail = (stderr or stdout or "").strip()
             raise RuntimeError(f"CHROME_USE_EXIT_{int(returncode)}: {detail}")
