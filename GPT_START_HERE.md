@@ -239,6 +239,13 @@ production unattended run. The browser side effects began before the final
 binding; the final candidate's transient-URL behavior is covered by regression
 tests and was used for the read-only reconciliation.
 
+For a new live check, use
+`scorp-agent/chatgpt-gui-bridge/tools/v4_live_two_worker_canary.py`. It refuses
+to send by default. A deliberate run must provide `--send-canary`, an already
+authenticated Chrome Use session, a new empty SQLite path, and an evidence
+path. The two prompts are fixed marker-only messages; the script never reads
+repository files as Worker input.
+
 ## Production boundary
 
 Do not replace the Windows scheduled task, copy state into production, or change
