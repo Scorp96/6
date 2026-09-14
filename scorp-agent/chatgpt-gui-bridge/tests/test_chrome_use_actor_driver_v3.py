@@ -91,6 +91,16 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual('STOPPED', second['cleanup'])
             self.assertEqual([['session', 'stop']], [args for _, args, _ in cli.calls])
 
+    def test_retiring_worker_assignment_keeps_persistent_slot_reusable(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            url = 'https://chatgpt.com/c/reusable-worker'
+            session = driver.bind_turn('worker-turn-old', url, actor_kind='WORKER')
+            result = asyncio.run(driver.retire_turn('worker-turn-old', reason='slot released'))
+            self.assertEqual('NOT_REQUESTED', result['cleanup'])
+            self.assertEqual('ACTIVE', driver.lifecycle_snapshot()[session]['status'])
+            self.assertEqual(session, driver.bind_turn('worker-turn-new', url, actor_kind='WORKER'))
+
     def test_cleanup_timeout_is_recorded_as_blocked_without_retry(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()

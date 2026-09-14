@@ -380,9 +380,16 @@ class ChromeUseActorDriverV3:
             lifecycle["updated_at"] = self._now()
             lifecycle["active_turn_ids"] = active
             if not active:
-                lifecycle["status"] = "RETIRED"
-                lifecycle["retired_at"] = self._now()
-                lifecycle["retired_reason"] = reason
+                # Retiring an assignment is not the same as retiring a
+                # persistent Master/Worker slot.  Keep those sessions ACTIVE
+                # for later slot reuse unless the caller explicitly requests
+                # a stop and has opted into persistent cleanup.
+                if stop:
+                    lifecycle["status"] = "RETIRED"
+                    lifecycle["retired_at"] = self._now()
+                    lifecycle["retired_reason"] = reason
+                else:
+                    lifecycle["status"] = "ACTIVE"
             self._save(state)
         cleanup = "NOT_REQUESTED"
         if stop and not active:
