@@ -97,6 +97,22 @@ The machine sequence is:
 The V4 package does not allow a Worker to rewrite the root contract, increase
 capacity, bypass a lease, or declare final completion.
 
+## Master A control surface
+
+The logical Master A must use the gateway facade instead of opening SQLite and
+editing tables itself. After `ensure_contract()` succeeds, the handoff order is:
+
+1. Read `describe()` and call `acquire_master_epoch(expected_epoch=...)`.
+2. Submit a validated proposal with `commit_master_proposal()` using the
+   observed `state_version` and `master_epoch`.
+3. For a task graph, call `enqueue_graph()` and then `claim_workers(limit=2)`.
+4. Re-read state after each verified Worker result and submit the next proposal
+   or a `REPLAN` proposal. A stale version or epoch returns a conflict/fenced
+   result and must trigger a fresh read, never a blind retry.
+
+The facade makes the GPT-to-transaction boundary explicit; it does not make
+model reasoning or browser conversation creation automatic.
+
 ## Existing browser bridge
 
 The legacy bridge source is under `scorp-agent/chatgpt-gui-bridge/`. Its current

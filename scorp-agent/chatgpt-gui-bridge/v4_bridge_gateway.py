@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+from master_a_dynamic_v4.models import CommitResult
 from master_a_dynamic_v4.path_policy import PathPolicy
 from master_a_dynamic_v4.recovery import recover_pending_intents
 from master_a_dynamic_v4.scheduler import Scheduler, SchedulerError
@@ -84,6 +85,38 @@ class V4BridgeGateway:
 
     def enqueue_graph(self, tasks: Sequence[Mapping[str, Any]]) -> None:
         self.scheduler.enqueue_graph(tasks)
+
+    def acquire_master_epoch(self, *, expected_epoch: int) -> int:
+        """Fence a new logical Master A incarnation in the transaction core."""
+        return self.store.advance_master_epoch(
+            self.project_id, expected_epoch=int(expected_epoch)
+        )
+
+    def commit_master_proposal(
+        self,
+        transition_id: str,
+        proposal: Mapping[str, Any],
+        *,
+        evidence_refs: Sequence[str] = (),
+        expected_version: int | None = None,
+        master_epoch: int | None = None,
+    ) -> CommitResult:
+        """Submit a validated Master A proposal through StateStore's CAS gate.
+
+        Callers should pass the state version and epoch they observed. Omitting
+        either uses the current snapshot for convenience, while explicit stale
+        values remain fenced and cannot overwrite newer state.
+        """
+        state = self.store.get_project_state(self.project_id)
+        version = int(state["state_version"]) if expected_version is None else int(expected_version)
+        epoch = int(state["master_epoch"]) if master_epoch is None else int(master_epoch)
+        return self.store.commit(
+            version,
+            epoch,
+            transition_id,
+            proposal,
+            evidence_refs,
+        )
 
     def claim_workers(self, *, master_epoch: int = 0, limit: int = 2, now=None):
         """Atomically claim up to two runnable dynamic Worker assignments."""

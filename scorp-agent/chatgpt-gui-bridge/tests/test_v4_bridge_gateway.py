@@ -11,6 +11,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from v4_bridge_gateway import QueueConfig, V4BridgeGateway
 from gui_engine import ChatGptGuiEngine
+from master_a_dynamic_v4.models import CommitResult
 from master_a_dynamic_v4.scheduler import SchedulerError
 
 
@@ -87,6 +88,44 @@ class V4GatewayTests(unittest.TestCase):
                 after = gateway.describe()
                 self.assertEqual(before['state_version'], after['state_version'])
                 self.assertEqual(0, after['pending_intents'])
+            finally:
+                gateway.close()
+
+    def test_master_facade_fences_epoch_and_commits_idempotently(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            gateway = V4BridgeGateway(
+                root / 'state.sqlite3', 'project-master', [worktree], FakeEngine()
+            )
+            try:
+                gateway.ensure_contract(
+                    {'objective': 'master facade'}, {'required': ['AC-MASTER']}
+                )
+                epoch = gateway.acquire_master_epoch(expected_epoch=0)
+                self.assertEqual(1, epoch)
+                proposal = {
+                    'project_id': 'project-master',
+                    'master_identity': 'A',
+                    'kind': 'SET_PHASE',
+                    'phase': 'PLANNING',
+                }
+                committed = gateway.commit_master_proposal(
+                    'transition-master-1', proposal, master_epoch=epoch, expected_version=0
+                )
+                self.assertEqual(CommitResult.COMMITTED, committed)
+                replay = gateway.commit_master_proposal(
+                    'transition-master-1', proposal, master_epoch=epoch, expected_version=0
+                )
+                self.assertEqual(CommitResult.ALREADY_COMMITTED, replay)
+                self.assertEqual('PLANNING', gateway.store.get_project_state('project-master')['phase'])
+
+                next_epoch = gateway.acquire_master_epoch(expected_epoch=epoch)
+                self.assertEqual(2, next_epoch)
+                stale = gateway.commit_master_proposal(
+                    'transition-master-stale', proposal, master_epoch=epoch, expected_version=1
+                )
+                self.assertEqual(CommitResult.FENCED, stale)
             finally:
                 gateway.close()
 
