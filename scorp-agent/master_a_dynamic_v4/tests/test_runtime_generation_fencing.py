@@ -27,6 +27,15 @@ class _Engine:
         return {"status": "VERIFIED_NOT_SUBMITTED", "proof": "read-only-proof"}
 
 
+class _ExecutionAdapter:
+    def __init__(self):
+        self.calls = 0
+
+    def execute(self, *args, **kwargs):
+        self.calls += 1
+        return {"assignment_id": "a1", "task_id": "t1", "exit_code": 0}
+
+
 class GenerationFenceTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -81,6 +90,38 @@ class GenerationFenceTests(unittest.TestCase):
         with self.assertRaisesRegex(StoreInvariantError, "OPERATOR_GENERATION_FENCED"):
             self.store.begin_possible_submit("intent-2")
         self.assertEqual("PREPARED", self.store.get_intent("intent-2")["state"])
+
+    def test_paused_generation_blocks_local_execution_adapter(self):
+        from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
+        from master_a_dynamic_v4.scheduler import AssignmentClaim
+
+        class Gateway:
+            project_id = "p1"
+
+            def __init__(self, store):
+                self.store = store
+
+        root = self.root / "work"
+        root.mkdir()
+        claim = AssignmentClaim(
+            assignment_id="a1", project_id="p1", task_id="t1", worker_id="w1",
+            slot_id="worker-slot-1", lease_token="lease-1", master_epoch=0,
+            base_state_version=0, objective_sha256="a" * 64, resource_scope=(str(root),),
+            access_mode="read", expires_at="2099-01-01T00:00:00Z",
+        )
+        adapter = _ExecutionAdapter()
+        controller = MasterAController(Gateway(self.store), "master-1", execution_adapter=adapter)
+        self._pause()
+        with self.assertRaises(ControllerRejected):
+            controller._execute_request(
+                claim,
+                {
+                    "module": "master_a_dynamic_v4.csv_workload.cli",
+                    "args": [], "working_directory": str(root), "resource_paths": [],
+                    "access_mode": "read", "timeout_seconds": 10,
+                },
+            )
+        self.assertEqual(0, adapter.calls)
 
 
 if __name__ == "__main__":
