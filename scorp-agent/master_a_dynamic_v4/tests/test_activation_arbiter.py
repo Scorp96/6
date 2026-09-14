@@ -84,6 +84,35 @@ class ActivationArbiterTests(unittest.TestCase):
         self.assertEqual("READY_TASKS_AND_FREE_SLOT", decision.reason)
         self.assertEqual(1, decision.capacity)
 
+    def test_confirmed_stall_recovery_precedes_new_assignment(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p", project_status="ACTIVE", master_epoch=1, daemon_epoch=2,
+                master_active=True, active_workers=0, free_slots=2, ready_tasks=1,
+                ambiguous_intents=0, progress_state="STALLED_CONFIRMED",
+            )
+        )
+        self.assertEqual("RECOVER_STALLED", decision.action)
+
+    def test_operator_fence_and_pending_result_wakeup_precede_assignment(self):
+        paused = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p", project_status="ACTIVE", master_epoch=1, daemon_epoch=2,
+                master_active=True, active_workers=0, free_slots=2, ready_tasks=1,
+                ambiguous_intents=0, operator_state="PAUSED",
+            )
+        )
+        self.assertEqual("BLOCKED", paused.action)
+        self.assertEqual("OPERATOR_FENCE_PAUSED", paused.reason)
+        wake = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p", project_status="ACTIVE", master_epoch=1, daemon_epoch=2,
+                master_active=True, active_workers=0, free_slots=2, ready_tasks=1,
+                ambiguous_intents=0, pending_results=1,
+            )
+        )
+        self.assertEqual("WAKE_MASTER", wake.action)
+
     def test_idle_is_distinct_from_liveness_failure(self):
         decision = self.arbiter.decide(
             ArbiterSnapshot(

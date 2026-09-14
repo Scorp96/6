@@ -27,6 +27,11 @@ class ArbiterSnapshot:
     progress_state: str = "IDLE"
     stale_results: int = 0
     auth_blocked: bool = False
+    operator_state: str = "ACTIVE"
+    auth_host_blocker: str | None = None
+    pending_results: int = 0
+    active_worker_lost: bool = False
+    browser_semantic_state: str = "UNKNOWN"
 
     def as_dict(self) -> dict[str, object]:
         return dataclasses.asdict(self)
@@ -72,7 +77,7 @@ class ActivationArbiter:
             raise ValueError("PROJECT_ID_EMPTY")
         if value.master_epoch < 0 or value.daemon_epoch < 0:
             raise ValueError("EPOCH_INVALID")
-        if min(value.active_workers, value.free_slots, value.ready_tasks, value.ambiguous_intents, value.stale_results) < 0:
+        if min(value.active_workers, value.free_slots, value.ready_tasks, value.ambiguous_intents, value.stale_results, value.pending_results) < 0:
             raise ValueError("SNAPSHOT_COUNT_INVALID")
 
         raw = json.dumps(value.as_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -83,19 +88,25 @@ class ActivationArbiter:
 
         if value.project_status in {"COMPLETE", "HARD_BLOCKED", "TERMINAL"}:
             action, reason = "TERMINAL", "PROJECT_TERMINAL"
-        elif value.auth_blocked:
-            action, reason = "BLOCKED", "AUTHENTICATION_REQUIRED"
+        elif str(value.operator_state) not in {"", "ACTIVE"}:
+            action, reason = "BLOCKED", f"OPERATOR_FENCE_{str(value.operator_state).upper()}"
+        elif value.auth_blocked or value.auth_host_blocker:
+            action, reason = "BLOCKED", str(value.auth_host_blocker or "AUTHENTICATION_REQUIRED")
         elif value.ambiguous_intents:
             action, reason = "RECONCILE_AMBIGUOUS", "AMBIGUOUS_BROWSER_SIDE_EFFECT"
         elif value.stale_results:
             action, reason = "FENCE_STALE_RESULTS", "STALE_RESULT_REQUIRES_FENCING"
         elif not value.master_active:
             action, reason = "RESUME_MASTER", "MASTER_LEASE_MISSING"
+        elif value.pending_results:
+            action, reason = "WAKE_MASTER", "PENDING_RESULT_REQUIRES_MASTER_WAKE"
+        elif value.active_worker_lost:
+            action, reason = "RESUME_WORKER", "WORKER_LEASE_LOST"
+        elif value.progress_state == "STALLED_CONFIRMED":
+            action, reason = "RECOVER_STALLED", "PROGRESS_STALLED"
         elif value.ready_tasks and value.free_slots:
             action, reason = "ASSIGN_WORKER", "READY_TASKS_AND_FREE_SLOT"
             capacity = min(value.ready_tasks, value.free_slots)
-        elif value.progress_state == "STALLED_CONFIRMED":
-            action, reason = "RECOVER_STALLED", "PROGRESS_STALLED"
 
         decision_material = {
             "project_id": value.project_id,

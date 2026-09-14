@@ -566,8 +566,19 @@ class StateStore:
                 """,
                 (project,),
             ).fetchone()[0])
+            control = conn.execute(
+                "SELECT operator_state FROM operator_controls WHERE project_id=?", (project,)
+            ).fetchone()
+            observation = conn.execute(
+                "SELECT progress_state,auth_host_blocker,browser_semantic_state FROM runtime_observations WHERE project_id=?",
+                (project,),
+            ).fetchone()
+            pending_results = int(conn.execute(
+                "SELECT COUNT(*) FROM candidate_results WHERE project_id=? AND verification_state='PENDING'",
+                (project,),
+            ).fetchone()[0])
             free_slots = max(0, 2 - active_workers)
-            progress_state = "ACTIVE_NO_VISIBLE_PROGRESS" if active_workers else "IDLE"
+            progress_state = str(observation["progress_state"]) if observation is not None else ("ACTIVE_NO_VISIBLE_PROGRESS" if active_workers else "IDLE")
             return ArbiterSnapshot(
                 project_id=project,
                 project_status=str(state["status"]),
@@ -580,6 +591,10 @@ class StateStore:
                 ambiguous_intents=ambiguous,
                 progress_state=progress_state,
                 stale_results=stale,
+                operator_state=str(control["operator_state"]) if control is not None else "ACTIVE",
+                auth_host_blocker=str(observation["auth_host_blocker"]) if observation is not None and observation["auth_host_blocker"] else None,
+                pending_results=pending_results,
+                browser_semantic_state=str(observation["browser_semantic_state"]) if observation is not None else "UNKNOWN",
             )
 
     def advance_master_epoch(self, project_id: str, *, expected_epoch: int) -> int:

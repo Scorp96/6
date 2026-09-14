@@ -96,6 +96,23 @@ class LocalDaemonTests(unittest.TestCase):
             self.assertEqual("RECONCILE_AMBIGUOUS", result.action)
             self.assertEqual("BLOCKED", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
 
+    def test_idle_updates_observation_but_not_progress_timestamp(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 2, 0, 0),
+                health_path=root / "health.json",
+            )
+            daemon.run_once()
+            observation = store.get_runtime_observation("p")
+            self.assertEqual("IDLE", observation["progress_state"])
+            self.assertIsNone(observation["last_progress_at"])
+
 
 if __name__ == "__main__":
     unittest.main()

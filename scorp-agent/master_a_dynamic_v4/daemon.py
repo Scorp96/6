@@ -102,8 +102,19 @@ class LocalDaemon:
             except Exception:
                 self._write_health(status="BLOCKED", snapshot=snapshot, error="DAEMON_LEASE_HEARTBEAT_FAILED")
                 raise
-        if snapshot.progress_state in {"ACTIVE_GENERATING", "IDLE"}:
+        if snapshot.progress_state == "ACTIVE_GENERATING":
             self._last_progress_at = _now()
+        try:
+            self.store.record_runtime_observation(
+                self.project_id,
+                progress_state=snapshot.progress_state,
+                browser_semantic_state=getattr(snapshot, "browser_semantic_state", "UNKNOWN"),
+                auth_host_blocker=getattr(snapshot, "auth_host_blocker", None),
+                observed_at=_now(),
+            )
+        except Exception as exc:
+            self._write_health(status="BLOCKED", snapshot=snapshot, error=f"RUNTIME_OBSERVATION_FAILED:{type(exc).__name__}")
+            raise
 
         decision = self.arbiter.decide(snapshot)
         self.store.record_activation_decision(decision.as_dict())
@@ -164,6 +175,7 @@ class LocalDaemon:
             "liveness": {
                 "state": snapshot.progress_state,
                 "last_progress_at": self._last_progress_at,
+                "observed_at": _now(),
             },
             "error": error,
         }
