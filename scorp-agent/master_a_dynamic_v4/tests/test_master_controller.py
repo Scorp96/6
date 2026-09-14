@@ -179,9 +179,37 @@ class _Claim:
 class _FakeStore:
     def __init__(self, gateway):
         self.gateway = gateway
+        self.local_intents = {}
 
     def get_intent(self, intent_id):
         return self.gateway.intents[intent_id]
+
+    def prepare_intent(self, project_id, intent_id, *, actor_id, channel, action_kind, payload):
+        row = self.local_intents.setdefault(
+            intent_id,
+            {
+                "intent_id": intent_id,
+                "project_id": project_id,
+                "actor_id": actor_id,
+                "channel": channel,
+                "action_kind": action_kind,
+                "state": "PREPARED",
+                "response_json": None,
+            },
+        )
+        return row
+
+    def begin_possible_submit(self, intent_id):
+        self.local_intents[intent_id]["state"] = "MAY_HAVE_SUBMITTED"
+        return self.local_intents[intent_id]
+
+    def capture_local_execution(self, intent_id, *, receipt, observation):
+        self.local_intents[intent_id]["state"] = "RESPONSE_CAPTURED"
+        self.local_intents[intent_id]["response_json"] = json.dumps(receipt)
+        return self.local_intents[intent_id]
+
+    def finalize_intent(self, intent_id):
+        self.local_intents[intent_id]["state"] = "COMPLETED"
 
 
 class _FakeGateway:
@@ -273,10 +301,14 @@ class _FakeGateway:
 class _FakeExecutionReceipt:
     exit_code = 0
 
+    def __init__(self, assignment_id, task_id):
+        self.assignment_id = assignment_id
+        self.task_id = task_id
+
     def as_dict(self):
         return {
-            "assignment_id": "assignment-placeholder",
-            "task_id": "T1",
+            "assignment_id": self.assignment_id,
+            "task_id": self.task_id,
             "command": ["python", "-m", "module"],
             "working_directory": "C:/lab",
             "exit_code": 0,
@@ -296,7 +328,7 @@ class _FakeExecutionAdapter:
 
     def execute(self, claim, **request):
         self.calls.append(dict(request))
-        return _FakeExecutionReceipt()
+        return _FakeExecutionReceipt(claim.assignment_id, claim.task_id)
 
 
 def _result_for_claim(claim):

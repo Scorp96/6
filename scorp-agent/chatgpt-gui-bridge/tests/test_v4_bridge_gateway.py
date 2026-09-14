@@ -168,6 +168,16 @@ class V4GatewayTests(unittest.TestCase):
                     ).fetchone()
                 self.assertIsNotNone(result_row)
                 self.assertIn('execution_receipt', json.loads(result_row['payload_json']))
+                with gateway.store._connection() as conn:
+                    execution_intent = conn.execute(
+                        """
+                        SELECT i.state,o.state AS outbox_state
+                        FROM action_intents i JOIN outbox o ON o.intent_id=i.intent_id
+                        WHERE i.project_id=? AND i.action_kind='LOCAL_EXECUTION'
+                        """,
+                        ('project-exec-controller',),
+                    ).fetchone()
+                self.assertEqual(('RESPONSE_CAPTURED', 'COMPLETED'), tuple(execution_intent))
                 self.assertEqual(1, engine.submits)
             finally:
                 gateway.close()

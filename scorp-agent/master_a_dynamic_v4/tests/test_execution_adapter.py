@@ -135,6 +135,51 @@ class ExecutionAdapterTests(unittest.TestCase):
                     access_mode="read",
                 )
 
+    def test_recovery_never_replays_unresolved_local_execution_intent(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        from master_a_dynamic_v4.recovery import recover_pending_intents
+        from master_a_dynamic_v4.state_store import StateStore
+
+        class Engine:
+            def __init__(self):
+                self.reconcile_calls = 0
+
+            def reconcile(self, _intent):
+                self.reconcile_calls += 1
+                return {"status": "RESPONSE_CAPTURED"}
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", allowed_roots=[root])
+            engine = Engine()
+            try:
+                store.create_contract(
+                    "local-recovery",
+                    root_contract={"objective": "local"},
+                    acceptance_contract={"required": ["AC"]},
+                )
+                store.prepare_intent(
+                    "local-recovery",
+                    "execution-intent-recovery",
+                    actor_id="worker-1",
+                    channel="execution/worker-slot-1",
+                    action_kind="LOCAL_EXECUTION",
+                    payload={"assignment_id": "assignment-recovery", "request": {"module": "x"}},
+                )
+                store.begin_possible_submit("execution-intent-recovery")
+                outcomes = recover_pending_intents(BrowserAdapter(store, engine))
+                self.assertEqual(
+                    [("execution-intent-recovery", "LOCAL_EXECUTION_RECONCILIATION_REQUIRED")],
+                    outcomes,
+                )
+                self.assertEqual(0, engine.reconcile_calls)
+                self.assertEqual(
+                    "MAY_HAVE_SUBMITTED",
+                    store.get_intent("execution-intent-recovery")["state"],
+                )
+            finally:
+                store.close()
+
 
 if __name__ == "__main__":
     unittest.main()

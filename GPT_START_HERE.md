@@ -193,6 +193,12 @@ content hash is recomputed before SQLite verification. If no adapter is
 configured, or the local process fails, the result is rejected and the task
 does not advance.
 
+Local execution uses the same durable intent/outbox boundary as browser I/O.
+The process is never started before `MAY_HAVE_SUBMITTED` is committed. A
+restart that finds an unresolved local execution intent reports
+`LOCAL_EXECUTION_RECONCILIATION_REQUIRED` and does not rerun the process;
+there is no fabricated exactly-once claim for an OS subprocess.
+
 The implementation is in
 `scorp-agent/master_a_dynamic_v4/master_controller.py`, with an actual
 `V4BridgeGateway` integration test in

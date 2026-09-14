@@ -81,6 +81,12 @@ local receipt causes the result content hash to be recomputed. Missing adapter,
 invalid request, nonzero exit, or scope mismatch leaves the Worker result
 unaccepted.
 
+The local process follows a durable `action_intents/outbox` lifecycle. SQLite
+commits `MAY_HAVE_SUBMITTED` before `subprocess.run`; a captured receipt is
+stored as `RESPONSE_CAPTURED` and the outbox is finalized. If a restart finds
+an unresolved local intent, recovery reports
+`LOCAL_EXECUTION_RECONCILIATION_REQUIRED` and never replays the process.
+
 ## Quick simulated check
 
 The gateway tests use a fake browser engine and verify the local path:

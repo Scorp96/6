@@ -356,7 +356,50 @@ class MasterAController:
             timeout_seconds = int(request.get("timeout_seconds", 300))
         except (TypeError, ValueError) as exc:
             raise ControllerRejected("EXECUTION_REQUEST_TIMEOUT_INVALID") from exc
+        intent_id = f"execution-intent-{claim.assignment_id}"
+        intent_payload = {
+            "assignment_id": claim.assignment_id,
+            "task_id": claim.task_id,
+            "master_epoch": claim.master_epoch,
+            "lease_token": claim.lease_token,
+            "request": dict(request),
+        }
         try:
+            intent = self.gateway.store.prepare_intent(
+                self.project_id,
+                intent_id,
+                actor_id=claim.worker_id,
+                channel=f"execution/{claim.slot_id}",
+                action_kind="LOCAL_EXECUTION",
+                payload=intent_payload,
+            )
+        except Exception as exc:
+            raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_REJECTED:{exc}") from exc
+        intent_state = str(intent.get("state") or "")
+        if intent_state == "RESPONSE_CAPTURED":
+            try:
+                receipt = json.loads(str(intent.get("response_json") or "{}"))
+            except (TypeError, ValueError) as exc:
+                raise ControllerRejected("LOCAL_EXECUTION_RECEIPT_INVALID") from exc
+            if not isinstance(receipt, Mapping):
+                raise ControllerRejected("LOCAL_EXECUTION_RECEIPT_INVALID")
+            if (
+                str(receipt.get("assignment_id") or "") != claim.assignment_id
+                or str(receipt.get("task_id") or "") != claim.task_id
+            ):
+                raise ControllerRejected("LOCAL_EXECUTION_RECEIPT_IDENTITY_MISMATCH")
+            try:
+                if int(receipt.get("exit_code")) != 0:
+                    raise ControllerRejected(f"LOCAL_EXECUTION_FAILED:{receipt.get('exit_code')}")
+            except (TypeError, ValueError) as exc:
+                raise ControllerRejected("EXECUTION_RECEIPT_EXIT_CODE_INVALID") from exc
+            return dict(receipt)
+        if intent_state in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS", "CONFIRMED_SUBMITTED"}:
+            raise ControllerRejected("LOCAL_EXECUTION_RECONCILIATION_REQUIRED")
+        if intent_state not in {"PREPARED", "VERIFIED_NOT_SUBMITTED"}:
+            raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_STATE_INVALID:{intent_state}")
+        try:
+            self.gateway.store.begin_possible_submit(intent_id)
             receipt = self.execution_adapter.execute(
                 claim,
                 module=str(request.get("module") or ""),
@@ -370,16 +413,72 @@ class MasterAController:
                 timeout_seconds=timeout_seconds,
             )
         except ExecutionAdapterRejected as exc:
+            self.gateway.store.block_intent(
+                intent_id,
+                reason=f"LOCAL_EXECUTION_REJECTED:{exc}",
+                observation={"error": str(exc), "intent_state": "MAY_HAVE_SUBMITTED"},
+            )
             raise ControllerRejected(f"LOCAL_EXECUTION_REJECTED:{exc}") from exc
-        if int(receipt.exit_code) != 0:
-            raise ControllerRejected(f"LOCAL_EXECUTION_FAILED:{receipt.exit_code}")
+        except Exception as exc:
+            self.gateway.store.block_intent(
+                intent_id,
+                reason="LOCAL_EXECUTION_EXCEPTION",
+                observation={"error": type(exc).__name__, "intent_state": "MAY_HAVE_SUBMITTED"},
+            )
+            raise ControllerRejected("LOCAL_EXECUTION_EXCEPTION") from exc
+        raw_exit_code = receipt.exit_code if hasattr(receipt, "exit_code") else (
+            receipt.get("exit_code") if isinstance(receipt, Mapping) else None
+        )
+        try:
+            exit_code = int(raw_exit_code)
+        except (TypeError, ValueError) as exc:
+            self.gateway.store.block_intent(
+                intent_id,
+                reason="EXECUTION_RECEIPT_EXIT_CODE_INVALID",
+                observation={"type": type(raw_exit_code).__name__},
+            )
+            raise ControllerRejected("EXECUTION_RECEIPT_EXIT_CODE_INVALID") from exc
+        if exit_code != 0:
+            self.gateway.store.block_intent(
+                intent_id,
+                reason=f"LOCAL_EXECUTION_FAILED:{exit_code}",
+                observation={"exit_code": exit_code},
+            )
+            raise ControllerRejected(f"LOCAL_EXECUTION_FAILED:{exit_code}")
         if hasattr(receipt, "as_dict"):
             value = receipt.as_dict()
         elif isinstance(receipt, Mapping):
             value = dict(receipt)
         else:
+            self.gateway.store.block_intent(
+                intent_id,
+                reason="EXECUTION_RECEIPT_INVALID",
+                observation={"type": type(receipt).__name__},
+            )
             raise ControllerRejected("EXECUTION_RECEIPT_INVALID")
-        return value
+        if (
+            str(value.get("assignment_id") or "") != claim.assignment_id
+            or str(value.get("task_id") or "") != claim.task_id
+        ):
+            self.gateway.store.block_intent(
+                intent_id,
+                reason="EXECUTION_RECEIPT_IDENTITY_MISMATCH",
+                observation={"assignment_id": value.get("assignment_id"), "task_id": value.get("task_id")},
+            )
+            raise ControllerRejected("EXECUTION_RECEIPT_IDENTITY_MISMATCH")
+        try:
+            captured = self.gateway.store.capture_local_execution(
+                intent_id,
+                receipt=value,
+                observation={"exit_code": exit_code, "command": value.get("command", [])},
+            )
+            self.gateway.store.finalize_intent(intent_id)
+        except Exception as exc:
+            raise ControllerRejected("LOCAL_EXECUTION_CAPTURE_FAILED") from exc
+        try:
+            return json.loads(str(captured.get("response_json") or "{}"))
+        except (TypeError, ValueError) as exc:
+            raise ControllerRejected("LOCAL_EXECUTION_RECEIPT_INVALID") from exc
 
     def _require_epoch(self) -> int:
         if self.master_epoch is None:

@@ -873,6 +873,57 @@ class StateStore:
                 conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone()
             )
 
+    def capture_local_execution(
+        self,
+        intent_id: str,
+        *,
+        receipt: Mapping[str, Any],
+        observation: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Persist a local process receipt without pretending it is a browser turn."""
+
+        if not isinstance(receipt, Mapping) or not receipt:
+            raise StoreInvariantError("LOCAL_EXECUTION_RECEIPT_EMPTY")
+        if not isinstance(observation, Mapping) or not observation:
+            raise StoreInvariantError("LOCAL_EXECUTION_OBSERVATION_EMPTY")
+        response_value = dict(receipt)
+        with self._transaction() as conn:
+            row = conn.execute(
+                "SELECT action_kind,state FROM action_intents WHERE intent_id=?",
+                (intent_id,),
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("INTENT_NOT_FOUND")
+            if row["action_kind"] != "LOCAL_EXECUTION":
+                raise StoreInvariantError("INTENT_NOT_LOCAL_EXECUTION")
+            if row["state"] != IntentState.MAY_HAVE_SUBMITTED.value:
+                raise StoreInvariantError("LOCAL_EXECUTION_CAPTURE_STATE_INVALID")
+            conn.execute(
+                """
+                UPDATE action_intents
+                SET state=?,conversation_url=?,remote_identity=?,response_json=?,
+                    response_sha256=?,ambiguity_reason=NULL,observation_json=?,updated_at=?
+                WHERE intent_id=?
+                """,
+                (
+                    IntentState.RESPONSE_CAPTURED.value,
+                    f"local://{intent_id}",
+                    "local-process",
+                    canonical_json(response_value),
+                    sha256_json(response_value),
+                    canonical_json(dict(observation)),
+                    utc_now(),
+                    intent_id,
+                ),
+            )
+            conn.execute(
+                "UPDATE outbox SET state='PENDING_CLEANUP' WHERE intent_id=?",
+                (intent_id,),
+            )
+            return dict(
+                conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone()
+            )
+
     def finalize_intent(self, intent_id: str) -> None:
         with self._transaction() as conn:
             row = conn.execute(
