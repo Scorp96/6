@@ -219,6 +219,58 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual(5, raised.exception.diagnostics['prompt_length'])
             self.assertEqual(64, len(raised.exception.diagnostics['prompt_sha256']))
 
+    def test_submit_repairs_native_fill_with_key_event_type_before_click(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            conversation = 'https://chatgpt.com/c/live-key-event-repair'
+            cli.responses = [
+                {'success': True},
+                {'data': {'value': 'https://chatgpt.com/'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                # The native fill did not activate ChatGPT's controlled-input
+                # state, so the first post-fill snapshot has no Send control.
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {'data': {'refs': {
+                    'e11': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                    'e20': {'name': 'Send', 'role': 'button'},
+                }}},
+                {'success': True},
+                {'data': {'value': conversation}},
+                {'success': True, 'data': {'broughtToFront': True}},
+                {'data': {'snapshot': 'submitted'}},
+            ]
+            driver = self._driver(td, cli)
+            result = asyncio.run(driver.submit_prompt(
+                prompt='hello', turn_id='turn-key-event-repair', actor_kind='WORKER', conversation_url=None
+            ))
+            self.assertIn(conversation, result)
+            type_calls = [args for _, args, _ in cli.calls if args and args[0] == 'type']
+            self.assertEqual([['type', '@e11', 'hello', '--key-events', '--clear']], type_calls)
+            click_calls = [args for _, args, _ in cli.calls if args and args[0] == 'click']
+            self.assertEqual([['click', '@e20']], click_calls)
+
+    def test_submit_does_not_key_event_retry_when_stop_generating_is_visible(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [
+                {'success': True},
+                {'data': {'value': 'https://chatgpt.com/'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {'data': {'refs': {
+                    'e11': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                    'e21': {'name': 'Stop generating', 'role': 'button'},
+                }}},
+            ]
+            driver = self._driver(td, cli)
+            with self.assertRaisesRegex(ValueError, 'CHROME_USE_SEND_REF_COUNT_0'):
+                asyncio.run(driver.submit_prompt(
+                    prompt='hello', turn_id='turn-stop-visible', actor_kind='WORKER', conversation_url=None
+                ))
+            self.assertFalse(any(args and args[0] == 'type' for _, args, _ in cli.calls))
+
     def test_submit_accepts_chatgpt_root_query_redirect_before_new_conversation(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()

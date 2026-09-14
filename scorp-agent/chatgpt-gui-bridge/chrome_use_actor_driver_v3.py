@@ -328,6 +328,57 @@ class ChromeUseActorDriverV3:
                 raise SendControlResolutionError(str(exc), payload) from exc
             raise
 
+    async def _send_ref_after_input_repair(self, session, editor_ref, prompt):
+        """Resolve Send after a native fill that did not activate React state.
+
+        ChatGPT's composer can remain in its empty controlled-input state after
+        a browser-native fill.  In that state the Send control is absent from
+        the accessibility tree even though the CLI reports a successful fill.
+        A key-event type with ``--clear`` repairs that same unsent intent.  It
+        is deliberately skipped when a Stop-generating control is visible,
+        because that indicates an active response rather than an empty
+        composer and typing again could corrupt the session.
+        """
+        try:
+            return await self._send_ref(session)
+        except SendControlResolutionError as first_error:
+            labels = {
+                str(value or "").casefold()
+                for value in first_error.diagnostics.get("button_names", [])
+            }
+            if any(
+                marker in label
+                for label in labels
+                for marker in ("stop generating", "停止生成", "停止回答")
+            ):
+                first_error.add_context(key_event_repair="SKIPPED_ACTIVE_GENERATION")
+                raise
+            try:
+                await self.cli.run_json(
+                    session,
+                    "type",
+                    editor_ref,
+                    prompt,
+                    "--key-events",
+                    "--clear",
+                    timeout_seconds=self.timeout_seconds,
+                )
+            except Exception as exc:
+                first_error.add_context(
+                    key_event_repair="FAILED",
+                    key_event_error=type(exc).__name__,
+                )
+                raise first_error from exc
+            try:
+                return await self._send_ref(session)
+            except SendControlResolutionError as repaired_error:
+                repaired_error.add_context(
+                    key_event_repair="USED_BUT_SEND_CONTROL_STILL_MISSING",
+                    initial_snapshot_sha256=first_error.diagnostics.get("snapshot_sha256"),
+                    initial_button_names=first_error.diagnostics.get("button_names", []),
+                )
+                raise
+
     async def snapshot_conversation(self, conversation_url, *, window_handle=None):
         if window_handle is not None:
             raise ValueError("CHROME_USE_WINDOW_HANDLE_UNSUPPORTED")
@@ -410,7 +461,7 @@ class ChromeUseActorDriverV3:
         editor_ref = await self._editor_ref(session)
         await self.cli.run_json(session, "fill", editor_ref, prompt, timeout_seconds=self.timeout_seconds)
         try:
-            send_ref = await self._send_ref(session)
+            send_ref = await self._send_ref_after_input_repair(session, editor_ref, prompt)
         except SendControlResolutionError as exc:
             exc.add_context(
                 editor_ref=editor_ref,
