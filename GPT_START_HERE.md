@@ -153,6 +153,41 @@ the local engineering loop; it does not prove a live browser submission.
 The V4 package does not allow a Worker to rewrite the root contract, increase
 capacity, bypass a lease, or declare final completion.
 
+### Fast local runtime command core
+
+The isolated `feature/v4-fast-runtime-command-core` branch adds a small,
+versioned local command boundary. A browser or GPT connector sends one JSON
+request per line to `master_a_dynamic_v4.runtime_cli`; the command service reads
+SQLite and returns one JSON response per line. The request body cannot run a
+shell, Python expression, Git command, filesystem command, or browser action.
+
+Run it from the repository root with the bundled Windows runtime. The database
+must already contain the project contract and the `--daemon-epoch` must be the
+currently held local daemon epoch:
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+@'
+{"protocol_version":"scorp.runtime.command/1","request_id":"status-1","command":"runtime.status","project_id":"demo","payload":{}}
+'@ | & C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe -B -m master_a_dynamic_v4.runtime_cli `
+  --database C:\ScorpAgent\v4-runtime\state.sqlite3 `
+  --project-id demo `
+  --allowed-root C:\ScorpAgent\v4-runtime `
+  --daemon-epoch 1
+```
+
+Reads are `runtime.status`, `project.status`, `master.status`, and bounded
+`evidence.query`. Mutations are `project.pause`, `project.resume`,
+`project.cancel`, and `project.supersede`; each mutation must include both
+`expected_state_version` and `expected_daemon_epoch`. Reusing a `request_id`
+returns the durable receipt; reusing it with a different command or payload is
+rejected. A paused, cancelled, superseded, stale, or ambiguous browser intent
+cannot be blindly replayed.
+
+This command core is a local feature-branch implementation and a testable
+handoff surface. Its focused tests and offline regression do not prove live
+ChatGPT browser acceptance or production cutover.
+
 ### One-plan Master A runtime
 
 The repository now includes an operator-gated runtime for the actual browser

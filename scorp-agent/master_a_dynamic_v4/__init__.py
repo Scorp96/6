@@ -12,6 +12,9 @@ from .master_supervisor import MasterSupervisor, SupervisorDecision, SupervisorL
 from .master_controller import ControllerRejected, ControllerStep, MasterAController
 from .execution_adapter import ExecutionAdapterRejected, ExecutionReceipt, LocalExecutionAdapter
 from .git_worktree import GitWorktreeManager, GitWorktreeReceipt, GitWorktreeRejected
+from .runtime_protocol import RuntimeProtocolError, RuntimeRequest, parse_request
+from .runtime_commands import RuntimeCommandService
+from .operator_control import OperatorControlService
 
 __all__ = [
     "AcceptanceStatus",
@@ -34,4 +37,9 @@ __all__ = [
     "GitWorktreeManager",
     "GitWorktreeReceipt",
     "GitWorktreeRejected",
+    "RuntimeProtocolError",
+    "RuntimeRequest",
+    "parse_request",
+    "RuntimeCommandService",
+    "OperatorControlService",
 ]
