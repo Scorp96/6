@@ -46,6 +46,11 @@ and must report `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`. Use
 human/operator handoff, then run the read-only preflight before claiming any
 local capability.
 
+如果接手者需要一份可直接上传到普通网页版 GPT 的单文件上下文，运行
+`scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py`，输出
+`docs/handoffs/SCORP_V4_WEB_GPT_PACKET.json`。该工具只汇总当前候选身份和
+本地预检；它不会给网页 GPT 增加 Windows 权限，也不会发送浏览器消息。
+
 ## First action: offline validation
 
 Open PowerShell at the repository root and run:

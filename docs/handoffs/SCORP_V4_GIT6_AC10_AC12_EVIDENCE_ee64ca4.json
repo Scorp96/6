@@ -1,0 +1,147 @@
+{
+  "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+  "candidate_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+  "format": "scorp-v4-git6-install-evidence/1",
+  "install_receipt": {
+    "database": "C:\\ScorpAgent\\v4-core-lab-ee64ca4\\state.sqlite3",
+    "format": "scorp-v4-lab-install-receipt/1",
+    "installed_at": "2026-09-14T11:47:07.751852Z",
+    "interpreter": "C:\\Users\\scorp\\AppData\\Local\\Python\\bin\\python.exe",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-ee64ca4",
+    "manifest_sha256": "e86f62df66e1807c08f5abb0079305c018c7947163db4d6d048022c4a5f45305",
+    "protected_after_sha256": "299a215800a69b30e0f9af8827902c74d797f49cdd53cd4f02fc5d2f2f9beb9e",
+    "protected_before_sha256": "299a215800a69b30e0f9af8827902c74d797f49cdd53cd4f02fc5d2f2f9beb9e",
+    "source_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+    "source_tree": "C:\\ScorpAgent\\v4-source-ee64ca4"
+  },
+  "local_preflight_receipt": {
+    "allowed_root": "C:\\ScorpAgent\\v4-core-lab-ee64ca4",
+    "blockers": [],
+    "candidate_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+    "capabilities": {
+      "browser_rebind": {
+        "driver_state": null,
+        "executable": null,
+        "reason": "An existing Chrome Use executable and driver-state path are required; login and CAPTCHA are never bypassed.",
+        "status": "BLOCKED_MISSING_BROWSER_CONFIG"
+      },
+      "browser_submission": {
+        "reason": "Preflight never sends a prompt. Submission requires the separate operator-gated runtime and a fresh review.",
+        "status": "EXPLICIT_OPERATOR_GATE"
+      },
+      "git_handoff": {
+        "authority": "SQLite_when_running_locally",
+        "reason": "Git can carry a structured plan and evidence, but this candidate does not make Git itself a local executor.",
+        "status": "MANUAL_OR_EXTERNAL_POLLING"
+      },
+      "offline_validation": {
+        "command": "scripts/run-candidate-validation.ps1",
+        "reason": "Repository entrypoints and a Python runtime are present.",
+        "status": "READY"
+      },
+      "sqlite_master_monitor": {
+        "command": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
+        "reason": "An existing SQLite database and allowed root were supplied.",
+        "status": "READY"
+      },
+      "web_gpt_direct_local_control": {
+        "reason": "A web GPT cannot gain Windows or SQLite permissions by reading Git alone.",
+        "required_transport": "local_host_connector_or_operator_handoff",
+        "status": "UNAVAILABLE"
+      }
+    },
+    "database_path": "C:\\ScorpAgent\\v4-core-lab-ee64ca4\\monitor.sqlite3",
+    "format": "scorp-v4-local-preflight/1",
+    "generated_at": "2026-09-14T11:47:42.516193Z",
+    "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
+    "overall_status": "READY",
+    "python_executable": "C:\\Users\\scorp\\AppData\\Local\\Python\\pythoncore-3.15-64\\python.exe",
+    "repo_root": "C:\\ScorpAgent\\_publish_git6",
+    "required_paths": {
+      "GPT_START_HERE.md": true,
+      "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py": true,
+      "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py": true,
+      "scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py": true,
+      "scorp-agent/master_a_dynamic_v4": true,
+      "scripts/run-candidate-validation.ps1": true
+    }
+  },
+  "long_duration_stability_proven": false,
+  "manifest_file_count": 38,
+  "manifest_sha256": "e86f62df66e1807c08f5abb0079305c018c7947163db4d6d048022c4a5f45305",
+  "production_mutated": false,
+  "short_soak_receipt": {
+    "actual_duration_seconds": 10.197009099996649,
+    "browser_intents": 48,
+    "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+    "candidate_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+    "concurrency_peak": 2,
+    "database": "C:\\ScorpAgent\\v4-core-lab-ee64ca4\\short-soak.sqlite3",
+    "database_sha256": "4b9afa4a71ea6e7a31ca5a0e956ed78e104a4d797fd679d32e1ba11b32587b87",
+    "duplicate_submits": 0,
+    "ended_at": "2026-09-14T11:47:23.681264Z",
+    "environment": {
+      "cpu_count": 8,
+      "os": "Windows-11-10.0.26200-SP0",
+      "processor": "Intel64 Family 6 Model 142 Stepping 11, GenuineIntel",
+      "python": "3.15.0rc2",
+      "sqlite": "3.53.2",
+      "sqlite_pragmas": {
+        "busy_timeout": 5000,
+        "foreign_keys": 1,
+        "journal_mode": "delete",
+        "synchronous": 2
+      }
+    },
+    "errors": 0,
+    "format": "scorp-v4-short-soak-receipt/1",
+    "long_duration_stability_proven": false,
+    "max_recovery_seconds": 0.037667300006432924,
+    "recovery_limit_seconds": 2.0,
+    "requested_duration_seconds": 10.0,
+    "scheduler_recoveries": 2,
+    "slot_reuse_count": 142,
+    "started_at": "2026-09-14T11:47:13.484246Z",
+    "status": "PASS",
+    "submit_attempts": 48,
+    "task_cycles": 48,
+    "tasks_verified": 144,
+    "throughput_tasks_per_second": 14.121787927015513
+  },
+  "supervisor_runtime_receipt": {
+    "browser_send": "FORBIDDEN",
+    "candidate_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+    "database": "C:\\ScorpAgent\\v4-core-lab-ee64ca4\\monitor.sqlite3",
+    "decision": {
+      "format": "scorp-v4-master-supervisor-decision/1",
+      "heartbeat": {
+        "end_reason": null,
+        "ended_at": null,
+        "heartbeat_at": "2026-09-14T11:47:33.803376Z",
+        "lease_until": "2026-09-14T12:12:33.803376Z",
+        "master_epoch": 0,
+        "project_id": "scorp-v4-master-runtime",
+        "session_id": "master-a-runtime",
+        "started_at": "2026-09-14T11:47:33.282097Z",
+        "state": "ACTIVE"
+      },
+      "reason": "HEARTBEAT_RENEWED",
+      "recorded_at": "2026-09-14T11:47:33.808745Z",
+      "resume": null,
+      "status": "MASTER_ACTIVE",
+      "watchdog": {
+        "lease_until": "2026-09-14T12:12:33.282097Z",
+        "master_epoch": 0,
+        "project_id": "scorp-v4-master-runtime",
+        "session_id": "master-a-runtime",
+        "status": "MASTER_ACTIVE"
+      }
+    },
+    "decision_count": 1,
+    "decision_log_sha256": "d8a723098833aea7c16b7e474afeb67cbfc5d6342c21627bb44b977dda911dca",
+    "format": "scorp-v4-supervisor-runtime-evidence/1",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-ee64ca4",
+    "status": "MASTER_ACTIVE",
+    "stop_reason": "MAX_ITERATIONS"
+  }
+}

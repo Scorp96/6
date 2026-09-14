@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `c177c843df318b9a48e1bd12f8c15cefdc9c86bd`。这份交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
+当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81`。该身份与 `docs/handoffs/SCORP_V4_GIT6_VALIDATION.json`、`SCORP_V4_GIT6_CANDIDATE_MANIFEST_ee64ca4.json` 和 `SCORP_V4_GIT6_PREFLIGHT_ee64ca4.json` 一致。后续提交只增加交接文档和证据，不改变这份代码候选。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
 
 ## 先判断你现在是哪一种模式
 
@@ -32,6 +32,19 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_local_preflight.py `
 - `browser_rebind=READY_TO_REBIND`：已提供 Chrome Use 可执行文件和驱动状态；
 - `web_gpt_direct_local_control=UNAVAILABLE`：这是正常的边界，不是程序故障；
 - `browser_submission=EXPLICIT_OPERATOR_GATE`：预检本身永远不发送消息。
+
+如果接手者完全不知道怎样读取这些边界，先生成一个可以直接上传到普通网页版 GPT 的交接包。它只读取仓库、候选证据和本地配置；除写入你指定的 JSON 文件外，不启动浏览器、不发送消息、不执行项目任务：
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_web_gpt_packet.py `
+  --repo-root $PWD `
+  --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
+  --allowed-root C:\ScorpAgent\workspaces\project `
+  --output .\docs\handoffs\SCORP_V4_WEB_GPT_PACKET.json
+```
+
+把 `SCORP_V4_WEB_GPT_PACKET.json` 上传给普通网页版 GPT，并把 JSON 中的 `prompt` 字段作为开场指令。退出码 `0` 表示交接包内部一致且预检没有阻塞；退出码 `2` 表示必须先处理包内的 `blockers`。即使退出码为 `0`，包仍会明确写出 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`：它是网页 GPT 的规划/审查输入，不是本地权限授予。
 
 先确认离线候选：
 

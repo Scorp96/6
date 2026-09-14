@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `ec20a3d360e1b2f1eb34a7f5a36c610b5a3345b2`
+- Current candidate: `ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is
@@ -101,19 +101,23 @@ cutover, and long-duration stability as unverified where no current evidence
 exists.
 
 The isolated installation and short local recovery evidence are now stored in
-`SCORP_V4_GIT6_CANDIDATE_MANIFEST_ec20a3d.json`,
-`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_ec20a3d.json`, and
-`SCORP_V4_GIT6_AC12_SHORT_SOAK_ec20a3d.json`. The installed monitor probe is
-recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_ec20a3d.json`. AC10 covers a
-37-file detached
-candidate install with unchanged protected-root hashes. AC12 covers a 10.16 s
-run with 35 cycles, two Worker slots, slot reuse, two scheduler recoveries, and
+`SCORP_V4_GIT6_CANDIDATE_MANIFEST_ee64ca4.json`,
+`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_ee64ca4.json`, and
+`SCORP_V4_GIT6_AC12_SHORT_SOAK_ee64ca4.json`. The installed monitor probe is
+recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_ee64ca4.json`. AC10 covers a
+38-file detached
+candidate install with unchanged protected-root hashes. AC12 covers a 10.20 s
+run with 48 cycles, two Worker slots, slot reuse, two scheduler recoveries, and
 zero duplicate submits or errors. Its browser engine is injected and local;
 this does not upgrade the real-browser or production status.
 
 The web-GPT handoff and read-only local capability report are
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md`,
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json`, and
-`SCORP_V4_GIT6_PREFLIGHT_ec20a3d.json`. The preflight reports
+`SCORP_V4_GIT6_PREFLIGHT_ee64ca4.json`. The preflight reports
 `web_gpt_direct_local_control=UNAVAILABLE` until an actual local connector or
 operator-owned host is present.
+
+## R4 live-browser finding
+
+A user-provided R4 report found a real-path failure after the composer was located: the previous serial controller waited on Worker-1, left its intent at `MAY_HAVE_SUBMITTED` with no conversation URL or response, and never dispatched Worker-2. The current candidate fixes the serial dispatch and shared driver-state race in offline tests, and adds safe post-fill selector diagnostics. The actual `fill → send → /c/<id>` path remains `FAIL/BLOCKED/NOT_RUN` until a fresh harmless canary produces raw browser evidence.

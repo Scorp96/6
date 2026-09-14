@@ -1,6 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
+  "candidate_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+  "evidence_binding": {
+    "validated_commit": "ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+    "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_ee64ca4.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_ee64ca4.json",
+    "binding_note": "This handoff describes the ee64ca4 code candidate; later commits contain documentation and evidence artifacts only."
+  },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
   "purpose": "Tell an ordinary web GPT and a Windows operator exactly where the local-control boundary is.",
@@ -13,22 +20,46 @@
   },
   "capability_modes": {
     "web_only": {
-      "can": ["read_repository", "produce_structured_plan", "review_evidence"],
-      "cannot": ["read_local_SQLite", "run_Windows_commands", "open_Chrome", "create_GPT_chats", "declare_completion"]
+      "can": [
+        "read_repository",
+        "produce_structured_plan",
+        "review_evidence"
+      ],
+      "cannot": [
+        "read_local_SQLite",
+        "run_Windows_commands",
+        "open_Chrome",
+        "create_GPT_chats",
+        "declare_completion"
+      ]
     },
     "operator_handoff": {
       "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py",
       "transport": "Git files or a user-provided handoff message",
       "authority": "local SQLite after the operator starts the candidate runtime"
     },
+    "web_gpt_packet": {
+      "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py",
+      "output": "docs/handoffs/SCORP_V4_WEB_GPT_PACKET.json",
+      "side_effects": "writes only the requested packet file; never opens a browser or sends a prompt",
+      "upload_to_web_gpt": true
+    },
     "sqlite_monitor": {
       "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
-      "requires": ["existing SQLite database", "allowed root", "existing Master lease"],
+      "requires": [
+        "existing SQLite database",
+        "allowed root",
+        "existing Master lease"
+      ],
       "browser_send": "FORBIDDEN_BY_THIS_ENTRYPOINT"
     },
     "browser_connected": {
       "entrypoint": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py",
-      "requires": ["existing authenticated Windows interactive session", "Chrome Use or Windows MCP driver", "explicit --send gate"],
+      "requires": [
+        "existing authenticated Windows interactive session",
+        "Chrome Use or Windows MCP driver",
+        "explicit --send gate"
+      ],
       "current_candidate_evidence": "offline_and_injected_only; fresh current browser AC07/AC08 remain NOT_RUN"
     }
   },

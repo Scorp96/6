@@ -10,6 +10,12 @@ first. Git visibility is not local-computer access; the handoff includes a
 read-only Windows preflight and the exact boundary between web planning and
 local execution.
 
+To make the handoff concrete, run
+`scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py` and upload the
+resulting `docs/handoffs/SCORP_V4_WEB_GPT_PACKET.json` to the web GPT. The
+packet contains the current preflight, candidate binding, blockers, and a
+pasteable prompt; it never opens a browser or sends a message.
+
 The reasoning controller for this design is **GPT-5.6 Sol**. `Scorp96/6` is the
 Git repository name; it is not a model identifier, and no GPT-6 runtime is
 required or implied. The local components are deterministic state, scheduling,
