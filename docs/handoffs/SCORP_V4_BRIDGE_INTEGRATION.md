@@ -81,6 +81,19 @@ local receipt causes the result content hash to be recomputed. Missing adapter,
 invalid request, nonzero exit, or scope mismatch leaves the Worker result
 unaccepted.
 
+## Local Master supervisor seam
+
+`master_a_dynamic_v4.MasterSupervisor` is the small local monitor that can be
+called by Windows Task Scheduler or another watchdog process. It polls the
+controller's durable watchdog, renews `MASTER_ACTIVE`, and calls
+`controller.resume()` when the lease is fenced. A host that owns the physical
+ChatGPT session may inject `rebind_callback(resume_result)` to replace the
+browser binding after the new epoch is acquired. The callback is deliberately
+outside the supervisor: a successful SQLite resume is not evidence that a
+browser was opened or that ChatGPT is authenticated. A missing callback leaves
+the decision at `RESUME_REQUIRED`; a callback failure is `BLOCKED` and must be
+reported for operator recovery.
+
 The local process follows a durable `action_intents/outbox` lifecycle. SQLite
 commits `MAY_HAVE_SUBMITTED` before `subprocess.run`; a captured receipt is
 stored as `RESPONSE_CAPTURED` and the outbox is finalized. If a restart finds

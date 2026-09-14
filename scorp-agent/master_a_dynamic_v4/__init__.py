@@ -8,6 +8,7 @@ from .work_result import (
     validate_work_result,
 )
 from .master_watchdog import MasterWatchdog
+from .master_supervisor import MasterSupervisor, SupervisorDecision
 from .master_controller import ControllerRejected, ControllerStep, MasterAController
 from .execution_adapter import ExecutionAdapterRejected, ExecutionReceipt, LocalExecutionAdapter
 from .git_worktree import GitWorktreeManager, GitWorktreeReceipt, GitWorktreeRejected
@@ -21,6 +22,8 @@ __all__ = [
     "result_content_sha256",
     "validate_work_result",
     "MasterWatchdog",
+    "MasterSupervisor",
+    "SupervisorDecision",
     "ControllerRejected",
     "ControllerStep",
     "MasterAController",
