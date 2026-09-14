@@ -93,7 +93,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：149 项测试通过。
+- V4 core：150 项测试通过。
 - GUI bridge：475 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
@@ -201,4 +201,3 @@ Logical Master A 发出 versioned semantic Runtime command；Command Core 负责
 ## PHASE_1_PLAN
 
 Phase 1 的代码、测试和隔离文档已完成并通过离线回归。Phase 1 的 acceptance 仍受当前候选真实浏览器 blocker、生产未切换和 live recovery 未验证约束；因此阶段结论是 `PARTIAL`，不是 `PASS` 或 `ACCEPTED`。
-
