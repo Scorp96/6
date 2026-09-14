@@ -169,6 +169,19 @@ class ActivationArbiterTests(unittest.TestCase):
             self.assertEqual(2, snapshot.free_slots)
             self.assertEqual(0, snapshot.ambiguous_intents)
 
+    def test_missing_operator_control_is_unknown_and_blocks_arbiter(self):
+        with tempfile.TemporaryDirectory() as td:
+            store = StateStore(Path(td) / "state.sqlite3", [td])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            with store._transaction() as conn:
+                conn.execute("DELETE FROM operator_controls WHERE project_id=?", ("p",))
+            snapshot = store.activation_snapshot("p", daemon_epoch=7)
+            self.assertEqual("UNKNOWN", snapshot.operator_state)
+            decision = self.arbiter.decide(snapshot)
+            self.assertEqual("BLOCKED", decision.action)
+            self.assertEqual("OPERATOR_FENCE_UNKNOWN", decision.reason)
+            store.close()
+
     def test_daemon_lease_fences_a_second_owner_and_advances_epoch_after_expiry(self):
         with tempfile.TemporaryDirectory() as td:
             store = StateStore(Path(td) / "state.sqlite3", [td])

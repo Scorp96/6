@@ -837,7 +837,10 @@ class StateStore:
                 ambiguous_intents=ambiguous,
                 progress_state=progress_state,
                 stale_results=stale,
-                operator_state=str(control["operator_state"]) if control is not None else "RUNNING",
+                # Missing operator authority is not equivalent to RUNNING;
+                # surface it as an explicit unknown fence so the Arbiter
+                # blocks before any new work can be admitted.
+                operator_state=str(control["operator_state"]) if control is not None else "UNKNOWN",
                 auth_host_blocker=str(observation["auth_host_blocker"]) if observation is not None and observation["auth_host_blocker"] else None,
                 pending_results=pending_results,
                 browser_semantic_state=str(observation["browser_semantic_state"]) if observation is not None else "UNKNOWN",

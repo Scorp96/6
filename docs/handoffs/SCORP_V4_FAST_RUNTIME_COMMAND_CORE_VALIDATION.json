@@ -7,7 +7,7 @@
   "implementation_commit": "8981ebfb6c1246ef25762ea71416c9fe0cbc612e",
   "verification": {
     "test_verified": {
-      "v4_core_tests": {"result": "PASS", "count": 153},
+      "v4_core_tests": {"result": "PASS", "count": 154},
       "gui_bridge_tests": {"result": "PASS", "count": 475, "pythonpath": ["scorp-agent", "scorp-agent/chatgpt-gui-bridge"]},
       "compileall": "PASS",
       "git_diff_check": "PASS",
@@ -37,6 +37,7 @@
     "ambiguous browser intents fence new ordinary scheduler claims",
     "operator-fenced projects reject new task graph admission",
     "missing operator control fails closed for graph and assignment admission",
+    "missing operator control produces UNKNOWN arbiter fence instead of RUNNING",
     "generation fencing before browser and local execution side effects",
     "SQLite write failure before browser intent fence fails closed without browser I/O",
     "public compatibility APIs for protocol_error, runtime_snapshot, external_side_effect_gate, and OperatorControl.apply",
