@@ -62,6 +62,14 @@ def _parse_response(expected_by_intent: Mapping[str, str]):
     return parser
 
 
+def _driver_bound_url(driver: ChromeUseActorDriverV3, intent_id: str) -> str | None:
+    binding = driver.turn_binding(intent_id)
+    value = str((binding or {}).get("conversation_url") or "").strip()
+    if re.fullmatch(r"https://chatgpt\.com/c/[A-Za-z0-9-]+", value):
+        return value
+    return None
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SCORP V4 real two-Worker browser canary")
     parser.add_argument("--send-canary", action="store_true", help="required to send the two harmless prompts")
@@ -143,6 +151,19 @@ async def run_canary(args: argparse.Namespace) -> int:
                 if result.get("state") == "RESPONSE_CAPTURED":
                     break
                 time.sleep(4)
+                current = gateway.store.get_intent(str(intent["intent_id"]))
+                if current.get("state") in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS"} and not current.get("conversation_url"):
+                    bound_url = _driver_bound_url(driver, str(intent["intent_id"]))
+                    if bound_url:
+                        remote = hashlib.sha256(
+                            f"{intent['intent_id']}|{bound_url}".encode("utf-8")
+                        ).hexdigest()
+                        gateway.store.confirm_submitted(
+                            str(intent["intent_id"]),
+                            conversation_url=bound_url,
+                            remote_identity=remote,
+                            observation={"source": "driver_binding_read_only_reconcile", "conversation_url": bound_url},
+                        )
                 result = gateway.adapter.reconcile(str(intent["intent_id"]))
             if result.get("state") != "RESPONSE_CAPTURED":
                 raise RuntimeError(
