@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "3f3ce580046a3b6eb977c368bb4baa0fd275a72e",
+  "implementation_commit": "92b166d30e78dda79c4bc2c4afd97fa9856b1ae9",
   "verification": {
     "test_verified": {
       "v4_core_tests": {"result": "PASS", "count": 149},
