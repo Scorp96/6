@@ -89,6 +89,16 @@ class RuntimeStoreTests(unittest.TestCase):
         self.assertEqual(response, saved["response"])
         self.assertEqual("receipt-r1", self.store.get_runtime_command_receipt("r1")["receipt_id"])
 
+    def test_reusing_existing_contract_repairs_missing_runtime_rows(self):
+        with self.store._transaction() as conn:
+            conn.execute("DELETE FROM operator_controls WHERE project_id='p1'")
+            conn.execute("DELETE FROM runtime_observations WHERE project_id='p1'")
+        self.store.create_contract(
+            "p1", root_contract={"objective": "demo"}, acceptance_contract={"required": ["AC01"]}
+        )
+        self.assertEqual("ACTIVE", self.store.get_operator_control("p1")["operator_state"])
+        self.assertEqual("IDLE", self.store.get_runtime_observation("p1")["progress_state"])
+
 
 if __name__ == "__main__":
     unittest.main()

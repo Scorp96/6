@@ -227,6 +227,29 @@ class StateStore:
             if existing is not None:
                 if str(existing["contract_sha256"]) != contract_hash:
                     raise StoreInvariantError("CONTRACT_IDENTITY_MISMATCH")
+                # A project created before schema v4 has the contract and
+                # project_state rows but no runtime control/observation rows.
+                # Repair those rows transactionally when the contract is
+                # reopened; never invent an event history for the old state.
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO operator_controls(
+                        project_id,operator_state,operator_generation,objective_generation,
+                        objective_sha256,updated_at
+                    ) VALUES(?,?,?,?,?,?)
+                    """,
+                    (project, "ACTIVE", 0, 0, root_hash, now),
+                )
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO runtime_observations(
+                        project_id,progress_state,browser_semantic_state,auth_host_blocker,
+                        last_observed_at,last_progress_at,last_state_change_at,
+                        last_content_change_at,last_browser_success_at,last_browser_error_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (project, "IDLE", "UNKNOWN", None, now, None, now, None, None, None),
+                )
                 return dict(existing)
             conn.execute(
                 """
