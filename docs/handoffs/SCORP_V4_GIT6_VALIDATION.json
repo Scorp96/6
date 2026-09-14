@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "6da3893b79dfcd94090481bdb1f670e6c6edef52",
+  "validated_commit": "9a0be50dc12c74959894bd239c58ff0ba49e8d8a",
   "validation_scope": "repository-candidate-plus-isolated-lab",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -50,15 +50,15 @@
     },
     {
       "id": "experimental_install_identity",
-      "command": "install-lab.ps1 against detached candidate 6da3893b79dfcd94090481bdb1f670e6c6edef52",
+      "command": "install-lab.ps1 against detached candidate 9a0be50dc12c74959894bd239c58ff0ba49e8d8a",
       "exit_code": 0,
-      "observed": "27-file manifest and install receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-6da3893; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_6da3893.json"
+      "observed": "27-file manifest and install receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-9a0be50; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_9a0be50.json"
     },
     {
       "id": "short_recovery_soak",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-6da3893 --duration-seconds 10",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-9a0be50 --duration-seconds 10",
       "exit_code": 0,
-      "observed": "10.1029293 seconds actual; 49 cycles; 147 verified tasks; peak concurrency 2; 145 slot reuses; 2 scheduler recoveries; 49 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_6da3893.json"
+      "observed": "10.0600743 seconds actual; 50 cycles; 150 verified tasks; peak concurrency 2; 148 slot reuses; 2 scheduler recoveries; 50 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_9a0be50.json"
     }
   ],
   "real_browser_canary": "HISTORICAL_PASS_NOT_BOUND_TO_VALIDATED_COMMIT; see docs/handoffs/SCORP_V4_GIT6_TWO_WORKER_LIVE_CANARY.json",
@@ -84,6 +84,6 @@
     "The stored two-Worker browser record is historical evidence only: its side effects predate the current validated commit, so it is not counted as current-candidate AC07/AC08 PASS.",
     "MasterSupervisor is an explicit local monitor seam: it renews the durable lease, acquires a new epoch after expiry, and requires an injected physical browser rebind callback; it does not open Chrome or claim authentication recovery."
     ,"AC10 and AC12 are PASS only for the isolated candidate/lab evidence recorded in the current machine-readable receipts; the lab is not production and the soak browser engine is injected, not live ChatGPT.",
-    "The current code candidate is 6da3893b79dfcd94090481bdb1f670e6c6edef52; later Git commits contain documentation and evidence artifacts only."
+    "The current code candidate is 9a0be50dc12c74959894bd239c58ff0ba49e8d8a; later Git commits contain documentation and evidence artifacts only."
   ]
 }
