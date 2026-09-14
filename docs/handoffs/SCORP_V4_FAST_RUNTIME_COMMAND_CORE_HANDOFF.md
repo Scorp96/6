@@ -23,7 +23,7 @@ $env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
 
 ## 当前证据边界
 
-- `TEST_VERIFIED`: V4 核心 142 个测试通过，GUI 桥接 473 个测试通过，compileall 和 `git diff --check` 通过；privileged broker 的历史分组证据仍保留在上一候选记录中。
+- `TEST_VERIFIED`: V4 核心 146 个测试通过，GUI 桥接 473 个测试通过，compileall 和 `git diff --check` 通过；privileged broker 的历史分组证据仍保留在上一候选记录中。
 - `LIVE_VERIFIED`: 本分支未重新点击真实 ChatGPT 提交；此前真实浏览器问题仍需单独 canary 核对。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 

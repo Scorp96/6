@@ -4,10 +4,10 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "738ef5e7ff1ac33a37b5c03ffc188153ead18d9e",
+  "implementation_commit": "4e56352b4cef1dbc7d1f7dda3eb5c023bd48bb1d",
   "verification": {
     "test_verified": {
-      "v4_core_tests": {"result": "PASS", "count": 142},
+      "v4_core_tests": {"result": "PASS", "count": 146},
       "gui_bridge_tests": {"result": "PASS", "count": 473, "pythonpath": ["scorp-agent", "scorp-agent/chatgpt-gui-bridge"]},
       "compileall": "PASS",
       "git_diff_check": "PASS",
@@ -23,10 +23,12 @@
   "implemented": [
     "versioned JSON request/response protocol",
     "SQLite operator controls, generation state, bounded observations, and durable command receipts",
+    "durable daemon supervision counters, bounded exponential backoff, and restart-budget circuit state",
     "runtime.status, runtime.snapshot, project.status, master.status, worker.status, evidence.query",
     "request actor plus response master_epoch/generation and optional stale-master/generation fencing",
     "project.pause, project.resume, project.cancel, project.supersede with CAS and request idempotency",
     "generation fencing before browser and local execution side effects",
+    "SQLite write failure before browser intent fence fails closed without browser I/O",
     "public compatibility APIs for protocol_error, runtime_snapshot, external_side_effect_gate, and OperatorControl.apply",
     "cancel and supersede fencing of active assignments, leases, tasks, and nonterminal candidate results",
     "operator and auth/host fences in arbiter priority",
