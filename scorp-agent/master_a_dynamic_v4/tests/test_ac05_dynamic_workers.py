@@ -49,6 +49,26 @@ class DynamicWorkerTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_scheduler_rejects_cyclic_task_graph_before_persisting_partial_graph(self):
+        from master_a_dynamic_v4.scheduler import SchedulerError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler, worktree = self.make_runtime(root)
+            try:
+                with self.assertRaisesRegex(SchedulerError, "TASK_DEPENDENCY_CYCLE"):
+                    scheduler.enqueue_graph(
+                        [
+                            {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "one.txt"], "dependencies": ["T2"]},
+                            {"task_id": "T2", "objective_sha256": "2" * 64, "resource_scope": [worktree / "two.txt"], "dependencies": ["T1"]},
+                        ]
+                    )
+                self.assertEqual("ACTIVE", scheduler.store.get_project_state("project-ac05")["status"])
+                with store._connection() as conn:
+                    self.assertEqual(0, conn.execute("SELECT COUNT(*) FROM task_nodes WHERE project_id=?", ("project-ac05",)).fetchone()[0])
+            finally:
+                store.close()
+
     def test_two_slots_queue_extra_work_then_release_dependency(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)

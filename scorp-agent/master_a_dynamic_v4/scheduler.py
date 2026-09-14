@@ -100,6 +100,23 @@ class Scheduler:
         for task in normalized:
             if any(dependency not in ids for dependency in task["dependencies"]):
                 raise SchedulerError("TASK_DEPENDENCY_NOT_IN_GRAPH")
+        graph = {task["task_id"]: set(task["dependencies"]) for task in normalized}
+        visiting: set[str] = set()
+        visited: set[str] = set()
+
+        def visit(task_id: str) -> None:
+            if task_id in visiting:
+                raise SchedulerError("TASK_DEPENDENCY_CYCLE")
+            if task_id in visited:
+                return
+            visiting.add(task_id)
+            for dependency in graph[task_id]:
+                visit(dependency)
+            visiting.remove(task_id)
+            visited.add(task_id)
+
+        for task_id in graph:
+            visit(task_id)
 
         now = utc_now()
         with self.store._transaction() as conn:

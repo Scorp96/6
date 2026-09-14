@@ -1,0 +1,21 @@
+{
+  "format": "scorp-v4-browser-canary/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "e6612a994c0b094e00669a9e5854c3dfa2df4edb",
+  "observed_at_utc": "2026-09-14T08:40:34.9918307Z",
+  "transport": "Codex CUA direct Chrome control",
+  "browser_profile": "scorpion",
+  "subscription_observed": "Plus",
+  "conversation_url": "https://chatgpt.com/c/6aa7b2c4-67fc-83e9-88e1-67e9dd459dfe",
+  "prompt_marker": "SCORP_V4_CANARY_20260914_02",
+  "response_marker": "SCORP_V4_CANARY_ACK",
+  "submit_actions": 1,
+  "response_messages": 1,
+  "duplicate_submits": 0,
+  "result": "PASS_SESSION_CONNECTIVITY_ONLY",
+  "limitations": [
+    "This proves the current authenticated browser session accepted one harmless message.",
+    "It does not prove the repository V4 adapter performed the submission.",
+    "It does not authorize production cutover or a long-duration unattended run."
+  ]
+}
