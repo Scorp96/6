@@ -184,6 +184,28 @@ reason. It stops on `TERMINAL`, `BLOCKED`, or an unresolved
 `RESUME_REQUIRED`, so a Windows monitor can report the blocker instead of
 creating an uncontrolled retry loop.
 
+For a directly runnable local monitor, use
+`scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py`. It
+attaches to an existing SQLite Master lease, records one JSON line per decision,
+and performs no browser submission:
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_supervisor_runtime.py `
+  --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
+  --allowed-root C:\ScorpAgent\workspaces\project `
+  --decision-log C:\ScorpAgent\v4-runtime\supervisor.jsonl `
+  --max-iterations 1
+```
+
+Use `--forever` only when a host process is intentionally supervising the
+monitor. Add `--rebind --driver-state-path ... --executable ...` to enable the
+read-only physical browser snapshot/rebind callback. This callback verifies an
+existing authenticated conversation and updates binding evidence; it never
+creates a chat, fills a composer, or clicks Send. A missing database, invalid
+lease, failed authentication probe, or ambiguous browser snapshot exits as a
+reported blocker.
+
 The existing browser bridge provides the safe callback implementation in
 `scorp-agent/chatgpt-gui-bridge/v4_physical_rebind.py`. It proves the existing
 Master conversation with an authenticated, read-only snapshot and records the

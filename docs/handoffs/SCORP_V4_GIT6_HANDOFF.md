@@ -45,6 +45,14 @@ an injected physical-session rebind callback. It does not open Chrome or infer
 that ChatGPT authentication succeeded; missing or failed rebind remains
 `RESUME_REQUIRED` or `BLOCKED`.
 
+The directly runnable monitor is
+`scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py`. It
+attaches to an existing SQLite lease, appends machine-readable decisions to a
+JSONL journal, and forbids browser submission. `--rebind` enables only the
+read-only physical snapshot/rebind callback; it does not create a conversation
+or click Send. The default run is one bounded polling pass; `--forever` is an
+explicit choice for a host process that owns the lifecycle.
+
 For dynamic browser work, the facade also exposes `prepare_worker_intent()` and
 `submit_worker_intent()`. Each live claim gets a deterministic intent and a
 distinct `worker/worker-slot-*` channel. The injected browser driver may create

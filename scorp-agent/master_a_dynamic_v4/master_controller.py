@@ -108,6 +108,26 @@ class MasterAController:
             self.session_id, master_epoch=epoch
         )
 
+    def attach_existing_session(self) -> dict[str, Any]:
+        """Adopt an already-live Master lease after a monitor restart.
+
+        A local supervisor may be restarted without creating a new logical
+        session.  It must first read the durable watchdog record and adopt its
+        epoch only when the record positively says ``MASTER_ACTIVE``.  Expired
+        or unknown states remain for ``MasterSupervisor`` to handle.
+        """
+
+        observed = self.gateway.watchdog_once()
+        if not isinstance(observed, Mapping):
+            raise ControllerRejected("WATCHDOG_RESULT_INVALID")
+        if str(observed.get("status") or "") != "MASTER_ACTIVE":
+            return dict(observed)
+        try:
+            self.master_epoch = int(observed["master_epoch"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ControllerRejected("MASTER_EPOCH_MISSING") from exc
+        return dict(observed)
+
     def resume(self) -> dict[str, Any]:
         """Reacquire the durable Master session after a physical restart."""
 

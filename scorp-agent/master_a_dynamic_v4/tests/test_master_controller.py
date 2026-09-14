@@ -8,6 +8,16 @@ from dataclasses import dataclass
 
 
 class MissingControllerTests(unittest.TestCase):
+    def test_attach_existing_active_session_adopts_current_epoch(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        gateway.watchdog_once = lambda: {"status": "MASTER_ACTIVE", "master_epoch": 7}
+        controller = MasterAController(gateway, "master-session")
+        attached = controller.attach_existing_session()
+        self.assertEqual(7, controller.master_epoch)
+        self.assertEqual("MASTER_ACTIVE", attached["status"])
+
     def test_master_identity_is_validated_before_gateway_calls(self):
         from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
 
