@@ -135,6 +135,41 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual([], press_calls)
             self.assertFalse(any('#prompt-textarea' in args for _, args, _ in cli.calls))
 
+    def test_submit_accepts_chatgpt_root_query_redirect_before_new_conversation(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            conversation = 'https://chatgpt.com/c/live-root-query'
+            cli.responses = [
+                {'success': True},
+                {'data': {'value': 'https://chatgpt.com/?oai-dm=1'}},
+                {
+                    'data': {
+                        'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}},
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e11]',
+                    }
+                },
+                {'success': True},
+                {
+                    'data': {
+                        'refs': {
+                            'e11': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                            'e20': {'name': 'Send', 'role': 'button'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e11]\n- button "Send" [ref=e20]',
+                    }
+                },
+                {'success': True},
+                {'data': {'value': 'https://chatgpt.com/c/WEB:transient'}},
+                {'data': {'value': conversation}},
+                {'success': True, 'data': {'broughtToFront': True}},
+                {'data': {'snapshot': 'submitted'}},
+            ]
+            driver = self._driver(td, cli)
+            result = asyncio.run(driver.submit_prompt(
+                prompt='harmless', turn_id='turn-root-query', actor_kind='WORKER', conversation_url=None
+            ))
+            self.assertIn(conversation, result)
+
     def test_failed_submit_still_persists_turn_session_for_recovery(self):
         with tempfile.TemporaryDirectory() as td:
             state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'

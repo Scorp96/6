@@ -166,7 +166,10 @@ editing tables itself. After `ensure_contract()` succeeds, the handoff order is:
    the missing conversation URL to create a new Worker chat. The response must
    still be validated as `WORK_RESULT/1` and admitted with
    `record_structured_worker_result()`.
-6. Re-read state after each verified Worker result and submit the next proposal
+6. After a coordinator or browser restart, call `load_worker_claims()` before
+   dispatching. It rehydrates the assignment, lease token and persisted base
+   state version without creating a new lease or replaying a browser action.
+7. Re-read state after each verified Worker result and submit the next proposal
    or a `REPLAN` proposal. A stale version or epoch returns a conflict/fenced
    result and must trigger a fresh read, never a blind retry.
 

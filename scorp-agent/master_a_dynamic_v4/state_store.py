@@ -94,6 +94,13 @@ class StateStore:
         schema_hash = hashlib.sha256(schema_bytes).hexdigest()
         with self._connection() as conn:
             conn.executescript("BEGIN IMMEDIATE;\n" + schema_text + "\nCOMMIT;")
+            assignment_columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(assignments)").fetchall()
+            }
+            if "base_state_version" not in assignment_columns:
+                conn.execute(
+                    "ALTER TABLE assignments ADD COLUMN base_state_version INTEGER NOT NULL DEFAULT 0 CHECK (base_state_version >= 0)"
+                )
             rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
             if not rows:
                 conn.execute("BEGIN IMMEDIATE")

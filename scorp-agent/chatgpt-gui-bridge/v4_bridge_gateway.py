@@ -168,6 +168,10 @@ class V4BridgeGateway:
             raise SchedulerError("V4_WORKER_LIMIT_INVALID")
         return self.scheduler.claim_runnable(master_epoch=master_epoch, limit=limit, now=now)
 
+    def load_worker_claims(self, *, master_epoch: int, now=None):
+        """Rehydrate active durable Worker assignments after a restart."""
+        return self.scheduler.load_active_claims(master_epoch=int(master_epoch), now=now)
+
     def record_worker_result(self, claim, *, kind: str, payload: Mapping[str, Any], now=None) -> str:
         return self.scheduler.record_candidate(
             claim.assignment_id,

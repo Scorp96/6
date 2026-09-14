@@ -51,6 +51,9 @@ class SqliteSchemaTests(unittest.TestCase):
                     store.connection_settings(),
                 )
                 self.assertEqual(REQUIRED_TABLES, set(store.table_names()))
+                with store._connection() as conn:
+                    assignment_columns = {row[1] for row in conn.execute("PRAGMA table_info(assignments)")}
+                self.assertIn("base_state_version", assignment_columns)
             self.assertTrue(db.is_file())
 
     def test_reopen_preserves_schema_and_checks_every_new_connection(self):

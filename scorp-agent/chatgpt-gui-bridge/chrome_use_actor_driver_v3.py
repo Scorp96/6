@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from gui_transport import validate_conversation_url
 
@@ -19,10 +21,17 @@ def _sha(value: str) -> str:
 
 def _canonical_url(value, *, allow_root=False):
     text = str(value or "").strip()
-    if text.rstrip("/") == "https://chatgpt.com":
-        if allow_root:
-            return _ROOT_URL
-        raise ValueError("ACTOR_GUI_CONVERSATION_URL_MISSING")
+    parsed = urlsplit(text)
+    if parsed.scheme.casefold() == "https" and parsed.netloc.casefold() == "chatgpt.com":
+        path = parsed.path.rstrip("/")
+        if not path:
+            if allow_root:
+                return _ROOT_URL
+            raise ValueError("ACTOR_GUI_CONVERSATION_URL_MISSING")
+        if re.fullmatch(r"/c/[A-Za-z0-9-]+", path):
+            # Query and fragment parameters on a ChatGPT conversation are UI
+            # routing details; the canonical identity is the /c/<id> path.
+            return f"https://chatgpt.com{path}"
     return validate_conversation_url(text)
 
 
@@ -341,16 +350,25 @@ class ChromeUseActorDriverV3:
             raise
         observed = target
         for _ in range(20):
-            observed = await self._get_url(session)
+            try:
+                observed = await self._get_url(session)
+            except ValueError as exc:
+                # Chrome Use can expose a transient about:blank or WEB:
+                # placeholder while the new ChatGPT conversation is being
+                # promoted. It is not a valid identity and must never be
+                # persisted; continue polling for a canonical /c/<id> URL.
+                if str(exc) not in {"CONVERSATION_URL_INVALID", "CHROME_USE_URL_MISSING"}:
+                    raise
+                observed = None
             if conversation_url is not None:
                 if observed != target:
                     raise ValueError("ACTOR_GUI_FOCUSED_CONVERSATION_MISMATCH")
                 break
-            if observed != _ROOT_URL:
+            if observed and observed != _ROOT_URL:
                 observed = _canonical_url(observed)
                 break
             await self.sleeper(0.25)
-        if observed == _ROOT_URL:
+        if not observed or observed == _ROOT_URL:
             raise TimeoutError("CHROME_USE_CONVERSATION_URL_TIMEOUT")
         self._promote(turn_id, observed)
         return await self._snapshot(session, observed)

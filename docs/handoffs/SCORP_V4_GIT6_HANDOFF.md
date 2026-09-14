@@ -45,6 +45,13 @@ distinct `worker/worker-slot-*` channel. The injected browser driver may create
 one new conversation per channel; the returned response is still only a
 candidate until `WORK_RESULT/1` validation and independent acceptance succeed.
 
+Assignment rows persist `base_state_version`, and the facade exposes
+`load_worker_claims()` for coordinator restart recovery. This prevents a
+crashed Master from losing the in-flight assignment identity or inventing a
+replacement lease. The Chrome Use driver also normalizes transient root/query
+redirects and rejects non-canonical `WEB:` placeholders while polling for the
+real `/c/<id>` conversation URL.
+
 The current candidate also validates structured, version-bound Worker results and
 the real CSV workload fixture: T1 and T2 run in parallel, T3 waits for both, and
 the independent completion validator returns `PASS`. Broker recovery and the

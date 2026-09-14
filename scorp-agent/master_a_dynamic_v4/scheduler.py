@@ -214,6 +214,62 @@ class Scheduler:
                 )
             return len(expired)
 
+    def load_active_claims(
+        self, *, master_epoch: int, now: dt.datetime | None = None
+    ) -> list[AssignmentClaim]:
+        """Rehydrate durable Worker claims after a coordinator restart.
+
+        Assignment identity, lease token and the graph's base state version are
+        read from SQLite. No new lease is created and no browser action is
+        issued. Expired leases are fenced first, so callers can safely resume
+        only the assignments still owned by the current epoch.
+        """
+        current = _aware(now)
+        self.recover_expired_leases(now=current)
+        with self.store._connection() as conn:
+            state = conn.execute(
+                "SELECT master_epoch,state_version,status FROM project_state WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if state is None:
+                raise SchedulerError("PROJECT_NOT_FOUND")
+            if int(state["master_epoch"]) != int(master_epoch):
+                raise WorkerFenceError("MASTER_EPOCH_FENCED")
+            if str(state["status"]) != "ACTIVE":
+                return []
+            rows = conn.execute(
+                """
+                SELECT a.*,l.expires_at,l.state AS lease_state
+                FROM assignments a JOIN leases l ON l.assignment_id=a.assignment_id
+                WHERE a.project_id=? AND a.master_epoch=?
+                  AND a.state='ACTIVE' AND l.state='ACTIVE'
+                ORDER BY a.slot_id,a.assignment_id
+                """,
+                (self.project_id, int(master_epoch)),
+            ).fetchall()
+            claims: list[AssignmentClaim] = []
+            stamp = _timestamp(current)
+            for row in rows:
+                if str(row["expires_at"]) <= stamp:
+                    continue
+                claims.append(
+                    AssignmentClaim(
+                        assignment_id=str(row["assignment_id"]),
+                        project_id=self.project_id,
+                        task_id=str(row["task_id"]),
+                        worker_id=str(row["worker_id"]),
+                        slot_id=str(row["slot_id"]),
+                        lease_token=str(row["lease_token"]),
+                        master_epoch=int(row["master_epoch"]),
+                        base_state_version=int(row["base_state_version"]),
+                        objective_sha256=str(row["objective_sha256"]),
+                        resource_scope=tuple(sorted(json.loads(str(row["resource_scope_json"]))),),
+                        access_mode=str(row["access_mode"]),
+                        expires_at=str(row["expires_at"]),
+                    )
+                )
+            return claims
+
     def claim_runnable(
         self,
         *,
@@ -302,9 +358,9 @@ class Scheduler:
                     """
                     INSERT INTO assignments(
                         assignment_id,project_id,task_id,worker_id,slot_id,master_epoch,
-                        lease_token,objective_sha256,resource_scope_json,access_mode,state,
+                        base_state_version,lease_token,objective_sha256,resource_scope_json,access_mode,state,
                         created_at,updated_at
-                    ) VALUES(?,?,?,?,?,?,?,?,?,?,'ACTIVE',?,?)
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,'ACTIVE',?,?)
                     """,
                     (
                         assignment_id,
@@ -313,6 +369,7 @@ class Scheduler:
                         worker_id,
                         slot_id,
                         int(master_epoch),
+                        int(state["state_version"]),
                         lease_token,
                         task["objective_sha256"],
                         task["resource_scope_json"],
