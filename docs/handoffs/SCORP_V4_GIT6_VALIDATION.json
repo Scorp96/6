@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "ec69d9608e3423cdfebe82d30b4dcf9e2994463b",
+  "validated_commit": "db574df6113b935daa45b82d7f9c85b4719c935c",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -12,8 +12,8 @@
       "id": "v4_unit",
       "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
       "exit_code": 0,
-      "tests_run": 57,
-      "observed": "57 tests passed, including structured Worker results, real CSV completion gate, and cyclic graph rejection"
+      "tests_run": 60,
+      "observed": "60 tests passed, including structured Worker results, real CSV completion gate, cyclic graph rejection, and Master A session watchdog"
     },
     {
       "id": "bridge_full_regression",

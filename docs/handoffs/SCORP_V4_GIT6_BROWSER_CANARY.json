@@ -1,7 +1,7 @@
 {
   "format": "scorp-v4-browser-canary/1",
   "repository": "Scorp96/6",
-  "candidate_code_commit": "ec69d9608e3423cdfebe82d30b4dcf9e2994463b",
+  "candidate_code_commit": "db574df6113b935daa45b82d7f9c85b4719c935c",
   "observed_at_utc": "2026-09-14T08:40:34.9918307Z",
   "transport": "Codex CUA direct Chrome control",
   "browser_profile": "scorpion",
