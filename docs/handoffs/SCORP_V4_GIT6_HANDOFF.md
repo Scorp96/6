@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `44fa51b6e10fe92b2afbb1d66538f474d2314ab8`
+- Current candidate: `c177c843df318b9a48e1bd12f8c15cefdc9c86bd`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is
@@ -101,12 +101,12 @@ cutover, and long-duration stability as unverified where no current evidence
 exists.
 
 The isolated installation and short local recovery evidence are now stored in
-`SCORP_V4_GIT6_CANDIDATE_MANIFEST_44fa51b.json`,
-`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_44fa51b.json`, and
-`SCORP_V4_GIT6_AC12_SHORT_SOAK_44fa51b.json`. The installed monitor probe is
-recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_44fa51b.json`. AC10 covers a
+`SCORP_V4_GIT6_CANDIDATE_MANIFEST_c177c84.json`,
+`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_c177c84.json`, and
+`SCORP_V4_GIT6_AC12_SHORT_SOAK_c177c84.json`. The installed monitor probe is
+recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_c177c84.json`. AC10 covers a
 36-file detached
-candidate install with unchanged protected-root hashes. AC12 covers a 10.10 s
-run with 45 cycles, two Worker slots, slot reuse, two scheduler recoveries, and
+candidate install with unchanged protected-root hashes. AC12 covers a 10.01 s
+run with 49 cycles, two Worker slots, slot reuse, two scheduler recoveries, and
 zero duplicate submits or errors. Its browser engine is injected and local;
 this does not upgrade the real-browser or production status.

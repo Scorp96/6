@@ -12,7 +12,7 @@
     "target_branch": "main",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-transaction-core",
     "target_worktree": "C:\\ScorpAgent\\_publish_git6",
-    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-44fa51b"
+    "lab_state_root": "C:\\ScorpAgent\\v4-core-lab-c177c84"
   },
   "artifacts": {
     "machine_readable_spec": "docs/handoffs/SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
@@ -227,7 +227,7 @@
     "AC10": {
       "title": "candidate and experimental install identity",
       "status": "PASS",
-      "evidence_scope": "CURRENT_GIT6_ISOLATED_LAB_44FA51B_36_FILES_PROTECTED_HASHES_EQUAL"
+      "evidence_scope": "CURRENT_GIT6_ISOLATED_LAB_C177C84_36_FILES_PROTECTED_HASHES_EQUAL"
     },
     "AC11": {
       "title": "full regression",
@@ -249,7 +249,7 @@
         "MEASURED_THROUGHPUT_AND_ENVIRONMENT"
       ],
       "long_duration_stability_proven": false,
-      "evidence_scope": "CURRENT_GIT6_SHORT_SOAK_10S_45_CYCLES_2_RECOVERIES_0_ERRORS_44FA51B"
+      "evidence_scope": "CURRENT_GIT6_SHORT_SOAK_10S_49_CYCLES_2_RECOVERIES_0_ERRORS_C177C84"
     }
   },
   "deprecation": {
@@ -294,6 +294,6 @@
     "UNEXPECTED_PRODUCTION_MUTATION",
     "UNRECOVERABLE_REGRESSION_FAILURE"
   ],
-  "candidate_commit": "44fa51b6e10fe92b2afbb1d66538f474d2314ab8",
+  "candidate_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
   "evidence_commit": "RECORDED_EXTERNALLY_AFTER_EVIDENCE_COMMIT"
 }

@@ -1,0 +1,94 @@
+{
+  "format": "scorp-v4-git6-install-evidence/1",
+  "candidate_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
+  "manifest_sha256": "cc1753f015175256a76dd7318be9e99041b92f8d5fa1f5ecea2974f09b2a2210",
+  "manifest_file_count": 36,
+  "install_receipt": {
+    "database": "C:\\ScorpAgent\\v4-core-lab-c177c84\\state.sqlite3",
+    "format": "scorp-v4-lab-install-receipt/1",
+    "installed_at": "2026-09-14T11:16:20.591970Z",
+    "interpreter": "C:\\Users\\scorp\\AppData\\Local\\Python\\bin\\python.exe",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-c177c84",
+    "manifest_sha256": "cc1753f015175256a76dd7318be9e99041b92f8d5fa1f5ecea2974f09b2a2210",
+    "protected_after_sha256": "c5d5ab6f67e4b3542c444a01a5021027697af8a7a560e578826eaff53b8eb964",
+    "protected_before_sha256": "c5d5ab6f67e4b3542c444a01a5021027697af8a7a560e578826eaff53b8eb964",
+    "source_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
+    "source_tree": "C:\\ScorpAgent\\v4-source-c177c84"
+  },
+  "short_soak_receipt": {
+    "actual_duration_seconds": 10.008372500000405,
+    "browser_intents": 49,
+    "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+    "concurrency_peak": 2,
+    "database": "C:\\ScorpAgent\\v4-core-lab-c177c84\\short-soak.sqlite3",
+    "database_sha256": "a11b224a5c9ca3e15f29c2b4b4404509c2d29178e9e4637adf73b1dd35acd278",
+    "duplicate_submits": 0,
+    "ended_at": "2026-09-14T11:16:38.063331Z",
+    "environment": {
+      "cpu_count": 8,
+      "os": "Windows-11-10.0.26200-SP0",
+      "processor": "Intel64 Family 6 Model 142 Stepping 11, GenuineIntel",
+      "python": "3.15.0rc2",
+      "sqlite": "3.53.2",
+      "sqlite_pragmas": {
+        "busy_timeout": 5000,
+        "foreign_keys": 1,
+        "journal_mode": "delete",
+        "synchronous": 2
+      }
+    },
+    "errors": 0,
+    "format": "scorp-v4-short-soak-receipt/1",
+    "long_duration_stability_proven": false,
+    "max_recovery_seconds": 0.03054329999940819,
+    "recovery_limit_seconds": 2.0,
+    "requested_duration_seconds": 10.0,
+    "scheduler_recoveries": 2,
+    "slot_reuse_count": 145,
+    "started_at": "2026-09-14T11:16:28.054951Z",
+    "status": "PASS",
+    "submit_attempts": 49,
+    "task_cycles": 49,
+    "tasks_verified": 147,
+    "throughput_tasks_per_second": 14.687702720896334
+  },
+  "supervisor_runtime_receipt": {
+    "format": "scorp-v4-supervisor-runtime-evidence/1",
+    "candidate_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab-c177c84",
+    "database": "C:\\ScorpAgent\\v4-core-lab-c177c84\\monitor.sqlite3",
+    "status": "MASTER_ACTIVE",
+    "stop_reason": "MAX_ITERATIONS",
+    "decision_count": 1,
+    "browser_send": "FORBIDDEN",
+    "decision_log_sha256": "7af8efe881b0adeab13bc2582d29571e63be624deaf0f979bbbc1c8da5a5a70a",
+    "decision": {
+      "format": "scorp-v4-master-supervisor-decision/1",
+      "heartbeat": {
+        "end_reason": null,
+        "ended_at": null,
+        "heartbeat_at": "2026-09-14T11:16:49.776363Z",
+        "lease_until": "2026-09-14T11:41:49.776363Z",
+        "master_epoch": 0,
+        "project_id": "scorp-v4-master-runtime",
+        "session_id": "master-a-runtime",
+        "started_at": "2026-09-14T11:16:49.271626Z",
+        "state": "ACTIVE"
+      },
+      "reason": "HEARTBEAT_RENEWED",
+      "recorded_at": "2026-09-14T11:16:49.783588Z",
+      "resume": null,
+      "status": "MASTER_ACTIVE",
+      "watchdog": {
+        "lease_until": "2026-09-14T11:41:49.271626Z",
+        "master_epoch": 0,
+        "project_id": "scorp-v4-master-runtime",
+        "session_id": "master-a-runtime",
+        "status": "MASTER_ACTIVE"
+      }
+    }
+  },
+  "production_mutated": false,
+  "browser_scope": "INJECTED_FAKE_ENGINE_REAL_ADAPTER_STATE_MACHINE",
+  "long_duration_stability_proven": false
+}

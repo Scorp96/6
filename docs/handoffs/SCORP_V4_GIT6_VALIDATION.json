@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "44fa51b6e10fe92b2afbb1d66538f474d2314ab8",
+  "validated_commit": "c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
   "validation_scope": "repository-candidate-plus-isolated-lab",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -50,21 +50,21 @@
     },
     {
       "id": "experimental_install_identity",
-      "command": "install-lab.ps1 against detached candidate 44fa51b",
+      "command": "install-lab.ps1 against detached candidate c177c84",
       "exit_code": 0,
-      "observed": "36-file manifest and install-lab.ps1 receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-44fa51b-script; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_44fa51b.json"
+      "observed": "36-file manifest and install-lab.ps1 receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-c177c84; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_c177c84.json"
     },
     {
       "id": "short_recovery_soak",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-44fa51b-script --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-44fa51b-script.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-c177c84 --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-c177c84.json",
       "exit_code": 0,
-      "observed": "10.0972498 seconds actual; 45 cycles; 135 verified tasks; peak concurrency 2; 133 slot reuses; 2 scheduler recoveries; 45 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_44fa51b.json"
+      "observed": "10.0083725 seconds actual; 49 cycles; 147 verified tasks; peak concurrency 2; 145 slot reuses; 2 scheduler recoveries; 49 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_c177c84.json"
     },
     {
       "id": "supervisor_runtime_probe",
-      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-44fa51b-script\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-44fa51b-script --max-iterations 1",
+      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-c177c84\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-c177c84 --max-iterations 1",
       "exit_code": 0,
-      "observed": "Installed 36-file candidate attached to an existing Master lease, renewed it once, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_44fa51b.json"
+      "observed": "Installed 36-file candidate attached to an existing Master lease, renewed it once, included the attached epoch in its summary, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_c177c84.json"
     }
   ],
   "real_browser_canary": "HISTORICAL_PASS_NOT_BOUND_TO_VALIDATED_COMMIT; see docs/handoffs/SCORP_V4_GIT6_TWO_WORKER_LIVE_CANARY.json",
@@ -90,8 +90,8 @@
     "The stored two-Worker browser record is historical evidence only: its side effects predate the current validated commit, so it is not counted as current-candidate AC07/AC08 PASS.",
     "MasterSupervisor is an explicit local monitor seam: it renews the durable lease, acquires a new epoch after expiry, and requires an injected physical browser rebind callback; it does not open Chrome or claim authentication recovery.",
     "AC10 and AC12 are PASS only for the isolated candidate/lab evidence recorded in the current machine-readable receipts; the lab is not production and the soak browser engine is injected, not live ChatGPT.",
-    "The current code candidate is 44fa51b6e10fe92b2afbb1d66538f474d2314ab8; later Git commits contain documentation and evidence artifacts only.",
     "The current candidate also has a bounded supervisor runtime entrypoint: it attaches to an existing lease, journals decisions, and forbids browser sends; --rebind is read-only physical-session verification.",
-    "The isolated lab now contains the full 36-file core plus browser-monitor dependency manifest; the previous 28-file receipt remains historical and is not used for the current candidate."
+    "The current code candidate is c177c843df318b9a48e1bd12f8c15cefdc9c86bd; later Git commits contain documentation and evidence artifacts only.",
+    "The isolated lab contains the full 36-file core plus browser-monitor dependency manifest; install-lab.ps1 preserved protected-root hashes, and the supervisor probe attached an existing epoch without browser sends."
   ]
 }
