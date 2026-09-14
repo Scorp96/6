@@ -46,6 +46,12 @@ class DaemonSupervisionTests(unittest.TestCase):
         self.assertEqual(1, recovered["recovery_count"])
         self.assertEqual("CLOSED", recovered["circuit_state"])
         self.assertEqual(0, recovered["consecutive_failures"])
+        # Resetting the active crash-loop counter must not reuse a historical
+        # event primary key on the next failure sequence.
+        second_sequence = self.store.record_daemon_failure(
+            "p1", reason="CRASH_NEW_SEQUENCE", now=start + dt.timedelta(seconds=6), restart_budget=2
+        )
+        self.assertEqual(1, second_sequence["restart_count"])
 
     def test_expired_lease_records_a_restart_without_double_authority(self):
         start = dt.datetime(2026, 9, 15, tzinfo=dt.timezone.utc)

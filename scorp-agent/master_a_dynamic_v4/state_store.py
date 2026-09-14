@@ -568,7 +568,7 @@ class StateStore:
         conn.execute(
             "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
             (
-                f"daemon-failure-{project_id}-{restart_count}",
+                f"daemon-failure-{project_id}-{uuid.uuid4().hex}",
                 project_id,
                 "DAEMON_FAILURE",
                 canonical_json({
@@ -642,7 +642,7 @@ class StateStore:
             conn.execute(
                 "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
                 (
-                    f"daemon-recovery-{project}-{int(row['recovery_count']) + 1}",
+                    f"daemon-recovery-{project}-{uuid.uuid4().hex}",
                     project,
                     "DAEMON_RECOVERY",
                     canonical_json({"recovery_count": int(row["recovery_count"]) + 1}),
