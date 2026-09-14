@@ -168,7 +168,7 @@ currently held local daemon epoch:
 ```powershell
 $env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
 @'
-{"protocol_version":"scorp.runtime.command/1","request_id":"status-1","command":"runtime.status","project_id":"demo","payload":{}}
+{"protocol_version":"scorp.runtime.command/1","request_id":"status-1","command":"runtime.status","project_id":"demo","actor":"gpt-master","payload":{}}
 '@ | & C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe -B -m master_a_dynamic_v4.runtime_cli `
   --database C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --project-id demo `
@@ -176,13 +176,20 @@ $env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
   --daemon-epoch 1
 ```
 
-Reads are `runtime.status`, `project.status`, `master.status`, and bounded
-`evidence.query`. Mutations are `project.pause`, `project.resume`,
+Reads are `runtime.status`, `runtime.snapshot`, `project.status`,
+`master.status`, `worker.status`, and bounded `evidence.query`. Responses
+include `actor`, `daemon_epoch`, `state_version`, `master_epoch`, and the
+operator `generation`. Mutations are `project.pause`, `project.resume`,
 `project.cancel`, and `project.supersede`; each mutation must include both
-`expected_state_version` and `expected_daemon_epoch`. Reusing a `request_id`
-returns the durable receipt; reusing it with a different command or payload is
-rejected. A paused, cancelled, superseded, stale, or ambiguous browser intent
-cannot be blindly replayed.
+`expected_state_version` and `expected_daemon_epoch` and may bind
+`expected_master_epoch` and `expected_generation`. New projects use the
+explicit operator state `RUNNING`; old imported `ACTIVE` rows remain readable
+as a compatibility value. Reusing a `request_id` returns the durable receipt;
+reusing it with a different command or payload is rejected. A paused,
+cancelled, superseded, stale, or ambiguous browser intent cannot be blindly
+replayed. Daemon supervision state also exposes bounded restart backoff and a
+restart-budget circuit; a failed SQLite intent fence returns
+`SQLITE_WRITE_FAILED` without attempting browser I/O.
 
 This command core is a local feature-branch implementation and a testable
 handoff surface. Its focused tests and offline regression do not prove live
