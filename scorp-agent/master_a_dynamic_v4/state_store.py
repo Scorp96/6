@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class StoreInvariantError(RuntimeError):
@@ -150,7 +150,23 @@ class StateStore:
                     conn.rollback()
                     raise
                 versions = [1, 2, 3]
-            valid_versions = {tuple(range(1, SCHEMA_VERSION + 1)), (SCHEMA_VERSION,)}
+            if versions in ([1, 2, 3], [3]) and SCHEMA_VERSION >= 4:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (4, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = [1, 2, 3, 4] if versions == [1, 2, 3] else [3, 4]
+            valid_versions = {
+                tuple(range(1, SCHEMA_VERSION + 1)),
+                (SCHEMA_VERSION,),
+                (3, 4),
+            }
             if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")
 
@@ -234,9 +250,161 @@ class StateStore:
                 "INSERT INTO project_state(project_id,updated_at) VALUES(?,?)",
                 (project, now),
             )
+            conn.execute(
+                """
+                INSERT INTO operator_controls(
+                    project_id,operator_state,operator_generation,objective_generation,
+                    objective_sha256,updated_at
+                ) VALUES(?,?,?,?,?,?)
+                """,
+                (project, "ACTIVE", 0, 0, str(root_value.get("objective_sha256") or sha256_json(root_value)), now),
+            )
+            conn.execute(
+                """
+                INSERT INTO runtime_observations(
+                    project_id,progress_state,browser_semantic_state,auth_host_blocker,
+                    last_observed_at,last_progress_at,last_state_change_at,
+                    last_content_change_at,last_browser_success_at,last_browser_error_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                """,
+                (project, "IDLE", "UNKNOWN", None, now, None, now, None, None, None),
+            )
             return dict(
                 conn.execute("SELECT * FROM contracts WHERE project_id=?", (project,)).fetchone()
             )
+
+    def get_operator_control(self, project_id: str) -> dict[str, Any]:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM operator_controls WHERE project_id=?", (str(project_id),)
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("OPERATOR_CONTROL_NOT_FOUND")
+            return dict(row)
+
+    def get_runtime_observation(self, project_id: str) -> dict[str, Any]:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM runtime_observations WHERE project_id=?", (str(project_id),)
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("RUNTIME_OBSERVATION_NOT_FOUND")
+            return dict(row)
+
+    def record_runtime_observation(
+        self,
+        project_id: str,
+        *,
+        progress_state: str,
+        browser_semantic_state: str | None = None,
+        auth_host_blocker: str | None = None,
+        observed_at: str | None = None,
+        content_changed: bool = False,
+        browser_succeeded: bool = False,
+        browser_error: bool = False,
+    ) -> dict[str, Any]:
+        """Persist bounded liveness facts; IDLE never advances progress time."""
+        project = str(project_id or "").strip()
+        if not project or not str(progress_state or "").strip():
+            raise StoreInvariantError("RUNTIME_OBSERVATION_INVALID")
+        stamp = str(observed_at or utc_now())
+        with self._transaction() as conn:
+            current = conn.execute(
+                "SELECT * FROM runtime_observations WHERE project_id=?", (project,)
+            ).fetchone()
+            if current is None:
+                raise StoreInvariantError("RUNTIME_OBSERVATION_NOT_FOUND")
+            semantic = browser_semantic_state if browser_semantic_state is not None else current["browser_semantic_state"]
+            blocker = auth_host_blocker if auth_host_blocker is not None else current["auth_host_blocker"]
+            changed = (
+                str(current["progress_state"]) != str(progress_state)
+                or str(current["browser_semantic_state"]) != str(semantic)
+                or current["auth_host_blocker"] != blocker
+            )
+            last_progress = current["last_progress_at"]
+            if str(progress_state) == "ACTIVE_GENERATING":
+                last_progress = stamp
+            last_content = stamp if content_changed else current["last_content_change_at"]
+            last_success = stamp if browser_succeeded else current["last_browser_success_at"]
+            last_error = stamp if browser_error else current["last_browser_error_at"]
+            conn.execute(
+                """
+                UPDATE runtime_observations SET progress_state=?,browser_semantic_state=?,
+                    auth_host_blocker=?,last_observed_at=?,last_progress_at=?,
+                    last_state_change_at=?,last_content_change_at=?,last_browser_success_at=?,
+                    last_browser_error_at=? WHERE project_id=?
+                """,
+                (
+                    str(progress_state), semantic, blocker, stamp, last_progress,
+                    stamp if changed else current["last_state_change_at"], last_content,
+                    last_success, last_error, project,
+                ),
+            )
+            return dict(conn.execute("SELECT * FROM runtime_observations WHERE project_id=?", (project,)).fetchone())
+
+    def get_runtime_command_receipt(self, request_id: str) -> dict[str, Any] | None:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM runtime_command_receipts WHERE request_id=?", (str(request_id),)
+            ).fetchone()
+            if row is None:
+                return None
+            value = dict(row)
+            value["response"] = json.loads(str(value.pop("response_json")))
+            return value
+
+    def record_runtime_command_receipt(
+        self,
+        *,
+        request_id: str,
+        receipt_id: str,
+        project_id: str,
+        command: str,
+        actor: str,
+        input_state_version: int | None,
+        output_state_version: int | None,
+        daemon_epoch: int | None,
+        master_epoch: int | None,
+        operator_generation: int | None,
+        objective_generation: int | None,
+        payload_sha256: str,
+        status: str,
+        reason: str | None,
+        response: Mapping[str, Any],
+        created_at: str | None = None,
+    ) -> dict[str, Any]:
+        with self._transaction() as conn:
+            existing = conn.execute(
+                "SELECT * FROM runtime_command_receipts WHERE request_id=?", (request_id,)
+            ).fetchone()
+            response_json = canonical_json(dict(response))
+            if existing is not None:
+                if (
+                    str(existing["command"]) != str(command)
+                    or str(existing["payload_sha256"]) != str(payload_sha256)
+                ):
+                    raise StoreInvariantError("RUNTIME_RECEIPT_IDEMPOTENCY_CONFLICT")
+                value = dict(existing)
+                value["response"] = json.loads(str(value.pop("response_json")))
+                return value
+            stamp = str(created_at or utc_now())
+            conn.execute(
+                """
+                INSERT INTO runtime_command_receipts(
+                    request_id,receipt_id,project_id,command,actor,input_state_version,
+                    output_state_version,daemon_epoch,master_epoch,operator_generation,
+                    objective_generation,payload_sha256,status,reason,response_json,created_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    request_id, receipt_id, project_id, command, actor, input_state_version,
+                    output_state_version, daemon_epoch, master_epoch, operator_generation,
+                    objective_generation, payload_sha256, status, reason, response_json, stamp,
+                ),
+            )
+            value = dict(conn.execute("SELECT * FROM runtime_command_receipts WHERE request_id=?", (request_id,)).fetchone())
+            value["response"] = json.loads(str(value.pop("response_json")))
+            return value
 
     def get_contract(self, project_id: str) -> dict[str, Any]:
         with self._connection() as conn:

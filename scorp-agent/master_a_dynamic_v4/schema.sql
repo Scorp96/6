@@ -251,3 +251,47 @@ CREATE TABLE IF NOT EXISTS release_candidates (
     installed_manifest_sha256 TEXT,
     verified_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS operator_controls (
+    project_id TEXT PRIMARY KEY REFERENCES contracts(project_id) ON DELETE CASCADE,
+    operator_state TEXT NOT NULL,
+    operator_generation INTEGER NOT NULL CHECK (operator_generation >= 0),
+    objective_generation INTEGER NOT NULL CHECK (objective_generation >= 0),
+    objective_sha256 TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runtime_observations (
+    project_id TEXT PRIMARY KEY REFERENCES contracts(project_id) ON DELETE CASCADE,
+    progress_state TEXT NOT NULL,
+    browser_semantic_state TEXT,
+    auth_host_blocker TEXT,
+    last_observed_at TEXT NOT NULL,
+    last_progress_at TEXT,
+    last_state_change_at TEXT,
+    last_content_change_at TEXT,
+    last_browser_success_at TEXT,
+    last_browser_error_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS runtime_command_receipts (
+    request_id TEXT PRIMARY KEY,
+    receipt_id TEXT NOT NULL UNIQUE,
+    project_id TEXT NOT NULL REFERENCES contracts(project_id) ON DELETE CASCADE,
+    command TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    input_state_version INTEGER,
+    output_state_version INTEGER,
+    daemon_epoch INTEGER,
+    master_epoch INTEGER,
+    operator_generation INTEGER,
+    objective_generation INTEGER,
+    payload_sha256 TEXT NOT NULL,
+    status TEXT NOT NULL,
+    reason TEXT,
+    response_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS runtime_command_receipts_project_created
+ON runtime_command_receipts(project_id, created_at DESC);
