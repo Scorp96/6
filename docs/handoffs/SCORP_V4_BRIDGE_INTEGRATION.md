@@ -175,6 +175,3 @@ SQLite-backed until it is explicitly launched through this seam.
 Those checks require a separately authorized canary. This handoff therefore
 describes a runnable candidate integration and its tested boundaries, not a
 production completion claim.
-
-
-

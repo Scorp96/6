@@ -1,0 +1,29 @@
+{
+  "format": "scorp-v4-master-supervisor-decision/1",
+  "candidate_commit": "4d984632643289cb98a223d527867b6c8c431763",
+  "lab_root": "C:\\ScorpAgent\\v4-core-lab-4d98463",
+  "database": "C:\\ScorpAgent\\v4-core-lab-4d98463\\supervisor.sqlite3",
+  "heartbeat": {
+    "end_reason": null,
+    "ended_at": null,
+    "heartbeat_at": "2026-09-14T12:59:26.506093Z",
+    "lease_until": "2026-09-14T13:24:26.506093Z",
+    "master_epoch": 0,
+    "project_id": "scorp-v4-master-runtime",
+    "session_id": "master-a-runtime",
+    "started_at": "2026-09-14T12:59:25.961838Z",
+    "state": "ACTIVE"
+  },
+  "reason": "HEARTBEAT_RENEWED",
+  "recorded_at": "2026-09-14T12:59:26.513296Z",
+  "resume": null,
+  "status": "MASTER_ACTIVE",
+  "watchdog": {
+    "lease_until": "2026-09-14T13:24:25.961838Z",
+    "master_epoch": 0,
+    "project_id": "scorp-v4-master-runtime",
+    "session_id": "master-a-runtime",
+    "status": "MASTER_ACTIVE"
+  },
+  "decision_log_sha256": "8ee508309c4afb864ecbf339b8edbde0182aa4b77ffebc45766ef75971661f93"
+}
