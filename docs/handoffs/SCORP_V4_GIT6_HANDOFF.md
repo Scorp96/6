@@ -106,7 +106,7 @@ The isolated installation and short local recovery evidence are now stored in
 `SCORP_V4_GIT6_AC12_SHORT_SOAK_44fa51b.json`. The installed monitor probe is
 recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_44fa51b.json`. AC10 covers a
 36-file detached
-candidate install with unchanged protected-root hashes. AC12 covers a 10.11 s
-run with 50 cycles, two Worker slots, slot reuse, two scheduler recoveries, and
+candidate install with unchanged protected-root hashes. AC12 covers a 10.10 s
+run with 45 cycles, two Worker slots, slot reuse, two scheduler recoveries, and
 zero duplicate submits or errors. Its browser engine is injected and local;
 this does not upgrade the real-browser or production status.

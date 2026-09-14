@@ -249,7 +249,7 @@
         "MEASURED_THROUGHPUT_AND_ENVIRONMENT"
       ],
       "long_duration_stability_proven": false,
-      "evidence_scope": "CURRENT_GIT6_SHORT_SOAK_10S_50_CYCLES_2_RECOVERIES_0_ERRORS_44FA51B"
+      "evidence_scope": "CURRENT_GIT6_SHORT_SOAK_10S_45_CYCLES_2_RECOVERIES_0_ERRORS_44FA51B"
     }
   },
   "deprecation": {

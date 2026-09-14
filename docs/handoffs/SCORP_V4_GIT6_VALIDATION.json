@@ -52,17 +52,17 @@
       "id": "experimental_install_identity",
       "command": "install-lab.ps1 against detached candidate 44fa51b",
       "exit_code": 0,
-      "observed": "36-file manifest and install receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-44fa51b; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_44fa51b.json"
+      "observed": "36-file manifest and install-lab.ps1 receipt matched; protected roots before/after SHA-256 matched; isolated lab C:\\ScorpAgent\\v4-core-lab-44fa51b-script; evidence=docs/handoffs/SCORP_V4_GIT6_AC10_AC12_EVIDENCE_44fa51b.json"
     },
     {
       "id": "short_recovery_soak",
-      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-44fa51b --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-44fa51b.json",
+      "command": "python -B -m master_a_dynamic_v4.soak_harness --lab-root C:\\ScorpAgent\\v4-core-lab-44fa51b-script --duration-seconds 10 --output C:\\ScorpAgent\\v4-soak-44fa51b-script.json",
       "exit_code": 0,
-      "observed": "10.1124943 seconds actual; 50 cycles; 150 verified tasks; peak concurrency 2; 148 slot reuses; 2 scheduler recoveries; 50 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_44fa51b.json"
+      "observed": "10.0972498 seconds actual; 45 cycles; 135 verified tasks; peak concurrency 2; 133 slot reuses; 2 scheduler recoveries; 45 browser intents through injected real adapter state machine; 0 duplicate submits; 0 errors; evidence=docs/handoffs/SCORP_V4_GIT6_AC12_SHORT_SOAK_44fa51b.json"
     },
     {
       "id": "supervisor_runtime_probe",
-      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-44fa51b\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-44fa51b --max-iterations 1",
+      "command": "python scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --database-path C:\\ScorpAgent\\v4-core-lab-44fa51b-script\\monitor.sqlite3 --allowed-root C:\\ScorpAgent\\v4-core-lab-44fa51b-script --max-iterations 1",
       "exit_code": 0,
       "observed": "Installed 36-file candidate attached to an existing Master lease, renewed it once, wrote one JSONL decision, and reported browser_send=FORBIDDEN; evidence=docs/handoffs/SCORP_V4_GIT6_SUPERVISOR_RUNTIME_44fa51b.json"
     }
