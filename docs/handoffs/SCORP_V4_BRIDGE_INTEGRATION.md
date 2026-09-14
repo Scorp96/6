@@ -65,6 +65,14 @@ cycle cap. Passing no response decoder uses the built-in
 `decode_work_result_response()` parser, which accepts only a standalone or
 fenced JSON `WORK_RESULT/1` object and rejects explanatory prose.
 
+The Execution Plane seam is `master_a_dynamic_v4.LocalExecutionAdapter`.
+It accepts only an allowlisted Python module, runs without a shell, checks the
+live claim identity and authorized path scope before process start, and emits
+bounded output plus hashes in an `ExecutionReceipt`. The adapter is narrower
+than the legacy GitHub executor and is intended for the isolated real-code
+fixture; it is not evidence of production permission or browser-side exactly
+once behavior.
+
 ## Quick simulated check
 
 The gateway tests use a fake browser engine and verify the local path:

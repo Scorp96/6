@@ -9,6 +9,7 @@ from .work_result import (
 )
 from .master_watchdog import MasterWatchdog
 from .master_controller import ControllerRejected, ControllerStep, MasterAController
+from .execution_adapter import ExecutionAdapterRejected, ExecutionReceipt, LocalExecutionAdapter
 
 __all__ = [
     "AcceptanceStatus",
@@ -22,4 +23,7 @@ __all__ = [
     "ControllerRejected",
     "ControllerStep",
     "MasterAController",
+    "ExecutionAdapterRejected",
+    "ExecutionReceipt",
+    "LocalExecutionAdapter",
 ]

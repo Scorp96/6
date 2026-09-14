@@ -173,6 +173,16 @@ object or a fenced JSON object; explanatory prose is rejected. A custom decoder
 is an injected boundary for the existing browser transport; it is not a model
 API and does not grant local shell permissions to a web GPT.
 
+The local Execution Plane is exposed as `LocalExecutionAdapter`. It is a
+fail-closed seam for bounded Worker work: only an explicit Python module
+allowlist can run, `shell=False` is enforced, assignment/epoch/lease identity
+and path scope are checked before process start, output is bounded, and the
+receipt records exit code, timestamps, output hashes, and artifact hashes. It
+does not replace the legacy executor or authorize production writes. The
+current real-code check runs the allowlisted CSV CLI in an isolated directory;
+a live browser Worker still needs its own authorized canary and structured
+`WORK_RESULT/1` response.
+
 The implementation is in
 `scorp-agent/master_a_dynamic_v4/master_controller.py`, with an actual
 `V4BridgeGateway` integration test in
