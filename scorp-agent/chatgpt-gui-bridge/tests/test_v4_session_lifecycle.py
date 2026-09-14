@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3
-from tools.v4_session_lifecycle import list_lifecycle, retire_lifecycle
+from tools.v4_session_lifecycle import list_lifecycle, retire_lifecycle, write_evidence
 
 
 class FakeCli:
@@ -94,6 +94,15 @@ class V4SessionLifecycleCommandTests(unittest.TestCase):
             parser = parser_module.build_parser()
             with self.assertRaises(SystemExit):
                 parser.parse_args(["retire", "--driver-state-path", td, "--reason", "x"])
+
+    def test_receipt_writer_persists_a_hashable_audit_artifact(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / "evidence.json"
+            record = write_evidence(path, {"format": "test", "status": "READ_ONLY"})
+            stored = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(record, stored)
+            self.assertEqual(64, len(stored["artifact_sha256"]))
+            self.assertTrue(path.is_file())
 
 
 if __name__ == "__main__":

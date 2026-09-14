@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import datetime as dt
 import json
+import os
 import pathlib
 import sys
 from typing import Any
@@ -28,6 +30,7 @@ if str(pathlib.Path(__file__).resolve().parent) not in sys.path:
 from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3  # noqa: E402
 from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
 from v4_master_controller_runtime import validate_candidate_binding  # noqa: E402
+from master_a_dynamic_v4.models import sha256_json  # noqa: E402
 
 
 DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
@@ -43,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     show = sub.add_parser("list", help="read lifecycle state only")
     show.add_argument("--driver-state-path", required=True, type=pathlib.Path)
+    show.add_argument("--evidence-path", type=pathlib.Path)
 
     retire = sub.add_parser("retire", help="retire one named session or turn")
     retire.add_argument("--driver-state-path", required=True, type=pathlib.Path)
@@ -55,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     retire.add_argument("--candidate-commit", required=True)
     retire.add_argument("--candidate-manifest", required=True, type=pathlib.Path)
     retire.add_argument("--manifest-sha256", required=True)
+    retire.add_argument("--evidence-path", required=True, type=pathlib.Path)
     return parser
 
 
@@ -81,6 +86,7 @@ def list_lifecycle(state_path: pathlib.Path) -> dict[str, Any]:
     return {
         "format": "scorp-v4-session-lifecycle-report/1",
         "status": "READ_ONLY",
+        "recorded_at_utc": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
         "driver_state_path": str(state_path.resolve()),
         "sessions": driver.lifecycle_snapshot(),
         "global_cleanup": "FORBIDDEN",
@@ -110,10 +116,25 @@ async def retire_lifecycle(args: argparse.Namespace, *, cli: Any | None = None) 
     return {
         "format": "scorp-v4-session-lifecycle-receipt/1",
         "status": str(result.get("status") or "UNKNOWN"),
+        "recorded_at_utc": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+        "driver_state_path": str(pathlib.Path(args.driver_state_path).resolve()),
         "candidate_binding": binding,
         "result": result,
         "global_cleanup": "FORBIDDEN",
     }
+
+
+def write_evidence(path: pathlib.Path, payload: dict[str, Any]) -> dict[str, Any]:
+    """Write one atomic receipt and hash the canonical payload before the hash field."""
+
+    record = dict(payload)
+    record["artifact_sha256"] = sha256_json(record)
+    path = pathlib.Path(path).resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(json.dumps(record, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
+    os.replace(temporary, path)
+    return record
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -124,8 +145,20 @@ def main(argv: list[str] | None = None) -> int:
         else:
             result = asyncio.run(retire_lifecycle(args))
     except (LifecycleCommandError, ValueError, OSError) as exc:
-        print(json.dumps({"status": "BLOCKED", "reason": str(exc)}, ensure_ascii=False, sort_keys=True))
+        result = {
+            "format": "scorp-v4-session-lifecycle-receipt/1",
+            "status": "BLOCKED",
+            "reason": str(exc),
+            "global_cleanup": "FORBIDDEN",
+        }
+        evidence_path = getattr(args, "evidence_path", None)
+        if evidence_path is not None:
+            result = write_evidence(evidence_path, result)
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 2
+    evidence_path = getattr(args, "evidence_path", None)
+    if evidence_path is not None:
+        result = write_evidence(evidence_path, result)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0
 
