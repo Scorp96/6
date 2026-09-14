@@ -1,0 +1,172 @@
+{
+  "format": "scorp-v4-candidate-manifest/1",
+  "candidate_commit": "a385f7b362cf87ba194fd8ba9c119771db44c42a",
+  "source_tree": "C:\\ScorpAgent\\v4-source-a385f7b",
+  "files": {
+    "scorp-agent/chatgpt-gui-bridge/bridge_core.py": {
+      "sha256": "f06e355d5b1c5bc971c60762c9d7ac0fa277ba56796109035fa2f3e216f26562",
+      "size": 7494
+    },
+    "scorp-agent/chatgpt-gui-bridge/chrome_use_actor_driver_v3.py": {
+      "sha256": "8f2ade410825f002a3815e90a06abc5802809ee843145fa0c1cbe1874282e3e8",
+      "size": 34670
+    },
+    "scorp-agent/chatgpt-gui-bridge/chrome_use_cli_v3.py": {
+      "sha256": "f74cb719a565de6cb448f9c234a1a3007161f3bd629a190e9cde0ad14fffb199",
+      "size": 2565
+    },
+    "scorp-agent/chatgpt-gui-bridge/gui_engine.py": {
+      "sha256": "9cb6297cf5ffd6875acdc87048937a5b3a8c0e829f70ea7e6971b0e5636c8be0",
+      "size": 4147
+    },
+    "scorp-agent/chatgpt-gui-bridge/gui_transport.py": {
+      "sha256": "300e2071b6abe57c8206e9c5c2224253cdcd076f6e9a11ca3260a3db5d512d67",
+      "size": 26006
+    },
+    "scorp-agent/chatgpt-gui-bridge/tests/test_v4_session_lifecycle.py": {
+      "sha256": "6f28a82dc6b6bc582398032a9dd9231c6f7ff2aa75be29a78655c9e2e870d843",
+      "size": 5030
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_browser_fill_diagnostic.py": {
+      "sha256": "486809238731734a9cfa4e473e8e2adfa72303e547d2dbcb09c01c153d9d18be",
+      "size": 8817
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_local_preflight.py": {
+      "sha256": "a6268005b6d846dbacac335a989ec082ffb5cc503c4ec8238ffac16a80432180",
+      "size": 6705
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py": {
+      "sha256": "92a3038bf4ea050af1c5c04629553e6f4f39af3923f3d67e724f33a4a83cf889",
+      "size": 9632
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_session_lifecycle.py": {
+      "sha256": "a41d7b1a0196daaac825edb9c615fcf9e05be436f1e1ce0c9dbc9a2edcea3360",
+      "size": 6853
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py": {
+      "sha256": "77a4e49466292e18bb0f015f28d313f0071afeb567fb5b4b556f9c0a0b5ed12e",
+      "size": 6830
+    },
+    "scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py": {
+      "sha256": "2a38575abae17440d242e3ab858ae0f2dd69c7c251abcbdbcf1381cbe941651b",
+      "size": 12739
+    },
+    "scorp-agent/chatgpt-gui-bridge/v4_browser_engine.py": {
+      "sha256": "ea9d6f2a69c88c8e05227701fe46268c8463441f600cf31d37b9a66e26f800fc",
+      "size": 3646
+    },
+    "scorp-agent/chatgpt-gui-bridge/v4_physical_rebind.py": {
+      "sha256": "6b03f2d6127ee5c987184115e7637c78921ab3a61a87b88eb384a831d54c93cf",
+      "size": 4602
+    },
+    "scorp-agent/master_a_dynamic_v4/__init__.py": {
+      "sha256": "e3e948152f92c2c51ee02032125f04c5acf9dfd848bc7f62eb948eff0d067d58",
+      "size": 1242
+    },
+    "scorp-agent/master_a_dynamic_v4/acceptance.py": {
+      "sha256": "09e0550d76c82e6de2f2f4bdb02567f4af157c4ab1d3d27e4a2776d285d8a286",
+      "size": 8387
+    },
+    "scorp-agent/master_a_dynamic_v4/browser_adapter.py": {
+      "sha256": "69e2e9412a654d7097d147ef7180c383b81cfc468a4de7a24fe403684bbb10b5",
+      "size": 7919
+    },
+    "scorp-agent/master_a_dynamic_v4/contracts.py": {
+      "sha256": "dc3f65097956ed5612e794bc0da522debd19deea41d372354c450826d8e0bdea",
+      "size": 1282
+    },
+    "scorp-agent/master_a_dynamic_v4/csv_workload/__init__.py": {
+      "sha256": "78f1949549ecccd402bb0b923eb0a9e4cf8af6e06df0f2b271a691d7529c84b3",
+      "size": 59
+    },
+    "scorp-agent/master_a_dynamic_v4/csv_workload/aggregate.py": {
+      "sha256": "c01e6a6b3b08365902b870c4a220b0454d353f83fe618170346c1b0244b00db4",
+      "size": 834
+    },
+    "scorp-agent/master_a_dynamic_v4/csv_workload/cli.py": {
+      "sha256": "0ee5982662be466f4ae8d5302799b0e29cdb52cc74e6baee97e693c2daa03716",
+      "size": 605
+    },
+    "scorp-agent/master_a_dynamic_v4/csv_workload/graph.py": {
+      "sha256": "0ac764f0481e6e942e4c1ba3d69c8198c11e6c86df625efdcb39de4d21bea483",
+      "size": 1178
+    },
+    "scorp-agent/master_a_dynamic_v4/csv_workload/reader.py": {
+      "sha256": "99a994758ebd10db1e40a75fc8eb73879a725c8a7550b19a5d5b8ce13b5d8b4c",
+      "size": 1945
+    },
+    "scorp-agent/master_a_dynamic_v4/evidence.py": {
+      "sha256": "69f8c742e432f5ee571226e3e73c7e2b81bcf0dfa0858f698a48e8fb4af5ba08",
+      "size": 1468
+    },
+    "scorp-agent/master_a_dynamic_v4/execution_adapter.py": {
+      "sha256": "6059cbae1d572ccf7c5be2586ff7f5b46d9d549c9eb37840e9db3f7e464d671d",
+      "size": 9864
+    },
+    "scorp-agent/master_a_dynamic_v4/export_snapshot.py": {
+      "sha256": "3bac4fc83f8a124bce7288e1520afa9a8f9135bacfe1b3d5e848315befcf99cd",
+      "size": 1654
+    },
+    "scorp-agent/master_a_dynamic_v4/git_worktree.py": {
+      "sha256": "e4574810ce7266f686d5e5863a7e7ddc8d14399e8281f97fd128c1edf13e3925",
+      "size": 9269
+    },
+    "scorp-agent/master_a_dynamic_v4/import_snapshot.py": {
+      "sha256": "88f648327e38a4836fefdea1e922c7336e6af66949332ba8a5c9d90c7e2ec336",
+      "size": 5473
+    },
+    "scorp-agent/master_a_dynamic_v4/install-lab.ps1": {
+      "sha256": "d75a17d525493bc4c4e1a45c59632f41bacec0b1dae4a182a069ae1517cd7aeb",
+      "size": 1183
+    },
+    "scorp-agent/master_a_dynamic_v4/install_manifest.py": {
+      "sha256": "c0cbe49c438ad05732811e4b314a66f3a231e90ab290037d37b680a42c1a2812",
+      "size": 10922
+    },
+    "scorp-agent/master_a_dynamic_v4/master_controller.py": {
+      "sha256": "2b77e16bf39e395d7caad8a44f8d18b20696c9706f0a2e0334bc996c9aa18cbf",
+      "size": 29339
+    },
+    "scorp-agent/master_a_dynamic_v4/master_supervisor.py": {
+      "sha256": "22502044d1a292aa51f347a48ab4600df5e01ef866390cde518bd67f5f79ab76",
+      "size": 7003
+    },
+    "scorp-agent/master_a_dynamic_v4/master_watchdog.py": {
+      "sha256": "ccdfcc302b339a4e1caba0069cf03e962349a6f6c98809d9f756960de0e6ac3b",
+      "size": 1981
+    },
+    "scorp-agent/master_a_dynamic_v4/models.py": {
+      "sha256": "635d57f0df25c146ea0806b0903225e3e7e05d3641e04633366b63d6191514ba",
+      "size": 1000
+    },
+    "scorp-agent/master_a_dynamic_v4/path_policy.py": {
+      "sha256": "22e5e474b86bff620b7e1300a942634e91ba3f1c7710b2d55209a7b9df3aaa59",
+      "size": 2196
+    },
+    "scorp-agent/master_a_dynamic_v4/recovery.py": {
+      "sha256": "5dafff3a7ae55ddbab31ab3f822d8cada19a011b98c73e9d3b8e8ad066c7d381",
+      "size": 1329
+    },
+    "scorp-agent/master_a_dynamic_v4/scheduler.py": {
+      "sha256": "b143cf53e89fa224ce90ae235f05d3fb5c1451b60bbf3547c085471e42e5b02d",
+      "size": 27304
+    },
+    "scorp-agent/master_a_dynamic_v4/schema.sql": {
+      "sha256": "8c801cefc599639f893497af60b2863a83aa9d691ccb3771f48bf0b2e5d3393b",
+      "size": 8796
+    },
+    "scorp-agent/master_a_dynamic_v4/soak_harness.py": {
+      "sha256": "863668ee5faacaf3f3e68b675113b2c235461ba2647a6ff12a72beb0ba20eac8",
+      "size": 13694
+    },
+    "scorp-agent/master_a_dynamic_v4/state_store.py": {
+      "sha256": "c0555caed9ce2cae133c5b2ae2b1ccce569ad091358c49d4de1acd4e9a1cd0f0",
+      "size": 58036
+    },
+    "scorp-agent/master_a_dynamic_v4/work_result.py": {
+      "sha256": "79ed5ae69fbe42f5022333b022ce18333d71120b67fe0a751ec062f54f4dbfa9",
+      "size": 7438
+    }
+  },
+  "manifest_sha256": "6ae73317b3549201d266c5d6f1c35dcec5d9744ea209cadba5f6f7e4998955e7"
+}

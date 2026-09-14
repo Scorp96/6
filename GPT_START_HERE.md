@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 9a6ad04e50fd5dd76716585d2bd22a285dc7cff6 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_9a6ad04.json `
-  --manifest-sha256 06a8d7a2206b0b624ffa76c1f7b4099d6689417596ad6d03bb1b57a8e577784c
+  --candidate-commit a385f7b362cf87ba194fd8ba9c119771db44c42a `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_a385f7b.json `
+  --manifest-sha256 6ae73317b3549201d266c5d6f1c35dcec5d9744ea209cadba5f6f7e4998955e7
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -170,9 +170,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 9a6ad04e50fd5dd76716585d2bd22a285dc7cff6 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_9a6ad04.json `
-  --manifest-sha256 06a8d7a2206b0b624ffa76c1f7b4099d6689417596ad6d03bb1b57a8e577784c `
+  --candidate-commit a385f7b362cf87ba194fd8ba9c119771db44c42a `
+  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_a385f7b.json `
+  --manifest-sha256 6ae73317b3549201d266c5d6f1c35dcec5d9744ea209cadba5f6f7e4998955e7 `
   --send
 ```
 
@@ -216,6 +216,7 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_session_lifecycle.py list `
 Use the `retire` form only after reviewing the lifecycle report and the exact
 candidate manifest. A persistent Master or Worker stop requires the explicit
 `--allow-persistent` flag and is still recorded as a separate cleanup action.
+For a retirement receipt, add `--evidence-path C:\ScorpAgent\v4-runtime\session-lifecycle.json`; the command writes an atomic JSON record with `artifact_sha256`.
 
 ### Monitor and privileged recovery boundaries
 

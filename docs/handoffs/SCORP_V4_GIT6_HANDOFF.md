@@ -11,7 +11,7 @@ This file adapts the local candidate handoff to repository `Scorp96/6`.
 - Offline validation: `scripts/run-candidate-validation.ps1`
 - Default queue: `Scorp96/666`
 - Legacy queue: `Scorp96/scorp-control-plane`, migration-only
-- Current candidate: `9a6ad04e50fd5dd76716585d2bd22a285dc7cff6`
+- Current candidate: `a385f7b362cf87ba194fd8ba9c119771db44c42a`
 - Reasoning controller: **GPT-5.6 Sol**
 
 The original local candidate was developed in `Scorp96/666`. This repository is
@@ -109,12 +109,12 @@ cutover, and long-duration stability as unverified where no current evidence
 exists.
 
 The isolated installation and short local recovery evidence are stored in
-`SCORP_V4_GIT6_CANDIDATE_MANIFEST_9a6ad04.json`,
-`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_9a6ad04.json`, and
-`SCORP_V4_GIT6_AC12_SHORT_SOAK_9a6ad04.json`. The installed monitor probe is
-recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_9a6ad04.json`. AC10 covers a
+`SCORP_V4_GIT6_CANDIDATE_MANIFEST_a385f7b.json`,
+`SCORP_V4_GIT6_AC10_AC12_EVIDENCE_a385f7b.json`, and
+`SCORP_V4_GIT6_AC12_SHORT_SOAK_a385f7b.json`. The installed monitor probe is
+recorded in `SCORP_V4_GIT6_SUPERVISOR_RUNTIME_a385f7b.json`. AC10 covers a
 41-file candidate install with unchanged protected-root hashes. AC12 covers a
-10.06 s run with 48 cycles, two Worker slots, 142 slot reuses, two scheduler
+10.03 s run with 48 cycles, two Worker slots, 142 slot reuses, two scheduler
 recoveries, and zero duplicate submits or errors. The browser engine is
 injected and local; this does not upgrade the real-browser or production
 status.
@@ -122,7 +122,7 @@ status.
 The web-GPT handoff and read-only local capability report are
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md`,
 `docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json`, and
-`SCORP_V4_GIT6_PREFLIGHT_9a6ad04.json`. The preflight reports
+`SCORP_V4_GIT6_PREFLIGHT_a385f7b.json`. The preflight reports
 `web_gpt_direct_local_control=UNAVAILABLE` until an actual local connector or
 operator-owned host is present.
 
