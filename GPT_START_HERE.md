@@ -196,6 +196,12 @@ This command core is a local feature-branch implementation and a testable
 handoff surface. Its focused tests and offline regression do not prove live
 ChatGPT browser acceptance or production cutover.
 
+The current Phase 0 field audit is recorded in
+`docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md`. At the latest inspection,
+the candidate is `TEST_VERIFIED`; live ChatGPT is `BLOCKED` by the observed
+rate-limit dialog, so no new browser send is permitted until a fresh read-only
+preflight proves that blocker has cleared.
+
 The V4 daemon entrypoint may omit `--daemon-epoch`; it then acquires the
 current SQLite lease epoch. A fixed epoch is accepted only as an explicit
 fence check. The installer therefore should not bake an old epoch into a
