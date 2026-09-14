@@ -3,7 +3,7 @@
   "source_repository": "Scorp96/666 (historical source)",
   "source_commit": "a39c734a61a97f605ae154f339231760e3bf5ca7",
   "target_repository": "Scorp96/6",
-  "validated_commit": "6ee527e206b82b7a6003157dc2a5e1aa45b89350",
+  "validated_commit": "78df38aada756077bcda8b5e9e446484307ede86",
   "validation_scope": "repository-candidate-offline",
   "reasoning_model": "GPT-5.6 Sol",
   "worker_capacity": 2,
@@ -61,6 +61,7 @@
     "The browser adapter requires an explicitly configured, already-authenticated Windows MCP or Chrome Use driver.",
     "The candidate is delivered to GitHub main; installing it into the user's production scheduled task remains a separate authorized step.",
     "A real two-Worker browser run used distinct worker-slot-1 and worker-slot-2 channels; both fixed-marker responses were captured after positive read-only reconciliation without duplicate sends.",
-    "The two-worker live browser side effects were initiated before the final 2148dc3 commit; final code performed read-only reconciliation and has dedicated transient-URL regression tests, so the live record is not an immutable release-signature proof."
+    "The two-worker live browser side effects were initiated before the final 2148dc3 commit; final code performed read-only reconciliation and has dedicated transient-URL regression tests, so the live record is not an immutable release-signature proof.",
+    "The guarded canary runner was revalidated after 78df38a: if a valid persisted driver binding exists after a transient URL observation, it performs read-only confirmation before reconciliation and never blind-resends."
   ]
 }
