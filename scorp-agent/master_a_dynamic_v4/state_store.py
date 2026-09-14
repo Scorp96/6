@@ -276,11 +276,12 @@ class StateStore:
                 (project, session),
             ).fetchone()
             if existing is not None and str(existing["state"]) == "ACTIVE":
-                if str(existing["lease_until"]) > instant_text:
+                if int(existing["master_epoch"]) == int(state["master_epoch"]) and str(existing["lease_until"]) > instant_text:
                     return dict(existing)
+                reason = "EPOCH_FENCED" if int(existing["master_epoch"]) != int(state["master_epoch"]) else "LEASE_EXPIRED"
                 conn.execute(
                     "UPDATE master_sessions SET state='STALE',ended_at=?,end_reason=? WHERE project_id=? AND session_id=?",
-                    (instant_text, "LEASE_EXPIRED", project, session),
+                    (instant_text, reason, project, session),
                 )
             elif existing is not None:
                 raise StoreInvariantError("MASTER_SESSION_ID_REUSED")
@@ -289,11 +290,12 @@ class StateStore:
                 (project,),
             ).fetchone()
             if active is not None:
-                if str(active["lease_until"]) > instant_text:
+                if int(active["master_epoch"]) == int(state["master_epoch"]) and str(active["lease_until"]) > instant_text:
                     raise StoreInvariantError("MASTER_SESSION_ACTIVE")
+                reason = "EPOCH_FENCED" if int(active["master_epoch"]) != int(state["master_epoch"]) else "LEASE_EXPIRED"
                 conn.execute(
                     "UPDATE master_sessions SET state='STALE',ended_at=?,end_reason=? WHERE project_id=? AND session_id=?",
-                    (instant_text, "LEASE_EXPIRED", project, active["session_id"]),
+                    (instant_text, reason, project, active["session_id"]),
                 )
             history = conn.execute(
                 "SELECT 1 FROM master_sessions WHERE project_id=? LIMIT 1", (project,)
@@ -389,12 +391,13 @@ class StateStore:
                 "SELECT * FROM master_sessions WHERE project_id=? AND state='ACTIVE'",
                 (project,),
             ).fetchone()
-            if row is not None and int(row["master_epoch"]) == int(state["master_epoch"]):
-                if str(row["lease_until"]) > instant_text:
+            if row is not None:
+                if int(row["master_epoch"]) == int(state["master_epoch"]) and str(row["lease_until"]) > instant_text:
                     return {"status": "MASTER_ACTIVE", "project_id": project, "session_id": str(row["session_id"]), "master_epoch": int(row["master_epoch"]), "lease_until": str(row["lease_until"])}
+                reason = "EPOCH_FENCED" if int(row["master_epoch"]) != int(state["master_epoch"]) else "LEASE_EXPIRED"
                 conn.execute(
                     "UPDATE master_sessions SET state='STALE',ended_at=?,end_reason=? WHERE project_id=? AND session_id=?",
-                    (instant_text, "LEASE_EXPIRED", project, row["session_id"]),
+                    (instant_text, reason, project, row["session_id"]),
                 )
                 stale_session = str(row["session_id"])
             else:

@@ -76,6 +76,24 @@ class MasterWatchdogTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_external_epoch_advance_fences_active_session_and_does_not_deadlock_resume(self):
+        from master_a_dynamic_v4.master_watchdog import MasterWatchdog
+
+        start = dt.datetime(2026, 9, 14, tzinfo=UTC)
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = self.make_store(root)
+            try:
+                watchdog = MasterWatchdog(store, "project-watchdog", ttl_seconds=30)
+                first = watchdog.start("master-1", now=start)
+                self.assertEqual(1, store.advance_master_epoch("project-watchdog", expected_epoch=first["master_epoch"]))
+                decision = watchdog.run_once(now=start + dt.timedelta(seconds=1))
+                self.assertEqual("RESUME_REQUIRED", decision["status"])
+                replacement = watchdog.start("master-2", now=start + dt.timedelta(seconds=2))
+                self.assertEqual(2, replacement["master_epoch"])
+            finally:
+                store.close()
+
 
 if __name__ == "__main__":
     unittest.main()
