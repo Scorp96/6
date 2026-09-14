@@ -336,6 +336,20 @@ class Scheduler:
             ).fetchone()
             if control is not None and str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
                 return []
+            # New ordinary assignments must not bypass the arbiter's
+            # reconciliation fence.  A MAY_HAVE_SUBMITTED or
+            # BLOCKED_AMBIGUOUS browser intent means the external side effect
+            # is unresolved; only the reconciliation path may proceed.
+            ambiguous = conn.execute(
+                """
+                SELECT 1 FROM action_intents
+                WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS')
+                LIMIT 1
+                """,
+                (self.project_id,),
+            ).fetchone()
+            if ambiguous is not None:
+                return []
 
             active_rows = conn.execute(
                 """

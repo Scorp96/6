@@ -115,6 +115,29 @@ class DynamicWorkerTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_ambiguous_browser_intent_blocks_new_ordinary_claims(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler, worktree = self.make_runtime(root)
+            try:
+                scheduler.enqueue_graph([
+                    {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "t1.txt"], "dependencies": []},
+                    {"task_id": "T2", "objective_sha256": "2" * 64, "resource_scope": [worktree / "t2.txt"], "dependencies": []},
+                ])
+                started = dt.datetime(2026, 9, 15, 1, 0, tzinfo=UTC)
+                first = scheduler.claim_runnable(master_epoch=0, now=started, limit=1)[0]
+                store.prepare_intent(
+                    "project-ac05", "ambiguous-intent", actor_id="worker-1",
+                    channel="worker/1", action_kind="CHATGPT_SUBMIT",
+                    payload={"assignment_id": first.assignment_id},
+                )
+                store.begin_possible_submit("ambiguous-intent")
+
+                self.assertEqual([], scheduler.claim_runnable(master_epoch=0, now=started, limit=1))
+                self.assertEqual("QUEUED", scheduler.get_task("T2")["state"])
+            finally:
+                store.close()
+
     def test_wrong_lease_old_epoch_and_expired_lease_are_fenced(self):
         from master_a_dynamic_v4.scheduler import WorkerFenceError
 

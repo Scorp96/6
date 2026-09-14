@@ -93,7 +93,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：150 项测试通过。
+- V4 core：151 项测试通过。
 - GUI bridge：475 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
@@ -153,6 +153,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - P0 durable command/fencing invariants：通过当前离线测试验证。
 - P0 no arbitrary shell：通过协议拒绝和 CLI 边界测试验证。
 - P0 no blind retry：代码和离线故障注入覆盖；live 当前被 rate limit 阻塞。
+- P0 ambiguous intent fence：scheduler 现在拒绝在 `MAY_HAVE_SUBMITTED` 或 `BLOCKED_AMBIGUOUS` 存在时创建新的普通 assignment。
 - P0 auth/rate-limit human boundary：现场只读证据显示阻塞被识别，不能发送。
 - P0 current-candidate browser exactly-once：未达到 LIVE_VERIFIED。
 - P0 dedicated production daemon authority：未证明已安装。
