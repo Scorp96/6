@@ -14,7 +14,7 @@ from typing import Any
 from master_a_dynamic_v4.browser_adapter import BrowserAdapter
 from master_a_dynamic_v4.path_policy import PathPolicy
 from master_a_dynamic_v4.recovery import recover_pending_intents
-from master_a_dynamic_v4.scheduler import Scheduler
+from master_a_dynamic_v4.scheduler import Scheduler, SchedulerError
 from master_a_dynamic_v4.state_store import StateStore
 
 
@@ -87,6 +87,8 @@ class V4BridgeGateway:
 
     def claim_workers(self, *, master_epoch: int = 0, limit: int = 2, now=None):
         """Atomically claim up to two runnable dynamic Worker assignments."""
+        if int(limit) > 2:
+            raise SchedulerError("V4_WORKER_LIMIT_INVALID")
         return self.scheduler.claim_runnable(master_epoch=master_epoch, limit=limit, now=now)
 
     def record_worker_result(self, claim, *, kind: str, payload: Mapping[str, Any], now=None) -> str:

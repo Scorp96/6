@@ -11,6 +11,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from v4_bridge_gateway import QueueConfig, V4BridgeGateway
 from gui_engine import ChatGptGuiEngine
+from master_a_dynamic_v4.scheduler import SchedulerError
 
 
 class FakeEngine:
@@ -66,6 +67,26 @@ class V4GatewayTests(unittest.TestCase):
                 self.assertEqual('COMPLETED', gateway.store.get_outbox_for_intent('intent-gateway')['state'])
                 payload = json.loads(intent['payload_json'])
                 self.assertEqual(hashlib.sha256(b'execute this').hexdigest(), payload['prompt_sha256'])
+            finally:
+                gateway.close()
+
+    def test_gateway_rejects_worker_limit_above_first_release_capacity(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            gateway = V4BridgeGateway(
+                root / 'state.sqlite3', 'project-capacity', [worktree], FakeEngine()
+            )
+            try:
+                gateway.ensure_contract(
+                    {'objective': 'bounded capacity'}, {'required': ['AC-CAPACITY']}
+                )
+                before = gateway.describe()
+                with self.assertRaisesRegex(SchedulerError, 'V4_WORKER_LIMIT_INVALID'):
+                    gateway.claim_workers(limit=3)
+                after = gateway.describe()
+                self.assertEqual(before['state_version'], after['state_version'])
+                self.assertEqual(0, after['pending_intents'])
             finally:
                 gateway.close()
 
