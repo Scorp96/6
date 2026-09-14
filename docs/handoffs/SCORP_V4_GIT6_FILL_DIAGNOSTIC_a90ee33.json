@@ -1,0 +1,27 @@
+{
+  "format": "scorp-v4-browser-fill-diagnostic-receipt/1",
+  "observed_at_utc": "2026-09-14T13:32:51.944158Z",
+  "session": "scorp-v4-fill-a90ee33",
+  "turn_id": "fill-a90ee33-turn",
+  "marker_sha256": "0388a701b8657fe3e17be0c88ef56a14e257afad2217f5e219ab43ca2e5e8b94",
+  "marker_length": 26,
+  "submit_actions": 0,
+  "click_performed": false,
+  "opened_url": "https://chatgpt.com/",
+  "editor_ref": "@e118",
+  "status": "READY_TO_SEND_NO_CLICK",
+  "send_ref": "@e126",
+  "key_event_repair": "NOT_NEEDED",
+  "diagnostics": {
+    "send_control_ref": "@e126",
+    "prompt_sha256": "0388a701b8657fe3e17be0c88ef56a14e257afad2217f5e219ab43ca2e5e8b94"
+  },
+  "cleanup": "STOPPED",
+  "candidate_code_commit": "a90ee333385f7d6039ed0d51d8273cee867f8914",
+  "candidate_manifest_sha256": "af2de549802a8d515a06180f29061fb239f7b09b9be39415bdc08c56904afbdc",
+  "candidate_manifest_path": "C:\\ScorpAgent\\_publish_git6\\docs\\handoffs\\SCORP_V4_GIT6_CANDIDATE_MANIFEST_a90ee33.json",
+  "executable": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe",
+  "raw_output_reference": "C:\\ScorpAgent\\v4-fill-diagnostic-a90ee33\\evidence.json",
+  "evidence_scope": "REAL_BROWSER_FILL_ONLY_NO_CLICK_NO_SEND",
+  "artifact_sha256": "48ec4f748cfa5796cf792191abd38c477c6b06fb9f650488e179ad1ab0312980"
+}

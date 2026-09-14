@@ -73,6 +73,12 @@
       "observed": "Read-only report returned overall_status=READY, sqlite_master_monitor=READY, web_gpt_direct_local_control=UNAVAILABLE, browser_submission=EXPLICIT_OPERATOR_GATE; evidence=docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_a90ee33.json"
     },
     {
+      "id": "browser_fill_only_diagnostic",
+      "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_browser_fill_diagnostic.py --run-fill-only --candidate-commit a90ee333385f7d6039ed0d51d8273cee867f8914 --candidate-manifest docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_a90ee33.json --manifest-sha256 af2de549802a8d515a06180f29061fb239f7b09b9be39415bdc08c56904afbdc --driver-state-path C:\\ScorpAgent\\v4-fill-diagnostic-a90ee33\\driver.json --evidence-path C:\\ScorpAgent\\v4-fill-diagnostic-a90ee33\\evidence.json",
+      "exit_code": 0,
+      "observed": "REAL_BROWSER fill-only pass: opened https://chatgpt.com/, editor_ref=@e118, send_ref=@e126, status=READY_TO_SEND_NO_CLICK, click_performed=false, submit_actions=0, cleanup=STOPPED; receipt=docs/handoffs/SCORP_V4_GIT6_FILL_DIAGNOSTIC_a90ee33.json, artifact_sha256=48ec4f748cfa5796cf792191abd38c477c6b06fb9f650488e179ad1ab0312980"
+    },
+    {
       "id": "session_lifecycle_smoke",
       "command": "python -B scorp-agent/chatgpt-gui-bridge/tools/v4_session_lifecycle.py retire --session diag-delivery-demo --evidence-path C:\\ScorpAgent\\v4-lifecycle-demo\\retirement.json",
       "exit_code": 0,
@@ -115,20 +121,23 @@
     "The explicit v4_session_lifecycle.py command provides read-only listing and named-session retirement; global session prune and close-all cleanup are forbidden and covered by five unit tests.",
     "The session lifecycle command now persists an atomic evidence JSON with artifact_sha256 for every listed or retired action when an evidence path is supplied.",
     "An isolated command smoke retired a named DIAGNOSTIC session without stopping Chrome and persisted C:\\\\ScorpAgent\\\\v4-lifecycle-demo\\\\retirement.json with artifact_sha256=88260899fa6510ec5df9b6c55cf0c61bafdedba2f3794afbce6c0803180fcadf.",
-    "Chrome Use now exposes prepare_interactive() and the driver calls it before editor/send accessibility snapshots; this addresses background-tab visibility semantics offline and remains unverified in a fresh live send."
+    "Chrome Use now exposes prepare_interactive() and the driver calls it before editor/send accessibility snapshots; this addresses background-tab visibility semantics offline and remains unverified in a fresh live send.",
+    "A fresh real-browser fill-only diagnostic on the current candidate found editor_ref=@e118 and send_ref=@e126 after visibility preparation, with click_performed=false and submit_actions=0; this is evidence for the composer/Send-control stage only, not a send or conversation promotion PASS."
   ],
   "external_runtime_report": {
     "classification": "USER_PROVIDED_REPORT_NOT_REPLAYED_BY_THIS_AGENT",
     "status": "FAIL",
     "scope": "R4 real Scorp96/6 browser path",
-    "observed": "Master A, DAG admission, two assignments, and durable Worker-1 intent reached MAY_HAVE_SUBMITTED; Worker-1 had no conversation URL or response; Worker-2 browser dispatch was NOT_RUN because the previous controller loop was serial; read-only Chrome snapshot remained at https://chatgpt.com/; current fill/send diagnostic artifact was not supplied here.",
-    "acceptance_effect": "Current real-browser AC07/AC08, WORK_RESULT/1, two-GPT E2E, rebind, and restart recovery remain FAIL/BLOCKED/NOT_RUN; do not treat offline or injected PASS as live completion."
+    "observed": "The user-provided R4 report observed Master A, DAG admission, two assignments, and a durable Worker-1 intent at MAY_HAVE_SUBMITTED with no conversation URL or response; Worker-2 browser dispatch was NOT_RUN because the previous controller loop was serial; the read-only Chrome snapshot remained at https://chatgpt.com/. That historical report has no raw artifact binding. A fresh current-candidate fill-only receipt is now present, but it deliberately did not click or send.",
+    "acceptance_effect": "Current real-browser send/promotion AC07/AC08, WORK_RESULT/1, two-GPT E2E, rebind, and restart recovery remain FAIL/BLOCKED/NOT_RUN; the fresh fill-only receipt proves only editor and Send-control discovery."
   },
   "diagnostic_entrypoint": {
     "path": "scorp-agent/chatgpt-gui-bridge/tools/v4_browser_fill_diagnostic.py",
     "unit_tests": 3,
-    "live_status": "NOT_RUN",
+    "live_status": "FILL_ONLY_PASS_NO_CLICK",
     "contract": "fill fixed marker, optional same-intent key-event repair, report Send control, never click or send",
-    "candidate_binding": "candidate_commit and candidate_manifest_sha256 are required and checked before browser actions"
+    "candidate_binding": "candidate_commit and candidate_manifest_sha256 are required and checked before browser actions",
+    "evidence_path": "docs/handoffs/SCORP_V4_GIT6_FILL_DIAGNOSTIC_a90ee33.json",
+    "artifact_sha256": "48ec4f748cfa5796cf792191abd38c477c6b06fb9f650488e179ad1ab0312980"
   }
 }
