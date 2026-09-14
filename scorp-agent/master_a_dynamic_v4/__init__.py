@@ -2,6 +2,7 @@
 
 from .models import AcceptanceStatus, CommitResult, IntentState
 from .work_result import WorkResultRejected, result_content_sha256, validate_work_result
+from .master_watchdog import MasterWatchdog
 
 __all__ = [
     "AcceptanceStatus",
@@ -10,4 +11,5 @@ __all__ = [
     "WorkResultRejected",
     "result_content_sha256",
     "validate_work_result",
+    "MasterWatchdog",
 ]

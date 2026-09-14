@@ -26,6 +26,13 @@ Windows MCP or Chrome Use. The V4 gateway adds SQLite state, dynamic two-slot
 Worker scheduling and browser ambiguity recovery. The gateway is candidate code;
 the production scheduled task is not changed by this repository.
 
+Master session liveness is now part of the same SQLite authority. The
+`master_sessions` table and `MasterWatchdog` lease API fence expired sessions,
+advance `master_epoch` for a replacement, and emit an idempotent
+`MASTER_RESUME_REQUIRED` event. That event is a handoff to the browser adapter;
+it does not claim that a new browser window was opened or that authentication was
+recovered.
+
 The current candidate also validates structured, version-bound Worker results and
 the real CSV workload fixture: T1 and T2 run in parallel, T3 waits for both, and
 the independent completion validator returns `PASS`. Broker recovery and the

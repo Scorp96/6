@@ -238,6 +238,232 @@ class StateStore:
             )
             return next_epoch
 
+    @staticmethod
+    def _aware_time(value: dt.datetime | None) -> dt.datetime:
+        current = value or dt.datetime.now(UTC)
+        if current.tzinfo is None:
+            raise StoreInvariantError("MASTER_SESSION_TIME_NAIVE")
+        return current.astimezone(UTC)
+
+    def start_master_session(
+        self,
+        project_id: str,
+        session_id: str,
+        *,
+        now: dt.datetime | None = None,
+        ttl_seconds: int = 1500,
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        session = str(session_id or "").strip()
+        if not project or not session:
+            raise StoreInvariantError("MASTER_SESSION_ID_INVALID")
+        ttl = int(ttl_seconds)
+        if ttl <= 0:
+            raise StoreInvariantError("MASTER_SESSION_TTL_INVALID")
+        instant = self._aware_time(now)
+        instant_text = instant.isoformat().replace("+00:00", "Z")
+        lease_until = (instant + dt.timedelta(seconds=ttl)).isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            state = conn.execute(
+                "SELECT * FROM project_state WHERE project_id=?", (project,)
+            ).fetchone()
+            if state is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            if str(state["status"]) in {"COMPLETE", "HARD_BLOCKED"}:
+                raise StoreInvariantError("MASTER_SESSION_TERMINAL_PROJECT")
+            existing = conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND session_id=?",
+                (project, session),
+            ).fetchone()
+            if existing is not None and str(existing["state"]) == "ACTIVE":
+                if str(existing["lease_until"]) > instant_text:
+                    return dict(existing)
+                conn.execute(
+                    "UPDATE master_sessions SET state='STALE',ended_at=?,end_reason=? WHERE project_id=? AND session_id=?",
+                    (instant_text, "LEASE_EXPIRED", project, session),
+                )
+            elif existing is not None:
+                raise StoreInvariantError("MASTER_SESSION_ID_REUSED")
+            active = conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND state='ACTIVE'",
+                (project,),
+            ).fetchone()
+            if active is not None:
+                if str(active["lease_until"]) > instant_text:
+                    raise StoreInvariantError("MASTER_SESSION_ACTIVE")
+                conn.execute(
+                    "UPDATE master_sessions SET state='STALE',ended_at=?,end_reason=? WHERE project_id=? AND session_id=?",
+                    (instant_text, "LEASE_EXPIRED", project, active["session_id"]),
+                )
+            history = conn.execute(
+                "SELECT 1 FROM master_sessions WHERE project_id=? LIMIT 1", (project,)
+            ).fetchone()
+            current_epoch = int(state["master_epoch"])
+            if history is not None:
+                current_epoch += 1
+                conn.execute(
+                    "UPDATE project_state SET master_epoch=?,updated_at=? WHERE project_id=?",
+                    (current_epoch, instant_text, project),
+                )
+            conn.execute(
+                "INSERT INTO master_sessions(project_id,session_id,master_epoch,state,started_at,heartbeat_at,lease_until) VALUES(?,?,?,?,?,?,?)",
+                (project, session, current_epoch, "ACTIVE", instant_text, instant_text, lease_until),
+            )
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"master-session-start-{project}-{session}",
+                    project,
+                    "MASTER_SESSION_STARTED",
+                    canonical_json({"session_id": session, "master_epoch": current_epoch}),
+                    instant_text,
+                ),
+            )
+            return dict(conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND session_id=?",
+                (project, session),
+            ).fetchone())
+
+    def heartbeat_master_session(
+        self,
+        project_id: str,
+        session_id: str,
+        *,
+        master_epoch: int,
+        now: dt.datetime | None = None,
+        ttl_seconds: int = 1500,
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        session = str(session_id or "").strip()
+        ttl = int(ttl_seconds)
+        if not project or not session or ttl <= 0:
+            raise StoreInvariantError("MASTER_SESSION_HEARTBEAT_INVALID")
+        instant = self._aware_time(now)
+        instant_text = instant.isoformat().replace("+00:00", "Z")
+        lease_until = (instant + dt.timedelta(seconds=ttl)).isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            state = conn.execute(
+                "SELECT master_epoch,status FROM project_state WHERE project_id=?", (project,)
+            ).fetchone()
+            row = conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND session_id=?", (project, session)
+            ).fetchone()
+            if state is None or row is None:
+                raise StoreInvariantError("MASTER_SESSION_NOT_ACTIVE")
+            if int(state["master_epoch"]) != int(master_epoch) or int(row["master_epoch"]) != int(master_epoch):
+                raise StoreInvariantError("MASTER_SESSION_FENCED")
+            if str(row["state"]) != "ACTIVE":
+                raise StoreInvariantError("MASTER_SESSION_NOT_ACTIVE")
+            if str(row["lease_until"]) <= instant_text:
+                conn.execute(
+                    "UPDATE master_sessions SET state='STALE',ended_at=?,end_reason=? WHERE project_id=? AND session_id=?",
+                    (instant_text, "LEASE_EXPIRED", project, session),
+                )
+                raise StoreInvariantError("MASTER_SESSION_EXPIRED")
+            conn.execute(
+                "UPDATE master_sessions SET heartbeat_at=?,lease_until=? WHERE project_id=? AND session_id=?",
+                (instant_text, lease_until, project, session),
+            )
+            return dict(conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND session_id=?",
+                (project, session),
+            ).fetchone())
+
+    def inspect_master_session(
+        self, project_id: str, *, now: dt.datetime | None = None
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        if not project:
+            raise StoreInvariantError("PROJECT_ID_EMPTY")
+        instant = self._aware_time(now)
+        instant_text = instant.isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            state = conn.execute(
+                "SELECT * FROM project_state WHERE project_id=?", (project,)
+            ).fetchone()
+            if state is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            if str(state["status"]) in {"COMPLETE", "HARD_BLOCKED"}:
+                return {"status": "TERMINAL", "project_id": project, "project_state": str(state["status"])}
+            row = conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND state='ACTIVE'",
+                (project,),
+            ).fetchone()
+            if row is not None and int(row["master_epoch"]) == int(state["master_epoch"]):
+                if str(row["lease_until"]) > instant_text:
+                    return {"status": "MASTER_ACTIVE", "project_id": project, "session_id": str(row["session_id"]), "master_epoch": int(row["master_epoch"]), "lease_until": str(row["lease_until"])}
+                conn.execute(
+                    "UPDATE master_sessions SET state='STALE',ended_at=?,end_reason=? WHERE project_id=? AND session_id=?",
+                    (instant_text, "LEASE_EXPIRED", project, row["session_id"]),
+                )
+                stale_session = str(row["session_id"])
+            else:
+                stale_session = None
+            payload = {"master_epoch": int(state["master_epoch"]), "stale_session_id": stale_session}
+            payload_text = canonical_json(payload)
+            existing_event = conn.execute(
+                "SELECT event_id FROM events WHERE project_id=? AND kind='MASTER_RESUME_REQUIRED' AND payload_json=?",
+                (project, payload_text),
+            ).fetchone()
+            event_id = str(existing_event[0]) if existing_event else f"master-resume-{hashlib.sha256((project + payload_text).encode('utf-8')).hexdigest()[:24]}"
+            if existing_event is None:
+                conn.execute(
+                    "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                    (event_id, project, "MASTER_RESUME_REQUIRED", payload_text, instant_text),
+                )
+            result = {"status": "RESUME_REQUIRED", "project_id": project, "master_epoch": int(state["master_epoch"]), "resume_event_id": event_id}
+            if stale_session:
+                result["stale_session_id"] = stale_session
+            return result
+
+    def end_master_session(
+        self,
+        project_id: str,
+        session_id: str,
+        *,
+        master_epoch: int,
+        reason: str,
+        now: dt.datetime | None = None,
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        session = str(session_id or "").strip()
+        why = str(reason or "").strip()
+        if not project or not session or not why:
+            raise StoreInvariantError("MASTER_SESSION_END_INVALID")
+        instant = self._aware_time(now)
+        instant_text = instant.isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            state = conn.execute(
+                "SELECT master_epoch FROM project_state WHERE project_id=?", (project,)
+            ).fetchone()
+            row = conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND session_id=?", (project, session)
+            ).fetchone()
+            if state is None or row is None:
+                raise StoreInvariantError("MASTER_SESSION_NOT_FOUND")
+            if int(state[0]) != int(master_epoch) or int(row["master_epoch"]) != int(master_epoch):
+                raise StoreInvariantError("MASTER_SESSION_FENCED")
+            if str(row["state"]) != "ACTIVE":
+                return dict(row)
+            conn.execute(
+                "UPDATE master_sessions SET state='ENDED',ended_at=?,end_reason=?,lease_until=? WHERE project_id=? AND session_id=?",
+                (instant_text, why, instant_text, project, session),
+            )
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"master-session-end-{project}-{session}",
+                    project,
+                    "MASTER_SESSION_ENDED",
+                    canonical_json({"session_id": session, "master_epoch": int(master_epoch), "reason": why}),
+                    instant_text,
+                ),
+            )
+            return dict(conn.execute(
+                "SELECT * FROM master_sessions WHERE project_id=? AND session_id=?",
+                (project, session),
+            ).fetchone())
+
     def _evidence_belongs_to_project(
         self, conn: sqlite3.Connection, project_id: str, refs: Sequence[str]
     ) -> bool:

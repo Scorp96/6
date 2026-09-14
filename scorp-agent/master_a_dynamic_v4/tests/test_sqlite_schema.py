@@ -9,6 +9,7 @@ import unittest
 REQUIRED_TABLES = {
     "contracts",
     "project_state",
+    "master_sessions",
     "task_nodes",
     "task_dependencies",
     "assignments",

@@ -37,6 +37,23 @@ CREATE TABLE IF NOT EXISTS project_state (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS master_sessions (
+    project_id TEXT NOT NULL REFERENCES contracts(project_id) ON DELETE CASCADE,
+    session_id TEXT NOT NULL,
+    master_epoch INTEGER NOT NULL CHECK (master_epoch >= 0),
+    state TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    heartbeat_at TEXT NOT NULL,
+    lease_until TEXT NOT NULL,
+    ended_at TEXT,
+    end_reason TEXT,
+    PRIMARY KEY (project_id, session_id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS master_sessions_one_active
+ON master_sessions(project_id)
+WHERE state = 'ACTIVE';
+
 CREATE TABLE IF NOT EXISTS task_nodes (
     project_id TEXT NOT NULL REFERENCES contracts(project_id) ON DELETE CASCADE,
     task_id TEXT NOT NULL,

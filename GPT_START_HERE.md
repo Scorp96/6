@@ -128,6 +128,15 @@ verified result or `BLOCKED_AMBIGUOUS`. There is no automatic retry of an
 uncertain privileged side effect. `BLOCKED_AMBIGUOUS` is an auditable stop
 state, not a successful operation.
 
+The V4 SQLite core also owns the Master A liveness lease in
+`master_sessions`. `MasterWatchdog.start()` creates one logical session,
+`heartbeat()` renews it, and `run_once()` returns `MASTER_ACTIVE`,
+`RESUME_REQUIRED`, or `TERMINAL`. An expired session is fenced by a new
+`master_epoch`; the watchdog records one idempotent `MASTER_RESUME_REQUIRED`
+event for the physical browser adapter to consume. The watchdog does not open a
+browser or bypass authentication, so `RESUME_REQUIRED` is a durable handoff
+signal rather than proof that a new ChatGPT window has already been created.
+
 ### Structured Worker result contract
 
 The machine result validator is in
