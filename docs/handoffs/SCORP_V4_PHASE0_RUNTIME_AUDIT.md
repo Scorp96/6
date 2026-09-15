@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`d33fdf2fc52724c89da96c0e6679545a28554fd9` (audit snapshot; code candidate `d1fc475`)
+`b6acdc0eada8f6b9cdf726bc38cf774f19b6623b` (current audit/documentation freeze; code candidate `d1fc475`)
 
 ## REMOTE_MAIN_HEAD
 
