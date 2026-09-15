@@ -94,6 +94,31 @@ class SqliteMigrationTests(unittest.TestCase):
             self.assertEqual(b"sentinel", destination.read_bytes())
             self.assertEqual(before, source.read_bytes())
 
+    def test_unknown_source_table_blocks_migration_without_copying_data(self):
+        from master_a_dynamic_v4.sqlite_migration import migrate_sqlite_snapshot
+        from master_a_dynamic_v4.state_store import StateStore
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            source = root / "unsupported.sqlite3"
+            self.create_legacy_db(source, with_contract=True)
+            conn = sqlite3.connect(source)
+            try:
+                conn.execute("CREATE TABLE vendor_private_state(secret TEXT)")
+                conn.execute("INSERT INTO vendor_private_state VALUES ('must-not-copy')")
+                conn.commit()
+            finally:
+                conn.close()
+            before = source.read_bytes()
+            destination = root / "migrated.sqlite3"
+            receipt = migrate_sqlite_snapshot(source, destination, allowed_roots=[root])
+            self.assertEqual("BLOCKED", receipt.status)
+            self.assertIn("UNSUPPORTED_TABLE:vendor_private_state", receipt.conflicts)
+            self.assertEqual(before, source.read_bytes())
+            with StateStore(destination, allowed_roots=[root]) as store:
+                with store._connection() as conn:
+                    self.assertEqual(0, conn.execute("SELECT COUNT(*) FROM contracts").fetchone()[0])
+
 
 if __name__ == "__main__":
     unittest.main()
