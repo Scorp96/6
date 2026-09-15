@@ -1,0 +1,22 @@
+{
+  "format": "scorp-v4-rate-limit-recovery-live-recheck/1",
+  "observed_at_utc": "2026-09-15T12:40:00Z",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+  "source_failure_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json",
+  "browser": {
+    "family": "Chrome",
+    "tab_id": "2033137551",
+    "tab_group": "scorp-v4-master-auth-ef84c20b4028",
+    "url": "https://chatgpt.com/",
+    "visible_blocker": "请求过于频繁",
+    "acknowledgement_control": "明白了"
+  },
+  "action": "read_only_accessibility_recheck",
+  "observed_state": "the same rate-limit dialog remained after the prior acknowledgement transport timeout",
+  "composer_ready": false,
+  "refresh_attempted": false,
+  "prompt_resend_attempted": false,
+  "classification": "BLOCKED_EXTERNAL_PRECONDITION",
+  "production_state_touched": false
+}

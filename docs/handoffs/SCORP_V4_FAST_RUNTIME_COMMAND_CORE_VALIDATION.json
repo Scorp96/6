@@ -117,6 +117,14 @@
         "observed": "the visible acknowledgement click timed out and the same rate-limit dialog remained",
         "refresh_attempted": false,
         "prompt_resend_attempted": false
+      },
+      "rate_limit_recovery_live_recheck_20260915": {
+        "result": "BLOCKED_EXTERNAL_PRECONDITION",
+        "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
+        "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
+        "observed": "the same physical tab still showed the rate-limit dialog; composer was not ready",
+        "refresh_attempted": false,
+        "prompt_resend_attempted": false
       }
     },
     "accepted": false,
