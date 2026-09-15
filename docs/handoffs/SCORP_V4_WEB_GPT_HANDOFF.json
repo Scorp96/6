@@ -1,14 +1,14 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+  "candidate_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
   "evidence_binding": {
-    "validated_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+    "validated_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json",
-    "binding_note": "This handoff describes the 5bf79536c03de8ae25a507723a34f4e162fe8bfa code candidate. Offline validation and a fresh isolated two-Worker browser submit/capture receipt are current. One real Worker session also recovered from a live rate-limit dialog after one acknowledgement click without prompt resend; the other real-code Worker session became uncontrollable and was not retried. The full real-code workload, symmetric popup recovery, Master replacement, unattended soak, and production acceptance remain unresolved.",
-    "manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e",
-    "live_rate_limit_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json"
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A5AAB0A.json",
+    "preflight_receipt": null,
+    "binding_note": "This handoff describes the a5aab0a code candidate. Offline validation includes the explicit blocked-task replan guard. Prior browser and real-code evidence is bound to predecessor candidate 5bf7953 and is not promoted; the current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.",
+    "manifest_sha256": "cdbb64c32616c350dfeb17c2a2704600ffdba8f9793607a9bcac7f5ca776666e",
+    "live_rate_limit_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -62,7 +62,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "current_candidate_two_worker_browser_canary_live_verified; current_candidate_real_code_workload_not_run; current_candidate_rate_limit_popup_branch_not_run; restart_and_unattended_soak_not_run; production_cutover_not_authorized"
+      "current_candidate_evidence": "current_candidate_browser_canary_not_run_after_code_change; predecessor_5bf7953_live_evidence_not_promoted; current_rate_limit_blocker_present; restart_and_unattended_soak_not_run; production_cutover_not_authorized"
     },
     "connector_contract": {
       "descriptor": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json",

@@ -107,8 +107,8 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
   --candidate-commit 5bf79536c03de8ae25a507723a34f4e162fe8bfa `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json `
-  --manifest-sha256 09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A5AAB0A.json `
+  --manifest-sha256 cdbb64c32616c350dfeb17c2a2704600ffdba8f9793607a9bcac7f5ca776666e
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -280,8 +280,8 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
   --candidate-commit 5bf79536c03de8ae25a507723a34f4e162fe8bfa `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json `
-  --manifest-sha256 09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A5AAB0A.json `
+  --manifest-sha256 cdbb64c32616c350dfeb17c2a2704600ffdba8f9793607a9bcac7f5ca776666e `
   --send
 ```
 
@@ -630,7 +630,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `5bf79536c03de8ae25a507723a34f4e162fe8bfa` (`fix: recover rate limit before pending chat submit`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes and the Windows MCP Worker pre-input page; the current candidate has a fresh isolated two-Worker browser submit/capture receipt; one real Worker session also passed the acknowledgement-only recovery observation after a live rate-limit dialog, while the symmetric second-session path is still incomplete. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, Worker evidence requirements, and result-envelope normalization are recorded in the current candidate evidence.
+- Current code candidate: `a5aab0a1ec20864adb1cd141c55fd2d6b0140216` (`feat: require explicit blocked task replanning`) on `feature/v4-fast-runtime-command-core`; it adds an explicit, fenced replan path for a BLOCKED Worker result, requiring a new objective hash, current state version, current Master epoch, and a durable `TASK_REPLANNED` event before a new assignment can be created. The predecessor `5bf7953` browser and real-code evidence is historical and is not promoted to this candidate. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
@@ -639,8 +639,8 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Current browser driver state used by the older read-only receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 - Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
 
-The current candidate is `TEST_VERIFIED` and has a scoped `LIVE_VERIFIED` two-Worker submit/capture receipt plus one scoped live rate-limit recovery observation. The real-code Worker workload is partially live-verified but currently `BLOCKED`: T2 executed through the local adapter with exit 0, T1 returned BLOCKED and was not executed, and T3 remains queued. Master replacement, unattended stability, and production cutover remain unverified. Historical real-code Worker evidence belongs to older candidates and cannot be promoted automatically. This is still not `ACCEPTED`: release identity, restart recovery, symmetric rate-limit recovery, scheduled-task cutover, and production cutover remain separate gates. The production SQLite incident is recovered logically and is not hidden as an unchanged-production claim.
-The current candidate has a scoped real two-Worker browser submit/capture receipt in `docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`. It does not prove a complete real repository task over ChatGPT, live Master replacement, scheduled-task registration, production cutover, or long-duration unattended stability. The live observation is recorded in `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json`: one real session recovered after the explicit acknowledgement without resending; the other Worker session became uncontrollable and was not retried. Do not claim the full rate-limit or real-code gates pass.
+The current candidate is `TEST_VERIFIED` for the offline core and is `BLOCKED` for current-candidate live browser evidence. The predecessor `5bf7953` real-code workload was partially live-verified: T2 executed through the local adapter with exit 0, T1 returned BLOCKED and was not executed, and T3 remained queued. That evidence is retained as historical context and cannot be promoted automatically. Master replacement, unattended stability, and production cutover remain unverified. This is not `ACCEPTED`: release identity, current-candidate browser evidence, restart recovery, symmetric rate-limit recovery, scheduled-task cutover, and production cutover remain separate gates.
+The predecessor's two-Worker browser receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`; it belongs to `5bf7953`, not the current `a5aab0a` candidate. The current live blocker is recorded in `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`. Do not claim a current-candidate browser or real-code pass.
 The latest live check found the same “请求过于频繁” dialog in an existing authenticated tab. The single acknowledgement click timed out and the dialog remained; the system did not refresh or resend. Evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json`. Keep this state `BLOCKED_EXTERNAL_PRECONDITION` until the same physical actor can be reconciled.
 The subsequent read-only recheck of that same tab still showed the dialog and no composer; evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`. Do not create a new session or resend while this physical actor remains unresolved.
 
