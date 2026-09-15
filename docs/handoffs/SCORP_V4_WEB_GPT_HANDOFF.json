@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "f32e914f297893d97d78669e0e91eb4c08b3d486",
+  "candidate_commit": "83c07cc2727db29ed5b28fb6260e5094e75883bf",
   "evidence_binding": {
-    "validated_commit": "f32e914f297893d97d78669e0e91eb4c08b3d486",
+    "validated_commit": "83c07cc2727db29ed5b28fb6260e5094e75883bf",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F32E914.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_83C07CC.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the f32e914f297893d97d78669e0e91eb4c08b3d486 code candidate, which includes bounded Runtime Pipe and SQLite safeguards, result normalization, and Windows MCP pre-input rate-limit recovery with explicit transport-failure blockers. Runtime startup requires exact candidate binding. Historical live browser evidence is retained for context only and is not evidence for this candidate; the current candidate rate-limit popup branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "ba905d16c503624b435b5540a60797206645e70bc730c3b8ce80455b96540c76"
+    "binding_note": "This handoff describes the 83c07cc2727db29ed5b28fb6260e5094e75883bf code candidate, which includes bounded Runtime Pipe and SQLite safeguards, result normalization, and Windows MCP pre-input rate-limit recovery with explicit transport-failure blockers and composer-readiness waiting. Runtime startup requires exact candidate binding. Historical live browser evidence is retained for context only and is not evidence for this candidate; the current candidate rate-limit popup branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "6565600e26b6ca0ecfac6630aaf7ed98deb1add31820f4fcb774757f9f2140fd"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
