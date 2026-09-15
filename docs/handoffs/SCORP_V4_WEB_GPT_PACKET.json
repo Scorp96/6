@@ -28,7 +28,7 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T12:58:02.268489Z",
+  "generated_at": "2026-09-15T13:05:17.488055Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
     "allowed_root": "C:\\ScorpAgent\\v4-core-lab",
@@ -67,7 +67,7 @@
     },
     "database_path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T12:58:02.268413Z",
+    "generated_at": "2026-09-15T13:05:17.487973Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",

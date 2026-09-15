@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-current documentation snapshot: worktree HEAD `dae1e4d13a73aaeb3b2f76561309d0a4a75a0569`; code candidate `a5aab0a1ec20864adb1cd141c55fd2d6b0140216`
+current documentation snapshot: worktree HEAD `573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32`; code candidate `a5aab0a1ec20864adb1cd141c55fd2d6b0140216`
 
 ## REMOTE_MAIN_HEAD
 
