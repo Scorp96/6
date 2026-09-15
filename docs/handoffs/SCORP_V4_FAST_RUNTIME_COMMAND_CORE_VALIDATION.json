@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "c4d6ca440b6ace495c110da91255631cc46148dc",
+  "implementation_commit": "9a11f5f224f1801470e7259b5989e1bcdddb5d7f",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 500,
+        "count": 501,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -106,7 +106,8 @@
     "Runtime Pipe serve_once closes an oversized transport frame without terminating the listener or fabricating a response",
     "StateStore rejects an existing incomplete V4 snapshot even when schema_migrations exists; explicit migration is required",
     "bounded connector descriptor and fail-closed validator",
-    "current live Canary requires exact candidate commit, manifest, and manifest hash before browser I/O"
+    "current live Canary requires exact candidate commit, manifest, and manifest hash before browser I/O",
+    "live Canary uses alphanumeric response tokens with strict exact matching"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -119,9 +120,9 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_C4D6CA4.json",
-    "sha256": "18bb3263ff6215be73493ea46536a0ff9cd0cc9633dbb4c8ae6a5e242c2b5583",
-    "manifest_sha256": "3f13dadf04459982f9a179a209e84593023bb37f322ff3dd02a273b32cfb8853",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9A11F5F.json",
+    "sha256": "1c993075d3c82d8767d9aa4fe33cd5ba874a6e49a6e9cce4f29b523ae66f5d60",
+    "manifest_sha256": "15f3df9f91d6c75fd66caf4d8fdcda5141d23c035bf7eaf697a74dac21a2cea9",
     "file_count": 373
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
