@@ -582,7 +582,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Code candidate: `b66afa8` (`fix: refresh once after rate limit recovery wait`) on `feature/v4-fast-runtime-command-core`.
+- Current candidate revision: `87b4695` (`docs: refresh runtime evidence handoff`) on `feature/v4-fast-runtime-command-core`; the rate-limit refresh behavior is implemented in code commit `b66afa8`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.

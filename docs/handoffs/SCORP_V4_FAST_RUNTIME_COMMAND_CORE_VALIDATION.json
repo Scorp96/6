@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "b66afa87374e7de30149a2bd39c7fa4e76af0c7f",
+  "implementation_commit": "87b4695efad4d0c69ac8365af024ade878b0ac05",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -78,5 +78,10 @@
     "24-hour unattended soak",
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
-  ]
+  ],
+  "candidate_manifest": {
+    "path": "C:\\ScorpAgent\\v4-87b4695-candidate-manifest.json",
+    "sha256": "11fbb719e98fda99c8fd3e69cfec9587b4131488423c6db936cbba72154957de",
+    "file_count": 518
+  }
 }
