@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B14478D.json `
-  --manifest-sha256 287725586ad40b205539697e3182c5aec239fd258115daba7c22de8c627102d1
+  --candidate-commit c4d6ca440b6ace495c110da91255631cc46148dc `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_C4D6CA4.json `
+  --manifest-sha256 3f13dadf04459982f9a179a209e84593023bb37f322ff3dd02a273b32cfb8853
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -279,9 +279,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B14478D.json `
-  --manifest-sha256 287725586ad40b205539697e3182c5aec239fd258115daba7c22de8c627102d1 `
+  --candidate-commit c4d6ca440b6ace495c110da91255631cc46148dc `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_C4D6CA4.json `
+  --manifest-sha256 3f13dadf04459982f9a179a209e84593023bb37f322ff3dd02a273b32cfb8853 `
   --send
 ```
 
@@ -574,8 +574,12 @@ For a new live check, use
 `scorp-agent/chatgpt-gui-bridge/tools/v4_live_two_worker_canary.py`. It refuses
 to send by default. A deliberate run must provide `--send-canary`, an already
 authenticated Chrome Use session, a new empty SQLite path, and an evidence
-path. The two prompts are fixed marker-only messages; the script never reads
-repository files as Worker input.
+path. It must also receive the exact `--candidate-commit`,
+`--candidate-manifest`, and `--manifest-sha256` values for the frozen
+candidate; missing or mismatched identity is rejected before browser I/O. The
+two prompts are fixed marker-only messages; the script never reads repository
+files as Worker input. Any resulting evidence records the bound candidate
+identity instead of an unverified runtime placeholder.
 
 旧 SQLite 不能直接交给 `StateStore` 自动升级。若要迁移，必须先复制到隔离
 目录，再显式运行：

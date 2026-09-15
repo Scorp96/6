@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4",
+  "implementation_commit": "c4d6ca440b6ace495c110da91255631cc46148dc",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 499,
+        "count": 500,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -105,7 +105,8 @@
     "two-worker live canary timeout default covers the five-minute rate-limit recovery window",
     "Runtime Pipe serve_once closes an oversized transport frame without terminating the listener or fabricating a response",
     "StateStore rejects an existing incomplete V4 snapshot even when schema_migrations exists; explicit migration is required",
-    "bounded connector descriptor and fail-closed validator"
+    "bounded connector descriptor and fail-closed validator",
+    "current live Canary requires exact candidate commit, manifest, and manifest hash before browser I/O"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -118,9 +119,9 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B14478D.json",
-    "sha256": "cbda5e6043569492b1315186f0fbd7aad2ce83136b2240ee07096b7092f482b3",
-    "manifest_sha256": "287725586ad40b205539697e3182c5aec239fd258115daba7c22de8c627102d1",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_C4D6CA4.json",
+    "sha256": "18bb3263ff6215be73493ea46536a0ff9cd0cc9633dbb4c8ae6a5e242c2b5583",
+    "manifest_sha256": "3f13dadf04459982f9a179a209e84593023bb37f322ff3dd02a273b32cfb8853",
     "file_count": 373
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
