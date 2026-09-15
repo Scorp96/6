@@ -115,6 +115,78 @@ class DynamicWorkerTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_blocked_task_requires_explicit_replan_before_new_assignment(self):
+        from master_a_dynamic_v4.scheduler import SchedulerError
+        from master_a_dynamic_v4.work_result import result_content_sha256
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler, worktree = self.make_runtime(root)
+            try:
+                scheduler.enqueue_graph([
+                    {
+                        "task_id": "T1",
+                        "objective_sha256": "1" * 64,
+                        "resource_scope": [worktree / "t1.csv"],
+                        "dependencies": [],
+                    }
+                ])
+                original = scheduler.claim_runnable(master_epoch=0)[0]
+                blocked = {
+                    "work_result_version": "1",
+                    "project_id": original.project_id,
+                    "worker_id": original.worker_id,
+                    "assignment_id": original.assignment_id,
+                    "task_id": original.task_id,
+                    "objective_sha256": original.objective_sha256,
+                    "base_state_version": original.base_state_version,
+                    "candidate_commit": "a" * 40,
+                    "status": "BLOCKED",
+                    "scope_completed": [],
+                    "scope_not_completed": ["rate-limit recovery"],
+                    "deliverables": [],
+                    "evidence": [{"reason": "RATE_LIMIT"}],
+                    "acceptance_coverage": [],
+                    "facts": [],
+                    "inferences": [],
+                    "unknowns": ["browser availability"],
+                    "contradictions": [],
+                    "followup_proposals": ["retry after explicit replan"],
+                }
+                blocked["result_sha256"] = result_content_sha256(blocked)
+                result_id = scheduler.record_work_result(original, payload=blocked)
+                scheduler.verify_candidate(result_id, result_sha256=blocked["result_sha256"])
+                self.assertEqual("BLOCKED", scheduler.get_task("T1")["state"])
+
+                with self.assertRaisesRegex(SchedulerError, "TASK_REPLAN_OBJECTIVE_REQUIRED"):
+                    scheduler.requeue_blocked_task(
+                        "T1",
+                        expected_state_version=0,
+                        master_epoch=0,
+                        new_objective_sha256="1" * 64,
+                        reason="RATE_LIMIT_CLEARED",
+                    )
+
+                state_version = store.get_project_state("project-ac05")["state_version"]
+                scheduler.requeue_blocked_task(
+                    "T1",
+                    expected_state_version=state_version,
+                    master_epoch=0,
+                    new_objective_sha256="2" * 64,
+                    reason="RATE_LIMIT_CLEARED",
+                )
+                task = scheduler.get_task("T1")
+                self.assertEqual("QUEUED", task["state"])
+                self.assertEqual("2" * 64, task["objective_sha256"])
+                self.assertIsNone(task["result_sha256"])
+
+                replacement = scheduler.claim_runnable(master_epoch=0)[0]
+                self.assertNotEqual(original.assignment_id, replacement.assignment_id)
+                self.assertEqual("2" * 64, replacement.objective_sha256)
+                self.assertEqual(1, replacement.base_state_version)
+            finally:
+                store.close()
+
     def test_ambiguous_browser_intent_blocks_new_ordinary_claims(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)

@@ -797,6 +797,135 @@ class Scheduler:
                 (stamp, row["assignment_id"]),
             )
 
+    def requeue_blocked_task(
+        self,
+        task_id: str,
+        *,
+        expected_state_version: int,
+        master_epoch: int,
+        new_objective_sha256: str,
+        reason: str,
+        now: dt.datetime | None = None,
+    ) -> int:
+        """Explicitly replan one blocked task without replaying its old assignment.
+
+        A Worker ``BLOCKED`` result is durable evidence, not an automatic retry
+        permission.  Requeueing therefore requires the current project version,
+        Master epoch, a different objective digest, and a non-empty reason.  The
+        task graph version is advanced in the same transaction so every claim
+        created after the replan receives a new base state version.
+        """
+
+        task = str(task_id or "").strip()
+        if not task:
+            raise SchedulerError("TASK_ID_REQUIRED")
+        try:
+            expected = int(expected_state_version)
+            epoch = int(master_epoch)
+        except (TypeError, ValueError) as exc:
+            raise SchedulerError("TASK_REPLAN_VERSION_INVALID") from exc
+        if expected < 0 or epoch < 0:
+            raise SchedulerError("TASK_REPLAN_VERSION_INVALID")
+        objective = str(new_objective_sha256 or "").strip().lower()
+        if len(objective) != 64 or any(char not in "0123456789abcdef" for char in objective):
+            raise SchedulerError("TASK_REPLAN_OBJECTIVE_INVALID")
+        explanation = str(reason or "").strip()
+        if not explanation:
+            raise SchedulerError("TASK_REPLAN_REASON_REQUIRED")
+        if len(explanation) > 2048:
+            raise SchedulerError("TASK_REPLAN_REASON_TOO_LARGE")
+
+        stamp = _timestamp(now)
+        with self.store._transaction() as conn:
+            state = conn.execute(
+                "SELECT state_version,master_epoch,status FROM project_state WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if state is None:
+                raise SchedulerError("PROJECT_NOT_FOUND")
+            if int(state["master_epoch"]) != epoch:
+                raise WorkerFenceError("MASTER_EPOCH_FENCED")
+            if int(state["state_version"]) != expected:
+                raise WorkerFenceError("TASK_REPLAN_STATE_VERSION_FENCED")
+            if str(state["status"]) not in {"ACTIVE", "RUNNING"}:
+                raise SchedulerError("PROJECT_STATE_FENCED")
+            control = conn.execute(
+                "SELECT operator_state FROM operator_controls WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if control is None or str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+                raise SchedulerError("OPERATOR_STATE_FENCED")
+            row = conn.execute(
+                "SELECT * FROM task_nodes WHERE project_id=? AND task_id=?",
+                (self.project_id, task),
+            ).fetchone()
+            if row is None:
+                raise SchedulerError("TASK_NOT_FOUND")
+            if str(row["state"]) != "BLOCKED":
+                raise SchedulerError("TASK_REPLAN_REQUIRES_BLOCKED")
+            if str(row["objective_sha256"]).lower() == objective:
+                raise SchedulerError("TASK_REPLAN_OBJECTIVE_REQUIRED")
+            active = conn.execute(
+                """
+                SELECT 1 FROM assignments a
+                JOIN leases l ON l.assignment_id=a.assignment_id
+                WHERE a.project_id=? AND a.task_id=? AND (a.state NOT IN ('RETIRED','FENCED','VERIFIED','ACCEPTED') OR l.state='ACTIVE')
+                LIMIT 1
+                """,
+                (self.project_id, task),
+            ).fetchone()
+            if active is not None:
+                raise SchedulerError("TASK_REPLAN_ACTIVE_ASSIGNMENT")
+            ambiguous = conn.execute(
+                "SELECT 1 FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS') LIMIT 1",
+                (self.project_id,),
+            ).fetchone()
+            if ambiguous is not None:
+                raise SchedulerError("TASK_REPLAN_RECONCILIATION_REQUIRED")
+            previous_result = str(row["result_sha256"] or "")
+            next_version = expected + 1
+            changed = conn.execute(
+                """
+                UPDATE task_nodes
+                SET objective_sha256=?,state='QUEUED',result_sha256=NULL,updated_at=?
+                WHERE project_id=? AND task_id=? AND state='BLOCKED'
+                """,
+                (objective, stamp, self.project_id, task),
+            ).rowcount
+            if changed != 1:
+                raise SchedulerError("TASK_REPLAN_CONFLICT")
+            changed = conn.execute(
+                """
+                UPDATE project_state SET state_version=?,updated_at=?
+                WHERE project_id=? AND state_version=? AND master_epoch=?
+                """,
+                (next_version, stamp, self.project_id, expected, epoch),
+            ).rowcount
+            if changed != 1:
+                raise WorkerFenceError("TASK_REPLAN_STATE_VERSION_FENCED")
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"event-{uuid.uuid4().hex}",
+                    self.project_id,
+                    "TASK_REPLANNED",
+                    canonical_json(
+                        {
+                            "task_id": task,
+                            "previous_objective_sha256": str(row["objective_sha256"]),
+                            "new_objective_sha256": objective,
+                            "previous_result_sha256": previous_result or None,
+                            "reason": explanation,
+                            "expected_state_version": expected,
+                            "committed_state_version": next_version,
+                            "master_epoch": epoch,
+                        }
+                    ),
+                    stamp,
+                ),
+            )
+            return next_version
+
     def get_task(self, task_id: str) -> dict[str, Any]:
         with self.store._connection() as conn:
             row = conn.execute(
