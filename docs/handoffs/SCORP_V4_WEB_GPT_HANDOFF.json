@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "e1e5a9f3d7e081f7bc959702df637f692a22bafd",
+  "candidate_commit": "b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4",
   "evidence_binding": {
-    "validated_commit": "e1e5a9f3d7e081f7bc959702df637f692a22bafd",
+    "validated_commit": "b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E1E5A9F.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B14478D.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the e1e5a9f3d7e081f7bc959702df637f692a22bafd code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit-migration guard for incomplete SQLite files, and explicit legacy SQLite snapshot migration tests. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked because the inspected physical tab no longer exists; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "4e283c7468db66cc8ac9ae98f89f3aa8f0d9101b1964a648319013de5f04f9f7"
+    "binding_note": "This handoff describes the b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4 code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit-migration guard for incomplete SQLite files, and explicit legacy SQLite snapshot migration tests. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked because the inspected physical tab no longer exists; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "287725586ad40b205539697e3182c5aec239fd258115daba7c22de8c627102d1"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -62,6 +62,12 @@
         "explicit --send gate"
       ],
       "current_candidate_evidence": "current_candidate_live_gate_blocked_by_empty_created_tab_and_missing_historical_target; real_repository_workload_over_browser_not_run; production_cutover_not_authorized"
+    },
+    "connector_contract": {
+      "descriptor": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json",
+      "status": "UNREGISTERED_HOST",
+      "host_registration_required": true,
+      "authority": "contract_only; no local permission is granted by reading the descriptor"
     }
   },
   "handoff_sequence": [

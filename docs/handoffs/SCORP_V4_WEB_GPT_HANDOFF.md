@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `e1e5a9f3d7e081f7bc959702df637f692a22bafd`。该身份与 `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`、`SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E1E5A9F.json` 和 `SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
+当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4`。该身份与 `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`、`SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B14478D.json` 和 `SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
 
 ## 先判断你现在是哪一种模式
 
@@ -118,6 +118,13 @@ Master/Worker 默认持久且受保护，诊断会话必须显式退休；活动
 4. 网页 GPT 读取这些文件，给出下一步或最终验收判断。
 
 仓库里保留的旧 `relay.ps1` 是 V3 JSON relay 的兼容路径；它不能被当成当前 V4 SQLite 控制面已经接通 GitHub 的证明。当前 V4 的 GitHub 角色是请求和证据发布入口，权威状态仍在本地 SQLite。
+
+当前候选还提供机器可读的连接器合同：
+`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json`。它只允许版本化
+Runtime 命令，要求 actor/project 绑定和认证密钥，禁止超时重试、任意 shell、
+任意浏览器、任意文件系统、任意 Git 和任意网络能力。合同当前明确标记为
+`UNREGISTERED_HOST`；它是给未来 approved host 做注册前校验的边界，不代表普通
+网页版 GPT 已经获得本地权限。
 
 ## 交接完成的判据
 

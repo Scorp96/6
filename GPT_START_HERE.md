@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit e1e5a9f3d7e081f7bc959702df637f692a22bafd `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E1E5A9F.json `
-  --manifest-sha256 4e283c7468db66cc8ac9ae98f89f3aa8f0d9101b1964a648319013de5f04f9f7
+  --candidate-commit b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B14478D.json `
+  --manifest-sha256 287725586ad40b205539697e3182c5aec239fd258115daba7c22de8c627102d1
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -217,6 +217,15 @@ ChatGPT host has registered or authorized it. A future approved local
 connector may use this facade after its own authentication, process
 supervision, and evidence gates are verified.
 
+The machine-readable connector contract is
+`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json`. Its validator is
+`master_a_dynamic_v4.runtime_connector_descriptor`; it binds the actor and
+project scope, permits only the registered Runtime commands, disables timeout
+retries, and forbids arbitrary shell, browser, filesystem, Git, and network
+capabilities. The descriptor is intentionally marked `UNREGISTERED_HOST`.
+Until an approved host registration and fresh registration evidence exist, it
+does not give an ordinary web GPT local access.
+
 For a bounded local test, `runtime_pipe_cli.py --once` starts exactly one
 authenticated connection and exits after returning one response. The auth key
 must be supplied through an environment variable; it is never placed in the
@@ -270,9 +279,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit e1e5a9f3d7e081f7bc959702df637f692a22bafd `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E1E5A9F.json `
-  --manifest-sha256 4e283c7468db66cc8ac9ae98f89f3aa8f0d9101b1964a648319013de5f04f9f7 `
+  --candidate-commit b14478dba55d5c62b3c6c5b8cfe0a53f2678deb4 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B14478D.json `
+  --manifest-sha256 287725586ad40b205539697e3182c5aec239fd258115daba7c22de8c627102d1 `
   --send
 ```
 
