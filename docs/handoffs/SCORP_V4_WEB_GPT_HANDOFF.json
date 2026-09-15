@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "83c07cc2727db29ed5b28fb6260e5094e75883bf",
+  "candidate_commit": "9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa",
   "evidence_binding": {
-    "validated_commit": "83c07cc2727db29ed5b28fb6260e5094e75883bf",
+    "validated_commit": "9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_83C07CC.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9AACD7C.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the 83c07cc2727db29ed5b28fb6260e5094e75883bf code candidate, which includes bounded Runtime Pipe and SQLite safeguards, result normalization, and Windows MCP pre-input rate-limit recovery with explicit transport-failure blockers and composer-readiness waiting. Runtime startup requires exact candidate binding. Historical live browser evidence is retained for context only and is not evidence for this candidate; the current candidate rate-limit popup branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "6565600e26b6ca0ecfac6630aaf7ed98deb1add31820f4fcb774757f9f2140fd"
+    "binding_note": "This handoff describes the 9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa code candidate, including blocked-worker execution fencing and ambiguous-browser URL retention. Offline validation is current; browser evidence from 83c07cc is historical and cannot be inherited. The current candidate rate-limit popup branch and fresh browser canary remain live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "0d729ae1a8bdc43e3a7de92b604490150f4770b43316b10cbd9a1c19098d3efe"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

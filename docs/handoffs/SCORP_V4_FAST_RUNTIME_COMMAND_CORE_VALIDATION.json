@@ -4,12 +4,12 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "79610ae3f3864e133f750f0c9dfde40b17a91def",
-  "implementation_commit": "83c07cc2727db29ed5b28fb6260e5094e75883bf",
+  "implementation_commit": "9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
         "result": "PASS",
-        "count": 202
+        "count": 205
       },
       "gui_bridge_tests": {
         "result": "PASS",
@@ -24,8 +24,8 @@
       "candidate_validation_script": "PASS"
     },
     "live_verified": {
-      "result": "PASS_CURRENT_CANDIDATE_TWO_WORKER_CANARY",
-      "reason": "当前候选已完成一次新的真实 Chrome Use 双 Worker 无害 canary；两个 Worker 均创建独立会话、捕获精确回执且无重复提交。请求限制弹窗分支没有被人为制造，仍由离线测试覆盖。",
+      "result": "BLOCKED_CURRENT_CANDIDATE_LIVE_NOT_REPEATED",
+      "reason": "代码提交后，之前绑定 83c07cc 的浏览器证据不能继承；本轮只完成离线回归和候选身份重绑定，未重新发送浏览器任务。真实限流弹窗也未人为制造。",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
       "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
       "rate_limit_recovery_preflight": {
@@ -35,27 +35,8 @@
       },
       "prior_ambiguous_canary_evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json",
       "real_code_workload": {
-        "result": "PASS_REAL_CODE_LIVE_WORKER_AND_LOCAL_EXECUTION",
-        "evidence_path": "docs/handoffs/SCORP_V4_REAL_CODE_LIVE_WORKER_EVIDENCE_F5B8240.json",
-        "evidence_sha256": "e9061d846d6b836a01da1228851a8a04dc71a798e41136ead64821eee27c8b37",
-        "project_id": "scorp-v4-real-code-f5b8240-r5",
-        "worker_count": 2,
-        "task_ids": [
-          "T1",
-          "T2",
-          "T3"
-        ],
-        "task_states": [
-          "ACCEPTED",
-          "ACCEPTED",
-          "ACCEPTED"
-        ],
-        "execution_exit_codes": {
-          "T1": 0,
-          "T2": 0,
-          "T3": 0
-        },
-        "duplicate_submits": 0
+        "result": "NOT_RUN_AFTER_CODE_CHANGE",
+        "reason": "旧候选 83c07cc 的 r3 实机结果包含限流与结构化回执缺失，不能绑定到 9aacd7c；未盲目重试。"
       },
       "historical_live_canary": {
         "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
@@ -80,15 +61,8 @@
         "production_state_touched": false
       },
       "current_candidate_canary": {
-        "result": "LIVE_VERIFIED",
-        "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_83C07CC.json",
-        "evidence_sha256": "66cf08bad3e888fe1945ca389690363ec8c5eb1076b00fb9305c96d762e6aa31",
-        "project_id": "scorp-v4-live-83c07cc-20260915-r1",
-        "worker_count": 2,
-        "submit_actions": 2,
-        "response_messages": 2,
-        "duplicate_submits": 0,
-        "cleanup": "PASS"
+        "result": "NOT_RUN_AFTER_CODE_CHANGE",
+        "reason": "避免把旧提交的浏览器结果继承给 9aacd7c；没有盲目重发。"
       }
     },
     "accepted": false,
@@ -165,7 +139,9 @@
     "bounded connector descriptor and fail-closed validator",
     "current live Canary requires exact candidate commit, manifest, and manifest hash before browser I/O",
     "live Canary uses alphanumeric response tokens with strict exact matching",
-    "Windows MCP Worker pre-input rate-limit dialog recovery clicks one recognized acknowledgement, waits up to five minutes, refreshes at most once, and never resends ambiguously"
+    "Windows MCP Worker pre-input rate-limit dialog recovery clicks one recognized acknowledgement, waits up to five minutes, refreshes at most once, and never resends ambiguously",
+    "blocked Worker result cannot execute its embedded local request; non-COMPLETE results remain BLOCKED",
+    "ambiguous browser submit observations retain a valid observed conversation URL for read-only reconciliation"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -173,13 +149,15 @@
     "24-hour unattended soak",
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "full product completion gate with release identity and production candidate remains unaccepted",
-    "真实请求限制弹窗分支仍未获得 LIVE_VERIFIED；本次当前候选 canary 未出现限制弹窗，未人为制造该外部状态"
+    "真实请求限制弹窗分支仍未获得 LIVE_VERIFIED；本次当前候选 canary 未出现限制弹窗，未人为制造该外部状态",
+    "current 9aacd7c live browser canary and real-code workload were not rerun after code changes",
+    "second request-limit requirement was not specified"
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_83C07CC.json",
-    "sha256": "eb9f63f87c5eb855eb5e37eef9765ec54face73694cdba5e74422f344a4831b8",
-    "manifest_sha256": "6565600e26b6ca0ecfac6630aaf7ed98deb1add31820f4fcb774757f9f2140fd",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9AACD7C.json",
+    "sha256": "13387002b3090a5d9ca2dd37bbd298acd43acb8d5007858d9e370dfcca4b6ef2",
+    "manifest_sha256": "0d729ae1a8bdc43e3a7de92b604490150f4770b43316b10cbd9a1c19098d3efe",
     "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
