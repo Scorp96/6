@@ -613,7 +613,7 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
-- Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
+- Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_28B0F28.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
 - Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
 - Current browser driver state used by that receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 - Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.

@@ -1,0 +1,233 @@
+{
+  "format": "scorp-v4-phase0-current-audit/2",
+  "observed_at_utc": "2026-09-15T07:13:19.9768136Z",
+  "checkout_head": "28b0f289c8396cd2b4eb32557fbc71637628be35",
+  "candidate_code_commit": "fe7d4140287a9f1c0970a153db4181c4333b68be",
+  "candidate_branch": "feature/v4-fast-runtime-command-core",
+  "origin_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
+  "production_checkout_head": "bd67ae78c874d2a5f897101097db0578f01a5c00",
+  "production_state_changed": false,
+  "git_status": [],
+  "unpublished_commits": 142,
+  "worktree_path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
+  "active_relevant_processes": [
+    {
+      "pid": 7876,
+      "parent_pid": 904,
+      "name": "python.exe",
+      "command_line": "\"C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe\" \"C:\\ScorpAgent\\chatgpt-gui-bridge\\bridge_worker.py\" --orchestrator-root C:\\ScorpAgent\\orchestrator-v1 --state-root C:\\ScorpAgent\\state-v4 --bridge-root \"C:\\ScorpAgent\\chatgpt-gui-bridge-state\" --control-repo Scorp96/scorp-control-plane --trusted-actor Scorp96 --v3-project-root \"C:\\ScorpAgent\\state-v3\\active\" --v3-max-inflight 3 --poll-seconds 10"
+    },
+    {
+      "pid": 13488,
+      "parent_pid": 7876,
+      "name": "python.exe",
+      "command_line": "\"C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe\"  \"C:\\ScorpAgent\\chatgpt-gui-bridge\\bridge_worker.py\" --orchestrator-root C:\\ScorpAgent\\orchestrator-v1 --state-root C:\\ScorpAgent\\state-v4 --bridge-root \"C:\\ScorpAgent\\chatgpt-gui-bridge-state\" --control-repo Scorp96/scorp-control-plane --trusted-actor Scorp96 --v3-project-root \"C:\\ScorpAgent\\state-v3\\active\" --v3-max-inflight 3 --poll-seconds 10"
+    },
+    {
+      "pid": 14912,
+      "parent_pid": 15028,
+      "name": "cmd.exe",
+      "command_line": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"\"C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe\" chrome-extension://knfcmbamhjmaonkfnjhldjedeobeafmk/ --parent-window=0\" < \\\\.\\pipe\\chrome.nativeMessaging.in.f54946a609708268 > \\\\.\\pipe\\chrome.nativeMessaging.out.f54946a609708268"
+    },
+    {
+      "pid": 15024,
+      "parent_pid": 14912,
+      "name": "chrome-use.exe",
+      "command_line": "\"C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe\"  chrome-extension://knfcmbamhjmaonkfnjhldjedeobeafmk/ --parent-window=0 "
+    },
+    {
+      "pid": 3676,
+      "parent_pid": 14268,
+      "name": "chrome-use.exe",
+      "command_line": "\"\\\\?\\C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe\""
+    },
+    {
+      "pid": 19968,
+      "parent_pid": 13488,
+      "name": "chrome-use.exe",
+      "command_line": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe --session scorp-p0-turn-066069407e9baa4c --json open https://chatgpt.com/c/6aa6a224-cb64-83e8-b583-45ac907036c8"
+    },
+    {
+      "pid": 8248,
+      "parent_pid": 17592,
+      "name": "pwsh.exe",
+      "command_line": "\"C:\\Users\\scorp\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\n$ErrorActionPreference='Stop'; $root=(Get-Location).Path; $head=(git rev-parse HEAD).Trim(); $branch=(git branch --show-current).Trim(); $origin=(git ls-remote origin refs/heads/main | ForEach-Object {($_ -split '\\s+')[0]} | Select-Object -First 1); $prod=(git -C 'C:\\ScorpAgent\\_publish_git6' rev-parse HEAD).Trim(); $ahead=(git rev-list --count origin/main..HEAD).Trim(); $status=@(git status --short); $proc=@(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'bridge_worker|chrome-use|v4_daemon|master_a_dynamic' } | ForEach-Object {[ordered]@{pid=$_.ProcessId;parent_pid=$_.ParentProcessId;name=$_.Name;command_line=$_.CommandLine}}); $tasks=@(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {$_.TaskName -match '^Scorp(ChatGptGuiBridge|ChatGptGuiBridgeWatchdog|ComputerAgent|FullAutoOrchestrator|V4SelfUpgrade)'} | ForEach-Object {$i=Get-ScheduledTaskInfo -TaskName $_.TaskName -TaskPath $_.TaskPath; [ordered]@{name=$_.TaskName;state=[string]$_.State;last_run=$i.LastRunTime.ToString('o');last_result=$i.LastTaskResult;next_run=if($i.NextRunTime){$i.NextRunTime.ToString('o')}else{$null}}}); $services=@(Get-Service -ErrorAction SilentlyContinue | Where-Object {$_.Name -match '^Scorp' -or $_.DisplayName -match 'Scorp'} | ForEach-Object {[ordered]@{name=$_.Name;status=[string]$_.Status;start_type=[string]$_.StartType;display_name=$_.DisplayName}}); $sqlite=@('C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3','C:\\ScorpAgent\\v4-core-lab\\state.sqlite3','C:\\ScorpAgent\\v4-core-lab\\short-soak.sqlite3','C:\\ScorpAgent\\v4-core-lab\\forensics\\production-v4-candidate-preincident-reconstructed.sqlite3') | Where-Object {Test-Path -LiteralPath $_} | ForEach-Object {$f=Get-Item -LiteralPath $_; [ordered]@{path=$f.FullName;length=$f.Length;last_write_time_utc=$f.LastWriteTimeUtc.ToString('o')}}; $driver=@('C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json','C:\\ScorpAgent\\state-v3\\active\\master-window-lease.json','C:\\ScorpAgent\\state-v3\\active\\project-state.json','C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json','C:\\ScorpAgent\\chatgpt-gui-bridge-state\\watchdog-health.json') | Where-Object {Test-Path -LiteralPath $_} | ForEach-Object {$f=Get-Item -LiteralPath $_; [ordered]@{path=$f.FullName;length=$f.Length;last_write_time_utc=$f.LastWriteTimeUtc.ToString('o')}}; $health=Get-Content -LiteralPath 'C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json' -Raw | ConvertFrom-Json; $e=[ordered]@{format='scorp-v4-phase0-current-audit/2';observed_at_utc=[DateTime]::UtcNow.ToString('o');checkout_head=$head;candidate_code_commit='fe7d4140287a9f1c0970a153db4181c4333b68be';candidate_branch=$branch;origin_main_head=$origin;production_checkout_head=$prod;production_state_changed=$false;git_status=$status;unpublished_commits=[int]$ahead;worktree_path=$root;active_relevant_processes=$proc;scheduled_tasks=$tasks;services=$services;runtime_paths=@('C:\\ScorpAgent\\chatgpt-gui-bridge','C:\\ScorpAgent\\chatgpt-gui-bridge-state','C:\\ScorpAgent\\state-v3\\active','C:\\ScorpAgent\\state-v4','C:\\ScorpAgent\\v4-core-lab');sqlite_paths=$sqlite;driver_state_paths=$driver;current_health=$health;classification=[ordered]@{implemented=@('Versioned bounded Runtime protocol and command registry','SQLite durable receipts, CAS, daemon/master/generation fencing','Operator pause/resume/cancel/supersede/emergency-stop','Deterministic arbiter stall ordering and IDLE/progress separation','Rate-limit acknowledgement, five-minute read-only wait, one-refresh fail-closed recovery','Explicit read-only legacy SQLite snapshot migration with blocked missing-contract outcome');partial=@('stdio/Named Pipe transport is tested but no approved ChatGPT host connector is registered','daemon supervision seam exists but production scheduled-task cutover is not proven','browser lifecycle and two-worker dispatch are implemented offline but current-candidate live dual-worker proof is absent','production SQLite remains old/incomplete and has not been migrated');missing=@('current-candidate live ChatGPT send/capture','real two-worker browser conversation proof','production daemon cutover','real rate-limit dialog branch evidence','24-hour unattended soak','formal GPT-to-local connector registration');incorrect=@('treating unit tests, assignments, or existing browser processes as live acceptance','blind resend after ambiguous browser side effect','opening an incomplete legacy SQLite file as current V4 authority');unverified=@('Windows restart and hard-crash recovery','physical Master conversation replacement live path','real Worker local execution/Git workload binding','native Astra acceptance')};p0_findings=@('Production bridge health is ERROR because the Chrome Use target/tab is gone','Production bridge has two related Python worker processes with the same command shape','ScorpChatGptGuiBridgeWatchdog is Disabled','Current candidate live browser exactly-once is not verified');p1_findings=@('Formal approved ChatGPT host connector is not registered','Live parallel Worker isolation remains unverified','Production SQLite requires explicit migration and must remain blocked until a valid root contract is supplied');p2_findings=@('Goal/World/Memory/Learning layers remain outside this phase','Codex provider live actuator proof remains missing');current_execution_ceiling='隔离候选可运行事务核心、命令协议、故障注入、Windows transport loop、显式 SQLite 迁移和只读浏览器预检；不能安全证明当前候选已向 ChatGPT 发送新 prompt';current_chat_dependencies=@('Windows interactive session logged in','ChatGPT valid login/subscription','no CAPTCHA/security challenge/rate-limit blocker at send time','fresh candidate SHA and read-only browser preflight');current_manual_steps=@('保持生产任务不切换','生产桥接健康恢复前不发送新的浏览器任务','由操作者单独授权当前候选 canary','记录 conversation URL/response marker/candidate SHA/evidence receipt');current_codex_provider_status='gpt-5.6-sol/high compatibility fallback; not native Astra acceptance';phase_1_verdict='PARTIAL';test_verified=$true;live_verified=$false;accepted=$false}; $path=Join-Path $root 'docs\\handoffs\\SCORP_V4_PHASE0_CURRENT_AUDIT_28B0F28.json'; $e | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath $path -Encoding UTF8; Write-Output $path\""
+    }
+  ],
+  "scheduled_tasks": [
+    {
+      "name": "ScorpChatGptGuiBridge",
+      "state": "Running",
+      "last_run": "2026-09-14T10:19:18.0000000+08:00",
+      "last_result": 267009,
+      "next_run": null
+    },
+    {
+      "name": "ScorpChatGptGuiBridgeWatchdog",
+      "state": "Disabled",
+      "last_run": "2026-09-12T16:58:35.0000000+08:00",
+      "last_result": 0,
+      "next_run": "2026-09-15T15:13:34.0000000+08:00"
+    },
+    {
+      "name": "ScorpComputerAgent",
+      "state": "Running",
+      "last_run": "2026-09-15T15:12:41.0000000+08:00",
+      "last_result": 2147946720,
+      "next_run": "2026-09-15T15:13:40.0000000+08:00"
+    },
+    {
+      "name": "ScorpFullAutoOrchestrator",
+      "state": "Ready",
+      "last_run": "2026-09-14T10:19:18.0000000+08:00",
+      "last_result": 3221225786,
+      "next_run": null
+    },
+    {
+      "name": "ScorpV4SelfUpgrade5561f44",
+      "state": "Ready",
+      "last_run": "2026-09-13T18:29:00.0000000+08:00",
+      "last_result": 1,
+      "next_run": null
+    }
+  ],
+  "services": [
+    {
+      "name": "ScorpPrivilegedBroker",
+      "status": "Running",
+      "start_type": "Automatic",
+      "display_name": "Scorp Privileged Broker"
+    }
+  ],
+  "runtime_paths": [
+    "C:\\ScorpAgent\\chatgpt-gui-bridge",
+    "C:\\ScorpAgent\\chatgpt-gui-bridge-state",
+    "C:\\ScorpAgent\\state-v3\\active",
+    "C:\\ScorpAgent\\state-v4",
+    "C:\\ScorpAgent\\v4-core-lab"
+  ],
+  "sqlite_paths": [
+    {
+      "path": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
+      "length": 188416,
+      "last_write_time_utc": "2026-09-15T06:41:12.4501411Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
+      "length": 188416,
+      "last_write_time_utc": "2026-09-13T23:20:40.2343077Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab\\short-soak.sqlite3",
+      "length": 483328,
+      "last_write_time_utc": "2026-09-13T23:14:49.0393754Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab\\forensics\\production-v4-candidate-preincident-reconstructed.sqlite3",
+      "length": 188416,
+      "last_write_time_utc": "2026-09-15T06:41:12.4501411Z"
+    }
+  ],
+  "driver_state_paths": [
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json",
+      "length": 1835,
+      "last_write_time_utc": "2026-09-14T02:21:19.7045761Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\master-window-lease.json",
+      "length": 544,
+      "last_write_time_utc": "2026-09-15T06:49:15.1455266Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\project-state.json",
+      "length": 2145,
+      "last_write_time_utc": "2026-09-13T14:33:41.8131368Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json",
+      "length": 812,
+      "last_write_time_utc": "2026-09-15T07:12:42.2878752Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\watchdog-health.json",
+      "length": 248,
+      "last_write_time_utc": "2026-09-12T08:58:37.8563042Z"
+    }
+  ],
+  "current_health": {
+    "protocol_version": "scorp.gui-bridge/health-v1",
+    "status": "ERROR",
+    "heartbeat_at": "2026-09-15T15:12:08.091866+08:00",
+    "last_request_id": null,
+    "error": "CHROME_USE_EXIT_1: {\"success\":false,\"data\":null,\"error\":\"the tab this command was driving is gone — it navigated across processes (e.g. an OAuth/SSO redirect), was closed, or the relay lost it. The session did NOT silently retarget, since that could read or click the wrong tab. Run `tab list` first. If the tab is listed as `created` or `adopted`, preserve it with `tab select <ref>`; otherwise use `tab adopt <url-substring|targetId>`. Use `tab inspect <ref>` when its renderer is stuck. Only if it is absent, re-open it with `open <url>` / `navigate <url>`, then re-`snapshot`.\",\"code\":\"command_failed\",\"retryable\":false}"
+  },
+  "classification": {
+    "implemented": [
+      "Versioned bounded Runtime protocol and command registry",
+      "SQLite durable receipts, CAS, daemon/master/generation fencing",
+      "Operator pause/resume/cancel/supersede/emergency-stop",
+      "Deterministic arbiter stall ordering and IDLE/progress separation",
+      "Rate-limit acknowledgement, five-minute read-only wait, one-refresh fail-closed recovery",
+      "Explicit read-only legacy SQLite snapshot migration with blocked missing-contract outcome"
+    ],
+    "partial": [
+      "stdio/Named Pipe transport is tested but no approved ChatGPT host connector is registered",
+      "daemon supervision seam exists but production scheduled-task cutover is not proven",
+      "browser lifecycle and two-worker dispatch are implemented offline but current-candidate live dual-worker proof is absent",
+      "production SQLite remains old/incomplete and has not been migrated"
+    ],
+    "missing": [
+      "current-candidate live ChatGPT send/capture",
+      "real two-worker browser conversation proof",
+      "production daemon cutover",
+      "real rate-limit dialog branch evidence",
+      "24-hour unattended soak",
+      "formal GPT-to-local connector registration"
+    ],
+    "incorrect": [
+      "treating unit tests, assignments, or existing browser processes as live acceptance",
+      "blind resend after ambiguous browser side effect",
+      "opening an incomplete legacy SQLite file as current V4 authority"
+    ],
+    "unverified": [
+      "Windows restart and hard-crash recovery",
+      "physical Master conversation replacement live path",
+      "real Worker local execution/Git workload binding",
+      "native Astra acceptance"
+    ]
+  },
+  "p0_findings": [
+    "Production bridge health is ERROR because the Chrome Use target/tab is gone",
+    "Production bridge has two related Python worker processes with the same command shape",
+    "ScorpChatGptGuiBridgeWatchdog is Disabled",
+    "Current candidate live browser exactly-once is not verified"
+  ],
+  "p1_findings": [
+    "Formal approved ChatGPT host connector is not registered",
+    "Live parallel Worker isolation remains unverified",
+    "Production SQLite requires explicit migration and must remain blocked until a valid root contract is supplied"
+  ],
+  "p2_findings": [
+    "Goal/World/Memory/Learning layers remain outside this phase",
+    "Codex provider live actuator proof remains missing"
+  ],
+  "current_execution_ceiling": "隔离候选可运行事务核心、命令协议、故障注入、Windows transport loop、显式 SQLite 迁移和只读浏览器预检；不能安全证明当前候选已向 ChatGPT 发送新 prompt",
+  "current_chat_dependencies": [
+    "Windows interactive session logged in",
+    "ChatGPT valid login/subscription",
+    "no CAPTCHA/security challenge/rate-limit blocker at send time",
+    "fresh candidate SHA and read-only browser preflight"
+  ],
+  "current_manual_steps": [
+    "保持生产任务不切换",
+    "生产桥接健康恢复前不发送新的浏览器任务",
+    "由操作者单独授权当前候选 canary",
+    "记录 conversation URL/response marker/candidate SHA/evidence receipt"
+  ],
+  "current_codex_provider_status": "gpt-5.6-sol/high compatibility fallback; not native Astra acceptance",
+  "phase_1_verdict": "PARTIAL",
+  "test_verified": true,
+  "live_verified": false,
+  "accepted": false
+}

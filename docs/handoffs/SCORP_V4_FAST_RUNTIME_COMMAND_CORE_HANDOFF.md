@@ -65,7 +65,7 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 ## 当前证据边界
 
 本轮现场状态的最新只读快照见
-`SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json`；生产 SQLite 误迁移及逻辑恢复记录见
+`SCORP_V4_PHASE0_CURRENT_AUDIT_28B0F28.json`；生产 SQLite 误迁移及逻辑恢复记录见
 `SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`。该快照把代码候选
 `fe7d4140287a9f1c0970a153db4181c4333b68be` 与审计采集时的 checkout
 头分别记录；后续文档提交不会改变该代码候选；旧的
