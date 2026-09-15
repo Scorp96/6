@@ -25,8 +25,17 @@
     },
     "live_verified": {
       "result": "BLOCKED",
-      "reason": "当前候选没有新的真实发送；浏览器目标绑定仍不明确，按 fail-closed 规则不发送。生产 SQLite 曾被一次错误的只读检查触发自动迁移，已按取证记录逻辑恢复；这不构成浏览器或生产切换验收。",
+      "reason": "最新真实双 Worker canary 在候选 c4d6ca440b6ace495c110da91255631cc46148dc 上创建了两个 assignment，但一个浏览器响应未捕获而进入 BLOCKED_AMBIGUOUS；retry_count=0，未盲目重发。随后提交了 9a11f5f224f1801470e7259b5989e1bcdddb5d7f 的无歧义标记修复，但尚未对该新候选重新执行真实发送。生产 SQLite 曾被一次错误的只读检查触发自动迁移，已按取证记录逻辑恢复；这不构成浏览器或生产切换验收。",
       "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
+      "latest_live_canary": {
+        "result": "BLOCKED",
+        "evidence_path": "C:\\ScorpAgent\\v4-core-lab\\canary-c4d6ca4\\evidence.json",
+        "candidate_code_commit": "c4d6ca440b6ace495c110da91255631cc46148dc",
+        "project_id": "scorp-v4-live-c4d6ca4",
+        "ambiguous_intent_count": 1,
+        "retry_count": 0,
+        "replay_policy": "PRESERVE_AND_DO_NOT_REPLAY"
+      },
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
@@ -115,15 +124,15 @@
     "live Chrome Use submission and two-new-conversation end-to-end proof",
     "24-hour unattended soak",
     "native Astra acceptance; this task used the requested Sol compatibility route",
-    "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted",
-    "real rate-limit dialog acknowledgement/wait/refresh branch remains unverified"
+    "latest isolated two-worker canary is blocked by one ambiguous Chrome Use response; retry_count is zero and the intent is preserved without replay",
+    "real rate-limit dialog acknowledgement/wait/refresh branch remains unverified; offline tests prove one acknowledgement, up to five minutes of read-only waiting, at most one refresh, and no blind resend"
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
     "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9A11F5F.json",
     "sha256": "1c993075d3c82d8767d9aa4fe33cd5ba874a6e49a6e9cce4f29b523ae66f5d60",
     "manifest_sha256": "15f3df9f91d6c75fd66caf4d8fdcda5141d23c035bf7eaf697a74dac21a2cea9",
-    "file_count": 373
+    "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
   "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json",
