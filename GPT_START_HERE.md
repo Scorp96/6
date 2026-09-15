@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 55cc17326ec614f7cda2e4878b15adde1acf60d9 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json `
-  --manifest-sha256 ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389
+  --candidate-commit d1fc47598f2f59be9b8da50664396e786b32910d `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D1FC475.json `
+  --manifest-sha256 1dd95a9665d2cfd9580ec45ac7d0a0f5500b528961198596a9ebb115f63470dc
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -198,7 +198,7 @@ ChatGPT browser acceptance or production cutover.
 
 The current candidate also has a fresh Windows process-loop receipt for the
 restricted stdio connector and authenticated Named Pipe transport at
-`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_1C19065.json`. This proves
+`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_D1FC475.json`. This proves
 only the local transport loop; it does not register the connector with ordinary
 web ChatGPT or grant it local permissions automatically.
 
@@ -267,9 +267,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 55cc17326ec614f7cda2e4878b15adde1acf60d9 `
-  --candidate-manifest C:\ScorpAgent\_publish_git6\docs\handoffs\SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json `
-  --manifest-sha256 ba5c4da7d66c463de4dab304d345e7067c27ff05444e25435adc901b30811389 `
+  --candidate-commit d1fc47598f2f59be9b8da50664396e786b32910d `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D1FC475.json `
+  --manifest-sha256 1dd95a9665d2cfd9580ec45ac7d0a0f5500b528961198596a9ebb115f63470dc `
   --send
 ```
 
@@ -573,7 +573,7 @@ under `docs/handoffs/historical-2026-09-14/`; it describes an earlier local
 candidate and must not be presented as evidence for this GitHub copy.
 The root `docs/handoffs/SCORP_V4_VERIFICATION.json` is kept only because an
 upstream test contract reads that path; use
-`docs/handoffs/SCORP_V4_GIT6_VALIDATION.json` for the current repository-copy
+`docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json` for the current repository-copy
 validation record.
 
 ## What to report after every run
@@ -588,7 +588,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `1c19065` (`fix: fence duplicate bridge worker processes`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
+- Current code candidate: `d1fc475` (`fix: bind web GPT packet to fast runtime evidence`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.

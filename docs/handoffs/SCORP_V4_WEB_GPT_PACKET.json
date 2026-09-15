@@ -7,34 +7,34 @@
     "windows_host": "executes_only_after_local_adapter_and_scope_checks"
   },
   "blockers": [],
-  "candidate_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
+  "candidate_commit": "d1fc47598f2f59be9b8da50664396e786b32910d",
   "current_live_gate": {
-    "candidate_code_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
-    "last_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
-    "last_failure": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json",
-    "last_send_attempt_candidate": "31622f1c3c358540146d95e1cf769cc09601610c",
-    "read_only_preflight_candidate": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
-    "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json",
-    "read_only_preflight_observed_at": "2026-09-14T16:04:15.6935258Z",
-    "read_only_preflight_status": "BLOCKED_EXTERNAL_PRECONDITION",
+    "candidate_code_commit": "d1fc47598f2f59be9b8da50664396e786b32910d",
+    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json",
+    "rate_limit_recovery_preflight": {
+      "boundary": "真实页面没有限制弹窗，因此只验证了不点击分支；确认按钮、等待窗口和刷新逻辑已通过离线测试，但真实弹窗分支尚未获得 LIVE_VERIFIED。",
+      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
+      "result": "NOT_RATE_LIMITED"
+    },
+    "reason": "当前候选 c205 单 Worker canary 在真实 Chrome Use 中记录了 conversation URL，但只读核对显示旧诊断回复且没有 c205 token；按 fail-closed 规则不重试。",
     "retry_count_after_ambiguity": 0,
-    "rule": "Do not retry until read-only browser evidence shows the rate-limit blocker cleared.",
+    "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
     "status": "BLOCKED_EXTERNAL_PRECONDITION"
   },
   "evidence_binding": {
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D1FC475.json",
     "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
-    "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json"
+    "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-14T16:10:21.612907Z",
+  "generated_at": "2026-09-15T02:15:53.037652Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
-    "allowed_root": "C:\\ScorpAgent\\v4-core-lab-55cc173",
+    "allowed_root": "C:\\ScorpAgent\\v4-core-lab",
     "blockers": [],
     "capabilities": {
       "browser_rebind": {
-        "driver_state": "C:\\ScorpAgent\\v4-core-lab-55cc173\\driver.json",
+        "driver_state": null,
         "executable": null,
         "reason": "An existing Chrome Use executable and driver-state path are required; login and CAPTCHA are never bypassed.",
         "status": "BLOCKED_MISSING_BROWSER_CONFIG"
@@ -64,13 +64,13 @@
         "status": "UNAVAILABLE"
       }
     },
-    "database_path": "C:\\ScorpAgent\\v4-core-lab-55cc173\\state.sqlite3",
+    "database_path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-14T16:10:21.612862Z",
+    "generated_at": "2026-09-15T02:15:53.037429Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
-    "repo_root": "C:\\ScorpAgent\\_publish_git6",
+    "repo_root": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
     "required_paths": {
       "GPT_START_HERE.md": true,
       "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py": true,
@@ -80,7 +80,7 @@
       "scripts/run-candidate-validation.ps1": true
     }
   },
-  "prompt": "You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.\n\nThis packet was produced for candidate commit 55cc17326ec614f7cda2e4878b15adde1acf60d9. Its current packet status is READY.\nRead the packet and the repository handoff documents before making any claim.\n\nHard boundary:\n- A Git repository does not grant this chat access to Windows, Python, SQLite, Chrome, or browser sessions.\n- Treat WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE as authoritative unless a separate local connector provides current evidence.\n- Do not ask for or store API keys, cookies, passwords, CAPTCHA answers, or login data.\n- Do not claim that a plan ran, a Worker chat was created, or a project is complete without a current evidence record.\n\nReturn exactly these sections:\n1. CAPABILITY: web_only, operator_handoff, sqlite_monitor, or browser_connected.\n2. PLAN: one root_contract, acceptance_contract, and dependency-aware plan with at most two Worker assignments.\n3. REQUIRED_LOCAL_ACTION: the next safe command or state transition for the Windows operator, or BLOCKED with the precise blocker.\n4. ACCEPTANCE: PASS, FAIL, BLOCKED, or NOT_RUN for each criterion, each bound to candidate commit, command/action, observed state, raw output reference, and artifact hash.\n\nIf the packet is BLOCKED, stop at the blocker. Do not convert BLOCKED or NOT_RUN into PASS.\n",
+  "prompt": "You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.\n\nThis packet was produced for candidate commit d1fc47598f2f59be9b8da50664396e786b32910d. Its current packet status is READY.\nRead the packet and the repository handoff documents before making any claim.\n\nHard boundary:\n- A Git repository does not grant this chat access to Windows, Python, SQLite, Chrome, or browser sessions.\n- Treat WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE as authoritative unless a separate local connector provides current evidence.\n- Do not ask for or store API keys, cookies, passwords, CAPTCHA answers, or login data.\n- Do not claim that a plan ran, a Worker chat was created, or a project is complete without a current evidence record.\n\nReturn exactly these sections:\n1. CAPABILITY: web_only, operator_handoff, sqlite_monitor, or browser_connected.\n2. PLAN: one root_contract, acceptance_contract, and dependency-aware plan with at most two Worker assignments.\n3. REQUIRED_LOCAL_ACTION: the next safe command or state transition for the Windows operator, or BLOCKED with the precise blocker.\n4. ACCEPTANCE: PASS, FAIL, BLOCKED, or NOT_RUN for each criterion, each bound to candidate commit, command/action, observed state, raw output reference, and artifact hash.\n\nIf the packet is BLOCKED, stop at the blocker. Do not convert BLOCKED or NOT_RUN into PASS.\n",
   "status": "READY",
   "target_repository": "Scorp96/6"
 }

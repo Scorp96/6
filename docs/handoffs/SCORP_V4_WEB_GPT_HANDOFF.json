@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
+  "candidate_commit": "d1fc47598f2f59be9b8da50664396e786b32910d",
   "evidence_binding": {
-    "validated_commit": "55cc17326ec614f7cda2e4878b15adde1acf60d9",
-    "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_GIT6_CANDIDATE_MANIFEST_55cc173.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_GIT6_PREFLIGHT_55cc173.json",
-    "binding_note": "This handoff describes the 55cc17326ec614f7cda2e4878b15adde1acf60d9 code candidate; runtime startup requires exact candidate binding. The current browser gate is blocked by a fresh read-only rate-limit observation in docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json; the prior send-attempt receipt remains in docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json. Production acceptance remains unresolved."
+    "validated_commit": "d1fc47598f2f59be9b8da50664396e786b32910d",
+    "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D1FC475.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_D1FC475.json",
+    "binding_note": "This handoff describes the d1fc47598f2f59be9b8da50664396e786b32910d code candidate; runtime startup requires exact candidate binding. The current candidate browser gate is blocked by the ambiguous Chrome Use receipt in docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json; the rate-limit preflight proves only the no-dialog branch in docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json. Production acceptance remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
