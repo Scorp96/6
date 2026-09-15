@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`d33fdf2fc52724c89da96c0e6679545a28554fd9` (audit snapshot; code candidate `6a9f1c1bc4881fe02b6615df3d611f067af2bbbf`)
+`d33fdf2fc52724c89da96c0e6679545a28554fd9` (audit snapshot; code candidate `431b4e7`)
 
 ## REMOTE_MAIN_HEAD
 
@@ -63,7 +63,7 @@
 
 已实现 daemon lease、daemon epoch、heartbeat、SQLite activation snapshot、唯一事件 ID、restart/recovery 计数、restart budget、bounded backoff 和 circuit state。daemon 默认可重新获取当前 SQLite epoch，避免 Scheduled Task 固定旧 epoch。
 
-当前入口仍是 monitor-oriented seam：它能读取 durable snapshot、记录 ActivationArbiter decision、运行有限循环并输出 health；真实浏览器提交与歧义核对仍由受约束 adapter 负责，不能宣称它已经是完整无人值守 Fast Local Runtime。除 `TERMINAL` 与 `HEARTBEAT_IDLE` 外，缺少动作处理器现在会写入 `BLOCKED`，不会伪报 `HEALTHY`。
+当前入口仍是 monitor-oriented seam：它能读取 durable snapshot、记录 ActivationArbiter decision、运行有限循环并输出 health；真实浏览器提交与歧义核对仍由受约束 adapter 负责，不能宣称它已经是完整无人值守 Fast Local Runtime。除 `TERMINAL` 与 `HEARTBEAT_IDLE` 外，缺少动作处理器或处理器明确返回阻塞状态时会写入 `BLOCKED`，不会伪报 `HEALTHY`。
 
 ## CURRENT_ACTIVATION_MODEL
 
@@ -93,12 +93,12 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：170 项测试通过。
+- V4 core：171 项测试通过。
 - GUI bridge：482 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
 - validation JSON：可解析。
-- 当前候选 validation：`TEST_VERIFIED`（代码候选 `6a9f1c1`）。
+- 当前候选 validation：`TEST_VERIFIED`（代码候选 `431b4e7`）。
 - 当前候选真实 Chrome：`LIVE_VERIFIED = BLOCKED`，原因是当前 canary 的 Chrome Use send ref 无法解析。
 - 当前候选：`ACCEPTED = false`。
 - 生产切换：未授权、未执行。

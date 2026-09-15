@@ -582,7 +582,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `6a9f1c1` (`fix: fail closed when daemon action handler is missing`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
+- Current code candidate: `431b4e7` (`fix: honor blocked daemon action results`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
