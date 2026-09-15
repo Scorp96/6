@@ -45,6 +45,67 @@ def _read_json(path: pathlib.Path) -> dict[str, Any]:
     return value
 
 
+def _validation_record(root: pathlib.Path) -> tuple[pathlib.Path, dict[str, Any]]:
+    """Load the newest local validation record, with legacy compatibility.
+
+    The Fast Runtime command-core record is the authoritative candidate record
+    once it exists.  The older Git6 record remains a fixture/compatibility
+    source for repositories that have not migrated yet.
+    """
+
+    candidates = (
+        root / "docs" / "handoffs" / "SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
+        root / "docs" / "handoffs" / "SCORP_V4_GIT6_VALIDATION.json",
+    )
+    for path in candidates:
+        if path.is_file():
+            return path, _read_json(path)
+    raise RuntimeError("VALIDATION_RECORD_MISSING")
+
+
+def _validated_commit(validation: dict[str, Any]) -> str:
+    """Return the candidate identity used by either validation schema."""
+
+    return str(
+        validation.get("validated_commit")
+        or validation.get("implementation_commit")
+        or validation.get("code_candidate_commit")
+        or ""
+    ).strip().lower()
+
+
+def _current_live_gate(validation: dict[str, Any], candidate: str) -> dict[str, Any]:
+    """Normalize the legacy and Fast Runtime live-gate shapes."""
+
+    legacy = validation.get("current_candidate_live_gate")
+    if isinstance(legacy, dict):
+        return legacy
+    verification = validation.get("verification")
+    if not isinstance(verification, dict):
+        return {"candidate_code_commit": candidate, "status": "NOT_RECORDED"}
+    live = verification.get("live_verified")
+    if not isinstance(live, dict):
+        return {"candidate_code_commit": candidate, "status": "NOT_RECORDED"}
+    result = str(live.get("result") or "NOT_RECORDED").strip().upper()
+    status = {
+        "PASS": "PASS",
+        "BLOCKED": "BLOCKED_EXTERNAL_PRECONDITION",
+        "FAIL": "FAIL",
+    }.get(result, result)
+    gate: dict[str, Any] = {
+        "candidate_code_commit": candidate,
+        "status": status,
+        "reason": live.get("reason"),
+        "evidence_path": live.get("evidence_path"),
+        "retry_count_after_ambiguity": 0,
+        "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
+    }
+    rate_limit = live.get("rate_limit_recovery_preflight")
+    if isinstance(rate_limit, dict):
+        gate["rate_limit_recovery_preflight"] = rate_limit
+    return gate
+
+
 def _prompt(candidate: str, status: str) -> str:
     return f"""You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.
 
@@ -78,10 +139,9 @@ def build_packet(
 ) -> dict[str, Any]:
     root = pathlib.Path(repo_root).resolve()
     handoff_path = root / "docs" / "handoffs" / "SCORP_V4_WEB_GPT_HANDOFF.json"
-    validation_path = root / "docs" / "handoffs" / "SCORP_V4_GIT6_VALIDATION.json"
+    validation_path, validation = _validation_record(root)
     handoff = _read_json(handoff_path)
-    validation = _read_json(validation_path)
-    validated = str(validation.get("validated_commit", ""))
+    validated = _validated_commit(validation)
     declared = str(handoff.get("candidate_commit", ""))
     blockers: list[dict[str, Any]] = []
     if not validated or declared != validated:
@@ -103,9 +163,8 @@ def build_packet(
     )
     blockers.extend(preflight.get("blockers", []))
     status = "READY" if not blockers else "BLOCKED"
-    current_live_gate = validation.get("current_candidate_live_gate", {})
-    if not isinstance(current_live_gate, dict):
-        current_live_gate = {}
+    current_live_gate = _current_live_gate(validation, validated or declared)
+    validation_record = validation_path.relative_to(root).as_posix()
     return {
         "format": FORMAT,
         "generated_at": _now(),
@@ -114,7 +173,7 @@ def build_packet(
         "status": status,
         "authority": handoff.get("authority", {}),
         "evidence_binding": {
-            "validation_record": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
+            "validation_record": validation_record,
             "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
             "candidate_manifest": handoff.get("evidence_binding", {}).get("candidate_manifest"),
         },
