@@ -50,7 +50,7 @@
       "real_code_workload": {
         "result": "PASS_REAL_CODE_LIVE_WORKER_AND_LOCAL_EXECUTION",
         "evidence_path": "docs/handoffs/SCORP_V4_REAL_CODE_LIVE_WORKER_EVIDENCE_F5B8240.json",
-        "evidence_sha256": "db2122f9b82841044fe8f180c827b6279badc3ec804643c8d565e049df9f8867",
+        "evidence_sha256": "e9061d846d6b836a01da1228851a8a04dc71a798e41136ead64821eee27c8b37",
         "project_id": "scorp-v4-real-code-f5b8240-r5",
         "worker_count": 2,
         "task_ids": [

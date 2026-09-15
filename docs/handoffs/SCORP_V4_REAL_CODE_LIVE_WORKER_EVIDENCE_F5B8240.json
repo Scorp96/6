@@ -55,7 +55,32 @@
     "duplicate_submits": 0,
     "ambiguous_t3_first_attempt": true,
     "t3_retry_basis": "positive VERIFIED_NOT_SUBMITTED proof from AUTHENTICATION_UNAVAILABLE before begin_possible_submit",
-    "read_only_reconciliation": true
+    "read_only_reconciliation": true,
+    "session_cleanup": [
+      {
+        "status": "RETIRED",
+        "session": "scorp-p0-turn-fb6f21893ab0610b",
+        "active_turn_ids": [],
+        "cleanup": "STOPPED"
+      },
+      {
+        "status": "RETIRED",
+        "session": "scorp-p0-turn-1457be83557fb179",
+        "active_turn_ids": [],
+        "cleanup": "STOPPED"
+      },
+      {
+        "status": "RETIRED",
+        "session": "scorp-p0-turn-7698ae47953f454f",
+        "active_turn_ids": [],
+        "cleanup": "STOPPED"
+      },
+      {
+        "auth_session": "scorp-v4-master-auth-a8929b4534be",
+        "cleanup": "STOPPED"
+      }
+    ],
+    "all_worker_sessions_stopped": true
   },
   "tasks": [
     {
