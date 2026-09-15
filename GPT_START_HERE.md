@@ -593,15 +593,15 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `C4DEA24` (`fix: require explicit migration for unknown sqlite files`; includes the earlier pipe and rate-limit fixes) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, and lost-worker detection are recorded in the current candidate evidence.
+- Current code candidate: `f8c6f1f` (`fix: block incomplete sqlite snapshots before migration`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, and the incomplete-snapshot migration guard are recorded in the current candidate evidence.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
-- Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json` (the older `424FFE3` audit is historical and does not describe the current checkout).
+- Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
 - Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
 - Current browser driver state used by that receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 
-The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by ambiguous Chrome Use browser state, and it is not `ACCEPTED`.
+The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by ambiguous Chrome Use browser state, and it is not `ACCEPTED`. The production SQLite incident is recovered logically and is not hidden as an unchanged-production claim.
 The current candidate has a fail-closed browser send blocker and no new
 conversation. It does not prove a real repository task over ChatGPT, live
 crash/restart recovery, scheduled-task registration, production cutover, or
