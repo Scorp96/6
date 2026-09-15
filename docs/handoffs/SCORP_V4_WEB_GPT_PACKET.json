@@ -16,7 +16,7 @@
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
       "result": "NOT_RATE_LIMITED"
     },
-    "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据见 `SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json`；该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。 证据中的认证会话清理为 CLEANUP_BLOCKED，未盲目重试清理。",
+    "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据中的认证会话清理遗留一个已知的、未激活的 about:blank created tab；单次定向关闭因 Cannot close the last tab 被拒绝，未执行全局清理或强制停止。该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
     "status": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"
@@ -27,7 +27,7 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T11:28:14.564397Z",
+  "generated_at": "2026-09-15T11:31:47.145334Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
     "allowed_root": "C:\\ScorpAgent\\v4-live-current-e7ca\\workspace",
@@ -66,7 +66,7 @@
     },
     "database_path": "C:\\ScorpAgent\\v4-live-current-e7ca\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T11:28:14.564320Z",
+    "generated_at": "2026-09-15T11:31:47.145249Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
