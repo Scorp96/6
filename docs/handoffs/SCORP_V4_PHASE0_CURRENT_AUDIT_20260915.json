@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-phase0-current-audit/1",
-  "observed_at_utc": "2026-09-15T12:14:57.955296Z",
+  "observed_at_utc": "2026-09-15T12:21:00Z",
   "repository": "Scorp96/6",
   "remote_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
   "current_worktree": {
     "path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
     "branch": "feature/v4-fast-runtime-command-core",
-    "head": "ccb34aa5ed094aed81c887a0138b9d9b2e238389",
+    "head": "1309f2bd3c4a09b2f299b86bf73868241fa4dbab",
     "git_status": "CLEAN"
   },
   "production_checkout": {
@@ -28,7 +28,7 @@
   },
   "candidate": {
     "code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
-    "docs_head": "ccb34aa5ed094aed81c887a0138b9d9b2e238389",
+    "docs_head": "1309f2bd3c4a09b2f299b86bf73868241fa4dbab",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core"
   },
   "runtime_paths": {
@@ -46,7 +46,15 @@
       "ScorpV4SelfUpgrade5561f44": "Ready",
       "ScorpChatGptGuiBridgeWatchdog": "Disabled"
     },
-    "production_task_mutation": "NOT_PERFORMED"
+    "production_task_mutation": "NOT_PERFORMED",
+    "active_relevant_processes_observed": [
+      {"pid": 7876, "name": "python.exe", "role": "legacy bridge_worker", "runtime": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe"},
+      {"pid": 13488, "name": "python.exe", "role": "legacy bridge_worker child", "runtime": "C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe"},
+      {"pid": 15024, "name": "chrome-use.exe", "role": "Chrome native messaging host"},
+      {"pid": 3676, "name": "chrome-use.exe", "role": "unclassified existing Chrome Use process"},
+      {"pid": 4512, "name": "chrome-use.exe", "role": "old session get-url process", "status": "requires bounded lifecycle review"}
+    ],
+    "supervision_finding": "Two legacy bridge_worker processes with matching arguments were observed; candidate singleton lock is not production-deployed. No process was killed by this audit."
   },
   "real_code_current_candidate": {
     "evidence": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
@@ -66,7 +74,24 @@
     "T1 real Worker must produce an admissible COMPLETE result before its bounded validate execution may run",
     "T3 depends on T1 and remains queued",
     "full Master replacement, unattended soak, production cutover, and complete code workload remain unverified",
-    "existing production checkout has dirty unpublished state and must not be overwritten"
+    "existing production checkout has dirty unpublished state and must not be overwritten",
+    "production watchdog is Disabled and no approved V4 daemon Scheduled Task cutover is evidenced",
+    "current candidate Phase 1 is partial: connector registration, symmetric live rate-limit recovery, full real-code workload, Master replacement, and unattended soak remain open"
   ],
-  "production_state_touched": false
+  "production_state_touched": false,
+  "required_phase0_sections": {
+    "CURRENT_HEAD": "1309f2bd3c4a09b2f299b86bf73868241fa4dbab",
+    "REMOTE_MAIN_HEAD": "79610ae3f3864e133f750f0c9dfde40b17a91def",
+    "BRANCH": "feature/v4-fast-runtime-command-core",
+    "WORKTREE": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
+    "GIT_STATUS": "CLEAN",
+    "UNPUBLISHED_COMMITS": "feature branch contains local commits ahead of origin/main; local main is also ahead of origin/main by one pre-existing commit",
+    "UNTRACKED_FILES": "none in candidate worktree",
+    "RUNTIME_PATHS": "recorded in runtime_paths",
+    "SQLITE_PATHS": "recorded in runtime_paths; production untouched",
+    "DRIVER_STATE_PATHS": ["C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json", "C:\\ScorpAgent\\state-v3\\active\\sessions-v3.json"],
+    "ACTIVE_WINDOWS_TASKS_OR_SERVICES": "recorded in windows_supervision",
+    "CURRENT_EXECUTION_CEILING": "isolated Runtime Core, bounded local transport, tests, audit and explicitly gated browser evidence; no production cutover",
+    "CURRENT_CODEX_PROVIDER_STATUS": "gpt-5.6-sol/high compatibility fallback; not native Astra acceptance"
+  }
 }
