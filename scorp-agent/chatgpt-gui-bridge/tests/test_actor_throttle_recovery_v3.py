@@ -151,6 +151,37 @@ class ActorThrottleRecoveryV3Tests(unittest.TestCase):
         self.assertFalse(any(name == "Type" for name, _ in client.calls))
         self.assertFalse(any(name == "Shortcut" and args.get("shortcut") == "ctrl+r" for name, args in client.calls))
 
+    def test_gui_transport_waits_for_editor_after_dialog_clears_during_page_refresh(self):
+        throttle = (
+            "请求过于频繁，请稍等几分钟后再重试\n"
+            "(410,520) button \"确定\""
+        )
+        client = FakeClient(
+            snapshots=[
+                "Focused Window: Chrome",
+                throttle,
+                "ChatGPT Plus\nPage loading",
+                '(200,700) textbox "Message ChatGPT"',
+                '(900,700) button "Send message"',
+            ],
+            clipboard_reads=[
+                "Clipboard content:\noriginal",
+                "Clipboard content:\nhttps://chatgpt.com/",
+            ],
+        )
+        ticks = iter([0.0, 0.0, 0.0])
+        asyncio.run(open_new_chat_and_submit(
+            client,
+            "PROMPT",
+            page_wait_seconds=0,
+            rate_limit_wait_seconds=5,
+            rate_limit_poll_seconds=5,
+            rate_limit_sleeper=lambda _: asyncio.sleep(0),
+            rate_limit_clock=lambda: next(ticks),
+        ))
+        self.assertEqual(1, sum(1 for name, _ in client.calls if name == "Type"))
+        self.assertFalse(any(name == "Shortcut" and args.get("shortcut") == "ctrl+r" for name, args in client.calls))
+
     def test_gui_transport_classifies_throttle_before_any_prompt_input(self):
         throttle = "请求过于频繁，请稍等几分钟后再重试"
         client = FakeClient(

@@ -121,7 +121,19 @@ async def recover_rate_limit_dialog(
     while True:
         current = await read_snapshot()
         if not chatgpt_throttle_visible(current):
-            return current
+            # A dismissed dialog can leave ChatGPT in a short page-reload
+            # window with no composer yet.  Keep this read-only wait bounded
+            # until the editor is actually present; otherwise the caller
+            # would stop too early and make the user refresh manually.
+            try:
+                find_chat_editor(current)
+            except ValueError:
+                now = clock()
+                if now < deadline:
+                    await sleeper(min(poll_seconds, max(0.0, deadline - now)))
+                    continue
+            else:
+                return current
         now = clock()
         if now >= deadline:
             await client.call_tool("Shortcut", {"shortcut": "ctrl+r"})
