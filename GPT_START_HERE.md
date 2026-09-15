@@ -541,7 +541,7 @@ browser canary.
 
 The current candidate's single-worker live canary is fail-closed after
 ambiguous Chrome Use conversation binding; its receipt is
-`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`. Read-only
+`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`. The newest read-only target-state receipt is `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json`. Read-only
 reconciliation found an older diagnostic response and no c205 token, so it was
 not blindly retried. A separate read-only preflight is required before any new
 canary.
@@ -591,7 +591,7 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Current code candidate: `12fc17b` (`fix: validate web GPT candidate manifest binding`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
-- Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
+- Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
 - Current browser driver state used by that receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 
 The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by ambiguous Chrome Use browser state, and it is not `ACCEPTED`.

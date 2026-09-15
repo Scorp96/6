@@ -6,7 +6,7 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
     "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_12FC17B.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_12FC17B.json",
-    "binding_note": "This handoff describes the 12fc17b491affd5d7b1989e1d97a21e09fefeb83 code candidate; runtime startup requires exact candidate binding. The current candidate browser gate is blocked by the ambiguous Chrome Use receipt in docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json; the rate-limit preflight proves only the no-dialog branch in docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json. Production acceptance remains unresolved."
+    "binding_note": "This handoff describes the 12fc17b491affd5d7b1989e1d97a21e09fefeb83 code candidate; runtime startup requires exact candidate binding. A fresh read-only Chrome Use preflight is blocked by inconsistent active-target state in docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json; the prior ambiguous canary remains in docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json. The rate-limit receipt proves only the no-dialog branch. Production acceptance remains unresolved."
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

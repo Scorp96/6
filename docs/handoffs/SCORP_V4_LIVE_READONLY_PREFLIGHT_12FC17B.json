@@ -1,0 +1,62 @@
+{
+  "format": "scorp-v4-live-readonly-preflight/2",
+  "evidence_id": "SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B",
+  "observed_at": "2026-09-15T02:30:24.9851205Z",
+  "candidate_code_commit": "12fc17b491affd5d7b1989e1d97a21e09fefeb83",
+  "result": "BLOCKED_EXTERNAL_PRECONDITION",
+  "production_state_changed": false,
+  "command": "chrome-use --session scorp-p0-turn-066069407e9baa4c --json tab list; chrome-use --session scorp-p0-turn-066069407e9baa4c --json tab inspect t5",
+  "raw_outputs": {
+    "tab_list": "{\"success\":true,\"data\":{\"tabs\":[{\"active\":true,\"label\":null,\"ownership\":\"created\",\"relayAttached\":false,\"tabId\":\"t1\",\"targetId\":\"3D6F10870DC67B11F42DCBA3266407B1\",\"title\":\"\",\"type\":\"page\",\"url\":\"\"},{\"active\":false,\"label\":null,\"ownership\":\"adopted\",\"relayAttached\":false,\"tabId\":\"t4\",\"targetId\":\"352D7E4B556C23A02E0428F9FEE09D38\",\"title\":\"谷道控制台\",\"type\":\"page\",\"url\":\"https://admin.gudaocloud.com/\"},{\"active\":false,\"label\":null,\"ownership\":\"adopted\",\"relayAttached\":false,\"tabId\":\"t5\",\"targetId\":\"CF04915B658C057C9481EDD8A3288A1B\",\"title\":\"阻塞工具不可用\",\"type\":\"page\",\"url\":\"https://chatgpt.com/c/6aa7aa16-c1c4-83e8-bae4-985aed4fc910\"},{\"active\":false,\"label\":null,\"ownership\":\"adopted\",\"relayAttached\":true,\"tabId\":\"t11\",\"targetId\":\"D48CF4DF877D824AC2BC767AC3D46C95\",\"title\":\"仪表盘 - 牛客云\",\"type\":\"page\",\"url\":\"https://admin.newcuin.com/#/dashboard\"}]},\"error\":null}",
+    "tab_inspect_t5": "{\"success\":true,\"data\":{\"active\":true,\"audible\":false,\"chromeTabId\":2033136278,\"debuggerAttached\":false,\"discarded\":false,\"frozen\":false,\"label\":null,\"sessionId\":\"cb-tab-2033136278\",\"status\":\"complete\",\"tabId\":\"t5\",\"targetId\":\"CF04915B658C057C9481EDD8A3288A1B\",\"title\":\"阻塞工具不可用\",\"url\":\"https://chatgpt.com/c/6aa7aa16-c1c4-83e8-bae4-985aed4fc910\",\"windowId\":2033136093},\"error\":null}"
+  },
+  "observed": {
+    "active_tab": [
+      {
+        "tab_id": "t1",
+        "target_id": "3D6F10870DC67B11F42DCBA3266407B1",
+        "ownership": "created",
+        "active": true,
+        "title": "",
+        "url": ""
+      }
+    ],
+    "rate_limit_dialog": "NOT_OBSERVED",
+    "active_tab_count": 1,
+    "chatgpt_tabs": [
+      {
+        "tab_id": "t5",
+        "target_id": "CF04915B658C057C9481EDD8A3288A1B",
+        "ownership": "adopted",
+        "active": false,
+        "title": "阻塞工具不可用",
+        "url": "https://chatgpt.com/c/6aa7aa16-c1c4-83e8-bae4-985aed4fc910"
+      }
+    ],
+    "inspected_chatgpt_tab": {
+      "active": true,
+      "audible": false,
+      "chromeTabId": 2033136278,
+      "debuggerAttached": false,
+      "discarded": false,
+      "frozen": false,
+      "label": null,
+      "sessionId": "cb-tab-2033136278",
+      "status": "complete",
+      "tabId": "t5",
+      "targetId": "CF04915B658C057C9481EDD8A3288A1B",
+      "title": "阻塞工具不可用",
+      "url": "https://chatgpt.com/c/6aa7aa16-c1c4-83e8-bae4-985aed4fc910",
+      "windowId": 2033136093
+    },
+    "current_candidate_binding": "NOT_PROVEN",
+    "target_state_inconsistent": true,
+    "inconsistency": "tab list reports t5 active=false while tab inspect t5 reports active=true; no unique active target can be trusted"
+  },
+  "reason": "当前会话的 active created tab URL 为空；ChatGPT tab 为已接管历史页面，未获得当前候选 canary 的唯一绑定、composer 状态或响应标记。",
+  "rules": [
+    "不重放历史 ambiguous intent",
+    "未取得当前候选正面只读证据前不发送",
+    "限流、登录或验证码内容未观察到时不作恢复成功推断"
+  ]
+}

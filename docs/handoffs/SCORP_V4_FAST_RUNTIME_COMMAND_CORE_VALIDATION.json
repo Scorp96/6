@@ -25,19 +25,20 @@
     },
     "live_verified": {
       "result": "BLOCKED",
-      "reason": "当前候选 c205 单 Worker canary 在真实 Chrome Use 中记录了 conversation URL，但只读核对显示旧诊断回复且没有 c205 token；按 fail-closed 规则不重试。",
-      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json",
+      "reason": "新鲜 Windows Chrome Use 只读预检显示 active tab 与 inspected ChatGPT target 的状态互相矛盾，未取得当前候选唯一绑定；按 fail-closed 规则不发送。",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json",
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
         "boundary": "真实页面没有限制弹窗，因此只验证了不点击分支；确认按钮、等待窗口和刷新逻辑已通过离线测试，但真实弹窗分支尚未获得 LIVE_VERIFIED。"
-      }
+      },
+      "prior_ambiguous_canary_evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json"
     },
     "accepted": false,
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "4dafbf5087136427074781be67180c3a5e70b684489667e5ea70fd978c792bff"
+      "sha256": "42718804b49930514b94c72ab7dda01aceb3d8a5099209b9f9ba2e73bb54d061"
     },
     "local_transport_live_verified": {
       "result": "PASS",
