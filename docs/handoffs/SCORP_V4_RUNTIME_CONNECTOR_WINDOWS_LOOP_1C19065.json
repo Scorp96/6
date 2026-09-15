@@ -1,0 +1,26 @@
+{
+  "evidence_id": "SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_1C19065",
+  "candidate_code_commit": "1c19065ba9817725e384cc1265344e61b964b1cd",
+  "environment": {
+    "os": "Windows",
+    "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "transport": "authenticated Windows Named Pipe",
+    "production_state_changed": false
+  },
+  "command": "python -m unittest -v master_a_dynamic_v4.tests.test_runtime_pipe_client master_a_dynamic_v4.tests.test_runtime_pipe master_a_dynamic_v4.tests.test_runtime_connector_cli",
+  "result": "PASS",
+  "tests": 11,
+  "coverage": [
+    "stdio connector actor binding",
+    "project and actor scope rejection",
+    "authenticated Named Pipe client/server process loop",
+    "one-shot launcher",
+    "SQLite runtime.status response",
+    "no transport retry"
+  ],
+  "limitations": [
+    "does not register a connector with ordinary web ChatGPT",
+    "does not prove live Chrome Use prompt submission",
+    "does not authorize production listener installation"
+  ]
+}
