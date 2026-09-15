@@ -38,7 +38,7 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "24f6259299bc0b15d1887770de19d1c7a027abd65d3306b84bbb57bbef8b450d"
+      "sha256": "645cffc61abd16aa8842fe0e6429fc9009093aa9107b302caa59d2cfeac87dc6"
     },
     "local_transport_live_verified": {
       "result": "PASS",
