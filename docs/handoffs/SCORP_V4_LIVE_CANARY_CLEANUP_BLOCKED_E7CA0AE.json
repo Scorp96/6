@@ -1,0 +1,26 @@
+{
+  "format": "scorp-v4-live-canary-cleanup/1",
+  "candidate_code_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
+  "source_evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
+  "observed_at_utc": "2026-09-15T11:31:17.071271Z",
+  "target": {
+    "tab_id": "t1",
+    "target_id": "3A088F96BC577A3A17CBE901F0474B74",
+    "url": "about:blank",
+    "title": "about:blank",
+    "ownership": "created",
+    "active": false,
+    "relay_attached": false,
+    "status": "complete"
+  },
+  "action": {
+    "command": "chrome-use --json tab close t1",
+    "result": "BLOCKED_LAST_TAB",
+    "raw_error": "Cannot close the last tab",
+    "retryable": false
+  },
+  "global_cleanup_attempted": false,
+  "force_session_stop_attempted": false,
+  "production_state_changed": false,
+  "disposition": "BLOCKED_CLEANUP_REQUIRES_USER_OR_WINDOW_LIFECYCLE_DECISION"
+}

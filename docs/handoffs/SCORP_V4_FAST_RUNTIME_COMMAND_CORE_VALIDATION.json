@@ -25,7 +25,7 @@
     },
     "live_verified": {
       "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
-      "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据见 `SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json`；该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。 证据中的认证会话清理为 CLEANUP_BLOCKED，未盲目重试清理。",
+      "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据中的认证会话清理遗留一个已知的、未激活的 about:blank created tab；单次定向关闭因 Cannot close the last tab 被拒绝，未执行全局清理或强制停止。该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。",
       "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
       "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
       "rate_limit_recovery_preflight": {
@@ -82,7 +82,9 @@
           "no production cutover or unattended soak"
         ],
         "cleanup_status": "CLEANUP_BLOCKED",
-        "cleanup_note": "Canary evidence records the retired auth session cleanup as CLEANUP_BLOCKED; no blind cleanup retry was performed."
+        "cleanup_note": "The retired diagnostic session left one created, inactive about:blank tab. Targeted tab close was attempted once and returned BLOCKED_LAST_TAB; global cleanup and force stop were not attempted.",
+        "cleanup_evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CLEANUP_BLOCKED_E7CA0AE.json",
+        "cleanup_evidence_sha256": "03ffb9e27b053af742d764e81bf38eb77b39fd52442505ab415da19bab129178"
       },
       "evidence_sha256": "780adf2205263a93f95e6acd29f37715c471e03414068da673913c7e1d27c59a"
     },
