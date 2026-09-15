@@ -43,11 +43,17 @@ Runtime daemon 启动时可以省略固定的 `--daemon-epoch`，由 SQLite leas
 重放之前不明确的浏览器提交。Master A 运行入口和双 Worker canary 的 auth
 probe 都经过这一边界；该恢复动作本身不代表消息已发送。
 
+如果确认按钮调用本身失败，或确认后只读快照读取失败，驱动会返回
+`BLOCKED/RATE_LIMIT_ACK_FAILED` 或
+`BLOCKED/RATE_LIMIT_RECOVERY_READ_FAILED`；这两种情况都不会刷新、重试或把
+异常当成可以继续发送的信号。对应证据见
+`SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_29AC30C.json`。
+
 ## 当前证据边界
 
-- `TEST_VERIFIED`: V4 核心 173 个测试通过，GUI 桥接 487 个测试通过（含请求限制确认/等待/超时/单次刷新、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
-- `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_12FC17B.json`；这不等于网页 GPT 已注册该 connector。
-- `LIVE_VERIFIED`: 当前候选的真实 Chrome Use 仍为 `BLOCKED`；最近只读预检发现 active tab 与 inspected ChatGPT target 状态不一致，证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json`。此前 c205 ambiguous canary 证据保留在 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发。
+- `TEST_VERIFIED`: V4 核心 173 个测试通过，GUI 桥接 489 个测试通过（含请求限制确认/等待/超时/单次刷新/确认与读取失败 fail-closed、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_29AC30C.json`；这不等于网页 GPT 已注册该 connector。
+- `LIVE_VERIFIED`: 当前候选的真实 Chrome Use 仍为 `BLOCKED`；最近只读预检发现 active tab 与 inspected ChatGPT target 状态不一致，证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_29AC30C.json`。此前 c205 ambiguous canary 证据保留在 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发。
 - 请求限制 live preflight：历史真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；确认按钮、等待窗口和单次刷新已由离线测试覆盖，但真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 

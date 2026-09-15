@@ -106,8 +106,8 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 12fc17b491affd5d7b1989e1d97a21e09fefeb83 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_12FC17B.json `
+  --candidate-commit 29ac30c9fd0f96dad072863508e4ea3983a5df43 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_29AC30C.json `
   --manifest-sha256 beb038ed5be504d3609b49adfa2475f1b9b805180801e9af8dd09420722d4a7c
 ```
 
@@ -198,7 +198,7 @@ ChatGPT browser acceptance or production cutover.
 
 The current candidate also has a fresh Windows process-loop receipt for the
 restricted stdio connector and authenticated Named Pipe transport at
-`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_12FC17B.json`. This proves
+`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_29AC30C.json`. This proves
 only the local transport loop; it does not register the connector with ordinary
 web ChatGPT or grant it local permissions automatically.
 
@@ -267,8 +267,8 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 12fc17b491affd5d7b1989e1d97a21e09fefeb83 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_12FC17B.json `
+  --candidate-commit 29ac30c9fd0f96dad072863508e4ea3983a5df43 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_29AC30C.json `
   --manifest-sha256 beb038ed5be504d3609b49adfa2475f1b9b805180801e9af8dd09420722d4a7c `
   --send
 ```
@@ -541,7 +541,7 @@ browser canary.
 
 The current candidate's single-worker live canary is fail-closed after
 ambiguous Chrome Use conversation binding; its receipt is
-`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`. The newest read-only target-state receipt is `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json`. Read-only
+`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`. The newest read-only target-state receipt is `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_29AC30C.json`. Read-only
 reconciliation found an older diagnostic response and no c205 token, so it was
 not blindly retried. A separate read-only preflight is required before any new
 canary.
@@ -588,10 +588,11 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `12fc17b` (`fix: validate web GPT candidate manifest binding`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
+- Current code candidate: `29ac30c` (`fix: fail closed on rate limit recovery transport errors`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary is implemented in `b66afa8`.
+- Latest rate-limit failure-boundary evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_29AC30C.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
-- Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
+- Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_29AC30C.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
 - Current browser driver state used by that receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 
 The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by ambiguous Chrome Use browser state, and it is not `ACCEPTED`.

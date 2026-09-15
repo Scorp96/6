@@ -1,0 +1,15 @@
+{
+  "format": "scorp-v4-live-readonly-preflight/1",
+  "candidate_code_commit": "29ac30c9fd0f96dad072863508e4ea3983a5df43",
+  "observed_at": "2026-09-15T02:58:10.0632335Z",
+  "session": "scorp-p0-turn-066069407e9baa4c",
+  "read_only": true,
+  "actions": [
+    "tab list",
+    "tab inspect t5"
+  ],
+  "raw_output": "{\"success\":true,\"data\":{\"tabs\":[{\"active\":true,\"label\":null,\"ownership\":\"created\",\"relayAttached\":false,\"tabId\":\"t1\",\"targetId\":\"3D6F10870DC67B11F42DCBA3266407B1\",\"title\":\"\",\"type\":\"page\",\"url\":\"\"}]},\"error\":null}\r\n\r\n⚠ waiting for another chrome-use process to release the session lifecycle lock...\r\n{\"success\":false,\"data\":null,\"error\":\"Tab t5 not found; run `chrome-use tab` to list open tabs\",\"code\":\"command_failed\",\"retryable\":false}\r\n",
+  "result": "BLOCKED_EXTERNAL_PRECONDITION",
+  "rule": "No send, no retry, no historical intent replay until current candidate binding and target state are unambiguous.",
+  "artifact_sha256": "111cde22bb605692cdd99bb681b7e67d48b9230b2b80e5dfa8d905425016cc3e"
+}

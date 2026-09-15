@@ -1,12 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "12fc17b491affd5d7b1989e1d97a21e09fefeb83",
+  "candidate_commit": "29ac30c9fd0f96dad072863508e4ea3983a5df43",
   "evidence_binding": {
-    "validated_commit": "12fc17b491affd5d7b1989e1d97a21e09fefeb83",
+    "validated_commit": "29ac30c9fd0f96dad072863508e4ea3983a5df43",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_12FC17B.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_12FC17B.json",
-    "binding_note": "This handoff describes the 12fc17b491affd5d7b1989e1d97a21e09fefeb83 code candidate; runtime startup requires exact candidate binding. A fresh read-only Chrome Use preflight is blocked by inconsistent active-target state in docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json; the prior ambiguous canary remains in docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json. The rate-limit receipt proves only the no-dialog branch. Production acceptance remains unresolved."
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_29AC30C.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_29AC30C.json",
+    "binding_note": "This handoff describes the 29ac30c9fd0f96dad072863508e4ea3983a5df43 code candidate; runtime startup requires exact candidate binding. A fresh read-only Chrome Use preflight is blocked because the only created tab is empty and historical t5 is absent in docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_29AC30C.json; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "b451ee890e44fd5657167a2aedc5aa25d39959d81ee80edeed0cc9ee12b1b1c6"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -60,7 +61,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "current_candidate_live_gate_blocked_by_current_read_only_rate_limit; real_repository_workload_over_browser_not_run; production_cutover_not_authorized"
+      "current_candidate_evidence": "current_candidate_live_gate_blocked_by_empty_created_tab_and_missing_historical_target; real_repository_workload_over_browser_not_run; production_cutover_not_authorized"
     }
   },
   "handoff_sequence": [
