@@ -226,6 +226,14 @@ def _rate_limit_ack_ref_from_snapshot(payload) -> str:
     return "@" + candidates[0]
 
 
+def _chrome_use_daemon_busy_error(exc: Exception) -> bool:
+    message = str(exc or "").casefold()
+    return (
+        "chrome_use_exit_1" in message
+        and ("daemon may be busy" in message or "eof while parsing" in message)
+    )
+
+
 class ChromeUseActorDriverV3:
     def __init__(self, cli, state_path, *, sleeper=asyncio.sleep, timeout_seconds=30, clock=time.monotonic):
         self.cli = cli
@@ -712,6 +720,44 @@ class ChromeUseActorDriverV3:
                 )
                 raise
 
+    async def _fill_prompt_with_reconciliation(self, session, editor_ref, prompt, target):
+        """Fill once, and recover one daemon EOF only after a read-only check.
+
+        A Chrome Use daemon EOF does not prove whether a composer fill reached
+        the page.  Because this operation is pre-submit, a read-only snapshot
+        can safely decide whether the exact prompt is already present.  Only
+        when it is absent do we resolve a fresh textbox ref and retry fill once.
+        This helper is never used for click, Enter, or any message submission.
+        """
+
+        try:
+            await self.cli.run_json(
+                session,
+                "fill",
+                editor_ref,
+                prompt,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return editor_ref
+        except RuntimeError as exc:
+            if not _chrome_use_daemon_busy_error(exc):
+                raise
+            try:
+                observed = await self._snapshot(session, target)
+                if str(prompt) in observed:
+                    return editor_ref
+                fresh_editor_ref = await self._editor_ref(session)
+                await self.cli.run_json(
+                    session,
+                    "fill",
+                    fresh_editor_ref,
+                    prompt,
+                    timeout_seconds=self.timeout_seconds,
+                )
+                return fresh_editor_ref
+            except Exception as recovery_error:
+                raise exc from recovery_error
+
     async def _recover_new_conversation_after_timeout(self, session, turn_id, original_error):
         """Reconcile one possibly completed new-chat submission without replaying it."""
 
@@ -819,7 +865,12 @@ class ChromeUseActorDriverV3:
         else:
             await self._ensure_url(session, target)
         editor_ref = await self._editor_ref(session)
-        await self.cli.run_json(session, "fill", editor_ref, prompt, timeout_seconds=self.timeout_seconds)
+        editor_ref = await self._fill_prompt_with_reconciliation(
+            session,
+            editor_ref,
+            prompt,
+            target,
+        )
         try:
             send_ref = await self._send_ref_after_input_repair(session, editor_ref, prompt)
         except SendControlResolutionError as exc:

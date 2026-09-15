@@ -1,0 +1,27 @@
+{
+  "format": "scorp-v4-single-worker-live-canary-failure/1",
+  "candidate_commit": "f293a1fb692c176ddf65b79c2ea4dc0cce302249",
+  "result": "BLOCKED",
+  "live_verified": false,
+  "accepted": false,
+  "observed_at_utc": "2026-09-15T01:08:25.612518Z",
+  "command": "p0_live_chatgpt_probe.py --fresh-isolated-state --timeout-seconds 90 --poll-seconds 5",
+  "reason": "CHROME_USE_DAEMON_EOF",
+  "error_code": "CHROME_USE_EXIT_1",
+  "error_detail": "fill failed with Invalid response: EOF while parsing a value after 5 retries; daemon may be busy or unresponsive.",
+  "retry_count": 0,
+  "side_effect_reconciliation": {
+    "driver_state_path": "C:\\ScorpAgent\\v4-f293a1f-live-single\\driver.json",
+    "driver_state_sha256": "a60f8afe7f1d856fd01a3bcadbb610d3734e11538114e43f9d0f509ac2aadf61",
+    "session": "scorp-p0-turn-5837fc6bd79b3695",
+    "turn_id": "scorp-v4-f293a1f-live-single-20260915",
+    "conversation_url": null,
+    "response_marker": null,
+    "driver_state_status": "ACTIVE",
+    "browser_url_observed": "https://chatgpt.com/",
+    "browser_page_observed": "root new-chat page; no new canary marker or conversation URL",
+    "positive_submission_evidence": false,
+    "replay_allowed": false
+  },
+  "evidence_boundary": "The CLI failed before a confirmed fill/send transition. A read-only get-url/read reconciliation found the root page and no new marker. No retry or cleanup action was performed because the external tab creation boundary is not independently proven exactly-once."
+}

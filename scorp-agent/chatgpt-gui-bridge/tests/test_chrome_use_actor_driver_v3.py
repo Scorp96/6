@@ -290,6 +290,36 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             ]
             self.assertEqual([['type', '@e12', 'hello', '--key-events', '--clear']], repair_calls)
 
+    def test_busy_fill_reconciles_composer_before_one_safe_fill_retry(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [
+                RuntimeError(
+                    'CHROME_USE_EXIT_1: Invalid response: EOF while parsing a value '
+                    'after 5 retries - daemon may be busy or unresponsive'
+                ),
+                {'success': True},
+                {'data': {'snapshot': 'Focused Window: Chrome\nhttps://chatgpt.com/\nempty composer'}},
+                {'data': {'refs': {'e31': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+            ]
+            driver = self._driver(td, cli)
+            fresh_ref = asyncio.run(driver._fill_prompt_with_reconciliation(
+                'session-busy-fill',
+                '@e11',
+                'SCORP_BUSY_FILL_MARKER',
+                'https://chatgpt.com/',
+            ))
+            self.assertEqual('@e31', fresh_ref)
+            fill_calls = [args for _, args, _ in cli.calls if args and args[0] == 'fill']
+            self.assertEqual(
+                [
+                    ['fill', '@e11', 'SCORP_BUSY_FILL_MARKER'],
+                    ['fill', '@e31', 'SCORP_BUSY_FILL_MARKER'],
+                ],
+                fill_calls,
+            )
+
     def test_send_control_accepts_accessibility_aliases_and_shortcut_suffix(self):
         from chrome_use_actor_driver_v3 import _send_ref_from_snapshot
 
