@@ -77,6 +77,7 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
 - LIVE_VERIFIED（当前候选局部范围）：e7ca0ae5a2b199557d77982d29705a87f6177899 已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据见 `SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json`；该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。
+- 该 canary 的证据同时记录认证会话收尾为 `CLEANUP_BLOCKED`；没有盲目重试清理，后续会话生命周期验收必须先处理这个明确限制。
 - 请求限制 live preflight：本次当前候选 canary 未出现限制弹窗，因此没有人为制造该外部状态；确认按钮、最多五分钟只读等待、必要时单次刷新、composer 就绪和失败关闭已由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
