@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "34c0760519369b157574d26d1c88d864974e7600",
+  "implementation_commit": "424ffe3b52a225e08c2d800a5c353ba7029cdb72",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 494,
+        "count": 495,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -26,7 +26,7 @@
     "live_verified": {
       "result": "BLOCKED",
       "reason": "新鲜 Windows Chrome Use 只读预检连续两次只看到同一个空的 created tab，未取得当前候选 ChatGPT composer 或唯一绑定；按 fail-closed 规则不发送。",
-      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_34C0760.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json",
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
@@ -38,11 +38,11 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "2ecc43ca8573f20fbf39dd4fcf8fbbbe004ed249b648b1aec5d9c11edd097233"
+      "sha256": "b89bb827a08f0e0d31e30d24acbe60a818b48f201123eb42f54518735d27917f"
     },
     "local_transport_live_verified": {
       "result": "PASS",
-      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_34C0760.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json",
       "scope": "Windows authenticated Named Pipe and stdio connector process loop",
       "tests": 11
     }
@@ -97,7 +97,8 @@
     "Released or expired daemon lease cannot authorize Runtime Command mutations",
     "SQLite schema v6 migration records daemon lease status and released_at metadata",
     "Watchdog detects bridge workers without a scheduler root and fails closed without starting a duplicate process",
-    "Worker transport exceptions are converted to bounded BLOCKED dispatch outcomes instead of escaping MasterAController.step"
+    "Worker transport exceptions are converted to bounded BLOCKED dispatch outcomes instead of escaping MasterAController.step",
+    "Startup configuration fences release the newly acquired daemon lease before the daemon loop and do not consume crash restart budget"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -108,12 +109,12 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
   ],
-  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_34C0760.json",
+  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_34C0760.json",
-    "sha256": "5179b69a10a69dbdc5accd3e482a92cf52c23f720ecdc1389e68be2707ce1f7b7",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_424FFE3.json",
+    "sha256": "25e9fc91868cfd9f97c836dd75b695b40455bdc28846a528c6ed9a489139e76f",
     "file_count": 370
   },
-  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_34C0760.json",
-  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_LOCAL_AUDIT_34C0760.json"
+  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
+  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_LOCAL_AUDIT_424FFE3.json"
 }
