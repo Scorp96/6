@@ -1,0 +1,205 @@
+{
+  "format": "scorp-v4-real-code-live-worker-evidence/1",
+  "status": "LIVE_VERIFIED",
+  "observed_at_utc": "2026-09-15T09:27:25.439189Z",
+  "scope": "isolated real CSV workload through two live ChatGPT Worker conversations plus dependent T3",
+  "candidate": {
+    "code_commit": "2b1be024aa0c995989721d085b87eb2a8b70130f",
+    "manifest_path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_2B1BE02.json",
+    "manifest_sha256": "afbb290709dbd29107517d39981b62139e97384d57e9f772b9059e7351a81e43",
+    "manifest_commit": "f5b8240"
+  },
+  "environment": {
+    "os": "Windows",
+    "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "chrome_use_executable": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe",
+    "authenticated_preflight": true,
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5"
+  },
+  "contract": {
+    "project_id": "scorp-v4-real-code-f5b8240-r5",
+    "repository_base_commit": "7ae0766a1917632374d4f892ff3a493e86eda477",
+    "plan_sha256": "88bac8803af833f6094f591630b586e418bd55dbef1709a199445c01149f4313",
+    "worker_capacity": 2,
+    "worker_assignments": [
+      {
+        "assignment_id": "assignment-6625d765590a43b2878359fb233c1e56",
+        "task_id": "T1",
+        "worker_id": "worker-e2401f6487484cf4a0a07e0e051d8613",
+        "slot_id": "worker-slot-1",
+        "state": "RETIRED"
+      },
+      {
+        "assignment_id": "assignment-266f0129540d451382ebaebdd3cf8115",
+        "task_id": "T2",
+        "worker_id": "worker-28dee1d9df4244ccb1fb3e883b543e1c",
+        "slot_id": "worker-slot-2",
+        "state": "RETIRED"
+      },
+      {
+        "assignment_id": "assignment-28af536618b34ba88529f4d2cb0cf418",
+        "task_id": "T3",
+        "worker_id": "worker-357ec4f27f4c4992b61afdb0b1ca06ce",
+        "slot_id": "worker-slot-1",
+        "state": "RETIRED"
+      }
+    ],
+    "conversation_urls": {
+      "worker-intent-assignment-266f0129540d451382ebaebdd3cf8115": "https://chatgpt.com/c/6aa90dd5-53ac-83ee-99a3-8b8f700435af",
+      "worker-intent-assignment-6625d765590a43b2878359fb233c1e56": "https://chatgpt.com/c/6aa90ddc-9dfc-83ee-aea2-ab423259cab6",
+      "worker-intent-assignment-28af536618b34ba88529f4d2cb0cf418": "https://chatgpt.com/c/6aa90ebd-2f5c-83ee-ab99-226f7de10cee"
+    }
+  },
+  "browser": {
+    "worker_submit_actions": 3,
+    "duplicate_submits": 0,
+    "ambiguous_t3_first_attempt": true,
+    "t3_retry_basis": "positive VERIFIED_NOT_SUBMITTED proof from AUTHENTICATION_UNAVAILABLE before begin_possible_submit",
+    "read_only_reconciliation": true
+  },
+  "tasks": [
+    {
+      "task_id": "T1",
+      "state": "ACCEPTED",
+      "result_sha256": "98d6b5c5cdc9464a99a27439ae1646670671eb255446e2edb1b85a99dab99399"
+    },
+    {
+      "task_id": "T2",
+      "state": "ACCEPTED",
+      "result_sha256": "c47cb4304ed1a3821e7126003e187ad3f487e63e1a6c5d49cbfea8ae4b97fb83"
+    },
+    {
+      "task_id": "T3",
+      "state": "ACCEPTED",
+      "result_sha256": "5601ef0db8eeaed6e6b55164128fb7c8674e699ec40905736e95463da4619e61"
+    }
+  ],
+  "candidate_results": [
+    {
+      "result_id": "result-assignment-6625d765590a43b2878359fb233c1e56",
+      "assignment_id": "assignment-6625d765590a43b2878359fb233c1e56",
+      "verification_state": "VERIFIED",
+      "verified_result_sha256": "98d6b5c5cdc9464a99a27439ae1646670671eb255446e2edb1b85a99dab99399",
+      "task_id": "T1"
+    },
+    {
+      "result_id": "result-assignment-266f0129540d451382ebaebdd3cf8115",
+      "assignment_id": "assignment-266f0129540d451382ebaebdd3cf8115",
+      "verification_state": "VERIFIED",
+      "verified_result_sha256": "c47cb4304ed1a3821e7126003e187ad3f487e63e1a6c5d49cbfea8ae4b97fb83",
+      "task_id": "T2"
+    },
+    {
+      "result_id": "result-assignment-28af536618b34ba88529f4d2cb0cf418",
+      "assignment_id": "assignment-28af536618b34ba88529f4d2cb0cf418",
+      "verification_state": "VERIFIED",
+      "verified_result_sha256": "5601ef0db8eeaed6e6b55164128fb7c8674e699ec40905736e95463da4619e61",
+      "task_id": "T3"
+    }
+  ],
+  "execution_receipts": [
+    {
+      "intent_id": "execution-intent-assignment-266f0129540d451382ebaebdd3cf8115",
+      "task_id": "T2",
+      "exit_code": 0,
+      "stdout": "{\"categories\":{\"alpha\":\"12.30\",\"beta\":\"10.00\"}}\n",
+      "stdout_sha256": "b7bae4d79b00dc07db12d1e541fa32993a56bb9b09961220f0bb5340d96ce086",
+      "artifact_sha256": {
+        "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\repo\\orders.csv": "c9b2fee12b3a135f8469620833fcb2040eb0145a8b0790fb4945cd92f2327207"
+      },
+      "git_worktree_receipt": null
+    },
+    {
+      "intent_id": "execution-intent-assignment-28af536618b34ba88529f4d2cb0cf418",
+      "task_id": "T3",
+      "exit_code": 0,
+      "stdout": "{\"categories\":{\"alpha\":\"12.30\",\"beta\":\"10.00\"},\"row_count\":3,\"total\":\"22.30\"}\n",
+      "stdout_sha256": "a569e36cc172bc0979863d345c8c278086b052530dc3e1ea4f73756713e0f67e",
+      "artifact_sha256": {
+        "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\repo\\orders.csv": "c9b2fee12b3a135f8469620833fcb2040eb0145a8b0790fb4945cd92f2327207",
+        "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\worktrees\\t3\\report.json": "a569e36cc172bc0979863d345c8c278086b052530dc3e1ea4f73756713e0f67e"
+      },
+      "git_worktree_receipt": {
+        "assignment_id": "assignment-28af536618b34ba88529f4d2cb0cf418",
+        "base_commit": "7ae0766a1917632374d4f892ff3a493e86eda477",
+        "commands": [
+          [
+            "-C",
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\repo",
+            "status",
+            "--porcelain",
+            "--untracked-files=all"
+          ],
+          [
+            "-C",
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\repo",
+            "rev-parse",
+            "--verify",
+            "7ae0766a1917632374d4f892ff3a493e86eda477^{commit}"
+          ],
+          [
+            "-C",
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\repo",
+            "worktree",
+            "add",
+            "--detach",
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\worktrees\\t3",
+            "7ae0766a1917632374d4f892ff3a493e86eda477"
+          ],
+          [
+            "-C",
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\worktrees\\t3",
+            "rev-parse",
+            "HEAD"
+          ],
+          [
+            "-C",
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\worktrees\\t3",
+            "status",
+            "--porcelain",
+            "--untracked-files=all"
+          ]
+        ],
+        "finished_at": "2026-09-15T09:25:29.356960Z",
+        "head_commit": "7ae0766a1917632374d4f892ff3a493e86eda477",
+        "repository": "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\repo",
+        "started_at": "2026-09-15T09:25:29.016312Z",
+        "stderr_sha256": "79212c063ab80eb08d3de4239d4a16dc4ef2f7b4c09df47b7a7fb6bc1e1914f1",
+        "stdout_sha256": "6565df11514dbf1141fc1054a4c0b8d161339253164d1d7b0d4614f8723cd627",
+        "task_id": "T3",
+        "worktree": "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\worktrees\\t3"
+      }
+    },
+    {
+      "intent_id": "execution-intent-assignment-6625d765590a43b2878359fb233c1e56",
+      "task_id": "T1",
+      "exit_code": 0,
+      "stdout": "{\"row_count\":3,\"valid\":true}\n",
+      "stdout_sha256": "22cfe3a7a0f07c3db6c12447c7d7a03c3028a58a2f86c031bd9a56736c41909b",
+      "artifact_sha256": {
+        "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\repo\\orders.csv": "c9b2fee12b3a135f8469620833fcb2040eb0145a8b0790fb4945cd92f2327207"
+      },
+      "git_worktree_receipt": null
+    }
+  ],
+  "artifacts": {
+    "orders_csv_sha256": "c9b2fee12b3a135f8469620833fcb2040eb0145a8b0790fb4945cd92f2327207",
+    "report_json": "C:\\ScorpAgent\\v4-core-lab\\real-code-f5b8240-r5\\worktrees\\t3\\report.json",
+    "report_json_sha256": "a569e36cc172bc0979863d345c8c278086b052530dc3e1ea4f73756713e0f67e",
+    "report_json_content": {
+      "categories": {
+        "alpha": "12.30",
+        "beta": "10.00"
+      },
+      "row_count": 3,
+      "total": "22.30"
+    },
+    "t3_worktree_head": "7ae0766a1917632374d4f892ff3a493e86eda477",
+    "t3_worktree_status": "untracked report.json is the declared output artifact"
+  },
+  "acceptance_boundary": {
+    "real_code_workload": "PASS",
+    "full_product_acceptance": "NOT_ACCEPTED",
+    "reason": "This evidence does not prove release identity, scheduled-task production cutover, rate-limit popup branch, or 24-hour soak."
+  }
+}

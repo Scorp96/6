@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 852567b05a792c4f5bb5be4011c37bf9be9e6c68 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_852567B.json `
-  --manifest-sha256 85030691064aa3fdb77a87c451c215825ee63a0c2b8529785a3529d3fe509a90
+  --candidate-commit 2b1be024aa0c995989721d085b87eb2a8b70130f `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_2B1BE02.json `
+  --manifest-sha256 afbb290709dbd29107517d39981b62139e97384d57e9f772b9059e7351a81e43
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -278,9 +278,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 852567b05a792c4f5bb5be4011c37bf9be9e6c68 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_852567B.json `
-  --manifest-sha256 85030691064aa3fdb77a87c451c215825ee63a0c2b8529785a3529d3fe509a90 `
+  --candidate-commit 2b1be024aa0c995989721d085b87eb2a8b70130f `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_2B1BE02.json `
+  --manifest-sha256 afbb290709dbd29107517d39981b62139e97384d57e9f772b9059e7351a81e43 `
   --send
 ```
 
@@ -625,16 +625,16 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `852567b05a792c4f5bb5be4011c37bf9be9e6c68` (`test(v4): follow recorded live gate status`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, and a live-gate-aware packet test are recorded in the current candidate evidence.
+- Current code candidate: `2b1be024aa0c995989721d085b87eb2a8b70130f` (`fix(v4): normalize worker result envelope before hashing`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, Worker evidence requirements, and result-envelope normalization are recorded in the current candidate evidence.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_28B0F28.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
-- Current live evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` records a real two-worker PASS for candidate `852567b05a792c4f5bb5be4011c37bf9be9e6c68`; the older c4d6 evidence remains preserved as `BLOCKED_AMBIGUOUS` and is not replayed.
+- Historical harmless-canary evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` records the earlier real two-worker PASS; the current candidate's isolated real-code evidence is `docs/handoffs/SCORP_V4_REAL_CODE_LIVE_WORKER_EVIDENCE_F5B8240.json`. The older c4d6 evidence remains preserved as `BLOCKED_AMBIGUOUS` and is not replayed.
 - Current browser driver state used by the older read-only receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 - Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
 
-The current result is `LIVE_VERIFIED` for the fixed harmless two-worker browser canary, with `TEST_VERIFIED` also passing. This is still not `ACCEPTED`: real code workload execution, restart recovery, unattended stability, and production cutover remain separate gates. The production SQLite incident is recovered logically and is not hidden as an unchanged-production claim.
+The current result is `TEST_VERIFIED` plus `LIVE_VERIFIED` for the fixed harmless canary and the isolated real-code Worker workload. The real-code evidence covers T1/T2 parallel execution, T3 dependency continuation, bounded local execution, and SQLite result verification; see `docs/handoffs/SCORP_V4_REAL_CODE_LIVE_WORKER_EVIDENCE_F5B8240.json`. This is still not `ACCEPTED`: release identity, restart recovery, unattended stability, rate-limit popup branch, scheduled-task cutover, and production cutover remain separate gates. The production SQLite incident is recovered logically and is not hidden as an unchanged-production claim.
 The current candidate has a fail-closed browser send blocker and no new
 conversation. It does not prove a real repository task over ChatGPT, live
 crash/restart recovery, scheduled-task registration, production cutover, or
