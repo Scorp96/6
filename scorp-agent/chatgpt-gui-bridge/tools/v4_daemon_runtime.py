@@ -85,6 +85,7 @@ def run_runtime(args: argparse.Namespace) -> int:
     supervisor_gateway = None
     lease = None
     graceful_exit = False
+    run_loop_started = False
     try:
         recovery_gate = store.daemon_recovery_gate(str(args.project_id))
         if recovery_gate["status"] != "ALLOWED":
@@ -137,6 +138,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             health_path=health_path,
             actor_id=str(args.actor_id),
         )
+        run_loop_started = True
         decisions = daemon.run_loop(
             interval_seconds=float(args.interval_seconds),
             max_iterations=None if args.forever else int(args.max_iterations),
@@ -159,7 +161,13 @@ def run_runtime(args: argparse.Namespace) -> int:
         graceful_exit = True
         return 0 if health["status"] in {"HEALTHY", "TERMINAL"} else 2
     finally:
-        if graceful_exit and lease is not None:
+        # A lease acquired during startup must not be stranded when a
+        # configuration fence (for example a stale explicit epoch) rejects
+        # the process before it can execute a daemon loop.  Such a rejection
+        # is not a crash and must not consume restart budget.  Once the loop
+        # has started, unexpected exceptions deliberately retain the lease
+        # until expiry so the supervisor can classify them as a crash.
+        if lease is not None and (graceful_exit or not run_loop_started):
             store.release_daemon_lease(
                 str(args.project_id),
                 str(args.actor_id),

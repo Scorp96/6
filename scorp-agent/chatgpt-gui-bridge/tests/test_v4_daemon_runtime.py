@@ -112,6 +112,42 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             summary = json.loads(output.getvalue())
             self.assertEqual(1, summary["daemon_epoch"])
 
+    def test_epoch_mismatch_releases_startup_lease_before_any_action(self):
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.close()
+            bad = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db), "--allowed-root", str(root),
+                    "--project-id", "p", "--actor-id", "daemon-a",
+                    "--daemon-epoch", "99", "--daemon-ttl-seconds", "60",
+                    "--health-path", str(root / "bad.json"), "--max-iterations", "1",
+                ]
+            )
+            with self.assertRaisesRegex(RuntimeError, "DAEMON_EPOCH_MISMATCH"):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    runtime.run_runtime(bad)
+            with StateStore(db, [root]) as reopened:
+                lease = reopened.runtime_snapshot("p", daemon_epoch=1)["daemon"]
+                self.assertEqual("RELEASED", lease["lease_status"])
+                self.assertEqual(0, reopened.get_daemon_supervision("p")["restart_count"])
+            good = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db), "--allowed-root", str(root),
+                    "--project-id", "p", "--actor-id", "daemon-b",
+                    "--health-path", str(root / "good.json"), "--max-iterations", "1",
+                ]
+            )
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(2, runtime.run_runtime(good))
+            self.assertEqual(2, json.loads(output.getvalue())["daemon_epoch"])
+
     def test_runtime_reacquires_a_new_epoch_after_the_previous_lease_expires(self):
         from master_a_dynamic_v4.state_store import StateStore
         from tools import v4_daemon_runtime as runtime
