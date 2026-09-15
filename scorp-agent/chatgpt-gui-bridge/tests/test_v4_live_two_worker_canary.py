@@ -167,6 +167,27 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
             self.assertEqual(2, result)
             self.assertFalse((root / "evidence.json").exists())
 
+    def test_send_gate_requires_candidate_identity_before_live_canary(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            args = build_parser().parse_args(
+                [
+                    "--send-canary",
+                    "--database-path",
+                    str(root / "state.sqlite3"),
+                    "--driver-state-path",
+                    str(root / "driver.json"),
+                    "--allowed-root",
+                    str(root),
+                    "--evidence-path",
+                    str(root / "evidence.json"),
+                ]
+            )
+            with self.assertRaisesRegex(RuntimeError, "CANDIDATE_BINDING_REQUIRED"):
+                asyncio.run(
+                    __import__("tools.v4_live_two_worker_canary", fromlist=["run_canary"]).run_canary(args)
+                )
+
     def test_failure_evidence_is_blocked_and_records_ambiguous_intent_without_retry(self):
         receipt = failure_evidence(
             project_id="p",

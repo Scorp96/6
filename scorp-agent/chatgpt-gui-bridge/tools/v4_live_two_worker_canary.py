@@ -30,6 +30,7 @@ from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
 from v4_auth import probe_chatgpt_auth  # noqa: E402
 from v4_browser_engine import build_v4_browser_engine  # noqa: E402
+from tools.v4_master_controller_runtime import validate_candidate_binding  # noqa: E402
 
 
 DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
@@ -260,6 +261,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allowed-root", required=True, type=pathlib.Path)
     parser.add_argument("--project-id", default="scorp-v4-live-two-worker-canary")
     parser.add_argument("--evidence-path", required=True, type=pathlib.Path)
+    parser.add_argument("--candidate-commit", default="", help="exact 40-hex candidate commit")
+    parser.add_argument("--candidate-manifest", type=pathlib.Path)
+    parser.add_argument("--manifest-sha256", default="", help="exact 64-hex candidate manifest hash")
     parser.add_argument(
         "--timeout-seconds",
         type=int,
@@ -273,6 +277,13 @@ async def run_canary(args: argparse.Namespace) -> int:
     if not args.send_canary:
         print(json.dumps({"status": "SEND_REQUIRED", "reason": "pass --send-canary only after reviewing the fixed harmless prompts"}))
         return 2
+    if not args.candidate_commit or args.candidate_manifest is None or not args.manifest_sha256:
+        raise RuntimeError("CANDIDATE_BINDING_REQUIRED")
+    candidate_binding = validate_candidate_binding(
+        args.candidate_manifest,
+        candidate_commit=args.candidate_commit,
+        manifest_sha256=args.manifest_sha256,
+    )
     executable = pathlib.Path(args.executable)
     if not executable.is_file():
         raise RuntimeError("CHROME_USE_EXECUTABLE_MISSING")
@@ -379,7 +390,9 @@ async def run_canary(args: argparse.Namespace) -> int:
         evidence = {
             "format": "scorp-v4-two-worker-live-canary/1",
             "repository": "Scorp96/6",
-            "candidate_code_commit": "runtime-provided",
+            "candidate_code_commit": candidate_binding["candidate_commit"],
+            "candidate_manifest_path": candidate_binding["manifest_path"],
+            "candidate_manifest_sha256": candidate_binding["manifest_sha256"],
             "observed_at_utc": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
             "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
             "project_id": str(args.project_id),
@@ -411,6 +424,13 @@ async def run_canary(args: argparse.Namespace) -> int:
             auth_session=auth_session,
         )
         receipt = failure_evidence(project_id=str(args.project_id), error=exc, intents=pending)
+        receipt.update(
+            {
+                "candidate_code_commit": candidate_binding["candidate_commit"],
+                "candidate_manifest_path": candidate_binding["manifest_path"],
+                "candidate_manifest_sha256": candidate_binding["manifest_sha256"],
+            }
+        )
         receipt["lifecycle_cleanup"] = lifecycle_cleanup
         args.evidence_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(receipt, ensure_ascii=False, separators=(",", ":")))
