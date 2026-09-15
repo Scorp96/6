@@ -67,4 +67,6 @@ probe 都经过这一边界；该恢复动作本身不代表消息已发送。
 - 请求限制 live preflight：历史真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；确认按钮、等待窗口和单次刷新已由离线测试覆盖，但真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
+进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_D4CC823.json`。
+
 机器可读记录见同目录的 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`。

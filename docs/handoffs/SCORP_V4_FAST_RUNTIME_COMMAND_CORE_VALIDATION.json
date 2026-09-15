@@ -96,5 +96,6 @@
     "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D4CC823.json",
     "sha256": "31e2ffcb2ddb4ae3a1b55092600dd00be7570031b4ff339a5ca82f6d1cc79e1c",
     "file_count": 370
-  }
+  },
+  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_D4CC823.json"
 }
