@@ -15,8 +15,10 @@ remote shell. This design adds that boundary while preserving the existing
 authority chain and browser fail-closed rules.
 
 The first transport is a direct Python API plus a one-request-per-line JSON
-CLI over stdin/stdout. Named Pipe, stdio proxy, and ChatGPT connector adapters
-can later call the same service without changing command semantics.
+CLI over stdin/stdout. This candidate also includes an optional authenticated
+Windows Named Pipe adapter that calls the same service without changing command
+semantics. It is a library-level candidate only; no production listener or
+ChatGPT connector is registered by this branch.
 
 ## Current architecture delta
 
@@ -179,8 +181,10 @@ classified explicitly (`AUTH_REQUIRED`, `LOGIN_EXPIRED`,
 `python -m master_a_dynamic_v4.runtime_cli` reads JSON request lines and writes
 one JSON response line per request. It writes diagnostics only to stderr. It
 does not import a shell, evaluate Python, run subprocesses, open URLs, click
-Chrome, or expose arbitrary paths. A future Named Pipe or local connector
-passes the same parsed envelope to `RuntimeCommandService.execute()`.
+Chrome, or expose arbitrary paths. The candidate `runtime_pipe.py` adapter
+accepts only an authenticated Windows Named Pipe connection, enforces a fixed
+project-scoped endpoint and a 64 KiB message limit, and passes the same parsed
+envelope to `RuntimeCommandService.execute()`.
 
 ## Failure semantics and explicit non-goals
 
@@ -193,14 +197,16 @@ passes the same parsed envelope to `RuntimeCommandService.execute()`.
   observation fields and extension points in this phase, but no production
   scheduled-task change is made and no claim of Windows service recovery is
   allowed.
-- Named Pipe, HTTP, WebSocket, cloud services, paid model APIs, third Worker,
-  arbitrary shell, arbitrary Git, arbitrary browser actions, and production
-  cutover are outside this implementation.
+- Named Pipe production registration, a packaged ChatGPT connector, HTTP,
+  WebSocket, cloud services, paid model APIs, third Worker, arbitrary shell,
+  arbitrary Git, arbitrary browser actions, and production cutover are outside
+  this implementation.
 
 ## Verification boundary
 
 Focused tests prove protocol, receipts, idempotency, CAS/fencing, generation
-fencing, side-effect ordering, bounded queries, arbiter priority, and liveness
-timestamps. Existing V4 and GUI bridge regressions must still pass. None of
-these tests is live ChatGPT or production acceptance; real browser canary and
-production cutover remain separately `LIVE_VERIFIED`/`ACCEPTED` gates.
+fencing, side-effect ordering, bounded queries, arbiter priority, liveness
+timestamps, and a real authenticated Windows Named Pipe round trip. Existing
+V4 and GUI bridge regressions must still pass. None of these tests is live
+ChatGPT or production acceptance; real browser canary and production cutover
+remain separately `LIVE_VERIFIED`/`ACCEPTED` gates.

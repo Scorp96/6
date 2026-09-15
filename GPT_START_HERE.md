@@ -196,6 +196,15 @@ This command core is a local feature-branch implementation and a testable
 handoff surface. Its focused tests and offline regression do not prove live
 ChatGPT browser acceptance or production cutover.
 
+The candidate also contains an optional Windows Named Pipe adapter at
+`scorp-agent/master_a_dynamic_v4/runtime_pipe.py`. It requires a local
+authenticated `multiprocessing.connection` client, uses a fixed project-scoped
+`\\.\pipe\scorp-runtime-<project>` endpoint, and accepts only the same bounded
+`scorp.runtime.command/1` envelope. It is not registered as a production
+listener and does not give an ordinary web GPT direct Windows access. A future
+approved local connector may use this adapter after its own authentication,
+process supervision, and evidence gates are verified.
+
 The current Phase 0 field audit is recorded in
 `docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md`. At the latest inspection,
 the candidate is `TEST_VERIFIED`; live ChatGPT is `BLOCKED` by the observed
