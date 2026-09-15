@@ -27,7 +27,7 @@
     "action": "NOT_MODIFIED_OR_CLEANED_BY_THIS_TURN"
   },
   "candidate": {
-    "code_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
+    "code_commit": "a00ac7f777e50835aa6d1fcbc48ac543b02117cf",
     "docs_head": "573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core"
   },
@@ -91,7 +91,7 @@
     "reason": "candidate changed after predecessor evidence; current browser preflight remains rate-limited"
   },
   "classification": {
-    "TEST_VERIFIED": "current candidate offline V4 core 207 tests, GUI bridge 510 tests, compileall, packet and diff checks pass",
+    "TEST_VERIFIED": "current candidate offline V4 core 207 tests, GUI bridge 512 tests, compileall, packet and diff checks pass",
     "LIVE_VERIFIED": "local transport process-loop evidence only; current candidate browser and real-code evidence are BLOCKED/NOT_RUN",
     "ACCEPTED": false
   },

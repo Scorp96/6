@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "79610ae3f3864e133f750f0c9dfde40b17a91def",
-  "implementation_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
+  "implementation_commit": "a00ac7f777e50835aa6d1fcbc48ac543b02117cf",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 510,
+        "count": 512,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -25,7 +25,7 @@
     },
     "live_verified": {
       "result": "BLOCKED",
-      "reason": "当前候选代码已从 5bf7953 更新为 a5aab0a；此前 LIVE evidence 绑定旧候选，不能提升到新候选。新候选尚未执行当前代码的浏览器 canary；同一物理 ChatGPT tab 仍有请求限制。",
+      "reason": "当前候选代码已从 a5aab0a 更新为 a00ac7f；此前 LIVE evidence 绑定旧候选，不能提升到新候选。新候选尚未执行当前代码的浏览器 canary；同一物理 ChatGPT tab 仍有请求限制。",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
       "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
       "retry_count_after_ambiguity": 0,
@@ -41,7 +41,7 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json",
-      "sha256": "aee45200c67198701ac6df51ff7b19fb8e09672e9e7edc3e5361f6bcb1eed4e0",
+      "sha256": "3efc0c82ab41969c09ac74e3c10473a7c899ce35f3ec1a870e9e6dcc132804d7",
       "supersedes": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_15340AA.json"
     },
     "local_transport_live_verified": {
@@ -126,13 +126,13 @@
     "真实请求限制全路径（两个 Worker 对称恢复、五分钟等待超时后的单次刷新）尚未作为完整验收通过；当前仅一个真实会话恢复到 composer，另一个会话不可控",
     "second request-limit requirement was not specified",
     "current candidate real-code workload is partially live-verified: T2 execution passed, T1 Worker result is BLOCKED, and T3 was not run",
-    "当前候选 a5aab0a 尚无 LIVE browser evidence；5bf7953 的历史证据不能自动提升"
+    "当前候选 a00ac7f 尚无 LIVE browser evidence；5bf7953 的历史证据不能自动提升"
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A5AAB0A.json",
-    "sha256": "4419a704c494aaff385a48b1177f0bdce090244949ae6ad5a503c49ba2245c29",
-    "manifest_sha256": "cdbb64c32616c350dfeb17c2a2704600ffdba8f9793607a9bcac7f5ca776666e",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A00AC7F.json",
+    "sha256": "a77207816ff328e8866d768dfba6a20d4c79a388a497f2fda56a3eb0345e9058",
+    "manifest_sha256": "6509b707d221446ac779201b94ea5ad6c16d001be00c5907ce57c0a172ea312f",
     "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
@@ -159,7 +159,7 @@
     },
     "gui_bridge_tests": {
       "result": "PASS",
-      "count": 510,
+      "count": 512,
       "pythonpath": [
         "scorp-agent",
         "scorp-agent/chatgpt-gui-bridge"
@@ -172,7 +172,7 @@
   "real_code_workload_current_candidate_evidence": null,
   "phase0_audit": {
     "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json",
-    "sha256": "aee45200c67198701ac6df51ff7b19fb8e09672e9e7edc3e5361f6bcb1eed4e0"
+    "sha256": "3efc0c82ab41969c09ac74e3c10473a7c899ce35f3ec1a870e9e6dcc132804d7"
   },
   "historical_live_verified_for_5bf7953": {
     "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",

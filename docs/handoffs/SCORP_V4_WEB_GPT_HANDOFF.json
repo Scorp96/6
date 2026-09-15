@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
+  "candidate_commit": "a00ac7f777e50835aa6d1fcbc48ac543b02117cf",
   "evidence_binding": {
-    "validated_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
+    "validated_commit": "a00ac7f777e50835aa6d1fcbc48ac543b02117cf",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A5AAB0A.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A00AC7F.json",
     "preflight_receipt": null,
-    "binding_note": "This handoff describes the a5aab0a code candidate. Offline validation includes the explicit blocked-task replan guard. Prior browser and real-code evidence is bound to predecessor candidate 5bf7953 and is not promoted; the current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.",
-    "manifest_sha256": "cdbb64c32616c350dfeb17c2a2704600ffdba8f9793607a9bcac7f5ca776666e",
+    "binding_note": "This handoff describes the a00ac7f code candidate. Offline validation includes the explicit blocked-task replan guard. Prior browser and real-code evidence is bound to predecessor candidate 5bf7953 and is not promoted; the current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.",
+    "manifest_sha256": "6509b707d221446ac779201b94ea5ad6c16d001be00c5907ce57c0a172ea312f",
     "live_rate_limit_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json"
   },
   "target_repository": "Scorp96/6",
