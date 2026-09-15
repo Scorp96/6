@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 9a11f5f224f1801470e7259b5989e1bcdddb5d7f `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9A11F5F.json `
-  --manifest-sha256 15f3df9f91d6c75fd66caf4d8fdcda5141d23c035bf7eaf697a74dac21a2cea9
+  --candidate-commit 852567b05a792c4f5bb5be4011c37bf9be9e6c68 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_852567B.json `
+  --manifest-sha256 85030691064aa3fdb77a87c451c215825ee63a0c2b8529785a3529d3fe509a90
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -249,12 +249,11 @@ the launcher reads the current SQLite lease epoch; a supplied value remains an
 explicit stale-epoch fence check.
 
 The current Phase 0 field audit is recorded in
-`docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md`. At the latest inspection,
-the candidate is `TEST_VERIFIED`; the read-only browser preflight cleared, but
-the current single-worker canary is `LIVE_VERIFIED=BLOCKED`: the c205 run
-recorded a conversation URL, but read-only reconciliation found an older
-diagnostic response and no c205 token. No blind retry is permitted; see
-`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
+`docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md`. The current candidate is
+`TEST_VERIFIED` and has a real two-worker harmless canary at
+`LIVE_VERIFIED=PASS`; see `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json`.
+The older c205 run remains historical evidence only and its ambiguous intent
+must not be replayed.
 
 The V4 daemon entrypoint may omit `--daemon-epoch`; it then acquires the
 current SQLite lease epoch. A fixed epoch is accepted only as an explicit
@@ -279,9 +278,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 9a11f5f224f1801470e7259b5989e1bcdddb5d7f `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9A11F5F.json `
-  --manifest-sha256 15f3df9f91d6c75fd66caf4d8fdcda5141d23c035bf7eaf697a74dac21a2cea9 `
+  --candidate-commit 852567b05a792c4f5bb5be4011c37bf9be9e6c68 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_852567B.json `
+  --manifest-sha256 85030691064aa3fdb77a87c451c215825ee63a0c2b8529785a3529d3fe509a90 `
   --send
 ```
 
@@ -551,11 +550,13 @@ Do not use real customer data, credentials, private files, or production
 commands in the canary. A successful simulated test is not evidence of a real
 browser canary.
 
-The latest isolated two-worker live canary is fail-closed after one structured
-Chrome Use response could not be captured; its evidence is outside the
-repository at `C:\ScorpAgent\v4-core-lab\canary-c4d6ca4\evidence.json`.
-It records `BLOCKED_AMBIGUOUS` and `retry_count: 0`; the intent is preserved and
-must not be replayed. The older repository receipts
+The latest isolated two-worker live canary for the current candidate passed
+with two response captures and zero duplicate submits; its repository evidence
+is `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json`. The older
+candidate receipt outside the repository at
+`C:\ScorpAgent\v4-core-lab\canary-c4d6ca4\evidence.json` remains preserved as
+`BLOCKED_AMBIGUOUS` with `retry_count: 0` and must not be replayed. The older
+repository receipts
 `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json` and
 `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json` remain historical
 context. A separate read-only preflight is required before any new canary.
@@ -624,16 +625,16 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `9a11f5f224f1801470e7259b5989e1bcdddb5d7f` (`fix(v4): use unambiguous canary response tokens`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, and strict alphanumeric canary markers are recorded in the current candidate evidence.
+- Current code candidate: `852567b05a792c4f5bb5be4011c37bf9be9e6c68` (`test(v4): follow recorded live gate status`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, and a live-gate-aware packet test are recorded in the current candidate evidence.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_28B0F28.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
-- Current live blocker receipt: fresh isolated two-worker canary evidence at `C:\ScorpAgent\v4-core-lab\canary-c4d6ca4\evidence.json` (candidate `c4d6ca440b6ace495c110da91255631cc46148dc`); it is preserved as `BLOCKED_AMBIGUOUS` with `retry_count: 0` and must not be replayed. The current `9a11f5f...` marker fix has not yet received a fresh live send receipt.
+- Current live evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` records a real two-worker PASS for candidate `852567b05a792c4f5bb5be4011c37bf9be9e6c68`; the older c4d6 evidence remains preserved as `BLOCKED_AMBIGUOUS` and is not replayed.
 - Current browser driver state used by the older read-only receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 - Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
 
-The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by the preserved ambiguous Chrome Use canary state, and it is not `ACCEPTED`. The production SQLite incident is recovered logically and is not hidden as an unchanged-production claim.
+The current result is `LIVE_VERIFIED` for the fixed harmless two-worker browser canary, with `TEST_VERIFIED` also passing. This is still not `ACCEPTED`: real code workload execution, restart recovery, unattended stability, and production cutover remain separate gates. The production SQLite incident is recovered logically and is not hidden as an unchanged-production claim.
 The current candidate has a fail-closed browser send blocker and no new
 conversation. It does not prove a real repository task over ChatGPT, live
 crash/restart recovery, scheduled-task registration, production cutover, or

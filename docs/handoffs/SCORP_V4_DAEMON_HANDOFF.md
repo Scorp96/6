@@ -71,18 +71,18 @@ browser reconcile and Send remain separate gates.
 ## Current evidence boundary
 
 - `TEST_VERIFIED`: the current isolated command-core candidate has V4 suite
-  191/191 and GUI bridge suite 498/498 on the bundled Windows Python runtime;
+  201/201 and GUI bridge suite 501/501 on the bundled Windows Python runtime;
   task-context migration/prompt propagation, distinct CSV
   validate/aggregate/report operations, two Worker dispatch, independent
   reconcile, owned-tab isolation, rate-limit recovery unit cases, and the
   daemon missing-handler fail-closed case are included. The installed lab and
   short recovery soaks are separate simulated evidence.
-- `LIVE_VERIFIED`: the current candidate has no live browser PASS. The latest
-  c205 single-worker canary recorded a conversation URL, but read-only
-  reconciliation found an older diagnostic response and no c205 token. Its
-  fail-closed receipt is
-  `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`; no blind retry
-  occurred. The older rate-limit preflight only proved the no-dialog branch.
+- `LIVE_VERIFIED`: the current candidate `852567b05a792c4f5bb5be4011c37bf9be9e6c68`
+  passed a fresh two-Worker harmless Chrome Use canary with two captured
+  responses, two submit actions, and zero duplicate submits. The receipt is
+  `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json`. The older c205
+  ambiguous receipt remains historical fail-closed evidence and was not
+  replayed. The rate-limit preflight still only proves the no-dialog branch.
 - `ACCEPTED`: not reached. A current-candidate browser pass, real repository
   workload through live Workers, restart recovery, production registration and
   long-duration unattended evidence are still required.
@@ -98,7 +98,7 @@ started. The run was stopped without retrying. The read-only receipt is
 `BLOCKED`, with `retry_count: 0`. This is LIVE_VERIFIED failure evidence, not
 an acceptance pass.
 
-After the transport command serialization fix, a second fresh canary was run
+After the transport command serialization fix, an older fresh canary was run
 against candidate `0760c26` with a new SQLite database and driver state. The
 EOF/daemon-busy symptom did not recur, but the browser remained at the logged-in
 ChatGPT root URL after the submit path and never produced `/c/<id>`. The first
@@ -109,10 +109,9 @@ canary implementation. The read-only receipt is
 `93755FFAED06821463BBEBF5548C0622E658C79411228D1A601794B1C2B75AD9`.
 
 The canary code now prepares both durable intents first and dispatches their
-browser submissions concurrently. This fixes the orchestration serialization
-defect in the candidate code, but it is not a live acceptance result. The
-current c205 run remains blocked by ambiguous browser state; the earlier
-ambiguous sessions remain historical fail-closed evidence.
+browser submissions concurrently. The current candidate's successful receipt
+above is the live evidence for that behavior; the c205 and earlier ambiguous
+sessions remain historical fail-closed evidence.
 
 ## Historical live PASS receipt (prior candidate)
 

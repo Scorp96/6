@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `9a11f5f224f1801470e7259b5989e1bcdddb5d7f`。该身份与 `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`、`SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9A11F5F.json` 和 `SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json` 一致。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
+当前候选版本是 GPT-5.6 Sol 兼容路径，代码候选提交为 `852567b05a792c4f5bb5be4011c37bf9be9e6c68`。该身份与 `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`、`SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_852567B.json` 和 `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` 一致。最新真实双 Worker 无害 Canary 已捕获两个响应且没有重复提交；这不等于真实代码工作负载、重启恢复、无人值守稳定性或生产切换通过。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
 
 ## 先判断你现在是哪一种模式
 
