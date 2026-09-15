@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 424ffe3b52a225e08c2d800a5c353ba7029cdb72 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_424FFE3.json `
-  --manifest-sha256 25e9fc91868cfd9f97c836dd75b695b40455bdc28846a528c6ed9a489139e76f
+  --candidate-commit 7c06d6516c08c77d1049d07d27504072062ae0f4 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_7C06D65.json `
+  --manifest-sha256 e656e96457545951397323d7c4910f1cb2b0df96976d7a73fc37cf13065b7098
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -270,9 +270,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 424ffe3b52a225e08c2d800a5c353ba7029cdb72 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_424FFE3.json `
-  --manifest-sha256 25e9fc91868cfd9f97c836dd75b695b40455bdc28846a528c6ed9a489139e76f `
+  --candidate-commit 7c06d6516c08c77d1049d07d27504072062ae0f4 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_7C06D65.json `
+  --manifest-sha256 e656e96457545951397323d7c4910f1cb2b0df96976d7a73fc37cf13065b7098 `
   --send
 ```
 
@@ -549,15 +549,17 @@ reconciliation found an older diagnostic response and no c205 token, so it was
 not blindly retried. A separate read-only preflight is required before any new
 canary.
 
-When a read-only auth probe sees the known `请求过于频繁` / `Too many requests`
-dialog, the current candidate may perform one bounded recovery: click exactly
-one recognized acknowledgement control (`确定`, `明白了`, `Got it`, `OK`, or
-`Okay`), then poll read-only snapshots for at most 300 seconds (normally every
-5 seconds); if the window expires while the dialog remains, it may refresh the
-page once and perform one final read-only check. It does not force a prompt
-resend or bypass login/CAPTCHA. Missing
-or ambiguous acknowledgement controls, authentication challenges, and timeout
-remain `BLOCKED`.
+When a read-only auth probe or a Worker submit preflight sees the known
+`请求过于频繁` / `Too many requests` dialog, the current candidate may perform
+one bounded recovery: click exactly one recognized acknowledgement control
+(`确定`, `明白了`, `Got it`, `OK`, or `Okay`), then poll read-only snapshots for
+at most 300 seconds (normally every 5 seconds); if the window expires while the
+dialog remains, it may refresh the page once and perform one final read-only
+check. If the dialog appears after a prompt was filled but before Send, the
+driver refills that same prompt using a fresh textbox reference after recovery
+and skips key-event retry. It does not force a prompt resend or bypass
+login/CAPTCHA. Missing or ambiguous acknowledgement controls, authentication
+challenges, and timeout remain `BLOCKED`.
 
 For a new live check, use
 `scorp-agent/chatgpt-gui-bridge/tools/v4_live_two_worker_canary.py`. It refuses
@@ -591,8 +593,8 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `424FFE3` (`fix: release daemon lease on startup fence`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary, fail-closed rate-limit transport errors, durable heartbeat/progress separation, and lost-worker detection are recorded in the current candidate evidence.
-- Latest rate-limit failure-boundary evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_424FFE3.json`.
+- Current code candidate: `7C06D65` (`fix: recover rate limits before browser send`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, and lost-worker detection are recorded in the current candidate evidence.
+- Latest rate-limit failure-boundary evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_7C06D65.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.

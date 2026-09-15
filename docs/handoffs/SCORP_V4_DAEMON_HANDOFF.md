@@ -71,7 +71,7 @@ browser reconcile and Send remain separate gates.
 ## Current evidence boundary
 
 - `TEST_VERIFIED`: the current isolated command-core candidate has V4 suite
-  191/191 and GUI bridge suite 495/495 on the bundled Windows Python runtime;
+  191/191 and GUI bridge suite 498/498 on the bundled Windows Python runtime;
   task-context migration/prompt propagation, distinct CSV
   validate/aggregate/report operations, two Worker dispatch, independent
   reconcile, owned-tab isolation, rate-limit recovery unit cases, and the

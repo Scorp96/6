@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "424ffe3b52a225e08c2d800a5c353ba7029cdb72",
+  "candidate_commit": "7c06d6516c08c77d1049d07d27504072062ae0f4",
   "evidence_binding": {
-    "validated_commit": "424ffe3b52a225e08c2d800a5c353ba7029cdb72",
+    "validated_commit": "7c06d6516c08c77d1049d07d27504072062ae0f4",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_424FFE3.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_7C06D65.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_424FFE3.json",
-    "binding_note": "This handoff describes the 424ffe3b52a225e08c2d800a5c353ba7029cdb72 code candidate; runtime startup requires exact candidate binding. A fresh read-only Chrome Use preflight is blocked because only one empty created tab is visible, with no current candidate composer or unique binding; see docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json. No send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "25e9fc91868cfd9f97c836dd75b695b40455bdc28846a528c6ed9a489139e76f"
+    "binding_note": "This handoff describes the 7c06d6516c08c77d1049d07d27504072062ae0f4 code candidate; runtime startup requires exact candidate binding. A fresh read-only Chrome Use preflight is blocked because only one empty created tab is visible, with no current candidate composer or unique binding; see docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json. No send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "e656e96457545951397323d7c4910f1cb2b0df96976d7a73fc37cf13065b7098"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
