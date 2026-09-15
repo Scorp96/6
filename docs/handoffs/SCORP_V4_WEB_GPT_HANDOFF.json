@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
+  "candidate_commit": "e1e5a9f3d7e081f7bc959702df637f692a22bafd",
   "evidence_binding": {
-    "validated_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
+    "validated_commit": "e1e5a9f3d7e081f7bc959702df637f692a22bafd",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_6265F49.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E1E5A9F.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the 6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9 code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit-migration guard for incomplete SQLite files, and explicit legacy SQLite snapshot migration tests. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked because the inspected physical tab no longer exists; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "a74dcf662e2d09a3bc74516b4d4616d52f0aef4dbd28bd74c39c7b23626a31e7"
+    "binding_note": "This handoff describes the e1e5a9f3d7e081f7bc959702df637f692a22bafd code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit-migration guard for incomplete SQLite files, and explicit legacy SQLite snapshot migration tests. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked because the inspected physical tab no longer exists; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "4e283c7468db66cc8ac9ae98f89f3aa8f0d9101b1964a648319013de5f04f9f7"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

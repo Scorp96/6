@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
+  "implementation_commit": "e1e5a9f3d7e081f7bc959702df637f692a22bafd",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -117,16 +117,16 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_6265F49.json",
-    "sha256": "444670224b7704631de5f96e56d4550c7993c9c267fc91fc983f43aa84c26344",
-    "manifest_sha256": "a74dcf662e2d09a3bc74516b4d4616d52f0aef4dbd28bd74c39c7b23626a31e7",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E1E5A9F.json",
+    "sha256": "de737ac52856e2b95c45ea4c7a4de8dd781928b435555a0117d242336424bb5e",
+    "manifest_sha256": "4e283c7468db66cc8ac9ae98f89f3aa8f0d9101b1964a648319013de5f04f9f7",
     "file_count": 373
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
   "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json",
   "rate_limit_recovery_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json",
   "runtime_pipe_oversized_frame_evidence": "docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json",
-    "sqlite_explicit_migration_evidence": "docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json",
+  "sqlite_explicit_migration_evidence": "docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json",
   "sqlite_snapshot_migration": {
     "implementation": "scorp-agent/master_a_dynamic_v4/sqlite_migration.py",
     "cli": "scorp-agent/master_a_dynamic_v4/sqlite_migration_cli.py",
