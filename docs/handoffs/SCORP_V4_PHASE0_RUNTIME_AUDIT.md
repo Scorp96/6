@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-current documentation snapshot (code candidate `5bf79536c03de8ae25a507723a34f4e162fe8bfa`; exact branch HEAD is recorded after this documentation update)
+current documentation snapshot: worktree HEAD `dae1e4d13a73aaeb3b2f76561309d0a4a75a0569`; code candidate `a5aab0a1ec20864adb1cd141c55fd2d6b0140216`
 
 ## REMOTE_MAIN_HEAD
 
@@ -55,8 +55,8 @@ current documentation snapshot (code candidate `5bf79536c03de8ae25a507723a34f4e1
 当前已知的两个只读数据库快照仍是旧 schema，不能被当作新候选运行库：
 
 - `C:\ScorpAgent\_publish_git6\state\v4-candidate.sqlite3`
-- `C:\ScorpAgent\v4-live-current-5bf7953\state.sqlite3`
-- `C:\ScorpAgent\v4-core-lab\real-code-5bf7953-r1\runtime.sqlite3`
+- 当前候选没有可提升的 live canary SQLite；前置候选的现场副本仅作历史取证：`C:\ScorpAgent\v4-live-current-5bf7953\state.sqlite3`
+- 当前候选没有真实代码工作负载 SQLite；前置候选的现场副本仅作历史取证：`C:\ScorpAgent\v4-core-lab\real-code-5bf7953-r1\runtime.sqlite3`
 
 两者现场读数均为 `user_version=0`、`journal_mode=delete`、`synchronous=2`、`foreign_keys=0`，且缺少新 Runtime 表。它们没有被本轮自动迁移或双写；直接拿它们运行新 Runtime 必须先显式迁移并重新验证。
 
@@ -84,7 +84,7 @@ Scheduler 使用最多两个动态 Worker slot，assignment、lease、task depen
 
 ## CURRENT_BROWSER_MODEL
 
-Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。当前候选 `5bf79536c03de8ae25a507723a34f4e162fe8bfa` 的新双 Worker 无害 Canary 已记录两个 conversation URL 和两个严格匹配响应，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`；旧 c205 结果仍作为历史歧义证据保留。
+Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。前置候选 `5bf7953` 的双 Worker 无害 Canary 已记录两个 conversation URL 和两个严格匹配响应，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`；该证据仅作历史取证，不能提升到当前候选 `a5aab0a`。旧 c205 结果仍作为历史歧义证据保留。
 
 因此已确认固定无害 Canary prompt 已送达并捕获响应，但尚未确认真实代码任务完整通过 Worker GPT 对话。当前请求限制实机观察中，一个真实会话已点击唯一明确的“明白了”并恢复 composer，未重发 prompt；五分钟等待超时后的单次刷新仍由离线测试覆盖。最新现场检查在另一个已登录 tab 中再次观察到“请求过于频繁”；唯一确认控件的点击调用超时且弹窗仍在，系统没有刷新或重发，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json`。对同一物理 tab 的后续只读复核仍看到相同弹窗且 composer 未就绪，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
 
@@ -94,13 +94,13 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：206 项测试通过。
+- V4 core：当前候选 `a5aab0a1ec20864adb1cd141c55fd2d6b0140216` 的 207 项测试通过。
 - GUI bridge：510 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
 - validation JSON：可解析。
-- 当前候选 validation：代码候选 `5bf79536c03de8ae25a507723a34f4e162fe8bfa`；请求限制实机和 fail-closed 专项证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json`。
-- 当前候选真实 Chrome：固定无害双 Worker Canary 为 `LIVE_VERIFIED = PASS`，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`；真实代码工作负载部分实机验证：T2 执行通过，T1 BLOCKED，T3 未运行。
+- 当前候选 validation：代码候选 `a5aab0a1ec20864adb1cd141c55fd2d6b0140216`；当前真实浏览器预检仍被请求限制阻塞，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`。
+- 当前候选真实 Chrome：尚未运行当前候选 canary；前置候选的固定无害双 Worker Canary 为历史 `LIVE_VERIFIED`，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`，不能绑定当前候选。当前候选真实代码工作负载为 `NOT_RUN`。
 - Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
 - 当前候选：`ACCEPTED = false`。
 - 生产切换：未授权、未执行。
@@ -175,7 +175,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - P0 resume admission：修复了 resume 后 scheduler 误把 `RUNNING` 当成非活动状态，避免暂停恢复后永久不派发任务或丢失活动 assignment。
 - P0 stale Master physical session：已修复同一 stale `session_id` 恢复命中 `MASTER_SESSION_ID_REUSED` 的断点；当前只证明真实 SQLite/离线恢复，尚未证明浏览器重绑定成功。
 - P0 auth/rate-limit human boundary：已实现有界确认/等待/单次刷新恢复；当前 live canary 仍有浏览器状态歧义，不能把恢复动作当作发送成功。
-- P0 current-candidate browser exactly-once：固定无害 Canary 已达到 LIVE_VERIFIED；真实代码工作负载的 exactly-once 仍未验证。
+- P0 current-candidate browser exactly-once：当前候选没有 live canary；前置候选固定无害 Canary 的证据不能提升，真实代码工作负载的 exactly-once 仍未验证。
 - P0 dedicated production daemon authority：未证明已安装。
 - P0 legacy bridge singleton：当前生产现场曾有两个同命令 bridge worker；候选已修复启动门禁，但生产尚未切换，因此现场 P0 仍未关闭。
 
@@ -222,7 +222,7 @@ Logical Master A 发出 versioned semantic Runtime command；Command Core 负责
 
 ## PHASE_1_PLAN
 
-Phase 1 的代码、测试和隔离文档已完成并通过离线回归；当前候选的固定无害双 Worker Chrome Canary 也已取得 LIVE_VERIFIED。真实代码实验只有 T2 取得本地执行回执，T1 为 BLOCKED、T3 未运行。Phase 1 的 acceptance 仍受真实代码工作负载、生产未切换和 live crash/recovery 未验证约束；因此阶段结论是 `PARTIAL`，不是 `PASS` 或 `ACCEPTED`。
+Phase 1 的代码、测试和隔离文档已完成并通过离线回归；当前候选 `a5aab0a` 尚没有 live browser canary。前置候选的固定无害双 Worker Chrome Canary 和真实代码实验均只保留为历史证据，不能绑定当前候选。当前候选真实代码工作负载尚未运行；Phase 1 的 acceptance 仍受真实浏览器、真实代码工作负载、生产未切换和 live crash/recovery 未验证约束，因此阶段结论是 `PARTIAL`，不是 `PASS` 或 `ACCEPTED`。
 
 - 本候选新增 Daemon 动作前租约栅栏：初始观测之后再次确认当前 Daemon lease；失效时不写入 activation decision、不派发动作，返回 BLOCKED。
 

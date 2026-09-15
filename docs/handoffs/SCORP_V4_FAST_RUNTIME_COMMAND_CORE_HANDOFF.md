@@ -1,6 +1,6 @@
 # SCORP V4 Fast Local Runtime Command Core
 
-这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `5bf79536c03de8ae25a507723a34f4e162fe8bfa`，文档与证据提交为 `2e1dcf8` 及后续当前证据提交。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
+这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `a5aab0a1ec20864adb1cd141c55fd2d6b0140216`，当前工作树 HEAD 为 `dae1e4d13a73aaeb3b2f76561309d0a4a75a0569`。前置候选 `5bf7953` 的浏览器/真实代码证据仅作历史取证，不能提升到当前候选。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
 
 ## 运行
 
@@ -75,9 +75,9 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
-- 当前候选 5bf79536c03de8ae25a507723a34f4e162fe8bfa 已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`。该结果只证明当前固定标记浏览器提交/响应边界。随后真实代码实验已完成浏览器歧义核对：T2 的受限聚合执行通过，T1 Worker 返回 BLOCKED、T3 未运行；完整真实代码闭环、Master 重绑定和生产切换仍未通过。证据见 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`。
+- 前置候选 5bf79536c03de8ae25a507723a34f4e162fe8bfa 曾在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`。该结果只证明前置候选的固定标记浏览器提交/响应边界，不能作为当前 `a5aab0a` 的 live 证据。前置候选真实代码实验中 T2 的受限聚合执行通过，T1 Worker 返回 BLOCKED、T3 未运行；证据见 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`，同样不能提升到当前候选。
 - 本次当前候选 canary 的诊断认证会话已正常停止；此前旧 canary 的 `CLEANUP_BLOCKED` 记录仍保留为历史证据，不能作为当前候选状态。
-- 请求限制的当前候选实机观察：一个真实 Worker 会话出现了“请求过于频繁”弹窗，已点击唯一明确的“明白了”控件；随后只读快照显示弹窗消失且 composer 恢复，未重发提示词。证据见 `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json`。五分钟只读等待、必要时单次刷新、composer 就绪和失败关闭仍由离线测试覆盖；另一 Worker 会话变为 `about:blank` 后未盲目重试，因此完整双会话限流验收仍未通过。
+- 当前候选实机观察仍被请求限制阻塞：同一物理 tab 的只读复核仍显示限流弹窗且 composer 未就绪，证据见 `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`。五分钟只读等待、页面自行恢复、必要时单次刷新、composer 就绪和失败关闭由离线测试覆盖；前置候选的限流观察属于历史证据，不能提升到当前候选。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json`。

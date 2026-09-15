@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-phase0-current-audit/1",
-  "observed_at_utc": "2026-09-15T12:31:00Z",
+  "observed_at_utc": "2026-09-15T12:52:56Z",
   "repository": "Scorp96/6",
   "remote_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
   "current_worktree": {
     "path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
     "branch": "feature/v4-fast-runtime-command-core",
-    "head": "5adcb7bec8b5b5af01edda0feb134c85364cc039",
+    "head": "dae1e4d13a73aaeb3b2f76561309d0a4a75a0569",
     "git_status": "CLEAN"
   },
   "production_checkout": {
@@ -27,16 +27,18 @@
     "action": "NOT_MODIFIED_OR_CLEANED_BY_THIS_TURN"
   },
   "candidate": {
-    "code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
-    "docs_head": "5adcb7bec8b5b5af01edda0feb134c85364cc039",
+    "code_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
+    "docs_head": "dae1e4d13a73aaeb3b2f76561309d0a4a75a0569",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core"
   },
   "runtime_paths": {
     "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime",
     "chrome_use": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe",
     "production_state": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
-    "current_canary_state": "C:\\ScorpAgent\\v4-live-current-5bf7953\\state.sqlite3",
-    "real_code_state": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\runtime.sqlite3"
+    "current_canary_state": null,
+    "real_code_state": null,
+    "historical_predecessor_canary_state": "C:\\ScorpAgent\\v4-live-current-5bf7953\\state.sqlite3",
+    "historical_predecessor_real_code_state": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\runtime.sqlite3"
   },
   "windows_supervision": {
     "scheduled_tasks": {
@@ -48,39 +50,62 @@
     },
     "production_task_mutation": "NOT_PERFORMED",
     "active_relevant_processes_observed": [
-      {"pid": 7876, "name": "python.exe", "role": "legacy bridge_worker", "runtime": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe"},
-      {"pid": 13488, "name": "python.exe", "role": "legacy bridge_worker child", "runtime": "C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe"},
-      {"pid": 15024, "name": "chrome-use.exe", "role": "Chrome native messaging host"},
-      {"pid": 3676, "name": "chrome-use.exe", "role": "unclassified existing Chrome Use process"},
-      {"pid": 4512, "name": "chrome-use.exe", "role": "old session get-url process", "status": "requires bounded lifecycle review"}
+      {
+        "pid": 7876,
+        "name": "python.exe",
+        "role": "legacy bridge_worker",
+        "runtime": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe"
+      },
+      {
+        "pid": 13488,
+        "name": "python.exe",
+        "role": "legacy bridge_worker child",
+        "runtime": "C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe"
+      },
+      {
+        "pid": 1896,
+        "name": "chrome-use.exe",
+        "role": "Chrome native messaging host"
+      },
+      {
+        "pid": 3676,
+        "name": "chrome-use.exe",
+        "role": "existing Chrome Use process"
+      },
+      {
+        "pid": 15024,
+        "name": "chrome-use.exe",
+        "role": "existing Chrome Use process"
+      }
     ],
     "supervision_finding": "Two legacy bridge_worker processes with matching arguments were observed; candidate singleton lock is not production-deployed. No process was killed by this audit."
   },
   "real_code_current_candidate": {
-    "evidence": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
-    "result": "BLOCKED",
-    "T1": "BLOCKED",
-    "T2": "ACCEPTED_EXIT_0",
-    "T3": "QUEUED_NOT_RUN",
+    "evidence": null,
+    "result": "NOT_RUN_CURRENT_CANDIDATE",
+    "T1": "NOT_RUN",
+    "T2": "NOT_RUN",
+    "T3": "NOT_RUN",
     "browser_resend_count": 0,
-    "terminal_worker_cleanup": "T1/T2 RETIRED STOPPED"
+    "terminal_worker_cleanup": "NOT_APPLICABLE",
+    "reason": "candidate changed after predecessor evidence; current browser preflight remains rate-limited"
   },
   "classification": {
-    "TEST_VERIFIED": "offline candidate tests and protocol checks pass",
-    "LIVE_VERIFIED": "scoped fixed-marker two-worker canary; scoped real rate-limit recovery; T2 real-code execution",
+    "TEST_VERIFIED": "current candidate offline V4 core 207 tests, GUI bridge 510 tests, compileall, packet and diff checks pass",
+    "LIVE_VERIFIED": "local transport process-loop evidence only; current candidate browser and real-code evidence are BLOCKED/NOT_RUN",
     "ACCEPTED": false
   },
   "open_findings": [
-    "T1 real Worker must produce an admissible COMPLETE result before its bounded validate execution may run",
-    "T3 depends on T1 and remains queued",
+    "current candidate has no live browser canary because the existing authenticated tab remains rate-limited",
+    "current candidate real-code workload has not run; predecessor T2/T1/T3 evidence is historical and cannot be promoted",
     "full Master replacement, unattended soak, production cutover, and complete code workload remain unverified",
     "existing production checkout has dirty unpublished state and must not be overwritten",
     "production watchdog is Disabled and no approved V4 daemon Scheduled Task cutover is evidenced",
-    "current candidate Phase 1 is partial: connector registration, symmetric live rate-limit recovery, full real-code workload, Master replacement, and unattended soak remain open"
+    "formal ChatGPT host connector registration remains open"
   ],
   "production_state_touched": false,
   "required_phase0_sections": {
-    "CURRENT_HEAD": "5adcb7bec8b5b5af01edda0feb134c85364cc039",
+    "CURRENT_HEAD": "dae1e4d13a73aaeb3b2f76561309d0a4a75a0569",
     "REMOTE_MAIN_HEAD": "79610ae3f3864e133f750f0c9dfde40b17a91def",
     "BRANCH": "feature/v4-fast-runtime-command-core",
     "WORKTREE": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
@@ -89,9 +114,18 @@
     "UNTRACKED_FILES": "none in candidate worktree",
     "RUNTIME_PATHS": "recorded in runtime_paths",
     "SQLITE_PATHS": "recorded in runtime_paths; production untouched",
-    "DRIVER_STATE_PATHS": ["C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json", "C:\\ScorpAgent\\state-v3\\active\\sessions-v3.json"],
+    "DRIVER_STATE_PATHS": [
+      "C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json",
+      "C:\\ScorpAgent\\state-v3\\active\\sessions-v3.json"
+    ],
     "ACTIVE_WINDOWS_TASKS_OR_SERVICES": "recorded in windows_supervision",
-    "CURRENT_EXECUTION_CEILING": "isolated Runtime Core, bounded local transport, tests, audit and explicitly gated browser evidence; no production cutover",
+    "CURRENT_EXECUTION_CEILING": "isolated Runtime Core, bounded local transport, tests, audit and read-only browser preflight; current candidate browser/real-code live evidence blocked; no production cutover",
     "CURRENT_CODEX_PROVIDER_STATUS": "gpt-5.6-sol/high compatibility fallback; not native Astra acceptance"
+  },
+  "historical_predecessor_evidence": {
+    "candidate": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+    "browser_canary": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json",
+    "real_code": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
+    "status": "HISTORICAL_NOT_PROMOTED"
   }
 }

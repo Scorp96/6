@@ -29,13 +29,19 @@
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
       "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
       "retry_count_after_ambiguity": 0,
-      "rule": "Do not retry until read-only browser evidence shows the blocker cleared."
+      "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
+      "rate_limit_recovery_preflight": {
+        "result": "BLOCKED_EXTERNAL_PRECONDITION",
+        "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
+        "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
+        "boundary": "同一物理 ChatGPT tab 仍显示请求过于频繁且 composer 未就绪；不得创建新 session、刷新或重发，直到只读证据确认阻塞清除。"
+      }
     },
     "accepted": false,
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json",
-      "sha256": "ead905a3321df4babfaa3ada3044d456d1fde31fe8af024ea22b4f6fec6d8f49",
+      "sha256": "8ad633af51c71bb9fe9f9dc1dde0f6b7eb6574011fa2e0da630e45cb40fdf9ce",
       "supersedes": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_15340AA.json"
     },
     "local_transport_live_verified": {
@@ -166,17 +172,17 @@
   "real_code_workload_current_candidate_evidence": null,
   "phase0_audit": {
     "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json",
-    "sha256": "ead905a3321df4babfaa3ada3044d456d1fde31fe8af024ea22b4f6fec6d8f49"
+    "sha256": "8ad633af51c71bb9fe9f9dc1dde0f6b7eb6574011fa2e0da630e45cb40fdf9ce"
   },
   "historical_live_verified_for_5bf7953": {
     "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
-    "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；另有一个真实代码 Worker 会话在请求限制弹窗后只点击“明白了”并恢复到带 composer 的页面，未重发提示词。该结果不覆盖完整真实代码工作负载、Master 重绑定、另一 Worker 会话恢复、生产切换或无人值守 soak。",
+    "reason": "前置候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；另有一个真实代码 Worker 会话在请求限制弹窗后只点击“明白了”并恢复到带 composer 的页面，未重发提示词。该结果不覆盖完整真实代码工作负载、Master 重绑定、另一 Worker 会话恢复、生产切换或无人值守 soak。",
     "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json",
     "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
     "rate_limit_recovery_preflight": {
       "result": "NOT_RATE_LIMITED",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
-      "boundary": "当前候选已观察到一个真实请求限制弹窗：已点击唯一明确的“明白了”控件，随后只读快照显示限制弹窗消失且 composer 存在；未重发原提示词。确认/等待最多五分钟/必要时单次刷新/失败关闭仍由离线测试覆盖；双 Worker 对称恢复和完整代码闭环仍未通过。"
+      "boundary": "前置候选曾观察到一个真实请求限制弹窗：已点击唯一明确的“明白了”控件，随后只读快照显示限制弹窗消失且 composer 存在；未重发原提示词。确认/等待最多五分钟/必要时单次刷新/失败关闭仍由离线测试覆盖；双 Worker 对称恢复和完整代码闭环仍未通过。"
     },
     "prior_ambiguous_canary_evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json",
     "real_code_workload": {
@@ -219,7 +225,24 @@
       "browser_send": "FORBIDDEN",
       "production_state_touched": false
     },
-    "current_candidate_canary": {
+    "evidence_sha256": "920733e3e5daf9866261ab31a850901bfb4454835c7bb2df880b8c559829844c",
+    "rate_limit_recovery_live_failure_20260915": {
+      "result": "BLOCKED_EXTERNAL_PRECONDITION",
+      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json",
+      "evidence_sha256": "2b3398d9003d698a51f355cd5fa1f5ab866f4b35588d88c8a67b99f17ea96db7",
+      "observed": "the visible acknowledgement click timed out and the same rate-limit dialog remained",
+      "refresh_attempted": false,
+      "prompt_resend_attempted": false
+    },
+    "rate_limit_recovery_live_recheck_20260915": {
+      "result": "BLOCKED_EXTERNAL_PRECONDITION",
+      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
+      "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
+      "observed": "the same physical tab still showed the rate-limit dialog; composer was not ready",
+      "refresh_attempted": false,
+      "prompt_resend_attempted": false
+    },
+    "predecessor_candidate_canary": {
       "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
       "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
       "candidate_manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e",
@@ -238,15 +261,15 @@
       "limitations": [
         "fixed marker prompts only",
         "no repository work",
-        "no production cutover or unattended soak"
+        "no production cutover or unattended soak",
+        "historical predecessor evidence; not current candidate evidence"
       ],
       "cleanup_status": "RETIRED",
       "cleanup_note": "The diagnostic auth session stopped cleanly; Worker sessions were retired after response capture."
     },
-    "evidence_sha256": "920733e3e5daf9866261ab31a850901bfb4454835c7bb2df880b8c559829844c",
-    "rate_limit_recovery_live_observation": {
+    "predecessor_rate_limit_recovery_live_observation": {
       "result": "PASS",
-      "scope": "one current-candidate real Worker session after a real ChatGPT rate-limit dialog",
+      "scope": "one predecessor-candidate real Worker session after a real ChatGPT rate-limit dialog",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json",
       "evidence_sha256": "1beb0fcebfc4da5691d51bc943cdac37d69331f7578a8cca00cd16a76f5a55bc",
       "observed": "known acknowledgement clicked once; after action the rate-limit dialog was absent and a composer was present; no prompt resend",
@@ -254,22 +277,6 @@
         "other Worker session became about:blank and was not retried",
         "this is not full real-code acceptance"
       ]
-    },
-    "rate_limit_recovery_live_failure_20260915": {
-      "result": "BLOCKED_EXTERNAL_PRECONDITION",
-      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json",
-      "evidence_sha256": "2b3398d9003d698a51f355cd5fa1f5ab866f4b35588d88c8a67b99f17ea96db7",
-      "observed": "the visible acknowledgement click timed out and the same rate-limit dialog remained",
-      "refresh_attempted": false,
-      "prompt_resend_attempted": false
-    },
-    "rate_limit_recovery_live_recheck_20260915": {
-      "result": "BLOCKED_EXTERNAL_PRECONDITION",
-      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
-      "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
-      "observed": "the same physical tab still showed the rate-limit dialog; composer was not ready",
-      "refresh_attempted": false,
-      "prompt_resend_attempted": false
     }
   },
   "real_code_workload_predecessor_evidence": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",

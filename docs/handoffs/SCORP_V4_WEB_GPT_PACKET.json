@@ -11,6 +11,12 @@
   "current_live_gate": {
     "candidate_code_commit": "a5aab0a1ec20864adb1cd141c55fd2d6b0140216",
     "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
+    "rate_limit_recovery_preflight": {
+      "boundary": "同一物理 ChatGPT tab 仍显示请求过于频繁且 composer 未就绪；不得创建新 session、刷新或重发，直到只读证据确认阻塞清除。",
+      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
+      "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
+      "result": "BLOCKED_EXTERNAL_PRECONDITION"
+    },
     "reason": "当前候选代码已从 5bf7953 更新为 a5aab0a；此前 LIVE evidence 绑定旧候选，不能提升到新候选。新候选尚未执行当前代码的浏览器 canary；同一物理 ChatGPT tab 仍有请求限制。",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
@@ -22,17 +28,17 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T12:46:56.651304Z",
+  "generated_at": "2026-09-15T12:58:02.268489Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
-    "allowed_root": "C:\\ScorpAgent\\v4-live-current-5bf7953\\workspace",
+    "allowed_root": "C:\\ScorpAgent\\v4-core-lab",
     "blockers": [],
     "capabilities": {
       "browser_rebind": {
-        "driver_state": "C:\\ScorpAgent\\v4-live-current-5bf7953\\driver.json",
-        "executable": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe",
-        "reason": "Chrome Use executable and driver state are present.",
-        "status": "READY_TO_REBIND"
+        "driver_state": null,
+        "executable": null,
+        "reason": "An existing Chrome Use executable and driver-state path are required; login and CAPTCHA are never bypassed.",
+        "status": "BLOCKED_MISSING_BROWSER_CONFIG"
       },
       "browser_submission": {
         "reason": "Preflight never sends a prompt. Submission requires the separate operator-gated runtime and a fresh review.",
@@ -50,8 +56,8 @@
       },
       "sqlite_master_monitor": {
         "command": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
-        "reason": "Supply an existing database and allowed root; the monitor will not create project state.",
-        "status": "NOT_CONFIGURED"
+        "reason": "An existing SQLite database and allowed root were supplied.",
+        "status": "READY"
       },
       "web_gpt_direct_local_control": {
         "reason": "A web GPT cannot gain Windows or SQLite permissions by reading Git alone.",
@@ -59,9 +65,9 @@
         "status": "UNAVAILABLE"
       }
     },
-    "database_path": "C:\\ScorpAgent\\v4-live-current-5bf7953\\state.sqlite3",
+    "database_path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T12:46:56.651181Z",
+    "generated_at": "2026-09-15T12:58:02.268413Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",

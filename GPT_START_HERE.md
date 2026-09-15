@@ -106,7 +106,7 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 5bf79536c03de8ae25a507723a34f4e162fe8bfa `
+  --candidate-commit a5aab0a1ec20864adb1cd141c55fd2d6b0140216 `
   --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A5AAB0A.json `
   --manifest-sha256 cdbb64c32616c350dfeb17c2a2704600ffdba8f9793607a9bcac7f5ca776666e
 ```
@@ -279,7 +279,7 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 5bf79536c03de8ae25a507723a34f4e162fe8bfa `
+  --candidate-commit a5aab0a1ec20864adb1cd141c55fd2d6b0140216 `
   --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_A5AAB0A.json `
   --manifest-sha256 cdbb64c32616c350dfeb17c2a2704600ffdba8f9793607a9bcac7f5ca776666e `
   --send
