@@ -61,6 +61,11 @@ if ($workers.Count -gt 0) {
       $roots += $worker
     }
   }
+  if ($workers.Count -gt 0 -and $roots.Count -eq 0) {
+    Write-WatchdogHealth 'WATCHDOG_ORPHAN_BLOCKED' 'bridge processes exist but no scheduler root was identified; refusing to start another process' $workers.Count
+    Write-Output 'WATCHDOG_ORPHAN_NO_SCHEDULER_ROOT'
+    exit 0
+  }
   if ($roots.Count -eq 1) {
     $functional = Test-BridgeFunctionalHealth
     if ($functional.Healthy) {

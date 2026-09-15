@@ -14,6 +14,8 @@ class BridgeWatchdogInstallV3Tests(unittest.TestCase):
         self.assertIn("WATCHDOG_RESTARTED", text)
         self.assertIn("WATCHDOG_HEALTHY", text)
         self.assertIn("WATCHDOG_ORPHAN_BLOCKED", text)
+        self.assertIn("$workers.Count -gt 0 -and $roots.Count -eq 0", text)
+        self.assertIn("WATCHDOG_ORPHAN_NO_SCHEDULER_ROOT", text)
         self.assertIn("WATCHDOG_STALE_HEALTH", text)
         self.assertIn("heartbeat_at", text)
         self.assertIn("protocol_version", text)
