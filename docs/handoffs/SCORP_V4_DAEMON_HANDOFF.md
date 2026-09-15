@@ -77,17 +77,18 @@ browser reconcile and Send remain separate gates.
   reconcile, owned-tab isolation, rate-limit recovery unit cases, and the
   daemon missing-handler fail-closed case are included. The installed lab and
   short recovery soaks are separate simulated evidence.
-- `LIVE_VERIFIED`: the current candidate has a fresh isolated local-daemon
+- `LIVE_VERIFIED`: the current candidate has both a fresh isolated local-daemon
   restart receipt at
-  `docs/handoffs/SCORP_V4_DAEMON_RESTART_LIVE_EVIDENCE_20260915.json`.
-  A first Windows daemon process was forcibly terminated, its SQLite lease was
-  allowed to expire, and a second process reacquired `daemon_epoch=2`, reached
-  `HEALTHY`, and recorded one recovery without browser I/O. The current
-  candidate's real ChatGPT browser canary and rate-limit-popup branch remain
-  unverified; the older Chrome Use canary is historical only.
-- `ACCEPTED`: not reached. A current-candidate browser pass, real repository
-  workload through live Workers, Master physical rebind, production
-  registration and long-duration unattended evidence are still required.
+  `docs/handoffs/SCORP_V4_DAEMON_RESTART_LIVE_EVIDENCE_20260915.json` and a
+  fresh real Chrome Use two-Worker canary at
+  `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_83C07CC.json`. The daemon process
+  was forcibly terminated and recovered from SQLite with `daemon_epoch=2`;
+  the browser canary captured two independent responses with two submit
+  actions and zero duplicate submits. The rate-limit-popup branch remains
+  unverified because the live page did not show that external state.
+- `ACCEPTED`: not reached. A current-candidate real repository workload
+  through live Workers, Master physical rebind, production registration and
+  long-duration unattended evidence are still required.
 
 ## Fresh live canary result
 

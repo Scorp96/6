@@ -1,6 +1,6 @@
 # SCORP V4 Fast Local Runtime Command Core
 
-这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`，基于 `bd67ae78c874d2a5f897101097db0578f01a5c00`。当前代码候选为 `6265f49`。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
+这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `83c07cc2727db29ed5b28fb6260e5094e75883bf`，文档与证据提交为 `2e1dcf8` 及后续当前证据提交。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
 
 ## 运行
 
@@ -71,13 +71,13 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 头分别记录；后续文档提交不会改变该代码候选；旧的
 `SCORP_V4_PHASE0_LOCAL_AUDIT_424FFE3.json` 仅作为历史证据，不代表当前现场。
 
-- `TEST_VERIFIED`: V4 核心 198 个测试通过，GUI 桥接 498 个测试通过（含请求限制确认/等待/超时/单次刷新/新页面恢复/填入后恢复/确认与读取失败 fail-closed、Named Pipe 超长帧 fail-closed、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `TEST_VERIFIED`: 当前候选 V4 核心 202 个测试通过，GUI 桥接 508 个测试通过（含请求限制确认/等待/超时/单次刷新/新页面恢复/填入后恢复/确认与读取失败 fail-closed、Named Pipe 超长帧 fail-closed、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
 - Master 物理重绑定的认证探针现在接入同一条请求限制恢复路径：先只读确认限流，再只点击一次已知“确定”控件，最多等待 300 秒，必要时最多刷新一次；恢复失败仍保持 `BLOCKED`，不会进入发送。Master 心跳现在先做只读物理健康检查；限流或认证阻塞不会创建新 epoch，浏览器失联才进入受控重绑定。Master epoch 变化会同步 fence 旧 Worker lease 和迟到结果。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
-- `LIVE_VERIFIED`: 当前候选 `852567b05a792c4f5bb5be4011c37bf9be9e6c68` 的真实 Chrome Use 双 Worker 无害 Canary 已通过，两个响应均捕获且没有重复提交，证据见 `SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json`。旧的 c205 ambiguous canary 证据仍保留在 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发；这次 PASS 不等于真实代码工作负载、重启恢复或生产切换通过。
-- 请求限制 live preflight：历史真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；确认按钮、等待窗口和单次刷新已由离线测试覆盖，但真实弹窗分支仍未获得 LIVE_VERIFIED。
+- `LIVE_VERIFIED`: 当前候选 `83c07cc2727db29ed5b28fb6260e5094e75883bf` 已完成新的真实 Chrome Use 双 Worker 无害 Canary，两个独立会话均捕获精确回执、提交 2 次、重复提交 0 次，且临时会话已回收；证据见 `SCORP_V4_LIVE_CANARY_SUCCESS_83C07CC.json`。这次 PASS 不等于真实代码工作负载、Master 物理重绑定、生产切换或限流弹窗分支通过。
+- 请求限制 live preflight：当前候选真实 canary 仍没有出现限制弹窗，因此没有人为制造该外部状态；确认按钮、最多五分钟只读等待、必要时单次刷新和失败关闭已由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json`。
