@@ -205,6 +205,27 @@ def _send_ref_from_snapshot(payload) -> str:
     return "@" + candidates[0]
 
 
+def _composer_ready_or_unreported(payload) -> bool:
+    """Accept text-only auth snapshots; gate only an explicit empty refs tree.
+
+    Chrome Use can return page text and accessibility refs in separate
+    snapshots.  A text-only authenticated response therefore cannot prove
+    that the composer is absent; the caller will obtain a fresh refs snapshot.
+    When refs are present, however, recovery must wait for exactly one
+    textbox before reporting the page ready.
+    """
+
+    try:
+        _refs_from_snapshot(payload)
+    except ValueError:
+        return True
+    try:
+        _editor_ref_from_snapshot(payload)
+    except ValueError:
+        return False
+    return True
+
+
 def _rate_limit_ack_ref_from_snapshot(payload) -> str:
     """Resolve exactly one acknowledgement control on a known throttle dialog."""
 
@@ -676,11 +697,7 @@ class ChromeUseActorDriverV3:
                 # caller will otherwise immediately fail on a stale/empty
                 # accessibility tree and may incorrectly treat the page as
                 # ready for a new attempt.
-                try:
-                    _editor_ref_from_snapshot(payload)
-                except ValueError:
-                    pass
-                else:
+                if _composer_ready_or_unreported(payload):
                     return {
                         "status": "RECOVERED",
                         "reason": "RATE_LIMIT_DIALOG_CLEARED",
@@ -705,11 +722,7 @@ class ChromeUseActorDriverV3:
                     text = _render_payload(payload)
                     classification = classify_chatgpt_snapshot(text, session)
                     if classification["status"] == "AUTHENTICATED":
-                        try:
-                            _editor_ref_from_snapshot(payload)
-                        except ValueError:
-                            pass
-                        else:
+                        if _composer_ready_or_unreported(payload):
                             return {
                                 "status": "RECOVERED",
                                 "reason": "RATE_LIMIT_DIALOG_CLEARED_AFTER_REFRESH",
