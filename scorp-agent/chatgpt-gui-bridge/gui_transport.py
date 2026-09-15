@@ -32,7 +32,7 @@ def chatgpt_throttle_visible(snapshot: str) -> bool:
 
 
 _RATE_LIMIT_ACK_LABEL = re.compile(
-    r"(?:确定|OK|Okay|Got\s+it|I\s+understand|知道了|关闭|Close)",
+    r"(?:确定|明白了?|OK|Okay|Got\s+it|I\s+understand|知道了|关闭|Close)",
     re.I,
 )
 

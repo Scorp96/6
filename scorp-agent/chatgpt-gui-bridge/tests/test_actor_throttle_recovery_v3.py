@@ -78,6 +78,31 @@ class ActorThrottleRecoveryV3Tests(unittest.TestCase):
         )
         self.assertEqual(1, sum(1 for name, _ in client.calls if name == "Type"))
 
+    def test_gui_transport_recognizes_actual_mingbai_le_button_label(self):
+        throttle = (
+            "请求过于频繁，请稍等几分钟后再重试\n"
+            "(410,520) button \"明白了\""
+        )
+        recovered = '(200,700) textbox "Message ChatGPT"'
+        send = '(900,700) button "Send message"'
+        client = FakeClient(
+            snapshots=["Focused Window: Chrome", throttle, recovered, send],
+            clipboard_reads=[
+                "Clipboard content:\noriginal",
+                "Clipboard content:\nhttps://chatgpt.com/",
+            ],
+        )
+        asyncio.run(open_new_chat_and_submit(
+            client,
+            "PROMPT",
+            page_wait_seconds=0,
+            rate_limit_wait_seconds=0,
+            rate_limit_poll_seconds=1,
+            rate_limit_sleeper=lambda _: asyncio.sleep(0),
+            rate_limit_clock=lambda: 0.0,
+        ))
+        self.assertIn(("Click", {"loc": [410, 520]}), client.calls)
+
     def test_gui_transport_refreshes_once_after_bounded_rate_limit_wait(self):
         throttle = (
             "请求过于频繁，请稍等几分钟后再重试\n"
