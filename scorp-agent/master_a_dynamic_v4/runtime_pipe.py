@@ -191,7 +191,15 @@ class RuntimePipeServer:
         try:
             connection = current.accept()
             try:
-                raw = connection.recv_bytes(self.max_message_bytes + 1)
+                try:
+                    raw = connection.recv_bytes(self.max_message_bytes + 1)
+                except (OSError, EOFError):
+                    # A real AF_PIPE endpoint can reject an oversized frame
+                    # before it reaches ``handle_bytes``.  There is then no
+                    # trustworthy request identity with which to construct a
+                    # response.  Close only this connection and keep the
+                    # listener alive for the next bounded request.
+                    return
                 connection.send_bytes(self.handle_bytes(raw))
             finally:
                 connection.close()

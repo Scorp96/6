@@ -83,6 +83,38 @@ class RuntimePipeTests(unittest.TestCase):
         self.assertEqual("REJECTED", response["status"])
         self.assertEqual("ACTOR_SCOPE_MISMATCH", response["error"]["code"])
 
+    def test_serve_once_closes_connection_when_transport_rejects_oversized_frame(self):
+        server = RuntimePipeServer(self.service, project_id="p1", authkey=self.authkey, actor="gpt-master")
+
+        class Connection:
+            def __init__(self):
+                self.closed = False
+                self.sent = []
+
+            def recv_bytes(self, _max_length):
+                raise OSError("message too long")
+
+            def send_bytes(self, payload):
+                self.sent.append(payload)
+
+            def close(self):
+                self.closed = True
+
+        class Listener:
+            def __init__(self, connection):
+                self.connection = connection
+
+            def accept(self):
+                return self.connection
+
+        connection = Connection()
+        # A malformed/oversized frame has no trustworthy request identity. The
+        # server must fail closed by closing that connection, not by killing
+        # the listener loop or manufacturing a success response.
+        server.serve_once(Listener(connection))
+        self.assertTrue(connection.closed)
+        self.assertEqual([], connection.sent)
+
     @unittest.skipUnless(os.name == "nt", "Windows Named Pipe transport")
     def test_real_named_pipe_round_trip_uses_authenticated_connection(self):
         scoped_project = "p1-" + uuid.uuid4().hex[:12]
