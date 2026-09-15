@@ -22,11 +22,67 @@ class FakeCli:
         return self.responses.pop(0)
 
 
+class FailingCli(FakeCli):
+    def __init__(self, responses, *, fail_on):
+        super().__init__(responses)
+        self.fail_on = list(fail_on)
+
+    async def run_json(self, session, *args, timeout_seconds=30):
+        if list(args) == self.fail_on:
+            self.calls.append((session, list(args), timeout_seconds))
+            raise RuntimeError("simulated chrome-use failure")
+        return await super().run_json(session, *args, timeout_seconds=timeout_seconds)
+
+
 def snapshot(text, refs=None):
     return {"data": {"refs": refs or {}, "snapshot": text}}
 
 
 class RateLimitRecoveryV4Tests(unittest.TestCase):
+    def test_ack_failure_fails_closed_without_retrying_or_raising(self):
+        cli = FailingCli(
+            [snapshot(
+                "请求过于频繁，请稍等几分钟后再重试",
+                {"e42": {"name": "确定", "role": "button"}},
+            )],
+            fail_on=["click", "@e42"],
+        )
+        with tempfile.TemporaryDirectory() as td:
+            driver = ChromeUseActorDriverV3(cli, pathlib.Path(td) / "state.json")
+            result = asyncio.run(driver.recover_rate_limit_dialog("worker-session", max_wait_seconds=0))
+        self.assertEqual("BLOCKED", result["status"])
+        self.assertEqual("RATE_LIMIT_ACK_FAILED", result["reason"])
+        self.assertEqual([["snapshot", "-i"], ["click", "@e42"]], [args for _, args, _ in cli.calls])
+
+    def test_recovery_read_failure_fails_closed_without_refresh_or_retry(self):
+        cli = FailingCli(
+            [
+                snapshot(
+                    "请求过于频繁，请稍等几分钟后再重试",
+                    {"e42": {"name": "确定", "role": "button"}},
+                ),
+                {"success": True},
+            ],
+            fail_on=["snapshot", "-i"],
+        )
+        # Fail only the second snapshot: the initial preflight must still be read.
+        calls = {"snapshot": 0}
+
+        async def fail_after_initial(session, *args, timeout_seconds=30):
+            if list(args[:1]) == ["snapshot"]:
+                calls["snapshot"] += 1
+                if calls["snapshot"] == 2:
+                    raise RuntimeError("simulated snapshot failure")
+            return await FakeCli.run_json(cli, session, *args, timeout_seconds=timeout_seconds)
+
+        cli.run_json = fail_after_initial
+        with tempfile.TemporaryDirectory() as td:
+            driver = ChromeUseActorDriverV3(cli, pathlib.Path(td) / "state.json")
+            result = asyncio.run(driver.recover_rate_limit_dialog("worker-session", max_wait_seconds=0))
+        self.assertEqual("BLOCKED", result["status"])
+        self.assertEqual("RATE_LIMIT_RECOVERY_READ_FAILED", result["reason"])
+        self.assertEqual(0, len([args for _, args, _ in cli.calls if args[:1] == ["reload"]]))
+
     def test_acknowledges_known_dialog_once_then_waits_for_authenticated_page(self):
         cli = FakeCli([
             snapshot(

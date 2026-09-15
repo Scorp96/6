@@ -614,7 +614,14 @@ class ChromeUseActorDriverV3:
                 timeout_seconds=self.timeout_seconds,
             )
 
-        payload = await read_snapshot()
+        try:
+            payload = await read_snapshot()
+        except Exception as exc:
+            return {
+                "status": "BLOCKED",
+                "reason": "RATE_LIMIT_INITIAL_READ_FAILED",
+                "error": str(exc),
+            }
         text = _render_payload(payload)
         if not chatgpt_throttle_visible(text):
             return {
@@ -631,11 +638,27 @@ class ChromeUseActorDriverV3:
                 "error": str(exc),
                 "snapshot_sha256": _sha(text),
             }
-        await self.cli.run_json(session, "click", ack_ref, timeout_seconds=self.timeout_seconds)
+        try:
+            await self.cli.run_json(session, "click", ack_ref, timeout_seconds=self.timeout_seconds)
+        except Exception as exc:
+            return {
+                "status": "BLOCKED",
+                "reason": "RATE_LIMIT_ACK_FAILED",
+                "error": str(exc),
+                "snapshot_sha256": _sha(text),
+            }
 
         deadline = self.clock() + max_wait
         while True:
-            payload = await read_snapshot()
+            try:
+                payload = await read_snapshot()
+            except Exception as exc:
+                return {
+                    "status": "BLOCKED",
+                    "reason": "RATE_LIMIT_RECOVERY_READ_FAILED",
+                    "error": str(exc),
+                    "snapshot_sha256": _sha(text),
+                }
             text = _render_payload(payload)
             classification = classify_chatgpt_snapshot(text, session)
             if classification["status"] == "AUTHENTICATED":
