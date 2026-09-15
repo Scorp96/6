@@ -80,7 +80,7 @@ Master A 是由 SQLite project、master epoch、checkpoint 和 evidence 绑定�
 
 Scheduler 使用最多两个动态 Worker slot，assignment、lease、task dependency、resource scope、generation 和 fencing token 均持久化。Worker 不是固定 B/C 角色，旧 lease 结果不能直接改变权威状态。
 
-离线测试证明动态任务图和槽位复用；当前候选还通过了一次新的真实双 Worker 无害 Canary，两个独立会话均捕获响应且没有重复提交。该证据只覆盖固定连通性提示，不覆盖真实代码任务或长时间稳定性，不能由 `max_workers=2` 单独推断业务闭环已通过。
+离线测试证明动态任务图和槽位复用；前置候选曾在真实双 Worker 无害 Canary 中捕获两个独立会话响应且没有重复提交，但该证据不能绑定当前候选。当前候选尚未运行 live canary；固定连通性提示也不覆盖真实代码任务或长时间稳定性，不能由 `max_workers=2` 单独推断业务闭环已通过。
 
 ## CURRENT_BROWSER_MODEL
 
@@ -136,7 +136,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 - Runtime 已有 stdin/stdout transport，并有经过真实 Windows 进程回环测试的 connector facade、Named Pipe 客户端、服务端和一次性/有界 launcher；尚无正式 approved ChatGPT host connector 或生产 listener 注册。
 - daemon 有监督和恢复 seam，但没有生产 Scheduled Task 证据。
-- Master/Worker browser actor lifecycle 有持久化边界；当前候选已通过固定无害双 Worker 提交和响应捕获，真实代码工作负载仍未验证。
+- Master/Worker browser actor lifecycle 有持久化边界；前置候选曾通过固定无害双 Worker 提交和响应捕获，但该证据不能绑定当前候选；当前候选真实代码工作负载仍未验证。
 - session lifecycle 有精确 retire API，但现有 Chrome 中历史 tab/session 数量仍较多。
 - 迁移代码存在，但当前已存在的旧数据库尚未被本轮迁移为生产候选。
 
@@ -167,7 +167,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 - P0 durable command/fencing invariants：通过当前离线测试验证。
 - P0 no arbitrary shell：通过协议拒绝和 CLI 边界测试验证。
-- P0 no blind retry：代码和离线故障注入覆盖；c205 历史 live canary 在浏览器状态歧义处 fail-closed，未重试；当前候选固定 Canary 已正常完成并回收。
+- P0 no blind retry：代码和离线故障注入覆盖；c205 与 5bf7953 的历史 live canary 在浏览器状态歧义处 fail-closed，未重试；当前候选尚未执行 live canary。
 - P0 ambiguous intent fence：scheduler 现在拒绝在 `MAY_HAVE_SUBMITTED` 或 `BLOCKED_AMBIGUOUS` 存在时创建新的普通 assignment。
 - P0 operator fence admission：`PAUSED`、`SUPERSEDED`、`CANCELLED` 和 `EMERGENCY_STOPPED` 状态拒绝新的 task graph admission。
 - P0 missing authority：缺失 `operator_controls` 时，新的 graph/assignment admission fail-closed。
@@ -199,7 +199,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 - Windows 已登录交互会话。
 - ChatGPT 有效登录和有效订阅。
-- 当前没有 rate-limit、CAPTCHA、security challenge 或必须人工处理的认证交互。
+- 当前存在 ChatGPT rate-limit blocker；在只读证据确认清除前，不得发送、刷新、创建新 session 或重放历史 intent。CAPTCHA、security challenge 或其他必须人工处理的认证交互同样保持阻塞。
 - Chrome Use executable、driver state 和目标 tab 绑定可核对。
 - 发送前必须有当前候选 SHA、只读 preflight、明确授权和 fresh evidence。
 
@@ -226,4 +226,4 @@ Phase 1 的代码、测试和隔离文档已完成并通过离线回归；当前
 
 - 本候选新增 Daemon 动作前租约栅栏：初始观测之后再次确认当前 Daemon lease；失效时不写入 activation decision、不派发动作，返回 BLOCKED。
 
-- 最新 Windows/仓库/进程/任务路径基线见 `SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`；当前候选代码和 live evidence 以 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`、`SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json` 和 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json` 为准。生产 bridge worker/任务状态没有被本轮改变，生产 P0-02 和生产切换仍未验收。
+- 最新 Windows/仓库/进程/任务路径基线见 `SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`；当前候选代码和 live gate 以 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json` 及 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_A00AC7F_20260915.json` 为准。`SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json` 和 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json` 明确属于前置候选历史证据，不能绑定当前候选。生产 bridge worker/任务状态没有被本轮改变，生产 P0-02 和生产切换仍未验收。
