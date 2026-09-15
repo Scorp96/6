@@ -75,6 +75,32 @@ class V4WebGptPacketTests(unittest.TestCase):
             self.assertEqual("BLOCKED", result["status"])
             self.assertEqual("CANDIDATE_VERSION_MISMATCH", result["blockers"][0]["code"])
 
+    def test_packet_blocks_when_declared_manifest_binds_a_different_candidate(self):
+        packet = load_packet()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            database = self._fixture(root)
+            manifest_path = root / "docs" / "handoffs" / "manifest.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "format": "scorp-v4-candidate-manifest/1",
+                        "candidate_commit": "b" * 40,
+                        "source_tree": str(root),
+                        "files": {"placeholder": {"sha256": "0" * 64, "size": 0}},
+                        "manifest_sha256": "0" * 64,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            handoff_path = root / "docs" / "handoffs" / "SCORP_V4_WEB_GPT_HANDOFF.json"
+            handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+            handoff["evidence_binding"]["candidate_manifest"] = "docs/handoffs/manifest.json"
+            handoff_path.write_text(json.dumps(handoff), encoding="utf-8")
+            result = packet.build_packet(root, database_path=database, allowed_root=root)
+            self.assertEqual("BLOCKED", result["status"])
+            self.assertEqual("CANDIDATE_MANIFEST_MISMATCH", result["blockers"][0]["code"])
+
 
 if __name__ == "__main__":
     unittest.main()

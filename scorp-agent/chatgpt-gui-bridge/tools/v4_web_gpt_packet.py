@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -106,6 +107,47 @@ def _current_live_gate(validation: dict[str, Any], candidate: str) -> dict[str, 
     return gate
 
 
+def _validate_declared_manifest(
+    root: pathlib.Path,
+    reference: Any,
+    candidate: str,
+) -> dict[str, Any] | None:
+    """Validate the optional manifest binding before marking a packet READY."""
+
+    if not reference:
+        return None
+    raw = pathlib.Path(str(reference))
+    if raw.is_absolute():
+        path = raw.resolve()
+    else:
+        path = (root / raw).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return {"code": "CANDIDATE_MANIFEST_PATH_ESCAPE", "path": str(reference)}
+    try:
+        manifest = _read_json(path)
+    except RuntimeError:
+        return {"code": "CANDIDATE_MANIFEST_INVALID", "path": str(reference)}
+    if str(manifest.get("candidate_commit") or "").strip().lower() != candidate:
+        return {
+            "code": "CANDIDATE_MANIFEST_MISMATCH",
+            "path": str(reference),
+            "declared_candidate": str(manifest.get("candidate_commit") or ""),
+            "validated_candidate": candidate,
+        }
+    try:
+        core = {key: manifest[key] for key in ("format", "candidate_commit", "source_tree", "files")}
+        expected_hash = hashlib.sha256(
+            json.dumps(core, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+    except (KeyError, TypeError, ValueError):
+        return {"code": "CANDIDATE_MANIFEST_INVALID", "path": str(reference)}
+    if str(manifest.get("manifest_sha256") or "").strip().lower() != expected_hash:
+        return {"code": "CANDIDATE_MANIFEST_HASH_MISMATCH", "path": str(reference)}
+    return None
+
+
 def _prompt(candidate: str, status: str) -> str:
     return f"""You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.
 
@@ -143,6 +185,9 @@ def build_packet(
     handoff = _read_json(handoff_path)
     validated = _validated_commit(validation)
     declared = str(handoff.get("candidate_commit", ""))
+    evidence_binding = handoff.get("evidence_binding")
+    if not isinstance(evidence_binding, dict):
+        evidence_binding = {}
     blockers: list[dict[str, Any]] = []
     if not validated or declared != validated:
         blockers.append(
@@ -152,6 +197,13 @@ def build_packet(
                 "validated_candidate": validated,
             }
         )
+    manifest_blocker = _validate_declared_manifest(
+        root,
+        evidence_binding.get("candidate_manifest"),
+        validated or declared,
+    )
+    if manifest_blocker is not None:
+        blockers.append(manifest_blocker)
 
     preflight = _load_preflight_module().build_report(
         root,
@@ -175,7 +227,7 @@ def build_packet(
         "evidence_binding": {
             "validation_record": validation_record,
             "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
-            "candidate_manifest": handoff.get("evidence_binding", {}).get("candidate_manifest"),
+            "candidate_manifest": evidence_binding.get("candidate_manifest"),
         },
         # Keep the transient browser gate in the single-file packet so an
         # ordinary web GPT does not mistake a ready-to-upload handoff for a
