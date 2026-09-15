@@ -36,7 +36,7 @@ from master_a_dynamic_v4.master_supervisor import (  # noqa: E402
     SupervisorLoopResult,
 )
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
-from v4_auth import classify_chatgpt_snapshot  # noqa: E402
+from v4_auth import classify_chatgpt_snapshot, probe_chatgpt_auth  # noqa: E402
 
 
 DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
@@ -135,11 +135,30 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _auth_probe(cli: Any, project_id: str):
+def _auth_probe(
+    cli: Any,
+    project_id: str,
+    *,
+    driver: Any | None = None,
+    recovery_wait_seconds: float = 300,
+    recovery_poll_seconds: float = 5,
+):
     async def probe(channel: str) -> dict[str, Any]:
         session = "scorp-v4-master-auth-" + hashlib.sha256(project_id.encode("utf-8")).hexdigest()[:12]
         try:
             await cli.run_json(session, "open", "https://chatgpt.com/", timeout_seconds=30)
+        except Exception as exc:
+            return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
+        if driver is not None:
+            return await probe_chatgpt_auth(
+                cli,
+                driver,
+                session,
+                channel,
+                recovery_wait_seconds=recovery_wait_seconds,
+                recovery_poll_seconds=recovery_poll_seconds,
+            )
+        try:
             page = await cli.run_json(session, "read", timeout_seconds=30)
         except Exception as exc:
             return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
@@ -172,7 +191,7 @@ def _build_rebind_callback(args: argparse.Namespace, gateway: V4BridgeGateway):
         store=gateway.store,
         browser_adapter=gateway.adapter,
         driver=driver,
-        auth_probe=_auth_probe(cli, str(args.project_id)),
+        auth_probe=_auth_probe(cli, str(args.project_id), driver=driver),
         project_id=str(args.project_id),
         channel="master",
         actor_id="A",

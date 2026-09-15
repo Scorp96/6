@@ -21,6 +21,40 @@ def load_runtime():
 
 
 class MasterSupervisorRuntimeTests(unittest.TestCase):
+    def test_auth_probe_recovers_rate_limit_before_classifying_authenticated(self):
+        runtime = load_runtime()
+
+        class Cli:
+            def __init__(self):
+                self.reads = 0
+
+            async def run_json(self, _session, *args, timeout_seconds=30):
+                self.assert_timeout = timeout_seconds
+                if list(args)[:1] == ["read"]:
+                    self.reads += 1
+                    if self.reads == 1:
+                        return {"snapshot": "请求过于频繁，请稍等几分钟后再重试"}
+                    return {"snapshot": "ChatGPT Plus\\nReady"}
+                if list(args)[:1] == ["open"]:
+                    return {"ok": True}
+                raise AssertionError(args)
+
+        class Driver:
+            def __init__(self):
+                self.calls = []
+
+            async def recover_rate_limit_dialog(self, session, **kwargs):
+                self.calls.append((session, kwargs))
+                return {"status": "RECOVERED", "reason": "RATE_LIMIT_DIALOG_CLEARED"}
+
+        cli = Cli()
+        driver = Driver()
+        probe = runtime._auth_probe(cli, "project-1", driver=driver)
+        result = __import__("asyncio").run(probe("master"))
+        self.assertEqual("AUTHENTICATED", result["status"])
+        self.assertEqual(1, len(driver.calls))
+        self.assertEqual("RECOVERED", result["rate_limit_recovery"]["status"])
+
     def test_journal_persists_one_machine_readable_decision(self):
         runtime = load_runtime()
         decision = runtime.SupervisorDecision(
