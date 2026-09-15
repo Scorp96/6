@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 _UNSET = object()
 
 
@@ -124,6 +124,16 @@ class StateStore:
             if "heartbeat_at" not in lease_columns:
                 conn.execute("ALTER TABLE leases ADD COLUMN heartbeat_at TEXT")
                 conn.execute("UPDATE leases SET heartbeat_at=acquired_at WHERE heartbeat_at IS NULL")
+            daemon_lease_columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(daemon_leases)").fetchall()
+            }
+            if "lease_status" not in daemon_lease_columns:
+                conn.execute(
+                    "ALTER TABLE daemon_leases ADD COLUMN lease_status TEXT NOT NULL DEFAULT 'ACTIVE' "
+                    "CHECK (lease_status IN ('ACTIVE', 'RELEASED'))"
+                )
+            if "released_at" not in daemon_lease_columns:
+                conn.execute("ALTER TABLE daemon_leases ADD COLUMN released_at TEXT")
             rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
             if not rows:
                 conn.execute("BEGIN IMMEDIATE")
@@ -190,10 +200,24 @@ class StateStore:
                     conn.rollback()
                     raise
                 versions = versions + [5]
+            if versions in ([1, 2, 3, 4, 5], [3, 4, 5], [4, 5], [5]) and SCHEMA_VERSION >= 6:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (6, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = versions + [6]
             valid_versions = {
                 tuple(range(1, SCHEMA_VERSION + 1)),
                 (SCHEMA_VERSION,),
-                (3, 4, 5),
+                (3, 4, 5, 6),
+                (4, 5, 6),
+                (5, 6),
             }
             if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")
@@ -710,15 +734,17 @@ class StateStore:
             if conn.execute("SELECT 1 FROM project_state WHERE project_id=?", (project,)).fetchone() is None:
                 raise StoreInvariantError("PROJECT_NOT_FOUND")
             existing = conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone()
-            if existing is not None and str(existing["lease_until"]) > stamp:
+            existing_status = str(existing["lease_status"] or "ACTIVE") if existing is not None else None
+            if existing is not None and existing_status == "ACTIVE" and str(existing["lease_until"]) > stamp:
                 if str(existing["owner_id"]) != owner:
                     raise StoreInvariantError("DAEMON_LEASE_ACTIVE")
                 conn.execute(
-                    "UPDATE daemon_leases SET heartbeat_at=?,lease_until=? WHERE project_id=? AND owner_id=? AND daemon_epoch=?",
+                    "UPDATE daemon_leases SET heartbeat_at=?,lease_until=?,lease_status='ACTIVE',released_at=NULL "
+                    "WHERE project_id=? AND owner_id=? AND daemon_epoch=?",
                     (stamp, lease_until, project, owner, int(existing["daemon_epoch"])),
                 )
                 return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
-            if existing is not None:
+            if existing is not None and existing_status == "ACTIVE":
                 # An expired lease is the durable evidence available to the
                 # next process after an unclean daemon stop.  Record the
                 # restart before installing the new epoch; the new owner is
@@ -738,7 +764,9 @@ class StateStore:
                     daemon_epoch=excluded.daemon_epoch,
                     owner_id=excluded.owner_id,
                     heartbeat_at=excluded.heartbeat_at,
-                    lease_until=excluded.lease_until
+                    lease_until=excluded.lease_until,
+                    lease_status='ACTIVE',
+                    released_at=NULL
                 """,
                 (project, epoch, owner, stamp, lease_until),
             )
@@ -777,11 +805,60 @@ class StateStore:
                 raise StoreInvariantError("DAEMON_LEASE_NOT_FOUND")
             if str(row["owner_id"]) != owner or int(row["daemon_epoch"]) != int(daemon_epoch):
                 raise StoreInvariantError("DAEMON_LEASE_FENCED")
+            if str(row["lease_status"] or "ACTIVE") != "ACTIVE":
+                raise StoreInvariantError("DAEMON_LEASE_FENCED")
             if str(row["lease_until"]) <= stamp:
                 raise StoreInvariantError("DAEMON_LEASE_EXPIRED")
             conn.execute(
-                "UPDATE daemon_leases SET heartbeat_at=?,lease_until=? WHERE project_id=? AND owner_id=? AND daemon_epoch=?",
+                "UPDATE daemon_leases SET heartbeat_at=?,lease_until=?,lease_status='ACTIVE',released_at=NULL "
+                "WHERE project_id=? AND owner_id=? AND daemon_epoch=?",
                 (stamp, lease_until, project, owner, int(daemon_epoch)),
+            )
+            return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
+
+    def release_daemon_lease(
+        self,
+        project_id: str,
+        owner_id: str,
+        *,
+        daemon_epoch: int,
+        now: dt.datetime | None = None,
+    ) -> dict[str, Any]:
+        """Release a live daemon lease without recording a crash.
+
+        The lease row remains durable so the fencing epoch stays monotonic.
+        A later owner can acquire the next epoch, while an uncleanly expired
+        ACTIVE lease still records a restart in ``daemon_supervision``.
+        """
+        project = str(project_id or "").strip()
+        owner = str(owner_id or "").strip()
+        if not project or not owner or int(daemon_epoch) < 1:
+            raise StoreInvariantError("DAEMON_RELEASE_INVALID")
+        stamp = self._aware_time(now).isoformat().replace("+00:00", "Z")
+        with self._transaction() as conn:
+            row = conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone()
+            if row is None:
+                raise StoreInvariantError("DAEMON_LEASE_NOT_FOUND")
+            if str(row["owner_id"]) != owner or int(row["daemon_epoch"]) != int(daemon_epoch):
+                raise StoreInvariantError("DAEMON_LEASE_FENCED")
+            if str(row["lease_status"] or "ACTIVE") != "ACTIVE":
+                return dict(row)
+            if str(row["lease_until"]) <= stamp:
+                raise StoreInvariantError("DAEMON_LEASE_EXPIRED")
+            conn.execute(
+                "UPDATE daemon_leases SET lease_status='RELEASED',released_at=?,lease_until=? "
+                "WHERE project_id=? AND owner_id=? AND daemon_epoch=?",
+                (stamp, stamp, project, owner, int(daemon_epoch)),
+            )
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"daemon-lease-release-{project}-{daemon_epoch}",
+                    project,
+                    "DAEMON_LEASE_RELEASED",
+                    canonical_json({"daemon_epoch": int(daemon_epoch), "owner_id": owner}),
+                    stamp,
+                ),
             )
             return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
 
@@ -1535,7 +1612,7 @@ class StateStore:
                 "SELECT * FROM runtime_observations WHERE project_id=?", (project,)
             ).fetchone()
             daemon = conn.execute(
-                "SELECT daemon_epoch,owner_id,heartbeat_at,lease_until FROM daemon_leases WHERE project_id=?",
+                "SELECT daemon_epoch,owner_id,heartbeat_at,lease_until,lease_status,released_at FROM daemon_leases WHERE project_id=?",
                 (project,),
             ).fetchone()
             supervision = conn.execute(

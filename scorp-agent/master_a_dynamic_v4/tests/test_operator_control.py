@@ -75,6 +75,15 @@ class OperatorControlTests(unittest.TestCase):
         self.assertEqual("DAEMON_EPOCH_CONFLICT", wrong_epoch["error"]["code"])
         self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
 
+    def test_released_daemon_epoch_cannot_authorize_runtime_mutation(self):
+        self.store.release_daemon_lease(
+            "p1", "daemon-1", daemon_epoch=self.lease["daemon_epoch"]
+        )
+        response = self.service.execute(self.request("released", "project.pause"))
+        self.assertEqual("REJECTED", response["status"])
+        self.assertEqual("DAEMON_EPOCH_CONFLICT", response["error"]["code"])
+        self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
+
     def test_resume_cancel_and_supersede_advance_generations(self):
         self.assertEqual("OK", self.service.execute(self.request("p", "project.pause"))["status"])
         self.assertEqual("OK", self.service.execute(self.request("r", "project.resume", state_version=1))["status"])

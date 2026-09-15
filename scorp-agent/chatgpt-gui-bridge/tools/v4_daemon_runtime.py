@@ -83,6 +83,8 @@ def run_runtime(args: argparse.Namespace) -> int:
 
     store = StateStore(database_path, [allowed_root])
     supervisor_gateway = None
+    lease = None
+    graceful_exit = False
     try:
         recovery_gate = store.daemon_recovery_gate(str(args.project_id))
         if recovery_gate["status"] != "ALLOWED":
@@ -154,8 +156,15 @@ def run_runtime(args: argparse.Namespace) -> int:
             "master_supervision": master_supervision,
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        graceful_exit = True
         return 0 if health["status"] in {"HEALTHY", "TERMINAL"} else 2
     finally:
+        if graceful_exit and lease is not None:
+            store.release_daemon_lease(
+                str(args.project_id),
+                str(args.actor_id),
+                daemon_epoch=int(lease["daemon_epoch"]),
+            )
         if supervisor_gateway is not None:
             supervisor_gateway.close()
         store.close()

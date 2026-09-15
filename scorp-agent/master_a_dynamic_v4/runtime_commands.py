@@ -121,7 +121,7 @@ class RuntimeCommandService:
             if project is None:
                 raise StoreInvariantError("PROJECT_NOT_FOUND")
             daemon = conn.execute(
-                "SELECT daemon_epoch,owner_id,heartbeat_at,lease_until FROM daemon_leases WHERE project_id=?",
+                "SELECT daemon_epoch,owner_id,heartbeat_at,lease_until,lease_status,released_at FROM daemon_leases WHERE project_id=?",
                 (project_id,),
             ).fetchone()
             supervision = conn.execute(

@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS daemon_leases (
     daemon_epoch INTEGER NOT NULL CHECK (daemon_epoch >= 1),
     owner_id TEXT NOT NULL,
     heartbeat_at TEXT NOT NULL,
-    lease_until TEXT NOT NULL
+    lease_until TEXT NOT NULL,
+    lease_status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (lease_status IN ('ACTIVE', 'RELEASED')),
+    released_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS daemon_supervision (

@@ -48,18 +48,45 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             db = root / "state.sqlite3"
             store = StateStore(db, [root])
             store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.acquire_daemon_lease("p", "holder", ttl_seconds=60)
             store.close()
             common = [
                 "--database-path", str(db), "--allowed-root", str(root),
                 "--project-id", "p", "--daemon-epoch", "1", "--max-iterations", "1",
             ]
             first = runtime.build_parser().parse_args(common + ["--actor-id", "daemon-a", "--health-path", str(root / "a.json")])
-            with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(2, runtime.run_runtime(first))
+            with self.assertRaisesRegex(StoreInvariantError, "DAEMON_LEASE_ACTIVE"):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    runtime.run_runtime(first)
             second = runtime.build_parser().parse_args(common + ["--actor-id", "daemon-b", "--health-path", str(root / "b.json")])
             with self.assertRaisesRegex(StoreInvariantError, "DAEMON_LEASE_ACTIVE"):
                 with contextlib.redirect_stdout(io.StringIO()):
                     runtime.run_runtime(second)
+
+    def test_one_shot_runtime_releases_its_lease_for_a_later_owner(self):
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.close()
+            common = [
+                "--database-path", str(db), "--allowed-root", str(root),
+                "--project-id", "p", "--max-iterations", "1",
+            ]
+            first = runtime.build_parser().parse_args(common + ["--actor-id", "daemon-a", "--health-path", str(root / "a.json")])
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(2, runtime.run_runtime(first))
+            second = runtime.build_parser().parse_args(common + ["--actor-id", "daemon-b", "--health-path", str(root / "b.json")])
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(2, runtime.run_runtime(second))
+            self.assertEqual(2, json.loads(output.getvalue())["daemon_epoch"])
+            with StateStore(db, [root]) as reopened:
+                self.assertEqual(0, reopened.get_daemon_supervision("p")["restart_count"])
 
     def test_runtime_can_acquire_current_epoch_without_static_epoch_argument(self):
         from master_a_dynamic_v4.state_store import StateStore

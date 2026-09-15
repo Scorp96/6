@@ -74,7 +74,14 @@ class OperatorControlService:
                 control = conn.execute(
                     "SELECT * FROM operator_controls WHERE project_id=?", (request.project_id,)
                 ).fetchone()
-                if daemon is None or int(daemon["daemon_epoch"]) != int(request.expected_daemon_epoch):
+                daemon_status = str(daemon["lease_status"] or "ACTIVE") if daemon is not None else "MISSING"
+                daemon_until = str(daemon["lease_until"] or "") if daemon is not None else ""
+                if (
+                    daemon is None
+                    or int(daemon["daemon_epoch"]) != int(request.expected_daemon_epoch)
+                    or daemon_status != "ACTIVE"
+                    or daemon_until <= now
+                ):
                     return self._reject_and_record(
                         conn, request, receipt_id, state, control, "DAEMON_EPOCH_CONFLICT", now
                     )

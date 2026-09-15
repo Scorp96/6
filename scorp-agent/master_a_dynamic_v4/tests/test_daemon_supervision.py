@@ -68,6 +68,32 @@ class DaemonSupervisionTests(unittest.TestCase):
                 "p1", "daemon-c", now=start + dt.timedelta(seconds=3, milliseconds=1), ttl_seconds=2
             )
 
+    def test_graceful_release_advances_epoch_without_counting_a_crash(self):
+        start = dt.datetime(2026, 9, 15, tzinfo=dt.timezone.utc)
+        first = self.store.acquire_daemon_lease("p1", "daemon-a", now=start, ttl_seconds=2)
+        released = self.store.release_daemon_lease(
+            "p1", "daemon-a", daemon_epoch=first["daemon_epoch"], now=start + dt.timedelta(seconds=1)
+        )
+        self.assertEqual("RELEASED", released["lease_status"])
+        second = self.store.acquire_daemon_lease(
+            "p1", "daemon-b", now=start + dt.timedelta(seconds=30), ttl_seconds=2
+        )
+        self.assertEqual(2, second["daemon_epoch"])
+        supervision = self.store.get_daemon_supervision("p1")
+        self.assertEqual(0, supervision["restart_count"])
+
+    def test_release_is_fenced_and_cannot_release_an_expired_or_replaced_owner(self):
+        start = dt.datetime(2026, 9, 15, tzinfo=dt.timezone.utc)
+        first = self.store.acquire_daemon_lease("p1", "daemon-a", now=start, ttl_seconds=2)
+        with self.assertRaisesRegex(StoreInvariantError, "DAEMON_LEASE_FENCED"):
+            self.store.release_daemon_lease(
+                "p1", "daemon-b", daemon_epoch=first["daemon_epoch"], now=start + dt.timedelta(seconds=1)
+            )
+        with self.assertRaisesRegex(StoreInvariantError, "DAEMON_LEASE_EXPIRED"):
+            self.store.release_daemon_lease(
+                "p1", "daemon-a", daemon_epoch=first["daemon_epoch"], now=start + dt.timedelta(seconds=3)
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
