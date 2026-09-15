@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "79610ae3f3864e133f750f0c9dfde40b17a91def",
-  "implementation_commit": "3bec96b1b68a9a0d94dfe470221978260804ba50",
+  "implementation_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 508,
+        "count": 509,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -62,7 +62,7 @@
       },
       "current_candidate_canary": {
         "result": "NOT_RUN_AFTER_CODE_CHANGE",
-        "reason": "避免把旧提交的浏览器结果继承给 9aacd7c；没有盲目重发。"
+        "reason": "避免把旧提交的浏览器结果继承给 9843a68；没有盲目重发。"
       }
     },
     "accepted": false,
@@ -139,7 +139,7 @@
     "bounded connector descriptor and fail-closed validator",
     "current live Canary requires exact candidate commit, manifest, and manifest hash before browser I/O",
     "live Canary uses alphanumeric response tokens with strict exact matching",
-    "Windows MCP Worker pre-input rate-limit dialog recovery clicks one recognized acknowledgement, waits up to five minutes, refreshes at most once, and never resends ambiguously",
+    "Windows MCP Worker pre-input rate-limit dialog recovery clicks one recognized acknowledgement, waits up to five minutes, refreshes at most once, and never resends ambiguously; recovery is reported only after a unique composer textbox is present",
     "blocked Worker result cannot execute its embedded local request; non-COMPLETE results remain BLOCKED",
     "ambiguous browser submit observations retain a valid observed conversation URL for read-only reconciliation",
     "runtime mutation receipt durability failure returns machine-readable ERROR after transaction rollback"
@@ -151,14 +151,14 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "full product completion gate with release identity and production candidate remains unaccepted",
     "真实请求限制弹窗分支仍未获得 LIVE_VERIFIED；本次当前候选 canary 未出现限制弹窗，未人为制造该外部状态",
-    "current 9aacd7c live browser canary and real-code workload were not rerun after code changes",
+    "current 9843a68 live browser canary and real-code workload were not rerun after code changes",
     "second request-limit requirement was not specified"
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_3BEC96B.json",
-    "sha256": "4d1f81366bcdf65fdbab513c1607b12c9403fc88752b342d6aa3f62691b762b2",
-    "manifest_sha256": "a81b1eb161fc29084696e726481fe41010055a9d1d44c15e4c0f24f20b2631c5",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E7CA0AE.json",
+    "sha256": "cdd4c1b8156b4f89cb8b2732d8bd48154cd2d7044476318a213155c15c542efd",
+    "manifest_sha256": "d3b10a0e762541b9fdb86dbb7fbb6a533a057f60ff38061f63a8b853a8f87698",
     "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
@@ -185,7 +185,7 @@
     },
     "gui_bridge_tests": {
       "result": "PASS",
-      "count": 508,
+      "count": 509,
       "pythonpath": [
         "scorp-agent",
         "scorp-agent/chatgpt-gui-bridge"

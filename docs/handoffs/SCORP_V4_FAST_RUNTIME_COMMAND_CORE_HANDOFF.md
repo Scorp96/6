@@ -1,6 +1,6 @@
 # SCORP V4 Fast Local Runtime Command Core
 
-这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `3bec96b1b68a9a0d94dfe470221978260804ba50`，文档与证据提交为 `2e1dcf8` 及后续当前证据提交。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
+这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `e7ca0ae5a2b199557d77982d29705a87f6177899`，文档与证据提交为 `2e1dcf8` 及后续当前证据提交。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
 
 ## 运行
 
@@ -48,7 +48,7 @@ daemon lease 获取 epoch。显式提供 epoch 仍会执行 fence 检查，旧 e
 `recover_rate_limit_dialog()`。它只在新鲜 Chrome Use 无障碍快照同时包含已知
 请求限制文案时，解析唯一的确认按钮（`确定`、`好的`、`明白`、`明白了`、
 `Got it`、`OK` 或 `Okay`）并点击一次；随后只读轮询页面，默认每 5 秒一次、
-最长 300 秒。页面恢复到已认证状态才返回 `RECOVERED`。按钮缺失/重复、登录、
+最长 300 秒。页面恢复到已认证状态且出现唯一可用输入框才返回 `RECOVERED`；页面仍在加载时继续只读等待。按钮缺失/重复、登录、
 验证码、未知页面或超时均保持 `BLOCKED`，不会填充、点击发送、强制盲刷新或
 重放之前不明确的浏览器提交。Master A 运行入口和双 Worker canary 的 auth
 probe 都经过这一边界；Worker 自己的新页面在填入前发现限流时也经过同一边界。
@@ -76,7 +76,7 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
-- LIVE_VERIFIED: Current candidate 3bec96b1b68a9a0d94dfe470221978260804ba50 was not sent through a new browser canary after the code change; the prior 83c07cc Chrome Use evidence is historical and cannot be inherited. This turn verified offline regression and candidate identity only.
+- LIVE_VERIFIED: Current candidate e7ca0ae5a2b199557d77982d29705a87f6177899 was not sent through a new browser canary after the code change; the prior 83c07cc Chrome Use evidence is historical and cannot be inherited. This turn verified offline regression and candidate identity only.
 - 请求限制 live preflight：当前候选真实 canary 仍没有出现限制弹窗，因此没有人为制造该外部状态；确认按钮、最多五分钟只读等待、必要时单次刷新和失败关闭已由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 

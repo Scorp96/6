@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 3bec96b1b68a9a0d94dfe470221978260804ba50 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_3BEC96B.json `
-  --manifest-sha256 a81b1eb161fc29084696e726481fe41010055a9d1d44c15e4c0f24f20b2631c5
+  --candidate-commit e7ca0ae5a2b199557d77982d29705a87f6177899 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E7CA0AE.json `
+  --manifest-sha256 d3b10a0e762541b9fdb86dbb7fbb6a533a057f60ff38061f63a8b853a8f87698
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -279,9 +279,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 3bec96b1b68a9a0d94dfe470221978260804ba50 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_3BEC96B.json `
-  --manifest-sha256 a81b1eb161fc29084696e726481fe41010055a9d1d44c15e4c0f24f20b2631c5 `
+  --candidate-commit e7ca0ae5a2b199557d77982d29705a87f6177899 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E7CA0AE.json `
+  --manifest-sha256 d3b10a0e762541b9fdb86dbb7fbb6a533a057f60ff38061f63a8b853a8f87698 `
   --send
 ```
 
@@ -569,7 +569,10 @@ one bounded recovery: click exactly one recognized acknowledgement control
 (`确定`, `明白了`, `Got it`, `OK`, or `Okay`), then poll read-only snapshots for
 at most 300 seconds (normally every 5 seconds); if the window expires while the
 dialog remains, it may refresh the page once and perform one final read-only
-check. If the dialog appears after a prompt was filled but before Send, the
+check. Recovery is reported only after the authenticated page also exposes a
+unique composer textbox; if the page is still loading, the driver keeps the
+check read-only within the same bound. If the dialog appears after a prompt was
+filled but before Send, the
 driver refills that same prompt using a fresh textbox reference after recovery
 and skips key-event retry. It does not force a prompt resend or bypass
 login/CAPTCHA. Missing or ambiguous acknowledgement controls, authentication
@@ -627,7 +630,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `3bec96b1b68a9a0d94dfe470221978260804ba50` (`fix(gui): wait for composer after rate-limit refresh`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes and the Windows MCP Worker pre-input page; the current candidate has not received a fresh live popup test. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, Worker evidence requirements, and result-envelope normalization are recorded in the current candidate evidence.
+- Current code candidate: `e7ca0ae5a2b199557d77982d29705a87f6177899` (`fix(gui): wait for composer after rate-limit refresh`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes and the Windows MCP Worker pre-input page; the current candidate has not received a fresh live popup test. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, Worker evidence requirements, and result-envelope normalization are recorded in the current candidate evidence.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
