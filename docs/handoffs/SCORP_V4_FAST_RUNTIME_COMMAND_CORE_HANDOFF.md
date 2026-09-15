@@ -66,7 +66,7 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 
 本轮现场状态的最新只读快照见
 `SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json`。该快照把代码候选
-`c4dea24612ee9352ac41b0e92f3dd7f39d807b5f` 与审计采集时的 checkout
+`f8c6f1f96f01096880125645dde99d0c5dfcbf60` 与审计采集时的 checkout
 头分别记录；后续文档提交不会改变该代码候选；旧的
 `SCORP_V4_PHASE0_LOCAL_AUDIT_424FFE3.json` 仅作为历史证据，不代表当前现场。
 

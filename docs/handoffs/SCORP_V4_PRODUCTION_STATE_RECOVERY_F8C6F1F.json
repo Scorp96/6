@@ -1,0 +1,80 @@
+{
+  "format": "scorp-v4-production-state-recovery/1",
+  "observed_at_utc": "2026-09-15T06:45:23.882098Z",
+  "repository": "Scorp96/6",
+  "candidate_commit": "f8c6f1f96f01096880125645dde99d0c5dfcbf60",
+  "incident": {
+    "classification": "ACCIDENTAL_PRODUCTION_STATE_WRITE",
+    "trigger": "StateStore was instantiated against the protected production SQLite path during a guard check; the pre-fix guard accepted a legacy schema_migrations marker and auto-applied V4 migrations.",
+    "production_path": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
+    "pre_incident_evidence": {
+      "audit_path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json",
+      "recorded_size": 180224,
+      "recorded_last_write_time_utc": "2026-09-14T08:28:20.4406658Z",
+      "recorded_state_changed": false,
+      "recorded_schema_note": "legacy snapshot missing current runtime tables"
+    },
+    "mutated_snapshot": {
+      "forensic_copy": "C:\\ScorpAgent\\v4-core-lab\\forensics\\production-v4-candidate-postincident-20260915.sqlite3",
+      "sha256": "83e05c4a998241eccfb3d40bc8ed209d6ac1cd17b3f19ee2faeb5d53f755564d",
+      "size": 245760,
+      "observed_migrations": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "observed_business_row_counts": "all zero"
+    }
+  },
+  "recovery": {
+    "status": "LOGICALLY_RESTORED",
+    "method": "Copied a clean old-schema template with the recorded production migration hash into an isolated recovery file, removed all non-migration rows in a local transaction, then replaced the production database after checking no daemon process held it.",
+    "recovery_source": "C:\\ScorpAgent\\v4-core-lab\\forensics\\production-v4-candidate-preincident-reconstructed.sqlite3",
+    "recovery_source_sha256": "09945e7bfe7cd29fea01bce6cfe26ff68b6bd44588617f73792a657a3254f1fc",
+    "production_after_sha256": "09945e7bfe7cd29fea01bce6cfe26ff68b6bd44588617f73792a657a3254f1fc",
+    "production_after_size": 188416,
+    "production_after_migrations": [
+      [
+        1,
+        "2c8d66a56e29061c816fb08ca94cedab955b2aaba3a0a3ceaf55870eaa4046f3"
+      ]
+    ],
+    "production_after_tables": [
+      "action_intents",
+      "assignments",
+      "browser_bindings",
+      "candidate_results",
+      "contracts",
+      "events",
+      "evidence_receipts",
+      "imported_snapshots",
+      "leases",
+      "outbox",
+      "project_state",
+      "release_candidates",
+      "review_deadlines",
+      "review_findings",
+      "schema_migrations",
+      "task_dependencies",
+      "task_nodes",
+      "transitions"
+    ],
+    "production_after_business_row_counts": "all zero",
+    "structural_comparison": "production and recovery source have identical table definitions, migration rows, row counts, and schema digest",
+    "byte_exact_preincident_proof": false
+  },
+  "controls_added_after_incident": [
+    "StateStore now rejects any existing SQLite missing the complete current V4 required-table signature, even when schema_migrations exists.",
+    "Regression test covers an incomplete V4 snapshot with a legacy migration marker.",
+    "Future migration must be an explicit, separately auditable operation."
+  ],
+  "acceptance": {
+    "test_verified": "PASS",
+    "live_verified": "BLOCKED",
+    "accepted": false,
+    "note": "Recovery is evidence-bounded logical restoration; it is not proof of browser acceptance or production cutover."
+  }
+}
