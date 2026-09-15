@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-Current candidate a00ac7f777e50835aa6d1fcbc48ac543b02117cf is the GPT-5.6 Sol compatibility path. Earlier daemon, Chrome Use, and real-code receipts are historical only and cannot be inherited after this code change. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited. Current-candidate real-code workload, Master replacement, unattended stability, and production cutover remain unresolved. Do not claim current-candidate browser or real-code PASS.
+Current candidate 82f0f50597ebc194f21cb383e46b52ba9a3f3b10 is the GPT-5.6 Sol compatibility path. Earlier daemon, Chrome Use, and real-code receipts are historical only and cannot be inherited after this code change. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited. Current-candidate real-code workload, Master replacement, unattended stability, and production cutover remain unresolved. Do not claim current-candidate browser or real-code PASS.
 
 ## 先判断你现在是哪一种模式
 

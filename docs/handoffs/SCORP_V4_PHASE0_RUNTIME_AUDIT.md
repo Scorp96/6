@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-current documentation snapshot: audit snapshot HEAD `573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32`; code candidate `a00ac7f777e50835aa6d1fcbc48ac543b02117cf`
+current documentation snapshot: audit snapshot HEAD `573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32`; code candidate `82f0f50597ebc194f21cb383e46b52ba9a3f3b10`
 
 ## REMOTE_MAIN_HEAD
 
@@ -84,9 +84,9 @@ Scheduler 使用最多两个动态 Worker slot，assignment、lease、task depen
 
 ## CURRENT_BROWSER_MODEL
 
-Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。前置候选 `5bf7953` 的双 Worker 无害 Canary 已记录两个 conversation URL 和两个严格匹配响应，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`；该证据仅作历史取证，不能提升到当前候选 `a00ac7f`。旧 c205 结果仍作为历史歧义证据保留。
+Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。前置候选 `5bf7953` 的双 Worker 无害 Canary 已记录两个 conversation URL 和两个严格匹配响应，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`；该证据仅作历史取证，不能提升到当前候选 `82f0f50`。旧 c205 结果仍作为历史歧义证据保留。
 
-因此已确认固定无害 Canary prompt 已送达并捕获响应，但尚未确认真实代码任务完整通过 Worker GPT 对话。当前请求限制实机观察中，一个真实会话已点击唯一明确的“明白了”并恢复 composer，未重发 prompt；五分钟等待超时后的单次刷新仍由离线测试覆盖。最新现场检查在另一个已登录 tab 中再次观察到“请求过于频繁”；唯一确认控件的点击调用超时且弹窗仍在，系统没有刷新或重发，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json`。对同一物理 tab 的后续只读复核仍看到相同弹窗且 composer 未就绪，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
+因此已确认固定无害 Canary prompt 已送达并捕获响应，但尚未确认真实代码任务完整通过 Worker GPT 对话。当前请求限制实机观察中，一个真实会话已点击唯一明确的“明白了”并恢复 composer，未重发 prompt；五分钟等待超时后的单次刷新仍由离线测试覆盖。最新现场检查在另一个已登录 tab 中再次观察到“请求过于频繁”；唯一确认控件的点击调用超时且弹窗仍在，系统没有刷新或重发，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json`。对同一物理 tab 的后续只读复核仍看到相同弹窗且 composer 未就绪；当前候选的最新只读证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_82F0F50_20260915.json`。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
 
 ## CURRENT_EXECUTION_MODEL
 
@@ -94,12 +94,12 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：当前候选 `a00ac7f777e50835aa6d1fcbc48ac543b02117cf` 的 207 项测试通过。
-- GUI bridge：512 项测试通过。
+- V4 core：当前候选 `82f0f50597ebc194f21cb383e46b52ba9a3f3b10` 的 207 项测试通过。
+- GUI bridge：514 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
 - validation JSON：可解析。
-- 当前候选 validation：代码候选 `a00ac7f777e50835aa6d1fcbc48ac543b02117cf`；当前真实浏览器预检仍被请求限制阻塞，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`。
+- 当前候选 validation：代码候选 `82f0f50597ebc194f21cb383e46b52ba9a3f3b10`；当前真实浏览器预检仍被请求限制阻塞，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_82F0F50_20260915.json`。
 - 当前候选真实 Chrome：尚未运行当前候选 canary；前置候选的固定无害双 Worker Canary 为历史 `LIVE_VERIFIED`，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`，不能绑定当前候选。当前候选真实代码工作负载为 `NOT_RUN`。
 - Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
 - 当前候选：`ACCEPTED = false`。
@@ -222,8 +222,8 @@ Logical Master A 发出 versioned semantic Runtime command；Command Core 负责
 
 ## PHASE_1_PLAN
 
-Phase 1 的代码、测试和隔离文档已完成并通过离线回归；当前候选 `a00ac7f` 尚没有 live browser canary。前置候选的固定无害双 Worker Chrome Canary 和真实代码实验均只保留为历史证据，不能绑定当前候选。当前候选真实代码工作负载尚未运行；Phase 1 的 acceptance 仍受真实浏览器、真实代码工作负载、生产未切换和 live crash/recovery 未验证约束，因此阶段结论是 `PARTIAL`，不是 `PASS` 或 `ACCEPTED`。
+Phase 1 的代码、测试和隔离文档已完成并通过离线回归；当前候选 `82f0f50` 尚没有 live browser canary。前置候选的固定无害双 Worker Chrome Canary 和真实代码实验均只保留为历史证据，不能绑定当前候选。当前候选真实代码工作负载尚未运行；Phase 1 的 acceptance 仍受真实浏览器、真实代码工作负载、生产未切换和 live crash/recovery 未验证约束，因此阶段结论是 `PARTIAL`，不是 `PASS` 或 `ACCEPTED`。
 
 - 本候选新增 Daemon 动作前租约栅栏：初始观测之后再次确认当前 Daemon lease；失效时不写入 activation decision、不派发动作，返回 BLOCKED。
 
-- 最新 Windows/仓库/进程/任务路径基线见 `SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`；当前候选代码和 live gate 以 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json` 及 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_A00AC7F_20260915.json` 为准。`SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json` 和 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json` 明确属于前置候选历史证据，不能绑定当前候选。生产 bridge worker/任务状态没有被本轮改变，生产 P0-02 和生产切换仍未验收。
+- 最新 Windows/仓库/进程/任务路径基线见 `SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`；当前候选代码和 live gate 以 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json` 及 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_82F0F50_20260915.json` 为准。`SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json` 和 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json` 明确属于前置候选历史证据，不能绑定当前候选。生产 bridge worker/任务状态没有被本轮改变，生产 P0-02 和生产切换仍未验收。
