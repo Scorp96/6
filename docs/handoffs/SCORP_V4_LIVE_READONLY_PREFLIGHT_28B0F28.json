@@ -1,0 +1,31 @@
+{
+  "evidence_id": "SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28",
+  "candidate_code_commit": "fe7d4140287a9f1c0970a153db4181c4333b68be",
+  "observed_at_utc": "2026-09-15T07:17:04.2004788Z",
+  "session": "scorp-p0-turn-066069407e9baa4c",
+  "actions": [
+    {
+      "command": "chrome-use --session scorp-p0-turn-066069407e9baa4c --json tab list",
+      "side_effect": "READ_ONLY",
+      "exit_code": 0,
+      "observed": {
+        "active_tab_id": "t1",
+        "target_id": "3D6F10870DC67B11F42DCBA3266407B1",
+        "ownership": "created",
+        "relay_attached": false,
+        "url": ""
+      }
+    },
+    {
+      "command": "chrome-use --session scorp-p0-turn-066069407e9baa4c --json tab inspect t1",
+      "side_effect": "READ_ONLY",
+      "exit_code": 1,
+      "observed_error": "Chrome tab 2033136181 no longer exists"
+    }
+  ],
+  "send_attempted": false,
+  "url_opened": false,
+  "prompt_filled": false,
+  "result": "BLOCKED_EXTERNAL_PRECONDITION",
+  "reason": "The session record exists but its target is detached and inspect confirms the physical tab is gone; no blind re-open or resend was performed."
+}

@@ -26,7 +26,7 @@
     "live_verified": {
       "result": "BLOCKED",
       "reason": "当前候选没有新的真实发送；浏览器目标绑定仍不明确，按 fail-closed 规则不发送。生产 SQLite 曾被一次错误的只读检查触发自动迁移，已按取证记录逻辑恢复；这不构成浏览器或生产切换验收。",
-      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
