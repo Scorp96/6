@@ -706,14 +706,27 @@ class Scheduler:
         with self.store._transaction() as conn:
             row = conn.execute(
                 """
-                SELECT r.*,a.task_id,a.state AS assignment_state
-                FROM candidate_results r JOIN assignments a ON a.assignment_id=r.assignment_id
+                SELECT r.*,a.task_id,a.state AS assignment_state,
+                       s.master_epoch AS current_epoch,
+                       l.state AS lease_state,l.expires_at
+                FROM candidate_results r
+                JOIN assignments a ON a.assignment_id=r.assignment_id
+                JOIN project_state s ON s.project_id=r.project_id
+                JOIN leases l ON l.assignment_id=r.assignment_id
                 WHERE r.result_id=? AND r.project_id=?
                 """,
                 (result_id, self.project_id),
             ).fetchone()
-            if row is None or str(row["assignment_state"]) != "RESULT_RECEIVED":
+            if row is None:
                 raise SchedulerError("CANDIDATE_NOT_READY")
+            if int(row["master_epoch"]) != int(row["current_epoch"]):
+                raise WorkerFenceError("WORKER_EPOCH_FENCED")
+            if str(row["assignment_state"]) != "RESULT_RECEIVED":
+                raise SchedulerError("CANDIDATE_NOT_READY")
+            if str(row["lease_state"]) != "ACTIVE":
+                raise WorkerFenceError("WORKER_LEASE_NOT_ACTIVE")
+            if str(row["expires_at"]) <= stamp:
+                raise WorkerFenceError("WORKER_LEASE_EXPIRED")
             try:
                 payload = json.loads(str(row["payload_json"]))
             except (TypeError, ValueError):

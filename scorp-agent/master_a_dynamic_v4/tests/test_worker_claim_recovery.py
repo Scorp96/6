@@ -80,6 +80,36 @@ class WorkerClaimRecoveryTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_new_master_session_fences_previous_epoch_worker_lease(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler = self._runtime(root)
+            try:
+                started = dt.datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+                first_master = store.start_master_session(
+                    "project-recovery", "master-a", now=started, ttl_seconds=1
+                )
+                claim = scheduler.claim_runnable(
+                    master_epoch=first_master["master_epoch"],
+                    now=started,
+                    lease_seconds=60,
+                )[0]
+                replacement = store.start_master_session(
+                    "project-recovery", "master-b", now=started + dt.timedelta(seconds=2)
+                )
+                self.assertEqual(first_master["master_epoch"] + 1, replacement["master_epoch"])
+                self.assertEqual("FENCED", scheduler.get_assignment(claim.assignment_id)["state"])
+                with store._connection() as conn:
+                    self.assertEqual(
+                        "FENCED",
+                        conn.execute(
+                            "SELECT state FROM leases WHERE assignment_id=?",
+                            (claim.assignment_id,),
+                        ).fetchone()[0],
+                    )
+            finally:
+                store.close()
+
     def test_active_claims_can_be_rehydrated_after_store_reopen(self):
         from master_a_dynamic_v4.path_policy import PathPolicy
         from master_a_dynamic_v4.scheduler import Scheduler

@@ -886,6 +886,60 @@ class StateStore:
                 browser_semantic_state=str(observation["browser_semantic_state"]) if observation is not None else "UNKNOWN",
             )
 
+    def _fence_worker_leases_for_epoch(
+        self,
+        conn: sqlite3.Connection,
+        project_id: str,
+        current_epoch: int,
+        *,
+        stamp: str,
+        reason: str,
+    ) -> int:
+        rows = conn.execute(
+            """
+            SELECT l.assignment_id,l.lease_token,l.master_epoch AS lease_epoch,
+                   a.task_id,a.state AS assignment_state
+            FROM leases l JOIN assignments a ON a.assignment_id=l.assignment_id
+            WHERE l.project_id=? AND l.state='ACTIVE' AND l.master_epoch<?
+            ORDER BY l.assignment_id
+            """,
+            (project_id, int(current_epoch)),
+        ).fetchall()
+        for row in rows:
+            conn.execute(
+                "UPDATE leases SET state='FENCED',released_at=? WHERE assignment_id=? AND state='ACTIVE'",
+                (stamp, row["assignment_id"]),
+            )
+            conn.execute(
+                "UPDATE assignments SET state='FENCED',updated_at=? WHERE assignment_id=? AND state='ACTIVE'",
+                (stamp, row["assignment_id"]),
+            )
+            conn.execute(
+                "UPDATE candidate_results SET verification_state='FENCED' WHERE assignment_id=? AND verification_state='PENDING'",
+                (row["assignment_id"],),
+            )
+            conn.execute(
+                "UPDATE task_nodes SET state='QUEUED',updated_at=? WHERE project_id=? AND task_id=? AND state IN ('RUNNING','ACCEPTED')",
+                (stamp, project_id, row["task_id"]),
+            )
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"event-{uuid.uuid4().hex}",
+                    project_id,
+                    "WORKER_LEASE_FENCED",
+                    canonical_json({
+                        "assignment_id": str(row["assignment_id"]),
+                        "lease_token_sha256": sha256_json(str(row["lease_token"])),
+                        "previous_master_epoch": int(row["lease_epoch"]),
+                        "master_epoch": int(current_epoch),
+                        "reason": reason,
+                    }),
+                    stamp,
+                ),
+            )
+        return len(rows)
+
     def advance_master_epoch(self, project_id: str, *, expected_epoch: int) -> int:
         with self._transaction() as conn:
             row = conn.execute(
@@ -902,6 +956,14 @@ class StateStore:
             conn.execute(
                 "UPDATE project_state SET master_epoch=?,updated_at=? WHERE project_id=?",
                 (next_epoch, utc_now(), project_id),
+            )
+            stamp = utc_now()
+            self._fence_worker_leases_for_epoch(
+                conn,
+                project_id,
+                next_epoch,
+                stamp=stamp,
+                reason="MASTER_EPOCH_ADVANCED",
             )
             conn.execute(
                 "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
@@ -983,6 +1045,13 @@ class StateStore:
                 conn.execute(
                     "UPDATE project_state SET master_epoch=?,updated_at=? WHERE project_id=?",
                     (current_epoch, instant_text, project),
+                )
+                self._fence_worker_leases_for_epoch(
+                    conn,
+                    project,
+                    current_epoch,
+                    stamp=instant_text,
+                    reason="MASTER_SESSION_REPLACED",
                 )
             conn.execute(
                 "INSERT INTO master_sessions(project_id,session_id,master_epoch,state,started_at,heartbeat_at,lease_until) VALUES(?,?,?,?,?,?,?)",

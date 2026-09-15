@@ -177,6 +177,34 @@ class DynamicWorkerTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_result_verification_is_fenced_after_master_epoch_changes(self):
+        from master_a_dynamic_v4.scheduler import WorkerFenceError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler, worktree = self.make_runtime(root)
+            try:
+                scheduler.enqueue_graph([
+                    {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "one.txt"], "dependencies": []}
+                ])
+                started = dt.datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+                claim = scheduler.claim_runnable(master_epoch=0, now=started, lease_seconds=60)[0]
+                result_id = scheduler.record_candidate(
+                    claim.assignment_id,
+                    lease_token=claim.lease_token,
+                    master_epoch=0,
+                    kind="HANDOFF",
+                    payload={"artifact_sha256": "a" * 64, "result_sha256": "a" * 64},
+                    now=started,
+                )
+                store.advance_master_epoch("project-ac05", expected_epoch=0)
+                with self.assertRaisesRegex(WorkerFenceError, "WORKER_EPOCH_FENCED"):
+                    scheduler.verify_candidate(result_id, result_sha256="a" * 64, now=started)
+                self.assertEqual("RESULT_RECEIVED", scheduler.get_assignment(claim.assignment_id)["state"])
+                self.assertEqual("QUEUED", scheduler.get_task("T1")["state"])
+            finally:
+                store.close()
+
 
     def test_verify_candidate_rejects_digest_not_bound_to_recorded_result(self):
         from master_a_dynamic_v4.scheduler import SchedulerError
