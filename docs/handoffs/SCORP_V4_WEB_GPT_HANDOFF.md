@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-The earlier daemon and Chrome Use receipts are historical only; they cannot be inherited after this code change, and the current candidate has no fresh browser canary.；请求限制分支已加入“确认一次、只读等待最多五分钟、必要时刷新一次、仍不明确则停止”的实现和回归测试，但真实限制弹窗分支没有被人为制造，仍未获得 LIVE_VERIFIED。这不等于真实代码工作负载、Master 物理重绑定、无人值守稳定性或生产切换通过。交接文件定义的是连接边界和使用顺序，不把规划文档当成运行证据。
+Current candidate 3bec96b1b68a9a0d94dfe470221978260804ba50 is the GPT-5.6 Sol compatibility path. Earlier daemon and Chrome Use receipts are historical only and cannot be inherited after this code change. The current candidate has no fresh browser canary; its rate-limit recovery behavior is offline-tested, while the real popup branch remains LIVE_UNVERIFIED. This does not establish real-code workload, Master rebind, unattended stability, or production cutover.
 
 ## 先判断你现在是哪一种模式
 
