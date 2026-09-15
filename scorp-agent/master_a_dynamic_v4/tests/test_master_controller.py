@@ -10,6 +10,25 @@ from dataclasses import dataclass
 
 
 class MissingControllerTests(unittest.TestCase):
+    def test_worker_result_hash_normalizes_model_scalar_types_before_storage(self):
+        from master_a_dynamic_v4.master_controller import normalize_worker_result_envelope
+
+        payload = {
+            "work_result_version": 1,
+            "status": "complete",
+            "base_state_version": "1",
+            "candidate_commit": "A" * 40,
+            "objective_sha256": "B" * 64,
+            "scope_completed": ("T1",),
+        }
+        normalized = normalize_worker_result_envelope(payload)
+        self.assertEqual("1", normalized["work_result_version"])
+        self.assertEqual("COMPLETE", normalized["status"])
+        self.assertEqual(1, normalized["base_state_version"])
+        self.assertEqual("a" * 40, normalized["candidate_commit"])
+        self.assertEqual("b" * 64, normalized["objective_sha256"])
+        self.assertEqual(["T1"], normalized["scope_completed"])
+
     def test_resume_replaces_expired_physical_session_id_in_real_sqlite(self):
         from master_a_dynamic_v4.master_controller import MasterAController
         from master_a_dynamic_v4.state_store import StateStore

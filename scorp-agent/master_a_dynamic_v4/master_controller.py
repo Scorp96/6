@@ -27,6 +27,52 @@ class ControllerRejected(ValueError):
     """Raised when a GPT-supplied plan or Worker response is not admissible."""
 
 
+_WORK_RESULT_LIST_FIELDS = (
+    "scope_completed",
+    "scope_not_completed",
+    "deliverables",
+    "evidence",
+    "acceptance_coverage",
+    "facts",
+    "inferences",
+    "unknowns",
+    "contradictions",
+    "followup_proposals",
+)
+
+
+def normalize_worker_result_envelope(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Normalize scalar/list forms before computing the result content hash.
+
+    Web models commonly emit JSON-compatible scalar variants such as numeric
+    ``work_result_version`` or string ``base_state_version``.  The scheduler's
+    contract validator normalizes those values before storage; doing the same
+    here ensures the hash covers the exact envelope that SQLite will verify.
+    Missing or invalid fields remain untouched so the validator can reject them
+    fail-closed rather than this compatibility step inventing evidence.
+    """
+
+    result = dict(value)
+    for key in ("work_result_version", "project_id", "assignment_id", "task_id", "worker_id"):
+        if key in result and result[key] is not None:
+            result[key] = str(result[key])
+    for key in ("objective_sha256", "candidate_commit"):
+        if key in result and result[key] is not None:
+            result[key] = str(result[key]).strip().lower()
+    if "base_state_version" in result and not isinstance(result["base_state_version"], bool):
+        try:
+            result["base_state_version"] = int(result["base_state_version"])
+        except (TypeError, ValueError):
+            pass
+    if "status" in result and result["status"] is not None:
+        result["status"] = str(result["status"]).strip().upper()
+    for key in _WORK_RESULT_LIST_FIELDS:
+        current = result.get(key)
+        if isinstance(current, Sequence) and not isinstance(current, (str, bytes)):
+            result[key] = list(current)
+    return result
+
+
 @dataclasses.dataclass(frozen=True)
 class ControllerStep:
     """Machine-readable outcome of one bounded controller scheduling pass."""
@@ -401,7 +447,7 @@ class MasterAController:
         )
         if not isinstance(payload, Mapping):
             raise ControllerRejected("WORK_RESULT_DECODER_NOT_MAPPING")
-        payload = dict(payload)
+        payload = normalize_worker_result_envelope(payload)
         if str(payload.get("work_result_version") or "") != "1":
             raise ControllerRejected("WORK_RESULT_VERSION_UNSUPPORTED")
         execution_request = payload.get("execution_request")
