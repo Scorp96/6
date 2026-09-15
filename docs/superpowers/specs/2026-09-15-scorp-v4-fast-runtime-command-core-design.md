@@ -181,7 +181,8 @@ classified explicitly (`AUTH_REQUIRED`, `LOGIN_EXPIRED`,
 `python -m master_a_dynamic_v4.runtime_cli` reads JSON request lines and writes
 one JSON response line per request. It writes diagnostics only to stderr. It
 does not import a shell, evaluate Python, run subprocesses, open URLs, click
-Chrome, or expose arbitrary paths. The candidate `runtime_pipe.py` adapter
+Chrome, or expose arbitrary paths. The candidate `runtime_pipe.py` adapter and
+`runtime_pipe_cli.py` launcher
 accepts only an authenticated Windows Named Pipe connection, enforces a fixed
 project-scoped endpoint and a 64 KiB message limit, and passes the same parsed
 envelope to `RuntimeCommandService.execute()`.

@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`501463fa1c562a318a6ada020ab79d1827571c4b`
+`b9ab184`
 
 ## REMOTE_MAIN_HEAD
 
@@ -28,7 +28,7 @@
 
 - 规范源仓库：`Scorp96/6`。
 - 当前实现处于独立 worktree；生产 checkout 未修改。
-- Runtime Command Core：`scorp-agent/master_a_dynamic_v4/runtime_protocol.py`、`runtime_commands.py`、`operator_control.py`、`runtime_cli.py`、`runtime_pipe.py`。
+- Runtime Command Core：`scorp-agent/master_a_dynamic_v4/runtime_protocol.py`、`runtime_commands.py`、`operator_control.py`、`runtime_cli.py`、`runtime_pipe.py`、`runtime_pipe_cli.py`。
 - 权威状态：代码支持本地 SQLite v4 迁移后的事务状态；JSON 仅作为兼容导入/导出来源。
 - Phase 1 transport：直接 Python API 加 stdin/stdout JSON；没有未经认证的 HTTP 服务。
 - daemon 入口：`scorp-agent/chatgpt-gui-bridge/tools/v4_daemon_runtime.py`。
@@ -93,7 +93,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：159 项测试通过。
+- V4 core：161 项测试通过。
 - GUI bridge：475 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
@@ -117,7 +117,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## PARTIAL
 
-- Runtime 已有 stdin/stdout transport，并有经过真实 Windows 回环测试的 Named Pipe 候选适配器；尚无正式 approved ChatGPT connector 或生产 listener 注册。
+- Runtime 已有 stdin/stdout transport，并有经过真实 Windows 回环测试的 Named Pipe 候选适配器和一次性/有界 launcher；尚无正式 approved ChatGPT connector 或生产 listener 注册。
 - daemon 有监督和恢复 seam，但没有生产 Scheduled Task 证据。
 - Master/Worker browser actor lifecycle 有持久化边界，但真实当前候选双 Worker 提交未验证。
 - session lifecycle 有精确 retire API，但现有 Chrome 中历史 tab/session 数量仍较多。
@@ -163,7 +163,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## P1_FINDINGS
 
-- stdio 已可用，Named Pipe 仅作为未注册的候选 library transport；正式 local connector 尚未接入。
+- stdio 已可用，Named Pipe 仅作为未注册的候选 transport（含一次性 launcher）；正式 local connector 尚未接入。
 - 真实 browser dispatch 的并行隔离需要单独修复或 live 复验。
 - 旧 SQLite 快照与候选 schema 的安装/迁移边界需要显式操作流程。
 - session/target lifecycle 需要继续收敛，但不能做无绑定的全局清理。

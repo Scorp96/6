@@ -205,6 +205,25 @@ listener and does not give an ordinary web GPT direct Windows access. A future
 approved local connector may use this adapter after its own authentication,
 process supervision, and evidence gates are verified.
 
+For a bounded local test, `runtime_pipe_cli.py --once` starts exactly one
+authenticated connection and exits after returning one response. The auth key
+must be supplied through an environment variable; it is never placed in the
+JSON request. Example:
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+$env:SCORP_RUNTIME_PIPE_AUTHKEY = 'use-a-local-secret-at-least-16-bytes'
+& C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe -B -m master_a_dynamic_v4.runtime_pipe_cli `
+  --database C:\ScorpAgent\v4-runtime\state.sqlite3 `
+  --project-id demo `
+  --allowed-root C:\ScorpAgent\v4-runtime `
+  --daemon-epoch 1 `
+  --once
+```
+
+This command is a candidate transport check. It does not install a Windows
+task, open Chrome, send a ChatGPT message, or grant arbitrary local execution.
+
 The current Phase 0 field audit is recorded in
 `docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md`. At the latest inspection,
 the candidate is `TEST_VERIFIED`; live ChatGPT is `BLOCKED` by the observed
