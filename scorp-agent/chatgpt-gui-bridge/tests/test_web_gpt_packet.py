@@ -30,9 +30,14 @@ class WebGptPacketTests(unittest.TestCase):
         validation_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json'
         validation = json.loads(validation_path.read_text(encoding='utf-8'))
         live = validation['verification']['live_verified']
+        status = {
+            'PASS': 'PASS',
+            'BLOCKED': 'BLOCKED_EXTERNAL_PRECONDITION',
+            'FAIL': 'FAIL',
+        }.get(str(live.get('result') or 'NOT_RECORDED').upper(), str(live.get('result') or 'NOT_RECORDED').upper())
         expected_gate = {
             'candidate_code_commit': validation['implementation_commit'],
-            'status': 'BLOCKED_EXTERNAL_PRECONDITION',
+            'status': status,
             'reason': live['reason'],
             'evidence_path': live['evidence_path'],
             'retry_count_after_ambiguity': 0,
