@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-current documentation snapshot: audit snapshot HEAD `573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32`; code candidate `998d4eb2fc3480fffb81be65b730585b1612d00e`
+current documentation snapshot: audit snapshot HEAD `858733367b8479973d96d0480158f723d2d486f0`; code candidate `998d4eb2fc3480fffb81be65b730585b1612d00e`
 
 ## REMOTE_MAIN_HEAD
 
@@ -38,7 +38,7 @@ current documentation snapshot: audit snapshot HEAD `573412e4a569f3aa3f31dfbdbb5
 
 ## CURRENT_WINDOWS_SUPERVISION
 
-当前任务状态（只读）：
+当前任务状态（只读，2026-09-15T13:40:05Z）：
 
 - `ScorpChatGptGuiBridge = Running`
 - `ScorpChatGptGuiBridgeWatchdog = Disabled`
@@ -46,7 +46,7 @@ current documentation snapshot: audit snapshot HEAD `573412e4a569f3aa3f31dfbdbb5
 - `ScorpFullAutoOrchestrator = Ready`
 - `ScorpV4SelfUpgrade5561f44 = Ready`
 
-没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。现场还观察到两个同时存在的旧 `bridge_worker.py` 实例：PID 7876 使用 bundled Python，PID 13488 使用 uv Python，二者命令参数相同且后者的父进程是前者；`health.json` 当前为 `ERROR`，错误为 Chrome Use tab 已丢失。现场还观察到多个旧的 `chrome-use.exe` 进程；这证明存在历史 transport/session 生命周期残留和当前旧桥接的重复进程风险，但不提供安全依据去全局杀进程或切换生产任务。候选分支已加入进程锁，但尚未部署到生产任务。进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
+没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。新鲜只读快照观察到三个 `chrome-use.exe` 进程，其中 PID 9968 的命令是 `--session scorp-p0-turn-066069407e9baa4c --json get url`，属于需要后续生命周期治理的残留候选。该审计没有杀进程、刷新浏览器或切换生产任务；进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
 
 ## CURRENT_SQLITE_STATE_MODEL
 
@@ -226,4 +226,4 @@ Phase 1 的代码、测试和隔离文档已完成并通过离线回归；当前
 
 - 本候选新增 Daemon 动作前租约栅栏：初始观测之后再次确认当前 Daemon lease；失效时不写入 activation decision、不派发动作，返回 BLOCKED。
 
-- 最新 Windows/仓库/进程/任务路径基线见 `SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`；当前候选代码和 live gate 以 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json` 及 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json` 为准。`SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json` 和 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json` 明确属于前置候选历史证据，不能绑定当前候选。生产 bridge worker/任务状态没有被本轮改变，生产 P0-02 和生产切换仍未验收。
+- 最新 Windows/仓库/进程/任务路径基线见 `SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`；当前候选代码和 live gate 以 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json` 及 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json` 为准。`SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json` 和 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json` 明确属于前置候选历史证据，不能绑定当前候选。生产 bridge worker/任务状态没有被本轮改变；生产 Watchdog 仍为 Disabled，生产 P0-02 和生产切换仍未验收。

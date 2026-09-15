@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-phase0-current-audit/1",
-  "observed_at_utc": "2026-09-15T12:52:56Z",
+  "observed_at_utc": "2026-09-15T13:40:05.876991Z",
   "repository": "Scorp96/6",
   "remote_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
   "current_worktree": {
     "path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
     "branch": "feature/v4-fast-runtime-command-core",
-    "head": "573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32",
+    "head": "858733367b8479973d96d0480158f723d2d486f0",
     "git_status": "CLEAN"
   },
   "production_checkout": {
@@ -28,7 +28,7 @@
   },
   "candidate": {
     "code_commit": "998d4eb2fc3480fffb81be65b730585b1612d00e",
-    "docs_head": "573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32",
+    "docs_head": "858733367b8479973d96d0480158f723d2d486f0",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core"
   },
   "runtime_paths": {
@@ -51,21 +51,9 @@
     "production_task_mutation": "NOT_PERFORMED",
     "active_relevant_processes_observed": [
       {
-        "pid": 7876,
-        "name": "python.exe",
-        "role": "legacy bridge_worker",
-        "runtime": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe"
-      },
-      {
-        "pid": 13488,
-        "name": "python.exe",
-        "role": "legacy bridge_worker child",
-        "runtime": "C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe"
-      },
-      {
-        "pid": 1896,
+        "pid": 15024,
         "name": "chrome-use.exe",
-        "role": "Chrome native messaging host"
+        "role": "Chrome native messaging host / extension process"
       },
       {
         "pid": 3676,
@@ -73,12 +61,12 @@
         "role": "existing Chrome Use process"
       },
       {
-        "pid": 15024,
+        "pid": 9968,
         "name": "chrome-use.exe",
-        "role": "existing Chrome Use process"
+        "role": "chrome-use get-url command; lifecycle residue observed"
       }
     ],
-    "supervision_finding": "Two legacy bridge_worker processes with matching arguments were observed; candidate singleton lock is not production-deployed. No process was killed by this audit."
+    "supervision_finding": "Fresh read-only audit observed three chrome-use processes, including a get-url command residue. No bridge_worker process was present in the filtered current snapshot; no process was killed by this audit. Production Watchdog remains Disabled and the candidate singleton lock is not deployed."
   },
   "real_code_current_candidate": {
     "evidence": null,
@@ -91,7 +79,7 @@
     "reason": "candidate changed after predecessor evidence; current browser preflight remains rate-limited"
   },
   "classification": {
-    "TEST_VERIFIED": "current candidate offline V4 core 207 tests, GUI bridge 512 tests, compileall, packet and diff checks pass",
+    "TEST_VERIFIED": "current candidate offline V4 core 207 tests, GUI bridge 515 tests, compileall, packet and diff checks pass",
     "LIVE_VERIFIED": "local transport process-loop evidence only; current candidate browser and real-code evidence are BLOCKED/NOT_RUN",
     "ACCEPTED": false
   },
@@ -101,11 +89,12 @@
     "full Master replacement, unattended soak, production cutover, and complete code workload remain unverified",
     "existing production checkout has dirty unpublished state and must not be overwritten",
     "production watchdog is Disabled and no approved V4 daemon Scheduled Task cutover is evidenced",
-    "formal ChatGPT host connector registration remains open"
+    "formal ChatGPT host connector registration remains open",
+    "fresh audit observed a chrome-use get-url process residue; lifecycle cleanup remains unverified"
   ],
   "production_state_touched": false,
   "required_phase0_sections": {
-    "CURRENT_HEAD": "573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32",
+    "CURRENT_HEAD": "858733367b8479973d96d0480158f723d2d486f0",
     "REMOTE_MAIN_HEAD": "79610ae3f3864e133f750f0c9dfde40b17a91def",
     "BRANCH": "feature/v4-fast-runtime-command-core",
     "WORKTREE": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",

@@ -1,6 +1,6 @@
 # SCORP V4 Fast Local Runtime Command Core
 
-这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `998d4eb2fc3480fffb81be65b730585b1612d00e`，现场审计快照 HEAD 为 `573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32`。前置候选 `5bf7953` 的浏览器/真实代码证据仅作历史取证，不能提升到当前候选。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
+这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `998d4eb2fc3480fffb81be65b730585b1612d00e`，现场审计快照 HEAD 为 `858733367b8479973d96d0480158f723d2d486f0`。前置候选 `5bf7953` 的浏览器/真实代码证据仅作历史取证，不能提升到当前候选。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
 
 ## 运行
 
