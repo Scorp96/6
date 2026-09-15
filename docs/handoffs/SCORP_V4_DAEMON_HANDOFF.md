@@ -70,18 +70,19 @@ browser reconcile and Send remain separate gates.
 
 ## Current evidence boundary
 
-- `TEST_VERIFIED`: V4 suite 111/111 and GUI bridge suite 472/472 on the bundled
-  Windows Python runtime; task-context migration/prompt propagation, distinct
-  CSV validate/aggregate/report operations, two Worker dispatch, independent
-  reconcile, and owned-tab isolation are included. The installed lab and short
-  recovery soak also passed.
-- `LIVE_VERIFIED`: current candidate `55cc173` has no current-candidate live
-  pass. The immediately preceding fresh candidate attempt hit the ChatGPT
-  `请求过于频繁` rate-limit dialog at the root URL; its fail-closed receipt is
-  `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_31622f1c.json`. A later read-only
-  check is recorded in
-  `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_55cc173.json` and shows the
-  dialog is still present. No blind retry occurred.
+- `TEST_VERIFIED`: the current isolated command-core candidate has V4 suite
+  170/170 and GUI bridge suite 482/482 on the bundled Windows Python runtime;
+  task-context migration/prompt propagation, distinct CSV
+  validate/aggregate/report operations, two Worker dispatch, independent
+  reconcile, owned-tab isolation, rate-limit recovery unit cases, and the
+  daemon missing-handler fail-closed case are included. The installed lab and
+  short recovery soaks are separate simulated evidence.
+- `LIVE_VERIFIED`: the current candidate has no live browser PASS. The latest
+  c205 single-worker canary recorded a conversation URL, but read-only
+  reconciliation found an older diagnostic response and no c205 token. Its
+  fail-closed receipt is
+  `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`; no blind retry
+  occurred. The older rate-limit preflight only proved the no-dialog branch.
 - `ACCEPTED`: not reached. A current-candidate browser pass, real repository
   workload through live Workers, restart recovery, production registration and
   long-duration unattended evidence are still required.
@@ -109,8 +110,9 @@ canary implementation. The read-only receipt is
 
 The canary code now prepares both durable intents first and dispatches their
 browser submissions concurrently. This fixes the orchestration serialization
-defect. The subsequent fresh run and its current-candidate PASS are recorded
-below; the earlier ambiguous sessions remain historical fail-closed evidence.
+defect in the candidate code, but it is not a live acceptance result. The
+current c205 run remains blocked by ambiguous browser state; the earlier
+ambiguous sessions remain historical fail-closed evidence.
 
 ## Historical live PASS receipt (prior candidate)
 
@@ -122,6 +124,6 @@ response messages, and zero duplicate submits. The receipt is
 `docs/handoffs/SCORP_V4_LIVE_CANARY_PASS_760a7d7.json`; its SHA-256 is
 `3D73E787C19CD007C4D7ADB08C2D8B8EF40069A3CDF11212CFF7BEF378B23DCD`.
 
-This historical PASS is bound to the prior candidate commit and proves the two-Worker
-browser transport and SQLite intent/reconcile path. It does not prove the real
+This historical PASS is bound to prior candidate commit `0fe4464`. It is not
+evidence for the current command-core candidate and does not prove the real
 CSV Git workload, production cutover, restart recovery, or a 24-hour soak.
