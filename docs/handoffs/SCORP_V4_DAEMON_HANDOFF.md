@@ -70,22 +70,20 @@ browser reconcile and Send remain separate gates.
 
 ## Current evidence boundary
 
-- `TEST_VERIFIED`: the current isolated command-core candidate `83c07cc2727db29ed5b28fb6260e5094e75883bf` has V4 suite
-  202/202 and GUI bridge suite 508/508 on the bundled Windows Python runtime;
-  task-context migration/prompt propagation, distinct CSV
-  validate/aggregate/report operations, two Worker dispatch, independent
-  reconcile, owned-tab isolation, rate-limit recovery unit cases, and the
-  daemon missing-handler fail-closed case are included. The installed lab and
-  short recovery soaks are separate simulated evidence.
-- `LIVE_VERIFIED`: the current candidate has both a fresh isolated local-daemon
-  restart receipt at
-  `docs/handoffs/SCORP_V4_DAEMON_RESTART_LIVE_EVIDENCE_20260915.json` and a
-  fresh real Chrome Use two-Worker canary at
-  `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_83C07CC.json`. The daemon process
-  was forcibly terminated and recovered from SQLite with `daemon_epoch=2`;
-  the browser canary captured two independent responses with two submit
-  actions and zero duplicate submits. The rate-limit-popup branch remains
-  unverified because the live page did not show that external state.
+- `TEST_VERIFIED`: the current isolated command-core candidate is
+  `998d4eb2fc3480fffb81be65b730585b1612d00e`. Its V4 suite is 207/207 and its
+  GUI bridge suite is 515/515 on the bundled Windows Python runtime. The
+  current candidate includes bounded two-Worker dispatch, independent
+  reconciliation, owned-tab isolation, rate-limit recovery unit cases, and
+  the daemon missing-handler fail-closed case. The installed lab and short
+  recovery soaks are separate simulated evidence.
+- `LIVE_VERIFIED`: only the bounded local connector process-loop evidence is
+  currently live-verified for this candidate. The current physical ChatGPT
+  tab remains rate-limited, so no current-candidate browser canary or real
+  Worker repository workload has been run. The current blocker is recorded in
+  `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json`.
+  Prior daemon/browser receipts listed below remain historical evidence for
+  their exact candidate SHAs and cannot be promoted to `998d4eb`.
 - `ACCEPTED`: not reached. A current-candidate real repository workload
   through live Workers, Master physical rebind, production registration and
   long-duration unattended evidence are still required.
@@ -111,10 +109,12 @@ canary implementation. The read-only receipt is
 `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_0760c26.json`; its SHA-256 is
 `93755FFAED06821463BBEBF5548C0622E658C79411228D1A601794B1C2B75AD9`.
 
-The canary code now prepares both durable intents first and dispatches their
-browser submissions concurrently. The current candidate's successful receipt
-above is the live evidence for that behavior; the c205 and earlier ambiguous
-sessions remain historical fail-closed evidence.
+The canary code in later candidates prepares both durable intents first and
+dispatches their browser submissions concurrently. The current `998d4eb`
+candidate has unit coverage for that bounded dispatch behavior, but no current
+browser receipt because the external rate-limit precondition remains blocked.
+The c205 and earlier ambiguous sessions remain historical fail-closed
+evidence.
 
 ## Historical live PASS receipt (prior candidate)
 
