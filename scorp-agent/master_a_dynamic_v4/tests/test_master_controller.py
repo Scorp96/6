@@ -214,6 +214,58 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual("master_a_dynamic_v4.csv_workload.cli", adapter.calls[0]["module"])
         self.assertEqual(1, len(worktree_manager.calls))
 
+    def test_blocked_worker_result_never_executes_its_request(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+        from master_a_dynamic_v4.work_result import result_content_sha256
+
+        gateway = _FakeGateway("controller-project")
+        adapter = _FakeExecutionAdapter()
+        worktree_manager = _FakeGitWorktreeManager()
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            execution_adapter=adapter,
+            git_worktree_manager=worktree_manager,
+        )
+        controller.start({"objective": "blocked worker"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        def decode(row):
+            result = _result_for(row)
+            result.update(
+                {
+                    "status": "BLOCKED",
+                    "scope_completed": [],
+                    "evidence": [],
+                    "acceptance_coverage": [],
+                    "execution_request": {
+                        "module": "master_a_dynamic_v4.csv_workload.cli",
+                        "args": [],
+                        "working_directory": "C:/lab",
+                        "resource_paths": ["C:/lab/T1.txt"],
+                        "access_mode": "write",
+                        "timeout_seconds": 5,
+                        "repository": "C:/lab/repository",
+                        "worktree": "C:/lab/T1-worktree",
+                        "base_commit": "a" * 40,
+                    },
+                }
+            )
+            result["result_sha256"] = "0" * 64
+            return result
+
+        step = controller.step(lambda claim: "blocked bounded task", decode)
+        self.assertEqual("BLOCKED", step.status)
+        self.assertEqual([], adapter.calls)
+        self.assertEqual([], worktree_manager.calls)
+        self.assertEqual("BLOCKED", gateway.verified[0][1]["status"])
+
     def test_ambiguous_browser_state_is_left_for_reconciliation(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 

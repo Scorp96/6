@@ -137,6 +137,38 @@ class CrashRecoveryTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_ambiguous_submit_retains_observed_conversation_url_for_read_only_reconcile(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, engine, _ = self.make_runtime(root)
+            observed_url = "https://chatgpt.com/c/ac03-observed"
+            reconcile_seen = []
+
+            def ambiguous_submit(_intent):
+                return {
+                    "status": "SUBMITTED",
+                    "conversation_url": observed_url,
+                    # The missing remote identity makes the submit ambiguous,
+                    # while the URL is still valuable read-only evidence.
+                }
+
+            def reconcile(intent):
+                reconcile_seen.append(str(intent.get("conversation_url") or ""))
+                return {"status": "AMBIGUOUS", "reason": "NO_RESPONSE_YET"}
+
+            engine.submit = ambiguous_submit
+            engine.reconcile = reconcile
+            try:
+                result = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
+                self.assertEqual(observed_url, result["conversation_url"])
+                BrowserAdapter(store, engine).reconcile("intent-ac03")
+                self.assertEqual([observed_url], reconcile_seen)
+            finally:
+                store.close()
+
     def test_sqlite_write_failure_before_intent_fence_fails_closed_without_browser_io(self):
         from master_a_dynamic_v4.browser_adapter import BrowserAdapter, BrowserAdapterError
 

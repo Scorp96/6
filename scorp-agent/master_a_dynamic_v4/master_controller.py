@@ -451,17 +451,39 @@ class MasterAController:
         if str(payload.get("work_result_version") or "") != "1":
             raise ControllerRejected("WORK_RESULT_VERSION_UNSUPPORTED")
         execution_request = payload.get("execution_request")
-        if execution_request is not None:
+        # A Worker result that is BLOCKED/PARTIAL/INVALID is evidence of a
+        # non-complete attempt, not permission to run a request it happened to
+        # include.  Only a COMPLETE result may cross the local execution
+        # boundary; otherwise a model could report a blocker and still cause
+        # the requested side effect.
+        worker_status = str(payload.get("status") or "").strip().upper()
+        if execution_request is not None and worker_status == "COMPLETE":
             if self.execution_adapter is None:
                 raise ControllerRejected("EXECUTION_ADAPTER_UNAVAILABLE")
             receipt = self._execute_request(claim, execution_request)
             payload["execution_receipt"] = receipt
+            payload["result_sha256"] = result_content_sha256(payload)
+        elif execution_request is not None:
+            # The prompt contract allows a model to include a placeholder
+            # digest while reporting a blocker.  Preserve the declaration for
+            # audit, but normalize the stored envelope without ever executing
+            # the request or trusting the placeholder hash.
             payload["result_sha256"] = result_content_sha256(payload)
         result_id = self.gateway.record_structured_worker_result(claim, payload=payload)
         self.gateway.verify_worker_result(
             result_id,
             result_sha256=str(payload.get("result_sha256") or ""),
         )
+        if worker_status != "COMPLETE":
+            return {
+                "status": "BLOCKED",
+                "reason": f"WORKER_RESULT_{worker_status or 'INVALID'}",
+                "assignment_id": claim.assignment_id,
+                "task_id": claim.task_id,
+                "intent_id": intent_id,
+                "intent_state": state,
+                "result_id": result_id,
+            }
         return {
             "status": "ACCEPTED",
             "assignment_id": claim.assignment_id,

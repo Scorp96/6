@@ -772,7 +772,18 @@ class Scheduler:
                 "UPDATE candidate_results SET verification_state=?,verified_result_sha256=?,verified_at=? WHERE result_id=?",
                 (verification_state, digest, stamp, result_id),
             )
-            task_state = "ACCEPTED" if result_kind == "WORK_RESULT" else "VERIFIED"
+            if result_kind == "WORK_RESULT":
+                try:
+                    result_status = str(payload.get("status") or "").strip().upper()
+                except AttributeError:
+                    result_status = ""
+                # A structured result is only completion evidence when the
+                # Worker explicitly completed its assignment.  BLOCKED,
+                # PARTIAL and INVALID results remain auditable but must never
+                # satisfy the task completion gate.
+                task_state = "ACCEPTED" if result_status == "COMPLETE" else "BLOCKED"
+            else:
+                task_state = "VERIFIED"
             conn.execute(
                 "UPDATE task_nodes SET state=?,result_sha256=?,updated_at=? WHERE project_id=? AND task_id=?",
                 (task_state, digest, stamp, self.project_id, row["task_id"]),

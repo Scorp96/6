@@ -1805,15 +1805,31 @@ class StateStore:
         why = str(reason or "").strip()
         if not why or not isinstance(observation, Mapping):
             raise StoreInvariantError("INTENT_BLOCK_EVIDENCE_INVALID")
+        # A submit can be ambiguous after the browser has already promoted a
+        # new ChatGPT conversation but before it returns a complete identity
+        # envelope.  Preserve that positively observed URL so a later
+        # read-only reconciliation can inspect the original actor.  The URL
+        # is only accepted from the known ChatGPT conversation namespace; an
+        # invalid value remains evidence, but must not become an authority
+        # binding.  An existing binding is never overwritten by a conflicting
+        # late observation.
+        observed_url = str(observation.get("conversation_url") or "").strip()
+        if not observed_url.startswith("https://chatgpt.com/c/") or not observed_url.removeprefix("https://chatgpt.com/c/"):
+            observed_url = None
         with self._transaction() as conn:
             if conn.execute(
                 """
                 UPDATE action_intents
-                SET state=?,ambiguity_reason=?,observation_json=?,updated_at=?
+                SET state=?,conversation_url=CASE
+                        WHEN conversation_url IS NULL OR conversation_url='' THEN ?
+                        ELSE conversation_url
+                    END,
+                    ambiguity_reason=?,observation_json=?,updated_at=?
                 WHERE intent_id=?
                 """,
                 (
                     IntentState.BLOCKED_AMBIGUOUS.value,
+                    observed_url,
                     why,
                     canonical_json(dict(observation)),
                     utc_now(),

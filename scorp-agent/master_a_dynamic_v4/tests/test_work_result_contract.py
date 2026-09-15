@@ -146,6 +146,46 @@ class WorkResultContractTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_scheduler_does_not_accept_blocked_worker_result_as_task_completion(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+        from master_a_dynamic_v4.state_store import StateStore
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", allowed_roots=[root])
+            store.create_contract(
+                "project-1",
+                root_contract={"objective": "blocked result"},
+                acceptance_contract={"required": ["AC01"]},
+            )
+            scheduler = Scheduler(store, "project-1", PathPolicy([root]), max_workers=2)
+            try:
+                scheduler.enqueue_graph(
+                    [{"task_id": "T1", "objective_sha256": "a" * 64, "resource_scope": [root / "out.txt"]}]
+                )
+                claim = scheduler.claim_runnable(master_epoch=0)[0]
+                payload = self.valid_payload()
+                payload.update(
+                    {
+                        "worker_id": claim.worker_id,
+                        "assignment_id": claim.assignment_id,
+                        "base_state_version": claim.base_state_version,
+                        "status": "BLOCKED",
+                        "scope_completed": [],
+                        "evidence": [],
+                        "acceptance_coverage": [],
+                    }
+                )
+                payload["result_sha256"] = self.result_digest(
+                    {k: v for k, v in payload.items() if k != "result_sha256"}
+                )
+                result_id = scheduler.record_work_result(claim, payload=payload)
+                scheduler.verify_candidate(result_id, result_sha256=payload["result_sha256"])
+                self.assertEqual("BLOCKED", scheduler.get_task("T1")["state"])
+            finally:
+                store.close()
+
     def test_scheduler_fences_work_result_from_newer_project_state(self):
         from master_a_dynamic_v4.path_policy import PathPolicy
         from master_a_dynamic_v4.scheduler import Scheduler, WorkerFenceError
