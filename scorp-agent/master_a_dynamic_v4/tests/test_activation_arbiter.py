@@ -169,6 +169,32 @@ class ActivationArbiterTests(unittest.TestCase):
             self.assertEqual(2, snapshot.free_slots)
             self.assertEqual(0, snapshot.ambiguous_intents)
 
+    def test_store_marks_an_active_assignment_without_a_live_lease_as_lost_worker(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            worktree = root / "worktree"
+            worktree.mkdir()
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.start_master_session("p", "master-a", ttl_seconds=300)
+            from master_a_dynamic_v4.path_policy import PathPolicy
+            from master_a_dynamic_v4.scheduler import Scheduler
+
+            scheduler = Scheduler(store, "p", PathPolicy([root]), max_workers=2)
+            scheduler.enqueue_graph([
+                {"task_id": "T1", "objective_sha256": "a" * 64, "resource_scope": [worktree / "a.txt"], "dependencies": []}
+            ])
+            claim = scheduler.claim_runnable(master_epoch=0, limit=1)[0]
+            with store._transaction() as conn:
+                conn.execute(
+                    "UPDATE leases SET expires_at=? WHERE assignment_id=?",
+                    ("2000-01-01T00:00:00Z", claim.assignment_id),
+                )
+            snapshot = store.activation_snapshot("p", daemon_epoch=7)
+            self.assertTrue(snapshot.active_worker_lost)
+            decision = self.arbiter.decide(snapshot)
+            self.assertEqual("RESUME_WORKER", decision.action)
+
     def test_missing_operator_control_is_unknown_and_blocks_arbiter(self):
         with tempfile.TemporaryDirectory() as td:
             store = StateStore(Path(td) / "state.sqlite3", [td])

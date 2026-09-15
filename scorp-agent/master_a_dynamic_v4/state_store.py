@@ -809,6 +809,17 @@ class StateStore:
                 "SELECT COUNT(*) FROM leases WHERE project_id=? AND state='ACTIVE' AND expires_at>?",
                 (project, now),
             ).fetchone()[0])
+            active_worker_lost = conn.execute(
+                """
+                SELECT 1
+                FROM assignments a
+                LEFT JOIN leases l ON l.assignment_id=a.assignment_id
+                WHERE a.project_id=? AND a.master_epoch=? AND a.state='ACTIVE'
+                  AND (l.assignment_id IS NULL OR l.state!='ACTIVE' OR l.expires_at<=?)
+                LIMIT 1
+                """,
+                (project, int(state["master_epoch"]), now),
+            ).fetchone() is not None
             ready_tasks = int(conn.execute(
                 """
                 SELECT COUNT(*) FROM task_nodes t
@@ -865,6 +876,7 @@ class StateStore:
                 operator_state=str(control["operator_state"]) if control is not None else "UNKNOWN",
                 auth_host_blocker=str(observation["auth_host_blocker"]) if observation is not None and observation["auth_host_blocker"] else None,
                 pending_results=pending_results,
+                active_worker_lost=active_worker_lost,
                 browser_semantic_state=str(observation["browser_semantic_state"]) if observation is not None else "UNKNOWN",
             )
 
