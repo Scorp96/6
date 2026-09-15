@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`b6acdc0eada8f6b9cdf726bc38cf774f19b6623b` (current audit/documentation freeze; code candidate `12fc17b`)
+`0d5fbc8f82d2faac2c0a446174283554086a1df7` (current audit/documentation freeze; code candidate `12fc17b`)
 
 ## REMOTE_MAIN_HEAD
 
