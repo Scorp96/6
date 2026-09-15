@@ -76,7 +76,7 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
-- `LIVE_VERIFIED`: 当前候选的真实 Chrome Use 仍为 `BLOCKED`；最新只读预检显示 session 记录仍在，但 tab `t1` 未连接 relay、URL 为空，随后 `tab inspect` 确认物理 tab 已不存在，证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json`。此前 c205 ambiguous canary 证据保留在 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发。
+- `LIVE_VERIFIED`: 当前候选 `852567b05a792c4f5bb5be4011c37bf9be9e6c68` 的真实 Chrome Use 双 Worker 无害 Canary 已通过，两个响应均捕获且没有重复提交，证据见 `SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json`。旧的 c205 ambiguous canary 证据仍保留在 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发；这次 PASS 不等于真实代码工作负载、重启恢复或生产切换通过。
 - 请求限制 live preflight：历史真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；确认按钮、等待窗口和单次刷新已由离线测试覆盖，但真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
