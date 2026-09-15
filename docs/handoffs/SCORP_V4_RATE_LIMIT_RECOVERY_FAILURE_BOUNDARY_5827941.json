@@ -1,0 +1,35 @@
+{
+  "format": "scorp-v4-rate-limit-recovery-failure-boundary/1",
+  "candidate_commit": "5827941b60f51150d47a4bb0e26879edb66ede38",
+  "status": "TEST_VERIFIED",
+  "scope": "确认按钮点击或等待期间只读读取失败时 fail-closed；与本候选的 epoch reacquisition 修复一起完成回归。",
+  "parent_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_D4CC823.json",
+  "focused_tests": {
+    "command": "PYTHONPATH=scorp-agent;scorp-agent/chatgpt-gui-bridge; python -B -m unittest scorp-agent/chatgpt-gui-bridge/tests/test_rate_limit_recovery_v4.py scorp-agent/chatgpt-gui-bridge/tests/test_v4_auth.py",
+    "result": "10/10 PASS"
+  },
+  "runtime_core_regression": {
+    "result": "181/181 PASS"
+  },
+  "gui_bridge_regression": {
+    "result": "493/493 PASS"
+  },
+  "transport_regression": {
+    "result": "11/11 PASS",
+    "evidence": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_EEE8645.json"
+  },
+  "new_epoch_behavior": {
+    "command": "runtime_pipe_cli.py --once without --daemon-epoch",
+    "expected": "derive current SQLite lease epoch; explicit old epoch remains fenced",
+    "result": "PASS"
+  },
+  "live_verification": {
+    "result": "UNVERIFIED",
+    "reason": "真实请求限制弹窗确认分支仍未获得 LIVE_VERIFIED；浏览器当前只读预检保持阻塞。"
+  },
+  "production_changed": false,
+  "evidence_id": "SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5827941",
+  "candidate_code_commit": "5827941b60f51150d47a4bb0e26879edb66ede38",
+  "observed_at": "2026-09-15T03:32:32.663866Z",
+  "artifact_sha256": "2215ee2a53e9aab490f8398deb1321cef6f33553a72d82e02fbdeb9c1ce9c550"
+}

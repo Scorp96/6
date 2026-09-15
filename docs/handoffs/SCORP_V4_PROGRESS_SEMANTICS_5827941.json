@@ -1,0 +1,43 @@
+{
+  "evidence_id": "SCORP_V4_PROGRESS_SEMANTICS_5827941",
+  "format": "scorp-v4-progress-semantics/1",
+  "candidate_code_commit": "5827941b60f51150d47a4bb0e26879edb66ede38",
+  "observed_at": "2026-09-15T03:45:08.461813Z",
+  "focused_tests": {
+    "command": "python -B -m unittest master_a_dynamic_v4.tests.test_runtime_store master_a_dynamic_v4.tests.test_local_daemon master_a_dynamic_v4.tests.test_sqlite_schema",
+    "result": "18/18 PASS"
+  },
+  "full_v4_regression": {
+    "result": "181/181 PASS"
+  },
+  "semantics": {
+    "last_heartbeat_at": "persisted on every observation",
+    "last_progress_at": "advances only on content_changed or progress_made",
+    "active_generating_heartbeat_without_progress": "does_not_advance",
+    "idle_heartbeat": "does_not_advance_progress"
+  },
+  "migration": {
+    "source_copy": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
+    "isolated_lab": "C:\\ScorpAgent\\v4-progress-migration-d4cc\\state.sqlite3",
+    "production_modified": false,
+    "schema_versions": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "runtime_observation_columns": [
+      "last_observed_at",
+      "last_heartbeat_at",
+      "last_progress_at",
+      "last_state_change_at",
+      "last_content_change_at",
+      "last_browser_success_at",
+      "last_browser_error_at"
+    ],
+    "result": "PASS"
+  },
+  "production_changed": false,
+  "artifact_sha256": "7e7175b930baffb82fbacbd37fc5f32d3fc75a260f03f8d028b4c166a46986e3"
+}
