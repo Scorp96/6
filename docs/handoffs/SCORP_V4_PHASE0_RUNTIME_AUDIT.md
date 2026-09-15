@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-current documentation snapshot (code candidate `44b58099435ca764ce09aefed033dfae3d108343`; exact branch HEAD is recorded after this documentation update)
+current documentation snapshot (code candidate `85b144483e42fc14f55511dae129063f1c5816ee`; exact branch HEAD is recorded after this documentation update)
 
 ## REMOTE_MAIN_HEAD
 
@@ -83,9 +83,9 @@ Scheduler 使用最多两个动态 Worker slot，assignment、lease、task depen
 
 ## CURRENT_BROWSER_MODEL
 
-Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。本轮只读预检已显示正常新聊天 composer；随后当前候选 c205 单 Worker canary 记录了 conversation URL，但只读核对得到旧诊断回复且没有 c205 token，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json` 和当前只读预检 `SCORP_V4_LIVE_READONLY_PREFLIGHT_44B5809.json`。
+Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。本轮只读预检已显示正常新聊天 composer；随后当前候选 c205 单 Worker canary 记录了 conversation URL，但只读核对得到旧诊断回复且没有 c205 token，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json` 和当前只读预检 `SCORP_V4_LIVE_READONLY_PREFLIGHT_85B1444.json`。
 
-因此本轮未确认新 prompt 已送达、未确认当前候选 Worker GPT 对话结果、未重放历史 ambiguous intent。请求限制恢复的历史只读 preflight 显示当时页面没有限制弹窗，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；当前会话状态不一致的只读证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_44B5809.json`；只证明了不点击分支，未证明真实弹窗确认和等待恢复。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
+因此本轮未确认新 prompt 已送达、未确认当前候选 Worker GPT 对话结果、未重放历史 ambiguous intent。请求限制恢复的历史只读 preflight 显示当时页面没有限制弹窗，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；当前会话状态不一致的只读证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_85B1444.json`；只证明了不点击分支，未证明真实弹窗确认和等待恢复。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
 
 ## CURRENT_EXECUTION_MODEL
 
@@ -94,13 +94,13 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 ## CURRENT_EVIDENCE_MODEL
 
 - V4 core：177 项测试通过。
-- GUI bridge：489 项测试通过。
+- GUI bridge：490 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
 - validation JSON：可解析。
-- 当前候选 validation：代码候选 `44b58099435ca764ce09aefed033dfae3d108343`；请求限制 fail-closed 专项证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_44B5809.json`。
+- 当前候选 validation：代码候选 `85b144483e42fc14f55511dae129063f1c5816ee`；请求限制 fail-closed 专项证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_85B1444.json`。
 - 当前候选真实 Chrome：`LIVE_VERIFIED = BLOCKED`，原因是当前 canary 的 Chrome Use send ref 无法解析。
-- Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_44B5809.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
+- Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_85B1444.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
 - 当前候选：`ACCEPTED = false`。
 - 生产切换：未授权、未执行。
 
@@ -117,6 +117,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - 现有 V4 regression 与 GUI bridge regression。
 - 请求限制恢复：明确确认按钮只点击一次，最多等待 300 秒并只读复核；窗口结束仍限流时最多刷新一次；未知按钮、登录和验证码保持阻塞。
 - 请求限制恢复 transport 异常：确认按钮点击失败或确认后的只读读取失败时明确返回 `BLOCKED`，不刷新、不重试、不冒泡为可继续动作。
+- Master 重绑定认证探针已接入请求限制恢复函数；该接线有离线回归覆盖，但真实限流弹窗分支仍未获得 LIVE_VERIFIED。
 - daemon 缺少任何可执行 arbiter 动作处理器时 fail-closed 为 `BLOCKED`，不会伪报 `HEALTHY`。
 - bridge worker 启动前使用 OS 进程锁，重复进程直接退出；真实 Windows 子进程竞争测试通过。
 - Named Pipe 启动器允许省略固定 daemon epoch，并从当前 SQLite lease 重新获取；显式旧 epoch 仍被 fence；Windows 一次性进程回环已覆盖该路径。
