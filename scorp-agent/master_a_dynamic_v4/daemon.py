@@ -82,6 +82,7 @@ class LocalDaemon:
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
         self.arbiter = ActivationArbiter(actor_id=actor_id)
         self._last_progress_at: str | None = None
+        self._last_observation: dict[str, Any] = {}
         self._last_run_status: str | None = None
 
     def run_once(self) -> ActivationDecision:
@@ -103,16 +104,20 @@ class LocalDaemon:
             except Exception:
                 self._write_health(status="BLOCKED", snapshot=snapshot, error="DAEMON_LEASE_HEARTBEAT_FAILED")
                 raise
-        if snapshot.progress_state == "ACTIVE_GENERATING":
-            self._last_progress_at = _now()
         try:
-            self.store.record_runtime_observation(
+            observation = self.store.record_runtime_observation(
                 self.project_id,
                 progress_state=snapshot.progress_state,
                 browser_semantic_state=getattr(snapshot, "browser_semantic_state", "UNKNOWN"),
                 auth_host_blocker=getattr(snapshot, "auth_host_blocker", None),
                 observed_at=_now(),
+                content_changed=bool(getattr(snapshot, "content_changed", False)),
+                progress_made=bool(getattr(snapshot, "progress_made", False)),
+                browser_succeeded=bool(getattr(snapshot, "browser_succeeded", False)),
+                browser_error=bool(getattr(snapshot, "browser_error", False)),
             )
+            self._last_observation = observation
+            self._last_progress_at = observation.get("last_progress_at")
         except Exception as exc:
             self._write_health(status="BLOCKED", snapshot=snapshot, error=f"RUNTIME_OBSERVATION_FAILED:{type(exc).__name__}")
             raise
@@ -185,6 +190,11 @@ class LocalDaemon:
             "liveness": {
                 "state": snapshot.progress_state,
                 "last_progress_at": self._last_progress_at,
+                "last_observed_at": self._last_observation.get("last_observed_at"),
+                "last_heartbeat_at": self._last_observation.get("last_heartbeat_at"),
+                "last_content_change_at": self._last_observation.get("last_content_change_at"),
+                "last_browser_success_at": self._last_observation.get("last_browser_success_at"),
+                "last_browser_error_at": self._last_observation.get("last_browser_error_at"),
                 "observed_at": _now(),
             },
             "error": error,

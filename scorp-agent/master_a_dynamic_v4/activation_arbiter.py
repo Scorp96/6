@@ -32,6 +32,10 @@ class ArbiterSnapshot:
     pending_results: int = 0
     active_worker_lost: bool = False
     browser_semantic_state: str = "UNKNOWN"
+    content_changed: bool = False
+    progress_made: bool = False
+    browser_succeeded: bool = False
+    browser_error: bool = False
 
     def as_dict(self) -> dict[str, object]:
         return dataclasses.asdict(self)

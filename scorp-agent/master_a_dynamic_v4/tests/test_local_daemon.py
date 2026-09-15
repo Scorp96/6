@@ -172,6 +172,28 @@ class LocalDaemonTests(unittest.TestCase):
             self.assertEqual("IDLE", observation["progress_state"])
             self.assertIsNone(observation["last_progress_at"])
 
+    def test_active_generating_heartbeat_does_not_fabricate_progress(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot(
+                    "p", "ACTIVE", 0, 3, True, 0, 0, 0, 0, progress_state="ACTIVE_GENERATING"
+                ),
+                health_path=root / "health.json",
+            )
+            daemon.run_once()
+            observation = store.get_runtime_observation("p")
+            self.assertEqual("ACTIVE_GENERATING", observation["progress_state"])
+            self.assertIsNone(observation["last_progress_at"])
+            self.assertTrue(observation["last_heartbeat_at"])
+            health = json.loads((root / "health.json").read_text(encoding="utf-8"))
+            self.assertIsNone(health["liveness"]["last_progress_at"])
+
 
 if __name__ == "__main__":
     unittest.main()

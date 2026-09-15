@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 _UNSET = object()
 
 
@@ -109,6 +109,15 @@ class StateStore:
                 conn.execute(
                     "ALTER TABLE task_nodes ADD COLUMN task_context_json TEXT NOT NULL DEFAULT '{}'"
                 )
+            observation_columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(runtime_observations)").fetchall()
+            }
+            if "last_heartbeat_at" not in observation_columns:
+                conn.execute("ALTER TABLE runtime_observations ADD COLUMN last_heartbeat_at TEXT")
+                conn.execute(
+                    "UPDATE runtime_observations SET last_heartbeat_at=last_observed_at "
+                    "WHERE last_heartbeat_at IS NULL"
+                )
             rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
             if not rows:
                 conn.execute("BEGIN IMMEDIATE")
@@ -163,10 +172,22 @@ class StateStore:
                     conn.rollback()
                     raise
                 versions = [1, 2, 3, 4] if versions == [1, 2, 3] else [3, 4]
+            if versions in ([1, 2, 3, 4], [3, 4], [4]) and SCHEMA_VERSION >= 5:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (5, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = versions + [5]
             valid_versions = {
                 tuple(range(1, SCHEMA_VERSION + 1)),
                 (SCHEMA_VERSION,),
-                (3, 4),
+                (3, 4, 5),
             }
             if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")
@@ -245,11 +266,11 @@ class StateStore:
                     """
                     INSERT OR IGNORE INTO runtime_observations(
                         project_id,progress_state,browser_semantic_state,auth_host_blocker,
-                        last_observed_at,last_progress_at,last_state_change_at,
+                        last_observed_at,last_heartbeat_at,last_progress_at,last_state_change_at,
                         last_content_change_at,last_browser_success_at,last_browser_error_at
-                    ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
                     """,
-                    (project, "IDLE", "UNKNOWN", None, now, None, now, None, None, None),
+                    (project, "IDLE", "UNKNOWN", None, now, now, None, now, None, None, None),
                 )
                 conn.execute(
                     """
@@ -297,11 +318,11 @@ class StateStore:
                 """
                 INSERT INTO runtime_observations(
                     project_id,progress_state,browser_semantic_state,auth_host_blocker,
-                    last_observed_at,last_progress_at,last_state_change_at,
+                    last_observed_at,last_heartbeat_at,last_progress_at,last_state_change_at,
                     last_content_change_at,last_browser_success_at,last_browser_error_at
-                ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
                 """,
-                (project, "IDLE", "UNKNOWN", None, now, None, now, None, None, None),
+                (project, "IDLE", "UNKNOWN", None, now, now, None, now, None, None, None),
             )
             conn.execute(
                 """
@@ -344,6 +365,7 @@ class StateStore:
         auth_host_blocker: str | None | object = _UNSET,
         observed_at: str | None = None,
         content_changed: bool = False,
+        progress_made: bool = False,
         browser_succeeded: bool = False,
         browser_error: bool = False,
     ) -> dict[str, Any]:
@@ -366,7 +388,7 @@ class StateStore:
                 or current["auth_host_blocker"] != blocker
             )
             last_progress = current["last_progress_at"]
-            if str(progress_state) == "ACTIVE_GENERATING":
+            if bool(progress_made) or bool(content_changed):
                 last_progress = stamp
             last_content = stamp if content_changed else current["last_content_change_at"]
             last_success = stamp if browser_succeeded else current["last_browser_success_at"]
@@ -374,12 +396,12 @@ class StateStore:
             conn.execute(
                 """
                 UPDATE runtime_observations SET progress_state=?,browser_semantic_state=?,
-                    auth_host_blocker=?,last_observed_at=?,last_progress_at=?,
+                    auth_host_blocker=?,last_observed_at=?,last_heartbeat_at=?,last_progress_at=?,
                     last_state_change_at=?,last_content_change_at=?,last_browser_success_at=?,
                     last_browser_error_at=? WHERE project_id=?
                 """,
                 (
-                    str(progress_state), semantic, blocker, stamp, last_progress,
+                    str(progress_state), semantic, blocker, stamp, stamp, last_progress,
                     stamp if changed else current["last_state_change_at"], last_content,
                     last_success, last_error, project,
                 ),

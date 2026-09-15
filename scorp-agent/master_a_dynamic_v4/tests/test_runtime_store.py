@@ -54,16 +54,34 @@ class RuntimeStoreTests(unittest.TestCase):
             observed_at="2026-09-15T00:00:02Z",
         )
         second = self.store.get_runtime_observation("p1")
-        self.assertEqual("2026-09-15T00:00:02Z", second["last_progress_at"])
+        self.assertIsNone(second["last_progress_at"])
+        self.assertEqual("2026-09-15T00:00:02Z", second["last_heartbeat_at"])
+        self.store.record_runtime_observation(
+            "p1",
+            progress_state="ACTIVE_GENERATING",
+            browser_semantic_state="GENERATING",
+            auth_host_blocker=None,
+            observed_at="2026-09-15T00:00:03Z",
+            content_changed=True,
+        )
+        progressed = self.store.get_runtime_observation("p1")
+        self.assertEqual("2026-09-15T00:00:03Z", progressed["last_progress_at"])
+        self.assertEqual("2026-09-15T00:00:03Z", progressed["last_content_change_at"])
         self.store.record_runtime_observation(
             "p1",
             progress_state="IDLE",
             browser_semantic_state="READY",
             auth_host_blocker=None,
-            observed_at="2026-09-15T00:00:03Z",
+            observed_at="2026-09-15T00:00:04Z",
         )
         third = self.store.get_runtime_observation("p1")
-        self.assertEqual("2026-09-15T00:00:02Z", third["last_progress_at"])
+        self.assertEqual("2026-09-15T00:00:03Z", third["last_progress_at"])
+        self.assertEqual("2026-09-15T00:00:04Z", third["last_heartbeat_at"])
+
+    def test_observation_has_heartbeat_column_after_v4_database_migration(self):
+        with self.store._connection() as conn:
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(runtime_observations)")}
+        self.assertIn("last_heartbeat_at", columns)
 
     def test_runtime_command_receipt_round_trips_json_and_is_request_unique(self):
         response = {"status": "OK", "state_version": 1}

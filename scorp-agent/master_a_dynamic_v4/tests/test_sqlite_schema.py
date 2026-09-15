@@ -74,7 +74,7 @@ class SqliteSchemaTests(unittest.TestCase):
                 self.assertEqual("delete", second["journal_mode"])
                 self.assertEqual(5000, second["busy_timeout"])
 
-    def test_schema_v1_database_is_migrated_to_v4_for_runtime_command_core(self):
+    def test_schema_v1_database_is_migrated_to_v5_for_runtime_command_core(self):
         StateStore, _ = self.load_api()
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
@@ -89,7 +89,7 @@ class SqliteSchemaTests(unittest.TestCase):
             with StateStore(db, allowed_roots=[root]) as migrated:
                 with migrated._connection() as conn:
                     versions = [row[0] for row in conn.execute("SELECT version FROM schema_migrations ORDER BY version")]
-                self.assertEqual([1, 2, 3, 4], versions)
+                self.assertEqual([1, 2, 3, 4, 5], versions)
                 self.assertIn("daemon_leases", migrated.table_names())
                 self.assertIn("runtime_command_receipts", migrated.table_names())
 

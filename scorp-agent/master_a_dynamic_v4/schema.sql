@@ -281,6 +281,7 @@ CREATE TABLE IF NOT EXISTS runtime_observations (
     browser_semantic_state TEXT,
     auth_host_blocker TEXT,
     last_observed_at TEXT NOT NULL,
+    last_heartbeat_at TEXT,
     last_progress_at TEXT,
     last_state_change_at TEXT,
     last_content_change_at TEXT,
