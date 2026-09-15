@@ -4,12 +4,12 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "431b4e7569db68db98b1d5aa6eaf553b2b240b3e",
+  "implementation_commit": "36c9c22d32cded0062d6ac8c5cd87b51a2faa819",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
         "result": "PASS",
-        "count": 171
+        "count": 172
       },
       "gui_bridge_tests": {
         "result": "PASS",
@@ -69,7 +69,7 @@
     "project resume restores scheduler admission and active-claim rehydration",
     "bounded rate-limit dialog acknowledgement, read-only recovery wait, and one refresh after the wait",
     "installer manifest includes the rate-limit recovery auth dependency",
-    "daemon reports BLOCKED when any actionable arbiter decision lacks an execution handler or returns a blocked result"
+    "daemon reports BLOCKED when any actionable arbiter decision lacks a handler or returns a blocked result, and the loop stops without retrying"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
