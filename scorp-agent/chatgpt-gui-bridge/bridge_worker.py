@@ -273,6 +273,68 @@ def atomic_write_json(path, value):
                 pass
 
 
+class BridgeProcessAlreadyRunning(RuntimeError):
+    """Raised when another bridge worker owns the process lease."""
+
+
+class BridgeProcessLease:
+    """Hold an OS-level singleton lease for one bridge worker process.
+
+    The lock is only a process-ownership guard.  It is not runtime state and
+    does not replace SQLite authority, JSON ledgers, or durable actor leases.
+    The kernel releases it automatically if the process exits unexpectedly.
+    """
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self._handle = None
+
+    def acquire(self):
+        if self._handle is not None:
+            return self
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        handle = self.path.open('a+b')
+        try:
+            handle.seek(0, 2)
+            if handle.tell() == 0:
+                handle.write(b'0')
+                handle.flush()
+            handle.seek(0)
+            if os.name == 'nt':
+                import msvcrt
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:  # pragma: no cover - exercised on non-Windows CI only
+                import fcntl
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (OSError, IOError) as exc:
+            handle.close()
+            raise BridgeProcessAlreadyRunning(str(self.path)) from exc
+        self._handle = handle
+        return self
+
+    def release(self):
+        handle, self._handle = self._handle, None
+        if handle is None:
+            return
+        try:
+            handle.seek(0)
+            if os.name == 'nt':
+                import msvcrt
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:  # pragma: no cover - exercised on non-Windows CI only
+                import fcntl
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        finally:
+            handle.close()
+
+    def __enter__(self):
+        return self.acquire()
+
+    def __exit__(self, exc_type, exc, tb):
+        self.release()
+        return False
+
+
 def _load_json(path, default=None):
     path = Path(path)
     if not path.is_file():
@@ -592,23 +654,31 @@ def main(argv=None):
     parser.add_argument('--poll-seconds', type=int, default=10)
     parser.add_argument('--once', action='store_true')
     args = parser.parse_args(argv)
-    runtime = build_runtime_from_args(args)
-    if args.once:
-        return asyncio.run(runtime.run_once())
-    def report_error(exc, cycle):
-        runtime._health(
-            'ERROR',
-            dt.datetime.now(dt.timezone.utc),
-            error=f'{type(exc).__name__}: {exc}; consecutive_cycle={cycle}',
+    process_lease = BridgeProcessLease(Path(args.bridge_root) / 'bridge-worker.lock')
+    try:
+        process_lease.acquire()
+    except BridgeProcessAlreadyRunning:
+        return 0
+    try:
+        runtime = build_runtime_from_args(args)
+        if args.once:
+            return asyncio.run(runtime.run_once())
+        def report_error(exc, cycle):
+            runtime._health(
+                'ERROR',
+                dt.datetime.now(dt.timezone.utc),
+                error=f'{type(exc).__name__}: {exc}; consecutive_cycle={cycle}',
+            )
+        return asyncio.run(
+            run_daemon(
+                runtime,
+                args.poll_seconds,
+                max_consecutive_failures=3,
+                on_error=report_error,
+            )
         )
-    return asyncio.run(
-        run_daemon(
-            runtime,
-            args.poll_seconds,
-            max_consecutive_failures=3,
-            on_error=report_error,
-        )
-    )
+    finally:
+        process_lease.release()
 
 if __name__ == '__main__':
     main()

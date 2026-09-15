@@ -3,14 +3,21 @@ import datetime as dt
 import hashlib
 import json
 import pathlib
+import subprocess
 import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from bridge_worker import BridgeRuntime, atomic_write_json
+from bridge_worker import (
+    BridgeProcessAlreadyRunning,
+    BridgeProcessLease,
+    BridgeRuntime,
+    atomic_write_json,
+)
 
 NOW = dt.datetime(2026, 9, 10, 11, 0, 0, tzinfo=dt.timezone.utc)
 
@@ -162,6 +169,86 @@ class GitHubCliTests(unittest.TestCase):
 
 
 class DaemonTests(unittest.TestCase):
+    def test_bridge_process_lease_rejects_second_owner_and_releases(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / 'bridge-worker.lock'
+            first = BridgeProcessLease(path).acquire()
+            try:
+                with self.assertRaises(BridgeProcessAlreadyRunning):
+                    BridgeProcessLease(path).acquire()
+            finally:
+                first.release()
+            second = BridgeProcessLease(path).acquire()
+            second.release()
+
+    def test_main_does_not_start_runtime_when_process_lease_is_owned(self):
+        from bridge_worker import main
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            lease = BridgeProcessLease(root / 'bridge-worker.lock').acquire()
+            try:
+                with patch('bridge_worker.build_runtime_from_args') as builder:
+                    result = main([
+                        '--orchestrator-root', str(root / 'orchestrator'),
+                        '--state-root', str(root / 'state'),
+                        '--bridge-root', str(root),
+                    ])
+                self.assertEqual(0, result)
+                builder.assert_not_called()
+            finally:
+                lease.release()
+
+    def test_bridge_process_lease_blocks_a_second_windows_process(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            lock_path = root / 'bridge-worker.lock'
+            module_root = pathlib.Path(__file__).resolve().parents[1]
+            child_code = (
+                'import pathlib, sys\n'
+                f'sys.path.insert(0, {str(module_root)!r})\n'
+                'from bridge_worker import BridgeProcessLease\n'
+                f'lease = BridgeProcessLease(pathlib.Path({str(lock_path)!r})).acquire()\n'
+                'print("READY", flush=True)\n'
+                'sys.stdin.readline()\n'
+                'lease.release()\n'
+            )
+            holder = subprocess.Popen(
+                [sys.executable, '-c', child_code],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            try:
+                self.assertEqual('READY', holder.stdout.readline().strip())
+                contender_code = (
+                    'import pathlib, sys\n'
+                    f'sys.path.insert(0, {str(module_root)!r})\n'
+                    'from bridge_worker import BridgeProcessAlreadyRunning, BridgeProcessLease\n'
+                    f'lease = BridgeProcessLease(pathlib.Path({str(lock_path)!r}))\n'
+                    'try:\n'
+                    '    lease.acquire()\n'
+                    'except BridgeProcessAlreadyRunning:\n'
+                    '    print("BLOCKED")\n'
+                    'else:\n'
+                    '    print("UNEXPECTED")\n'
+                    '    lease.release()\n'
+                )
+                contender = subprocess.run(
+                    [sys.executable, '-c', contender_code],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=10,
+                )
+                self.assertEqual(0, contender.returncode, contender.stderr)
+                self.assertEqual('BLOCKED', contender.stdout.strip())
+            finally:
+                if holder.stdin:
+                    holder.stdin.write('\n')
+                    holder.stdin.flush()
+                holder.communicate(timeout=10)
+
     def test_daemon_survives_one_runtime_error_and_continues(self):
         from bridge_worker import run_daemon
         class Flaky:
