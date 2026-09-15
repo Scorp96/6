@@ -18,6 +18,35 @@ UTC = dt.timezone.utc
 SCHEMA_VERSION = 6
 _UNSET = object()
 
+_REQUIRED_SCHEMA_TABLES = frozenset(
+    {
+        "schema_migrations",
+        "imported_snapshots",
+        "contracts",
+        "project_state",
+        "daemon_leases",
+        "daemon_supervision",
+        "master_sessions",
+        "task_nodes",
+        "task_dependencies",
+        "assignments",
+        "leases",
+        "events",
+        "transitions",
+        "action_intents",
+        "outbox",
+        "browser_bindings",
+        "candidate_results",
+        "evidence_receipts",
+        "review_deadlines",
+        "review_findings",
+        "release_candidates",
+        "operator_controls",
+        "runtime_observations",
+        "runtime_command_receipts",
+    }
+)
+
 
 class StoreInvariantError(RuntimeError):
     pass
@@ -114,7 +143,10 @@ class StateStore:
                 conn.close()
         except sqlite3.DatabaseError as exc:
             raise StoreInvariantError("SQLITE_DATABASE_UNREADABLE") from exc
-        if names and "schema_migrations" not in names:
+        if names and (
+            "schema_migrations" not in names
+            or not _REQUIRED_SCHEMA_TABLES.issubset(names)
+        ):
             raise StoreInvariantError("EXPLICIT_MIGRATION_REQUIRED")
 
     def _migrate(self) -> None:

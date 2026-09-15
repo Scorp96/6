@@ -145,6 +145,31 @@ class SqliteSchemaTests(unittest.TestCase):
             self.assertEqual({"legacy_state"}, tables)
             self.assertEqual(("legacy",), row)
 
+    def test_incomplete_v4_snapshot_with_migration_marker_requires_explicit_migration(self):
+        StateStore, StoreInvariantError = self.load_api()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            db = root / "legacy-v4.sqlite3"
+            conn = sqlite3.connect(db)
+            try:
+                # A historical snapshot can contain the old migration marker
+                # while still lacking the tables introduced by the current
+                # runtime command core.  The marker alone must not authorize
+                # StateStore to graft the current schema onto it.
+                conn.execute(
+                    "CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL, schema_sha256 TEXT NOT NULL)"
+                )
+                conn.execute(
+                    "INSERT INTO schema_migrations(version, applied_at, schema_sha256) VALUES(1, 'old', 'old-hash')"
+                )
+                conn.execute("CREATE TABLE contracts (project_id TEXT PRIMARY KEY)")
+                conn.commit()
+            finally:
+                conn.close()
+
+            with self.assertRaisesRegex(StoreInvariantError, "EXPLICIT_MIGRATION_REQUIRED"):
+                StateStore(db, allowed_roots=[root])
+
 
 if __name__ == "__main__":
     unittest.main()
