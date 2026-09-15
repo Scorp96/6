@@ -57,7 +57,7 @@ probe 都经过这一边界；该恢复动作本身不代表消息已发送。
 `BLOCKED/RATE_LIMIT_ACK_FAILED` 或
 `BLOCKED/RATE_LIMIT_RECOVERY_READ_FAILED`；这两种情况都不会刷新、重试或把
 异常当成可以继续发送的信号。对应证据见
-`SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5827941.json`。
+`SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_B8E5CBD.json`。
 
 ## 当前证据边界
 
@@ -65,11 +65,11 @@ probe 都经过这一边界；该恢复动作本身不代表消息已发送。
 - Master 物理重绑定的认证探针现在接入同一条请求限制恢复路径：先只读确认限流，再只点击一次已知“确定”控件，最多等待 300 秒，必要时最多刷新一次；恢复失败仍保持 `BLOCKED`，不会进入发送。Master 心跳现在先做只读物理健康检查；限流或认证阻塞不会创建新 epoch，浏览器失联才进入受控重绑定。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
-- `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_5827941.json`；这不等于网页 GPT 已注册该 connector。
-- `LIVE_VERIFIED`: 当前候选的真实 Chrome Use 仍为 `BLOCKED`；最近只读预检发现 active tab 与 inspected ChatGPT target 状态不一致，证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_5827941.json`。此前 c205 ambiguous canary 证据保留在 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发。
+- `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_B8E5CBD.json`；这不等于网页 GPT 已注册该 connector。
+- `LIVE_VERIFIED`: 当前候选的真实 Chrome Use 仍为 `BLOCKED`；最近只读预检发现 active tab 与 inspected ChatGPT target 状态不一致，证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_B8E5CBD.json`。此前 c205 ambiguous canary 证据保留在 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发。
 - 请求限制 live preflight：历史真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；确认按钮、等待窗口和单次刷新已由离线测试覆盖，但真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
-进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_5827941.json`。
+进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_B8E5CBD.json`。
 
 机器可读记录见同目录的 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`。

@@ -1,0 +1,54 @@
+{
+  "allowed_root": "C:\\ScorpAgent\\v4-core-lab",
+  "blockers": [],
+  "capabilities": {
+    "browser_rebind": {
+      "driver_state": null,
+      "executable": null,
+      "reason": "An existing Chrome Use executable and driver-state path are required; login and CAPTCHA are never bypassed.",
+      "status": "BLOCKED_MISSING_BROWSER_CONFIG"
+    },
+    "browser_submission": {
+      "reason": "Preflight never sends a prompt. Submission requires the separate operator-gated runtime and a fresh review.",
+      "status": "EXPLICIT_OPERATOR_GATE"
+    },
+    "git_handoff": {
+      "authority": "SQLite_when_running_locally",
+      "reason": "Git can carry a structured plan and evidence, but this candidate does not make Git itself a local executor.",
+      "status": "MANUAL_OR_EXTERNAL_POLLING"
+    },
+    "offline_validation": {
+      "command": "scripts/run-candidate-validation.ps1",
+      "reason": "Repository entrypoints and a Python runtime are present.",
+      "status": "READY"
+    },
+    "sqlite_master_monitor": {
+      "command": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
+      "reason": "An existing SQLite database and allowed root were supplied.",
+      "status": "READY"
+    },
+    "web_gpt_direct_local_control": {
+      "reason": "A web GPT cannot gain Windows or SQLite permissions by reading Git alone.",
+      "required_transport": "local_host_connector_or_operator_handoff",
+      "status": "UNAVAILABLE"
+    }
+  },
+  "database_path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
+  "format": "scorp-v4-local-preflight/1",
+  "generated_at": "2026-09-15T03:45:08.461813Z",
+  "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
+  "overall_status": "READY",
+  "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+  "repo_root": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
+  "required_paths": {
+    "GPT_START_HERE.md": true,
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py": true,
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py": true,
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py": true,
+    "scorp-agent/master_a_dynamic_v4": true,
+    "scripts/run-candidate-validation.ps1": true
+  },
+  "candidate_code_commit": "b8e5cbd9659a4b75d4db9169ea2865c22fff902b",
+  "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_B8E5CBD.json",
+  "manifest_sha256": "b2da1d3f85e6202941975dd93b76e82f7e378f62da6c3ef3ff7072cbc4d42de5"
+}
