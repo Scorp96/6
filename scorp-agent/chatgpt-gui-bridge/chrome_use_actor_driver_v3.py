@@ -6,10 +6,13 @@ import json
 import re
 import threading
 import datetime as dt
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from gui_transport import validate_conversation_url
+from gui_transport import chatgpt_throttle_visible
+from v4_auth import classify_chatgpt_snapshot
 
 _ROOT_URL = "https://chatgpt.com/"
 _PROTOCOL = "scorp.chrome-use-driver/v1"
@@ -22,6 +25,15 @@ _SEND_BUTTON_NAMES = {
     "send",
     "send prompt",
     "send message",
+}
+_RATE_LIMIT_ACK_BUTTON_NAMES = {
+    "确定",
+    "好的",
+    "明白",
+    "明白了",
+    "got it",
+    "ok",
+    "okay",
 }
 _STATE_LOCKS: dict[str, threading.RLock] = {}
 _STATE_LOCKS_GUARD = threading.Lock()
@@ -192,11 +204,33 @@ def _send_ref_from_snapshot(payload) -> str:
     return "@" + candidates[0]
 
 
+def _rate_limit_ack_ref_from_snapshot(payload) -> str:
+    """Resolve exactly one acknowledgement control on a known throttle dialog."""
+
+    refs = _refs_from_snapshot(payload)
+    candidates = []
+    for ref, meta in refs.items():
+        if not isinstance(meta, dict):
+            continue
+        if str(meta.get("role") or "").strip().lower() != "button":
+            continue
+        label = _control_label(meta)
+        # Chrome Use may append a shortcut to the accessible label.
+        normalized = re.sub(r"\s*\([^)]*\)\s*$", "", label).strip().casefold()
+        if normalized in _RATE_LIMIT_ACK_BUTTON_NAMES:
+            candidates.append(str(ref))
+    candidates = sorted(set(candidates))
+    if len(candidates) != 1:
+        raise ValueError(f"CHROME_USE_RATE_LIMIT_ACK_REF_COUNT_{len(candidates)}")
+    return "@" + candidates[0]
+
+
 class ChromeUseActorDriverV3:
-    def __init__(self, cli, state_path, *, sleeper=asyncio.sleep, timeout_seconds=30):
+    def __init__(self, cli, state_path, *, sleeper=asyncio.sleep, timeout_seconds=30, clock=time.monotonic):
         self.cli = cli
         self.state_path = Path(state_path)
         self.sleeper = sleeper
+        self.clock = clock
         self.timeout_seconds = int(timeout_seconds)
         if self.timeout_seconds <= 0:
             raise ValueError("CHROME_USE_DRIVER_TIMEOUT_INVALID")
@@ -543,6 +577,77 @@ class ChromeUseActorDriverV3:
             if str(exc).startswith("CHROME_USE_SEND_REF_COUNT_"):
                 raise SendControlResolutionError(str(exc), payload) from exc
             raise
+
+    async def recover_rate_limit_dialog(self, session, *, max_wait_seconds=300, poll_seconds=5):
+        """Acknowledge one known rate-limit dialog and wait for page recovery.
+
+        This is an explicit recovery operation.  It never enters a prompt, sends
+        a message, reloads blindly, or retries an ambiguous external action.  A
+        missing or ambiguous acknowledgement control remains blocked.
+        """
+
+        session = str(session or "").strip()
+        if not session:
+            raise ValueError("CHROME_USE_SESSION_MISSING")
+        max_wait = float(max_wait_seconds)
+        poll = float(poll_seconds)
+        if max_wait < 0 or poll <= 0:
+            raise ValueError("CHROME_USE_RATE_LIMIT_WAIT_INVALID")
+
+        async def read_snapshot():
+            await self._prepare_interactive(session)
+            return await self.cli.run_json(
+                session,
+                "snapshot",
+                "-i",
+                timeout_seconds=self.timeout_seconds,
+            )
+
+        payload = await read_snapshot()
+        text = _render_payload(payload)
+        if not chatgpt_throttle_visible(text):
+            return {
+                "status": "NOT_RATE_LIMITED",
+                "reason": "RATE_LIMIT_DIALOG_NOT_VISIBLE",
+                "snapshot_sha256": _sha(text),
+            }
+        try:
+            ack_ref = _rate_limit_ack_ref_from_snapshot(payload)
+        except (ValueError, TypeError) as exc:
+            return {
+                "status": "BLOCKED",
+                "reason": "RATE_LIMIT_ACK_UNRESOLVED",
+                "error": str(exc),
+                "snapshot_sha256": _sha(text),
+            }
+        await self.cli.run_json(session, "click", ack_ref, timeout_seconds=self.timeout_seconds)
+
+        deadline = self.clock() + max_wait
+        while True:
+            payload = await read_snapshot()
+            text = _render_payload(payload)
+            classification = classify_chatgpt_snapshot(text, session)
+            if classification["status"] == "AUTHENTICATED":
+                return {
+                    "status": "RECOVERED",
+                    "reason": "RATE_LIMIT_DIALOG_CLEARED",
+                    "snapshot_sha256": _sha(text),
+                }
+            if classification["status"] in {"AUTHENTICATION_REQUIRED", "CAPTCHA_REQUIRED"}:
+                return {
+                    "status": "BLOCKED",
+                    "reason": "RATE_LIMIT_RECOVERY_REQUIRES_USER_AUTH",
+                    "page_status": classification["status"],
+                    "snapshot_sha256": _sha(text),
+                }
+            now = self.clock()
+            if now >= deadline:
+                return {
+                    "status": "BLOCKED",
+                    "reason": "RATE_LIMIT_RECOVERY_TIMEOUT",
+                    "snapshot_sha256": _sha(text),
+                }
+            await self.sleeper(min(poll, max(0.0, deadline - now)))
 
     async def _send_ref_after_input_repair(self, session, editor_ref, prompt):
         """Resolve Send after a native fill that did not activate React state.

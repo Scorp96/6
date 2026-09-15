@@ -35,7 +35,7 @@ from master_a_dynamic_v4.git_worktree import GitWorktreeManager  # noqa: E402
 from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
 from master_a_dynamic_v4.models import sha256_json  # noqa: E402
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
-from v4_auth import classify_chatgpt_snapshot  # noqa: E402
+from v4_auth import probe_chatgpt_auth  # noqa: E402
 from v4_browser_engine import build_v4_browser_engine  # noqa: E402
 
 
@@ -216,11 +216,9 @@ def run_runtime(args: argparse.Namespace) -> int:
         session = "scorp-v4-master-auth-" + hashlib.sha256(str(args.project_id).encode()).hexdigest()[:12]
         try:
             await cli.run_json(session, "open", "https://chatgpt.com/", timeout_seconds=30)
-            page = await cli.run_json(session, "read", timeout_seconds=30)
+            return await probe_chatgpt_auth(cli, driver, session, channel)
         except Exception as exc:
             return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
-        text = json.dumps(page, ensure_ascii=False)
-        return classify_chatgpt_snapshot(text, channel)
 
     engine = build_v4_browser_engine(
         driver,

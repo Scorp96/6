@@ -28,7 +28,7 @@ if str(BRIDGE_ROOT) not in sys.path:
 from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3  # noqa: E402
 from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
-from v4_auth import classify_chatgpt_snapshot  # noqa: E402
+from v4_auth import probe_chatgpt_auth  # noqa: E402
 from v4_browser_engine import build_v4_browser_engine  # noqa: E402
 
 
@@ -283,9 +283,7 @@ async def run_canary(args: argparse.Namespace) -> int:
 
     async def auth_probe(channel: str):
         await cli.run_json(auth_session, "open", "https://chatgpt.com/", timeout_seconds=30)
-        page = await cli.run_json(auth_session, "read", timeout_seconds=30)
-        text = json.dumps(page, ensure_ascii=False)
-        return classify_chatgpt_snapshot(text, channel)
+        return await probe_chatgpt_auth(cli, driver, auth_session, channel)
 
     engine = build_v4_browser_engine(
         driver,

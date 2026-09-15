@@ -1,0 +1,27 @@
+{
+  "format": "scorp-v4-single-worker-live-canary-failure/1",
+  "candidate_commit": "a060adc22896fa573171ee86d7a801cdf595bd55",
+  "result": "BLOCKED",
+  "live_verified": false,
+  "accepted": false,
+  "command": "p0_live_chatgpt_probe.py --executable C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe --state-path C:\\ScorpAgent\\v4-fast-runtime-live-a060adc\\driver.json --turn-id scorp-v4-a060adc-live-20260915 --token SCORP_V4_CURRENT_A060ADC_ACK --timeout-seconds 90 --poll-seconds 5",
+  "observed_at_utc": "2026-09-15T00:41:38.6367588Z",
+  "reason": "SEND_REF_UNRESOLVED",
+  "error_code": "CHROME_USE_SEND_REF_COUNT_0",
+  "error_detail": "The current snapshot ref became invalid during the send-control repair; Chrome Use reported an unknown editor ref and no usable send ref.",
+  "retry_count": 0,
+  "side_effect_reconciliation": {
+    "driver_state_path": "C:\\ScorpAgent\\v4-fast-runtime-live-a060adc\\driver.json",
+    "driver_state_sha256": "60935EAF06C9B64922A6AE07C6A5EBA8790C82552216F55FD85464005F88BFC9",
+    "session": "scorp-p0-turn-16388812d0915356",
+    "turn_id": "scorp-v4-a060adc-live-20260915",
+    "conversation_url": null,
+    "response_marker": null,
+    "driver_state_status": "ACTIVE",
+    "browser_url_observed": "https://chatgpt.com/",
+    "browser_page_observed": "empty new chat composer; no conversation URL",
+    "positive_submission_evidence": false,
+    "replay_allowed": false
+  },
+  "evidence_boundary": "No new prompt was sent after this failure. The absence of a conversation URL is not an unconditional exactly-once proof; the intent remains fail-closed until a separately authorized read-only reconciliation establishes terminal state."
+}
