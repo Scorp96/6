@@ -1,0 +1,18 @@
+{
+  "format": "scorp-v4-runtime-pipe-oversized-frame-boundary/1",
+  "evidence_id": "SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24",
+  "candidate_commit": "c4dea24612ee9352ac41b0e92f3dd7f39d807b5f",
+  "candidate_full_commit": "ec2d6902a92902f86b44791a42134e10b0032400",
+  "scope": "RuntimePipeServer.serve_once transport boundary",
+  "failure_before": "A recv_bytes OSError for an oversized AF_PIPE frame escaped serve_once and could terminate the listener loop.",
+  "red_test": "scorp-agent/master_a_dynamic_v4/tests/test_runtime_pipe.py::RuntimePipeTests.test_serve_once_closes_connection_when_transport_rejects_oversized_frame",
+  "red_observed": "Before the fix the test raised OSError(message too long).",
+  "implementation": "Catch OSError/EOFError only around recv_bytes, close that connection in finally, and return without a fabricated response; listener ownership and other send/handler errors remain unchanged.",
+  "green_test_command": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_runtime_pipe.py -v",
+  "green_result": "6/6 PASS",
+  "full_regression": "V4 core 192/192 PASS; GUI bridge 498/498 PASS",
+  "artifact_sha256": "ea11aa173b2ecd90b10f9580e2b6465b4bbb474cce6e61b39da5f2f2171fa99a",
+  "production_changed": false,
+  "live_verified": false,
+  "acceptance": "This proves bounded local transport behavior only; it does not prove a production Named Pipe listener or ChatGPT connector is registered."
+}

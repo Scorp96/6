@@ -1,0 +1,17 @@
+{
+  "format": "scorp-v4-sqlite-explicit-migration-boundary/1",
+  "evidence_id": "SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24",
+  "candidate_commit": "c4dea24612ee9352ac41b0e92f3dd7f39d807b5f",
+  "scope": "StateStore construction against an existing unknown SQLite file",
+  "failure_before": "A non-empty SQLite file with user tables but without schema_migrations could be opened and receive V4 DDL implicitly, creating a mixed legacy/V4 authority.",
+  "red_test": "scorp-agent/master_a_dynamic_v4/tests/test_sqlite_schema.py::SqliteSchemaTests.test_non_v4_existing_sqlite_requires_explicit_migration",
+  "red_observed": "Before the fix StateStore opened the legacy_state database and the test observed no EXPLICIT_MIGRATION_REQUIRED error.",
+  "implementation": "StateStore performs a read-only sqlite_master check before migration; missing/empty files remain new stores, marked V4 schemas continue through normal migrations, and unknown existing user tables fail with EXPLICIT_MIGRATION_REQUIRED without writing the source.",
+  "green_test_command": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_sqlite_schema.py -v",
+  "green_result": "5/5 PASS",
+  "full_regression": "V4 core 193/193 PASS; GUI bridge 498/498 PASS",
+  "artifact_sha256": "afae774c483d7a597c40b1fc64aefa85cc480eea73a7d2bfc71657b002d3b9eb",
+  "production_changed": false,
+  "live_verified": false,
+  "acceptance": "This proves the fail-closed guard only. It does not migrate or authorize any production database; explicit migration remains a separate reviewed operation."
+}

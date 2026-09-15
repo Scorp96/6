@@ -4,12 +4,12 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "ec2d6902a92902f86b44791a42134e10b0032400",
+  "implementation_commit": "c4dea24612ee9352ac41b0e92f3dd7f39d807b5f",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
         "result": "PASS",
-        "count": 192
+        "count": 193
       },
       "gui_bridge_tests": {
         "result": "PASS",
@@ -37,8 +37,8 @@
     "accepted": false,
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
-      "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_EC2D690.json",
-      "sha256": "d3210bba3114128c8b5510fa7243db51b77996b62b80006f2a1ca455a8c9a531"
+      "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json",
+      "sha256": "e04f91c6fea1b2de4d042a100b23fd86935ade28e3959b30769169c5b3ced2a4"
     },
     "local_transport_live_verified": {
       "result": "PASS",
@@ -102,7 +102,8 @@
     "Worker 新页面打开后发现请求限制时，在填入 prompt 前走一次确认/等待/刷新恢复链",
     "Worker 在 prompt 填入后、发送前发现请求限制时，恢复后使用新 textbox ref 重新填入同一 prompt，跳过 key-event 发送修复",
     "two-worker live canary timeout default covers the five-minute rate-limit recovery window",
-    "Runtime Pipe serve_once closes an oversized transport frame without terminating the listener or fabricating a response"
+    "Runtime Pipe serve_once closes an oversized transport frame without terminating the listener or fabricating a response",
+    "StateStore refuses an existing unknown SQLite file without schema_migrations until an explicit migration operation is selected"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -115,12 +116,13 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_EC2D690.json",
-    "sha256": "0a8fe53d75c0c3c1f118ca888efb1df18a25be4f327b441e4d839ac1701cacab",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_C4DEA24.json",
+    "sha256": "0b36bca960dd6f718eb453d9e7c2f8fcd359448e1cd5e140eaa96fc9752eb5e7",
     "file_count": 370
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
-  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_EC2D690.json",
+  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json",
   "rate_limit_recovery_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json",
-  "runtime_pipe_oversized_frame_evidence": "docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_EC2D690.json"
+  "runtime_pipe_oversized_frame_evidence": "docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json",
+  "sqlite_explicit_migration_evidence": "docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json"
 }

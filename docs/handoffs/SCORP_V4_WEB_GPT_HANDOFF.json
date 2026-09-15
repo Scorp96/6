@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "ec2d6902a92902f86b44791a42134e10b0032400",
+  "candidate_commit": "c4dea24612ee9352ac41b0e92f3dd7f39d807b5f",
   "evidence_binding": {
-    "validated_commit": "ec2d6902a92902f86b44791a42134e10b0032400",
+    "validated_commit": "c4dea24612ee9352ac41b0e92f3dd7f39d807b5f",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_EC2D690.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_C4DEA24.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_424FFE3.json",
-    "binding_note": "This handoff describes the ec2d6902a92902f86b44791a42134e10b0032400 code candidate, which includes the bounded Runtime Pipe oversized-frame fix. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked by the existing ambiguous target evidence; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "0a8fe53d75c0c3c1f118ca888efb1df18a25be4f327b441e4d839ac1701cacab"
+    "binding_note": "This handoff describes the c4dea24612ee9352ac41b0e92f3dd7f39d807b5f code candidate, which includes the bounded Runtime Pipe oversized-frame fix and explicit-migration guard for unknown SQLite files. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked by ambiguous target evidence; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "0b36bca960dd6f718eb453d9e7c2f8fcd359448e1cd5e140eaa96fc9752eb5e7"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
