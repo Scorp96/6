@@ -1,6 +1,6 @@
 # SCORP V4 Fast Local Runtime Command Core
 
-这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`，基于 `bd67ae78c874d2a5f897101097db0578f01a5c00`。当前代码候选为 `fe7d414`。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
+这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`，基于 `bd67ae78c874d2a5f897101097db0578f01a5c00`。当前代码候选为 `6265f49`。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
 
 ## 运行
 
@@ -67,7 +67,7 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 本轮现场状态的最新只读快照见
 `SCORP_V4_PHASE0_CURRENT_AUDIT_28B0F28.json`；生产 SQLite 误迁移及逻辑恢复记录见
 `SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`。该快照把代码候选
-`fe7d4140287a9f1c0970a153db4181c4333b68be` 与审计采集时的 checkout
+`6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9` 与审计采集时的 checkout
 头分别记录；后续文档提交不会改变该代码候选；旧的
 `SCORP_V4_PHASE0_LOCAL_AUDIT_424FFE3.json` 仅作为历史证据，不代表当前现场。
 

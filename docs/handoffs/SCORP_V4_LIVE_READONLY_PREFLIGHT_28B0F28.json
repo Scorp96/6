@@ -1,6 +1,6 @@
 {
   "evidence_id": "SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28",
-  "candidate_code_commit": "fe7d4140287a9f1c0970a153db4181c4333b68be",
+  "candidate_code_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
   "observed_at_utc": "2026-09-15T07:17:04.2004788Z",
   "session": "scorp-p0-turn-066069407e9baa4c",
   "actions": [

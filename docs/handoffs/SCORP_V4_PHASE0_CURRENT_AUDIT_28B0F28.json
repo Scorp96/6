@@ -2,7 +2,7 @@
   "format": "scorp-v4-phase0-current-audit/2",
   "observed_at_utc": "2026-09-15T07:13:19.9768136Z",
   "checkout_head": "28b0f289c8396cd2b4eb32557fbc71637628be35",
-  "candidate_code_commit": "fe7d4140287a9f1c0970a153db4181c4333b68be",
+  "candidate_code_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
   "candidate_branch": "feature/v4-fast-runtime-command-core",
   "origin_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
   "production_checkout_head": "bd67ae78c874d2a5f897101097db0578f01a5c00",

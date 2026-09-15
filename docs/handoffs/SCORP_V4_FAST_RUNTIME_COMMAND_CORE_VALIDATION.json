@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "fe7d4140287a9f1c0970a153db4181c4333b68be",
+  "implementation_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -38,7 +38,7 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_28B0F28.json",
-      "sha256": "a8f86550baa6ffb45be7ac2337944f39a7502e3984bf03e285cd0b6e9c81c63d",
+      "sha256": "2f406a7b5ec615a47135cc218fcec6fb9c4050ffa6acc352a2ad6e54b4468177",
       "supersedes": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json"
     },
     "local_transport_live_verified": {
@@ -117,9 +117,9 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_FE7D414.json",
-    "sha256": "6931166a28622e878c50bb01cb584e6b299f05dc8c4a86435b3b5700265813d9",
-    "manifest_sha256": "0a683bc3ae75caa744ca50b2bbf9e3b78bda2fdab3754003ca4ca91fef27b2cc",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_6265F49.json",
+    "sha256": "444670224b7704631de5f96e56d4550c7993c9c267fc91fc983f43aa84c26344",
+    "manifest_sha256": "a74dcf662e2d09a3bc74516b4d4616d52f0aef4dbd28bd74c39c7b23626a31e7",
     "file_count": 373
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",

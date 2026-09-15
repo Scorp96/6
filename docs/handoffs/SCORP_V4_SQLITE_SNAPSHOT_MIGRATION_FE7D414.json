@@ -1,6 +1,6 @@
 {
   "evidence_id": "SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414",
-  "candidate_commit": "fe7d414",
+  "candidate_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
   "operation": "explicit legacy SQLite snapshot migration",
   "source": {
     "path": "C:\\ScorpAgent\\v4-core-lab\\forensics\\production-v4-candidate-preincident-reconstructed.sqlite3",
