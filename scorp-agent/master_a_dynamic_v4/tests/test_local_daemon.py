@@ -55,7 +55,7 @@ class LocalDaemonTests(unittest.TestCase):
             result = daemon.run_once()
             self.assertEqual("ASSIGN_WORKER", result.action)
             self.assertEqual(["ASSIGN_WORKER"], observed)
-            self.assertEqual([True], heartbeats)
+            self.assertEqual([True, True], heartbeats)
             self.assertEqual(1, store.count_activation_decisions("p"))
             health = json.loads((root / "health.json").read_text(encoding="utf-8"))
             self.assertEqual("HEALTHY", health["status"])
@@ -94,6 +94,35 @@ class LocalDaemonTests(unittest.TestCase):
             )
             result = daemon.run_once()
             self.assertEqual("RECONCILE_AMBIGUOUS", result.action)
+            self.assertEqual("BLOCKED", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
+
+    def test_lease_loss_before_action_fences_decision_and_handler(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            heartbeat_calls = []
+            action_calls = []
+
+            def heartbeat():
+                heartbeat_calls.append(True)
+                if len(heartbeat_calls) == 2:
+                    raise RuntimeError("LEASE_FENCED_BEFORE_ACTION")
+
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 1, 1, 0),
+                action_handlers={"ASSIGN_WORKER": lambda _decision: action_calls.append(True)},
+                lease_heartbeat=heartbeat,
+                health_path=root / "health.json",
+            )
+            with self.assertRaisesRegex(RuntimeError, "LEASE_FENCED_BEFORE_ACTION"):
+                daemon.run_once()
+            self.assertEqual([True, True], heartbeat_calls)
+            self.assertEqual([], action_calls)
+            self.assertEqual(0, store.count_activation_decisions("p"))
             self.assertEqual("BLOCKED", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
 
     def test_assignment_without_action_handler_is_blocked_not_reported_healthy(self):

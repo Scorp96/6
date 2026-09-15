@@ -123,6 +123,21 @@ class LocalDaemon:
             raise
 
         decision = self.arbiter.decide(snapshot)
+        # A daemon lease may expire while the read-only observation and
+        # deterministic decision are being computed.  Re-check immediately
+        # before journaling or invoking any action so a stale daemon cannot
+        # authorise a new side effect.
+        if self.lease_heartbeat is not None:
+            try:
+                self.lease_heartbeat()
+            except Exception:
+                self._write_health(
+                    status="BLOCKED",
+                    snapshot=snapshot,
+                    decision=decision,
+                    error="DAEMON_LEASE_FENCE_BEFORE_ACTION",
+                )
+                raise
         self.store.record_activation_decision(decision.as_dict())
         status = "HEALTHY"
         error: str | None = None
