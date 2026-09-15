@@ -1,0 +1,74 @@
+{
+  "format": "scorp.runtime.connector/1",
+  "protocol": "scorp.runtime.command/1",
+  "registration": {
+    "status": "UNREGISTERED_HOST",
+    "requires_explicit_host_registration": true,
+    "boundary": "This descriptor is a contract; reading it does not grant a web GPT local permissions."
+  },
+  "commands": [
+    "evidence.query",
+    "master.status",
+    "project.cancel",
+    "project.pause",
+    "project.resume",
+    "project.status",
+    "project.supersede",
+    "runtime.snapshot",
+    "runtime.status",
+    "worker.status",
+    "project.emergency_stop"
+  ],
+  "transport": {
+    "stdio_module": "master_a_dynamic_v4.runtime_connector_cli",
+    "named_pipe_module": "master_a_dynamic_v4.runtime_pipe_cli",
+    "max_message_bytes": 65536,
+    "timeout_seconds": 30,
+    "authkey_env": "SCORP_RUNTIME_PIPE_AUTHKEY",
+    "min_authkey_bytes": 16,
+    "retry_on_timeout": false,
+    "endpoint_template": "\\\\.\\pipe\\scorp-runtime-{project_id}"
+  },
+  "entrypoints": {
+    "stdio": {
+      "module": "master_a_dynamic_v4.runtime_connector_cli",
+      "input": "one JSON request per line",
+      "output": "one JSON response per line"
+    },
+    "windows_named_pipe": {
+      "module": "master_a_dynamic_v4.runtime_pipe_cli",
+      "family": "AF_PIPE",
+      "authentication": "multiprocessing.connection authkey"
+    }
+  },
+  "security": {
+    "actor_binding_required": true,
+    "project_scope_required": true,
+    "candidate_binding_required": true,
+    "durable_receipt_required_for_mutation": true,
+    "retry_on_timeout": false,
+    "arbitrary_shell": false,
+    "arbitrary_browser": false,
+    "arbitrary_filesystem": false,
+    "arbitrary_git": false,
+    "arbitrary_network": false,
+    "login_captcha_or_security_bypass": false
+  },
+  "evidence": {
+    "required_fields": [
+      "candidate_commit",
+      "command_or_action",
+      "observed_state_or_exit_code",
+      "raw_output_reference",
+      "artifact_sha256"
+    ],
+    "ambiguous_transport_outcome": "BLOCKED",
+    "host_registration_proof": "required before claiming GPT-to-local capability"
+  },
+  "forbidden_claims": [
+    "GitHub or this JSON file grants a web GPT Windows access",
+    "A connector process proves that ChatGPT has registered or authorized it",
+    "A transport timeout proves that no mutation occurred",
+    "A simulated browser run proves a live ChatGPT run"
+  ]
+}
