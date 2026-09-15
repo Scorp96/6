@@ -1,0 +1,15 @@
+{
+  "format": "scorp-v4-live-readonly-preflight/1",
+  "candidate_code_commit": "eee86450a3250218cc564a72a5fd16135a02b12f",
+  "observed_at": "2026-09-15T03:09:55.4433668Z",
+  "session": "scorp-p0-turn-066069407e9baa4c",
+  "read_only": true,
+  "actions": [
+    "tab list",
+    "tab list"
+  ],
+  "raw_output": "{\"success\":true,\"data\":{\"tabs\":[{\"active\":true,\"label\":null,\"ownership\":\"created\",\"relayAttached\":false,\"tabId\":\"t1\",\"targetId\":\"3D6F10870DC67B11F42DCBA3266407B1\",\"title\":\"\",\"type\":\"page\",\"url\":\"\"}]},\"error\":null}\r\n\r\n{\"success\":true,\"data\":{\"tabs\":[{\"active\":true,\"label\":null,\"ownership\":\"created\",\"relayAttached\":false,\"tabId\":\"t1\",\"targetId\":\"3D6F10870DC67B11F42DCBA3266407B1\",\"title\":\"\",\"type\":\"page\",\"url\":\"\"}]},\"error\":null}\r\n",
+  "result": "BLOCKED_EXTERNAL_PRECONDITION",
+  "rule": "No send, no retry, no historical intent replay until current candidate binding and target state are unambiguous.",
+  "artifact_sha256": "a5d3b48eaaf441ce49020207fa0b0fd68ad52c90aa00471883168cd21165b319"
+}
