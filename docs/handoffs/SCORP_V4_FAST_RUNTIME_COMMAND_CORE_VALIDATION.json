@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "d1fc47598f2f59be9b8da50664396e786b32910d",
+  "implementation_commit": "12fc17b491affd5d7b1989e1d97a21e09fefeb83",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 486,
+        "count": 487,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -37,11 +37,11 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "affe7f06ed31df7d6dc32cbaf080186f4fde9f351c85b80eaa15c045c61d940c"
+      "sha256": "ef19300e2a16ccd55cca3508c24d50d0893a5780d49bfcaedee4f7cc2bf76e88"
     },
     "local_transport_live_verified": {
       "result": "PASS",
-      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_D1FC475.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_12FC17B.json",
       "scope": "Windows authenticated Named Pipe and stdio connector process loop",
       "tests": 11
     }
@@ -87,10 +87,10 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
   ],
-  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_D1FC475.json",
+  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_12FC17B.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D1FC475.json",
-    "sha256": "9860c6244d3b205cb0e342e5e732cfcb95a60bff36bb79261bab01e9d9c904c5",
-    "file_count": 523
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_12FC17B.json",
+    "sha256": "beb038ed5be504d3609b49adfa2475f1b9b805180801e9af8dd09420722d4a7c5",
+    "file_count": 527
   }
 }

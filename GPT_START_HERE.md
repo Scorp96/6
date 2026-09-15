@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit d1fc47598f2f59be9b8da50664396e786b32910d `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D1FC475.json `
-  --manifest-sha256 1dd95a9665d2cfd9580ec45ac7d0a0f5500b528961198596a9ebb115f63470dc
+  --candidate-commit 12fc17b491affd5d7b1989e1d97a21e09fefeb83 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_12FC17B.json `
+  --manifest-sha256 beb038ed5be504d3609b49adfa2475f1b9b805180801e9af8dd09420722d4a7c
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -198,7 +198,7 @@ ChatGPT browser acceptance or production cutover.
 
 The current candidate also has a fresh Windows process-loop receipt for the
 restricted stdio connector and authenticated Named Pipe transport at
-`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_D1FC475.json`. This proves
+`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_12FC17B.json`. This proves
 only the local transport loop; it does not register the connector with ordinary
 web ChatGPT or grant it local permissions automatically.
 
@@ -267,9 +267,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit d1fc47598f2f59be9b8da50664396e786b32910d `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D1FC475.json `
-  --manifest-sha256 1dd95a9665d2cfd9580ec45ac7d0a0f5500b528961198596a9ebb115f63470dc `
+  --candidate-commit 12fc17b491affd5d7b1989e1d97a21e09fefeb83 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_12FC17B.json `
+  --manifest-sha256 beb038ed5be504d3609b49adfa2475f1b9b805180801e9af8dd09420722d4a7c `
   --send
 ```
 
@@ -588,7 +588,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `d1fc475` (`fix: bind web GPT packet to fast runtime evidence`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
+- Current code candidate: `12fc17b` (`fix: validate web GPT candidate manifest binding`) on `feature/v4-fast-runtime-command-core`; rate-limit refresh behavior is implemented in `b66afa8`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.

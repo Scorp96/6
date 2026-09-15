@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`b6acdc0eada8f6b9cdf726bc38cf774f19b6623b` (current audit/documentation freeze; code candidate `d1fc475`)
+`b6acdc0eada8f6b9cdf726bc38cf774f19b6623b` (current audit/documentation freeze; code candidate `12fc17b`)
 
 ## REMOTE_MAIN_HEAD
 
@@ -94,13 +94,13 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 ## CURRENT_EVIDENCE_MODEL
 
 - V4 core：173 项测试通过。
-- GUI bridge：486 项测试通过。
+- GUI bridge：487 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
 - validation JSON：可解析。
-- 当前候选 validation：`TEST_VERIFIED`（代码候选 `d1fc475`）。
+- 当前候选 validation：`TEST_VERIFIED`（代码候选 `12fc17b`）。
 - 当前候选真实 Chrome：`LIVE_VERIFIED = BLOCKED`，原因是当前 canary 的 Chrome Use send ref 无法解析。
-- Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_D1FC475.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
+- Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_12FC17B.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
 - 当前候选：`ACCEPTED = false`。
 - 生产切换：未授权、未执行。
 
