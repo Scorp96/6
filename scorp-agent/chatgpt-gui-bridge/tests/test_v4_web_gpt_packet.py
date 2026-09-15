@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import pathlib
+import re
 import tempfile
 import unittest
 
@@ -100,6 +101,16 @@ class V4WebGptPacketTests(unittest.TestCase):
             result = packet.build_packet(root, database_path=database, allowed_root=root)
             self.assertEqual("BLOCKED", result["status"])
             self.assertEqual("CANDIDATE_MANIFEST_MISMATCH", result["blockers"][0]["code"])
+
+    def test_repository_startup_commands_use_current_candidate_manifest_hash(self):
+        repo_root = pathlib.Path(__file__).resolve().parents[3]
+        validation_path = repo_root / "docs" / "handoffs" / "SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
+        validation = json.loads(validation_path.read_text(encoding="utf-8"))
+        expected = validation["candidate_manifest"]["manifest_sha256"]
+        startup = (repo_root / "GPT_START_HERE.md").read_text(encoding="utf-8")
+        values = re.findall(r"--manifest-sha256\s+([0-9a-f]{64})", startup)
+        self.assertGreaterEqual(len(values), 2)
+        self.assertTrue(all(value == expected for value in values), (expected, values))
 
 
 if __name__ == "__main__":
