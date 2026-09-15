@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`e1e31d1eb2a0d996fb20d5f63cd04a3f123e46bb`
+`d33fdf2fc52724c89da96c0e6679545a28554fd9` (audit snapshot; code candidate `6a9f1c1bc4881fe02b6615df3d611f067af2bbbf`)
 
 ## REMOTE_MAIN_HEAD
 
@@ -46,7 +46,7 @@
 - `ScorpFullAutoOrchestrator = Ready`
 - `ScorpV4SelfUpgrade5561f44 = Ready`
 
-没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。现场还观察到一个旧的 `chrome-use.exe --json get url` 进程和生产 `bridge_worker.py` 进程；这证明存在历史 transport/session 生命周期残留，但不提供安全依据去全局杀进程或切换生产任务。当前进程计数包括约 57 个 `chrome`、2 个 `chrome-use`、8 个 `python` 进程。进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
+没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。现场还观察到多个旧的 `chrome-use.exe` 进程和生产 `bridge_worker.py` 进程；这证明存在历史 transport/session 生命周期残留，但不提供安全依据去全局杀进程或切换生产任务。进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
 
 ## CURRENT_SQLITE_STATE_MODEL
 
@@ -63,7 +63,7 @@
 
 已实现 daemon lease、daemon epoch、heartbeat、SQLite activation snapshot、唯一事件 ID、restart/recovery 计数、restart budget、bounded backoff 和 circuit state。daemon 默认可重新获取当前 SQLite epoch，避免 Scheduled Task 固定旧 epoch。
 
-当前入口仍是 monitor-oriented seam：它能读取 durable snapshot、记录 ActivationArbiter decision、运行有限循环并输出 health；真实浏览器提交与歧义核对仍由受约束 adapter 负责，不能宣称它已经是完整无人值守 Fast Local Runtime。
+当前入口仍是 monitor-oriented seam：它能读取 durable snapshot、记录 ActivationArbiter decision、运行有限循环并输出 health；真实浏览器提交与歧义核对仍由受约束 adapter 负责，不能宣称它已经是完整无人值守 Fast Local Runtime。除 `TERMINAL` 与 `HEARTBEAT_IDLE` 外，缺少动作处理器现在会写入 `BLOCKED`，不会伪报 `HEALTHY`。
 
 ## CURRENT_ACTIVATION_MODEL
 
@@ -83,9 +83,9 @@ Scheduler 使用最多两个动态 Worker slot，assignment、lease、task depen
 
 ## CURRENT_BROWSER_MODEL
 
-Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。本轮只读预检已显示正常新聊天 composer；随后当前候选单 Worker canary 在发送控制阶段因 `CHROME_USE_SEND_REF_COUNT_0` / `Unknown ref` fail-closed。隔离 driver state 没有 conversation URL 或 response marker，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_A060ADC.json`。
+Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。本轮只读预检已显示正常新聊天 composer；随后当前候选 c205 单 Worker canary 记录了 conversation URL，但只读核对得到旧诊断回复且没有 c205 token，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`。
 
-因此本轮未发送新 prompt、未创建新的 Worker GPT 对话、未重放历史 ambiguous intent。请求限制恢复的真实只读 preflight 显示当前页面无限制弹窗，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；只证明了不点击分支，未证明真实弹窗确认和等待恢复。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
+因此本轮未确认新 prompt 已送达、未确认当前候选 Worker GPT 对话结果、未重放历史 ambiguous intent。请求限制恢复的真实只读 preflight 显示当前页面无限制弹窗，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；只证明了不点击分支，未证明真实弹窗确认和等待恢复。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
 
 ## CURRENT_EXECUTION_MODEL
 
@@ -93,12 +93,12 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：169 项测试通过。
-- GUI bridge：479 项测试通过。
+- V4 core：170 项测试通过。
+- GUI bridge：482 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
 - validation JSON：可解析。
-- 当前候选 validation：`TEST_VERIFIED`。
+- 当前候选 validation：`TEST_VERIFIED`（代码候选 `6a9f1c1`）。
 - 当前候选真实 Chrome：`LIVE_VERIFIED = BLOCKED`，原因是当前 canary 的 Chrome Use send ref 无法解析。
 - 当前候选：`ACCEPTED = false`。
 - 生产切换：未授权、未执行。
@@ -114,7 +114,9 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - stall ordering 和 IDLE/progress 分离。
 - SQLite write failure 在 browser intent fence 前 fail-closed。
 - 现有 V4 regression 与 GUI bridge regression。
-- 请求限制恢复：明确确认按钮只点击一次，最多等待 300 秒并只读复核；未知按钮、登录和验证码保持阻塞。
+- 请求限制恢复：明确确认按钮只点击一次，最多等待 300 秒并只读复核；窗口结束仍限流时最多刷新一次；未知按钮、登录和验证码保持阻塞。
+- daemon 缺少任何可执行 arbiter 动作处理器时 fail-closed 为 `BLOCKED`，不会伪报 `HEALTHY`。
+- daemon 缺少任何可执行 arbiter 动作处理器时 fail-closed 为 `BLOCKED`。
 
 ## PARTIAL
 
@@ -126,7 +128,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## MISSING
 
-- 当前候选单 Worker canary 的 send-ref 修复和重新授权验证。
+- 当前候选单 Worker canary 的 send/capture 和重新授权验证。
 - 真实 ChatGPT Worker conversation 执行 CSV 代码工作负载。
 - 生产 Scheduled Task 注册和切换授权。
 - 当前候选跨真实浏览器边界的 crash/restart/rebind 证据。
@@ -153,13 +155,13 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 - P0 durable command/fencing invariants：通过当前离线测试验证。
 - P0 no arbitrary shell：通过协议拒绝和 CLI 边界测试验证。
-- P0 no blind retry：代码和离线故障注入覆盖；live canary 在 send ref 歧义处 fail-closed，未重试。
+- P0 no blind retry：代码和离线故障注入覆盖；c205 live canary 在浏览器状态歧义处 fail-closed，未重试。
 - P0 ambiguous intent fence：scheduler 现在拒绝在 `MAY_HAVE_SUBMITTED` 或 `BLOCKED_AMBIGUOUS` 存在时创建新的普通 assignment。
 - P0 operator fence admission：`PAUSED`、`SUPERSEDED`、`CANCELLED` 和 `EMERGENCY_STOPPED` 状态拒绝新的 task graph admission。
 - P0 missing authority：缺失 `operator_controls` 时，新的 graph/assignment admission fail-closed。
 - P0 snapshot authority：缺失 `operator_controls` 的 activation snapshot 返回 `UNKNOWN`，不再伪造 `RUNNING`。
 - P0 resume admission：修复了 resume 后 scheduler 误把 `RUNNING` 当成非活动状态，避免暂停恢复后永久不派发任务或丢失活动 assignment。
-- P0 auth/rate-limit human boundary：已实现有界确认/等待恢复；当前 live canary 仍在 send-ref 阶段阻塞，不能把恢复动作当作发送成功。
+- P0 auth/rate-limit human boundary：已实现有界确认/等待/单次刷新恢复；当前 live canary 仍有浏览器状态歧义，不能把恢复动作当作发送成功。
 - P0 current-candidate browser exactly-once：未达到 LIVE_VERIFIED。
 - P0 dedicated production daemon authority：未证明已安装。
 
