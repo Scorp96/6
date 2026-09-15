@@ -93,6 +93,7 @@ def run_supervisor(
     controller: Any,
     *,
     rebind_callback: Callable[[Mapping[str, Any]], Any] | None = None,
+    physical_health_probe: Callable[[], Mapping[str, Any]] | None = None,
     decision_log: str | pathlib.Path | None = None,
     interval_seconds: float = 30.0,
     max_iterations: int | None = 1,
@@ -107,7 +108,11 @@ def run_supervisor(
         if journal is not None:
             journal.append(decision)
 
-    supervisor = MasterSupervisor(controller, rebind_callback=rebind_callback)
+    supervisor = MasterSupervisor(
+        controller,
+        rebind_callback=rebind_callback,
+        physical_health_probe=physical_health_probe,
+    )
     return supervisor.run_loop(
         interval_seconds=interval_seconds,
         max_iterations=max_iterations,
@@ -224,9 +229,15 @@ def run_runtime(args: argparse.Namespace) -> int:
         controller = MasterAController(gateway, str(args.session_id))
         attached = controller.attach_existing_session()
         rebind_callback = _build_rebind_callback(args, gateway)
+        physical_health_probe = (
+            rebind_callback.health_probe
+            if rebind_callback is not None and callable(getattr(rebind_callback, "health_probe", None))
+            else None
+        )
         result = run_supervisor(
             controller,
             rebind_callback=rebind_callback,
+            physical_health_probe=physical_health_probe,
             decision_log=decision_log,
             interval_seconds=float(args.interval_seconds),
             max_iterations=None if args.forever else int(args.max_iterations),

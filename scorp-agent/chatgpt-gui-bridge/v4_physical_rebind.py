@@ -70,6 +70,42 @@ class ReadOnlyBrowserRebinder:
         except (KeyError, TypeError, ValueError) as exc:
             raise PhysicalRebindError("MASTER_EPOCH_MISSING") from exc
 
+        binding, url, evidence = self._verify_binding(source="READ_ONLY_PHYSICAL_REBIND")
+        evidence = {**evidence, "master_epoch": epoch}
+        persisted = self.browser_adapter.rebind(
+            self.project_id,
+            self.channel,
+            actor_id=self.actor_id,
+            conversation_url=url,
+            predecessor_url=url,
+            reason="PHYSICAL_SESSION_REBOUND",
+            evidence=evidence,
+        )
+        return {
+            "status": "REBOUND",
+            "master_epoch": epoch,
+            "conversation_url": url,
+            "binding": dict(persisted) if isinstance(persisted, Mapping) else persisted,
+            "evidence": evidence,
+        }
+
+    def health_probe(self) -> dict[str, Any]:
+        """Prove the bound physical session without changing SQLite state."""
+
+        try:
+            _binding, url, evidence = self._verify_binding(source="READ_ONLY_PHYSICAL_HEALTH")
+        except PhysicalRebindError as exc:
+            return {
+                "status": "PHYSICAL_UNAVAILABLE",
+                "reason": str(exc),
+            }
+        return {
+            "status": "HEALTHY",
+            "conversation_url": url,
+            "evidence": evidence,
+        }
+
+    def _verify_binding(self, *, source: str) -> tuple[Mapping[str, Any], str, dict[str, Any]]:
         binding = self.store.get_browser_binding(self.project_id, self.channel)
         if not isinstance(binding, Mapping):
             raise PhysicalRebindError("MASTER_BROWSER_BINDING_MISSING")
@@ -97,26 +133,10 @@ class ReadOnlyBrowserRebinder:
             raise PhysicalRebindError("BROWSER_URL_NOT_CONFIRMED")
 
         evidence = {
-            "source": "READ_ONLY_PHYSICAL_REBIND",
-            "master_epoch": epoch,
+            "source": source,
             "auth_status": "AUTHENTICATED",
             "snapshot_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "binding_generation": int(binding.get("generation", 0)),
         }
-        persisted = self.browser_adapter.rebind(
-            self.project_id,
-            self.channel,
-            actor_id=self.actor_id,
-            conversation_url=url,
-            predecessor_url=url,
-            reason="PHYSICAL_SESSION_REBOUND",
-            evidence=evidence,
-        )
-        return {
-            "status": "REBOUND",
-            "master_epoch": epoch,
-            "conversation_url": url,
-            "binding": dict(persisted) if isinstance(persisted, Mapping) else persisted,
-            "evidence": evidence,
-        }
+        return binding, url, evidence
 

@@ -108,6 +108,35 @@ class MasterSupervisorRuntimeTests(unittest.TestCase):
             row = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
             self.assertEqual("RESUME_REQUIRED", row["status"])
 
+    def test_run_supervisor_uses_physical_health_before_heartbeat(self):
+        runtime = load_runtime()
+
+        class Controller:
+            def __init__(self):
+                self.heartbeats = 0
+
+            def watchdog_once(self):
+                return {"status": "MASTER_ACTIVE"}
+
+            def heartbeat(self):
+                self.heartbeats += 1
+                return {"state": "ACTIVE"}
+
+        controller = Controller()
+        result = runtime.run_supervisor(
+            controller,
+            physical_health_probe=lambda: {
+                "status": "PHYSICAL_UNAVAILABLE",
+                "reason": "TAB_LOST",
+            },
+            interval_seconds=0,
+            max_iterations=1,
+            sleep=lambda _seconds: None,
+        )
+        self.assertEqual("RESUME_REQUIRED", result.status)
+        self.assertEqual("PHYSICAL_HEALTH_FAILED:TAB_LOST", result.stop_reason)
+        self.assertEqual(0, controller.heartbeats)
+
     def test_supervisor_runtime_requires_existing_database(self):
         runtime = load_runtime()
         with tempfile.TemporaryDirectory() as td:

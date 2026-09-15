@@ -100,6 +100,43 @@ class ReadOnlyPhysicalRebindTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_health_probe_is_read_only_and_proves_existing_binding(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        from v4_physical_rebind import ReadOnlyBrowserRebinder
+
+        class Driver:
+            async def snapshot_conversation(self, url):
+                return f"Focused Window: Chrome\\n{url}\\nexisting content"
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = self._store(root)
+            try:
+                adapter = BrowserAdapter(store, object())
+                adapter.rebind(
+                    "rebind-project",
+                    "master",
+                    actor_id="A",
+                    conversation_url="https://chatgpt.com/c/existing",
+                    predecessor_url=None,
+                    reason="INITIAL_BINDING",
+                    evidence={"source": "fixture"},
+                )
+                before = dict(store.get_browser_binding("rebind-project", "master"))
+                rebinder = ReadOnlyBrowserRebinder(
+                    store=store,
+                    browser_adapter=adapter,
+                    driver=Driver(),
+                    auth_probe=lambda _channel: {"status": "AUTHENTICATED"},
+                    project_id="rebind-project",
+                )
+                result = rebinder.health_probe()
+                self.assertEqual("HEALTHY", result["status"])
+                self.assertEqual("READ_ONLY_PHYSICAL_HEALTH", result["evidence"]["source"])
+                self.assertEqual(before, dict(store.get_browser_binding("rebind-project", "master")))
+            finally:
+                store.close()
+
 
 if __name__ == "__main__":
     unittest.main()

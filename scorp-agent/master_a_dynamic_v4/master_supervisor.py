@@ -50,17 +50,45 @@ class MasterSupervisor:
         controller: Any,
         *,
         rebind_callback: Callable[[Mapping[str, Any]], Any] | None = None,
+        physical_health_probe: Callable[[], Mapping[str, Any]] | None = None,
     ) -> None:
         if controller is None:
             raise ValueError("MASTER_CONTROLLER_REQUIRED")
         self.controller = controller
         self.rebind_callback = rebind_callback
+        self.physical_health_probe = physical_health_probe
 
     def run_once(self) -> SupervisorDecision:
         watchdog = self._mapping(self.controller.watchdog_once(), "WATCHDOG_RESULT_INVALID")
         status = str(watchdog.get("status") or "").strip()
 
         if status == "MASTER_ACTIVE":
+            if self.physical_health_probe is not None:
+                try:
+                    health = self._mapping(
+                        self.physical_health_probe(),
+                        "PHYSICAL_HEALTH_RESULT_INVALID",
+                    )
+                    health_status = str(health.get("status") or "").strip().upper()
+                    if health_status not in {"HEALTHY", "OK", "AUTHENTICATED"}:
+                        reason = str(health.get("reason") or health_status or "UNKNOWN").strip()
+                        if reason.startswith("AUTH_BLOCKED:") or "RATE_LIMIT" in reason:
+                            return SupervisorDecision(
+                                status="BLOCKED",
+                                reason=f"PHYSICAL_HEALTH_BLOCKED:{reason}",
+                                watchdog=watchdog,
+                            )
+                        return self._resume_and_rebind(
+                            watchdog,
+                            required_reason=f"PHYSICAL_HEALTH_FAILED:{reason}",
+                            success_reason="RESUMED_AND_REBOUND",
+                        )
+                except Exception as exc:
+                    return self._resume_and_rebind(
+                        watchdog,
+                        required_reason=f"PHYSICAL_HEALTH_FAILED:{type(exc).__name__}",
+                        success_reason="RESUMED_AND_REBOUND",
+                    )
             try:
                 heartbeat = self._mapping(self.controller.heartbeat(), "HEARTBEAT_RESULT_INVALID")
             except Exception as exc:  # keep the monitor alive and fail closed
@@ -77,42 +105,10 @@ class MasterSupervisor:
             )
 
         if status == "RESUME_REQUIRED":
-            if self.rebind_callback is None:
-                return SupervisorDecision(
-                    status="RESUME_REQUIRED",
-                    reason="PHYSICAL_REBIND_REQUIRED",
-                    watchdog=watchdog,
-                )
-            try:
-                resume = self._mapping(self.controller.resume(), "RESUME_RESULT_INVALID")
-            except Exception as exc:
-                return SupervisorDecision(
-                    status="BLOCKED",
-                    reason=f"RESUME_FAILED:{type(exc).__name__}",
-                    watchdog=watchdog,
-                )
-            try:
-                self.rebind_callback(resume)
-            except Exception as exc:
-                cleanup_reason = "PHYSICAL_REBIND_FAILED"
-                cleanup_error = ""
-                end = getattr(self.controller, "end", None)
-                if callable(end):
-                    try:
-                        end(reason=cleanup_reason)
-                    except Exception as cleanup_exc:
-                        cleanup_error = f":CLEANUP_FAILED:{type(cleanup_exc).__name__}"
-                return SupervisorDecision(
-                    status="BLOCKED",
-                    reason=f"REBIND_FAILED:{type(exc).__name__}{cleanup_error}",
-                    watchdog=watchdog,
-                    resume=resume,
-                )
-            return SupervisorDecision(
-                status="MASTER_ACTIVE",
-                reason="RESUMED_AND_REBOUND",
-                watchdog=watchdog,
-                resume=resume,
+            return self._resume_and_rebind(
+                watchdog,
+                required_reason="PHYSICAL_REBIND_REQUIRED",
+                success_reason="RESUMED_AND_REBOUND",
             )
 
         if status == "TERMINAL":
@@ -126,6 +122,51 @@ class MasterSupervisor:
             status="BLOCKED",
             reason="WATCHDOG_STATUS_UNKNOWN",
             watchdog=watchdog,
+        )
+
+    def _resume_and_rebind(
+        self,
+        watchdog: Mapping[str, Any],
+        *,
+        required_reason: str,
+        success_reason: str,
+    ) -> SupervisorDecision:
+        if self.rebind_callback is None:
+            return SupervisorDecision(
+                status="RESUME_REQUIRED",
+                reason=required_reason,
+                watchdog=watchdog,
+            )
+        try:
+            resume = self._mapping(self.controller.resume(), "RESUME_RESULT_INVALID")
+        except Exception as exc:
+            return SupervisorDecision(
+                status="BLOCKED",
+                reason=f"RESUME_FAILED:{type(exc).__name__}",
+                watchdog=watchdog,
+            )
+        try:
+            self.rebind_callback(resume)
+        except Exception as exc:
+            cleanup_reason = "PHYSICAL_REBIND_FAILED"
+            cleanup_error = ""
+            end = getattr(self.controller, "end", None)
+            if callable(end):
+                try:
+                    end(reason=cleanup_reason)
+                except Exception as cleanup_exc:
+                    cleanup_error = f":CLEANUP_FAILED:{type(cleanup_exc).__name__}"
+            return SupervisorDecision(
+                status="BLOCKED",
+                reason=f"REBIND_FAILED:{type(exc).__name__}{cleanup_error}",
+                watchdog=watchdog,
+                resume=resume,
+            )
+        return SupervisorDecision(
+            status="MASTER_ACTIVE",
+            reason=success_reason,
+            watchdog=watchdog,
+            resume=resume,
         )
 
     def run_loop(

@@ -4,6 +4,57 @@ import unittest
 
 
 class MasterSupervisorTests(unittest.TestCase):
+    def test_physical_health_failure_does_not_renew_logical_lease(self):
+        from master_a_dynamic_v4.master_supervisor import MasterSupervisor
+
+        controller = _Controller([{"status": "MASTER_ACTIVE"}])
+        supervisor = MasterSupervisor(
+            controller,
+            physical_health_probe=lambda: {"status": "PHYSICAL_UNAVAILABLE", "reason": "TAB_LOST"},
+        )
+        decision = supervisor.run_once()
+        self.assertEqual("RESUME_REQUIRED", decision.status)
+        self.assertEqual("PHYSICAL_HEALTH_FAILED:TAB_LOST", decision.reason)
+        self.assertEqual(0, controller.heartbeats)
+
+    def test_physical_health_failure_rebinds_before_any_heartbeat(self):
+        from master_a_dynamic_v4.master_supervisor import MasterSupervisor
+
+        rebinds = []
+        controller = _Controller([{"status": "MASTER_ACTIVE"}])
+        supervisor = MasterSupervisor(
+            controller,
+            physical_health_probe=lambda: {"status": "PHYSICAL_UNAVAILABLE", "reason": "RELAY_DEAD"},
+            rebind_callback=rebinds.append,
+        )
+        decision = supervisor.run_once()
+        self.assertEqual("MASTER_ACTIVE", decision.status)
+        self.assertEqual("RESUMED_AND_REBOUND", decision.reason)
+        self.assertEqual(0, controller.heartbeats)
+        self.assertEqual(1, controller.resumes)
+        self.assertEqual([{"master_epoch": 2}], rebinds)
+
+    def test_auth_or_rate_limit_block_does_not_create_new_epoch(self):
+        from master_a_dynamic_v4.master_supervisor import MasterSupervisor
+
+        controller = _Controller([{"status": "MASTER_ACTIVE"}])
+        supervisor = MasterSupervisor(
+            controller,
+            physical_health_probe=lambda: {
+                "status": "PHYSICAL_UNAVAILABLE",
+                "reason": "AUTH_BLOCKED:BROWSER_RATE_LIMITED",
+            },
+            rebind_callback=lambda _resume: (_ for _ in ()).throw(AssertionError("must not rebind")),
+        )
+        decision = supervisor.run_once()
+        self.assertEqual("BLOCKED", decision.status)
+        self.assertEqual(
+            "PHYSICAL_HEALTH_BLOCKED:AUTH_BLOCKED:BROWSER_RATE_LIMITED",
+            decision.reason,
+        )
+        self.assertEqual(0, controller.resumes)
+        self.assertEqual(0, controller.heartbeats)
+
     def test_active_session_renews_without_rebinding(self):
         from master_a_dynamic_v4.master_supervisor import MasterSupervisor
 
