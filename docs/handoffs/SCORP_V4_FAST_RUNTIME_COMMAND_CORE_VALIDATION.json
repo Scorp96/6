@@ -4,12 +4,12 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "c7a2fd3c8564275678100a33efe42b3faaf6ea61",
+  "implementation_commit": "bbe811c608f5a02372d7e657cb67c64a8a1bcb02",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
         "result": "PASS",
-        "count": 185
+        "count": 186
       },
       "gui_bridge_tests": {
         "result": "PASS",
@@ -26,7 +26,7 @@
     "live_verified": {
       "result": "BLOCKED",
       "reason": "新鲜 Windows Chrome Use 只读预检连续两次只看到同一个空的 created tab，未取得当前候选 ChatGPT composer 或唯一绑定；按 fail-closed 规则不发送。",
-      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_C7A2FD3.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_BBE811C.json",
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
@@ -38,11 +38,11 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "225974740657c47b8fa538f27a3a822941d2fbd9d2e4907a5b4567bab9535d29"
+      "sha256": "b0d2967f619c6aa9463d5f1ffe85823789ca3f7147fe3e03f317670f944ac5b4"
     },
     "local_transport_live_verified": {
       "result": "PASS",
-      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_C7A2FD3.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_BBE811C.json",
       "scope": "Windows authenticated Named Pipe and stdio connector process loop",
       "tests": 11
     }
@@ -90,7 +90,8 @@
     "Worker leases renew only through assignment, lease token, Master epoch, and operator-state fencing",
     "Worker lease heartbeat and expiry are durable; expired renewal fences the assignment and requeues the task before returning BLOCKED",
     "Master epoch changes fence active leases and assignments from older epochs in the same SQLite transaction",
-    "Candidate result verification rejects stale Master epochs and non-active leases before accepting a task result"
+    "Candidate result verification rejects stale Master epochs and non-active leases before accepting a task result",
+    "Expired RESULT_RECEIVED leases fence the pending candidate, requeue the task, and leave an auditable recovery event"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -101,11 +102,11 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
   ],
-  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_C7A2FD3.json",
+  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_BBE811C.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_C7A2FD3.json",
-    "sha256": "479232f2f5b5453a702572f144fa7c8ab38c0b4006de39a9b94f5b57e403781d",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_BBE811C.json",
+    "sha256": "60be8ad3a6df90ee63ed7151535e802c651a913a2a8f6e798872210b3435d2f5",
     "file_count": 370
   },
-  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_C7A2FD3.json"
+  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_BBE811C.json"
 }

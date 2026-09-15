@@ -1,0 +1,23 @@
+{
+  "evidence_id": "SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_BBE811C",
+  "observed_at": "2026-09-15T03:45:08.461813Z",
+  "candidate_code_commit": "bbe811c608f5a02372d7e657cb67c64a8a1bcb02",
+  "environment": {
+    "os": "Windows",
+    "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "transport": "authenticated Windows Named Pipe",
+    "production_state_changed": false
+  },
+  "command": "python -B -m unittest master_a_dynamic_v4.tests.test_runtime_pipe_client master_a_dynamic_v4.tests.test_runtime_pipe master_a_dynamic_v4.tests.test_runtime_connector_cli",
+  "result": "PASS",
+  "tests": 11,
+  "coverage": [
+    "stdio connector actor binding",
+    "project and actor scope rejection",
+    "authenticated Named Pipe client/server process loop",
+    "one-shot launcher",
+    "SQLite runtime.status response",
+    "no transport retry",
+    "pipe launcher reacquires current daemon epoch when omitted"
+  ]
+}
