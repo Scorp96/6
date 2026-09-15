@@ -112,6 +112,45 @@ class ActorThrottleRecoveryV3Tests(unittest.TestCase):
         )
         self.assertEqual(1, sum(1 for name, _ in client.calls if name == "Type"))
 
+    def test_gui_transport_classifies_ack_transport_failure_without_refresh_or_input(self):
+        throttle = (
+            "请求过于频繁，请稍等几分钟后再重试\n"
+            "(410,520) button \"确定\""
+        )
+
+        class AckFailureClient(FakeClient):
+            async def call_tool(self, name, args):
+                self.calls.append((name, args))
+                if name == "Click":
+                    raise RuntimeError("simulated click failure")
+                if name == "Snapshot":
+                    return TextResult(self.snapshots.pop(0) if self.snapshots else "")
+                if name == "Clipboard":
+                    if args.get("mode") == "get":
+                        return TextResult(self.clipboard_reads.pop(0) if self.clipboard_reads else "Clipboard content:\nhttps://chatgpt.com/")
+                    return TextResult("ok")
+                return TextResult("ok")
+
+        client = AckFailureClient(
+            snapshots=["Focused Window: Chrome", throttle],
+            clipboard_reads=[
+                "Clipboard content:\noriginal",
+                "Clipboard content:\nhttps://chatgpt.com/",
+            ],
+        )
+        with self.assertRaisesRegex(
+            ChatGptThrottleError,
+            "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_ACK_FAILED",
+        ):
+            asyncio.run(open_new_chat_and_submit(
+                client,
+                "PROMPT",
+                page_wait_seconds=0,
+                rate_limit_wait_seconds=0,
+            ))
+        self.assertFalse(any(name == "Type" for name, _ in client.calls))
+        self.assertFalse(any(name == "Shortcut" and args.get("shortcut") == "ctrl+r" for name, args in client.calls))
+
     def test_gui_transport_classifies_throttle_before_any_prompt_input(self):
         throttle = "请求过于频繁，请稍等几分钟后再重试"
         client = FakeClient(

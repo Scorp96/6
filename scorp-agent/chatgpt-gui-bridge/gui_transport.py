@@ -92,16 +92,26 @@ async def recover_rate_limit_dialog(
         # Preserve the legacy blocker prefix consumed by the deterministic
         # supervisor while retaining the precise fail-closed reason.
         raise ChatGptThrottleError(f"CHATGPT_REQUEST_THROTTLED:{exc}") from exc
-    await client.call_tool("Click", {"loc": list(location)})
+    try:
+        await client.call_tool("Click", {"loc": list(location)})
+    except Exception as exc:
+        raise ChatGptThrottleError(
+            "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_ACK_FAILED"
+        ) from exc
     deadline = clock() + max_wait_seconds
 
     async def read_snapshot() -> str:
-        result = await client.call_tool("Snapshot", {
-            "use_vision": False,
-            "use_dom": False,
-            "use_annotation": True,
-            "use_ui_tree": True,
-        })
+        try:
+            result = await client.call_tool("Snapshot", {
+                "use_vision": False,
+                "use_dom": False,
+                "use_annotation": True,
+                "use_ui_tree": True,
+            })
+        except Exception as exc:
+            raise ChatGptThrottleError(
+                "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_RECOVERY_READ_FAILED"
+            ) from exc
         if getattr(result, "isError", False):
             raise ChatGptThrottleError(
                 "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_RECOVERY_READ_FAILED"
