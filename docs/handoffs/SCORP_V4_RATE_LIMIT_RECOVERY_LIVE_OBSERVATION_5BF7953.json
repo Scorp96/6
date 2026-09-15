@@ -1,0 +1,29 @@
+{
+  "format": "scorp-v4-rate-limit-live-observation/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+  "candidate_manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e",
+  "observed_at_utc": "2026-09-15T12:00:54.645073Z",
+  "scope": "one real current-candidate Worker browser session after a previously observed ChatGPT rate-limit dialog",
+  "session": "scorp-p0-turn-d7b952dd08af7c79",
+  "conversation_url": "https://chatgpt.com/c/6aa931fa-a04c-83ee-a5f1-309f02904a0c",
+  "action": {
+    "command": "chrome-use click @e132",
+    "selector_label": "明白了",
+    "side_effect": "acknowledgement only; no prompt resend"
+  },
+  "observed_after_action": {
+    "snapshot_path": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\t2-after-rate-limit.json",
+    "snapshot_sha256": "c6abcf6b9945112d2f6d1c860fd6fd5edc853bc1a3028bad11241724b473ea6f",
+    "composer_present": true,
+    "rate_limit_dialog_present": false,
+    "assistant_response_present": true,
+    "submission_replayed": false
+  },
+  "result": "PASS",
+  "limitations": [
+    "This is a bounded observation of one session, not full real-code workload acceptance.",
+    "The other Worker session was not controllable after it became about:blank; no blind retry was attempted.",
+    "No production state was touched."
+  ]
+}

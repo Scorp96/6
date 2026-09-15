@@ -5,9 +5,10 @@
     "validated_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
     "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
-    "binding_note": "This handoff describes the 5bf79536c03de8ae25a507723a34f4e162fe8bfa code candidate. Offline validation is current; the prior e7ca0ae browser receipt is historical and is not evidence for this post-submit rate-limit recovery change. Real popup recovery, real-code workload, Master replacement, unattended soak, and production acceptance remain unresolved.",
-    "manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e"
+    "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json",
+    "binding_note": "This handoff describes the 5bf79536c03de8ae25a507723a34f4e162fe8bfa code candidate. Offline validation and a fresh isolated two-Worker browser submit/capture receipt are current. One real Worker session also recovered from a live rate-limit dialog after one acknowledgement click without prompt resend; the other real-code Worker session became uncontrollable and was not retried. The full real-code workload, symmetric popup recovery, Master replacement, unattended soak, and production acceptance remain unresolved.",
+    "manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e",
+    "live_rate_limit_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

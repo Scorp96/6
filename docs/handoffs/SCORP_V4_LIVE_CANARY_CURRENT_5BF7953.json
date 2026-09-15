@@ -1,0 +1,50 @@
+{
+  "format": "scorp-v4-two-worker-live-canary/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+  "candidate_manifest_path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core\\docs\\handoffs\\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json",
+  "candidate_manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e",
+  "observed_at_utc": "2026-09-15T11:49:01.561079Z",
+  "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
+  "project_id": "scorp-v4-live-two-worker-canary-5bf7953",
+  "master_epoch": 0,
+  "worker_count": 2,
+  "submit_actions": 2,
+  "response_messages": 2,
+  "duplicate_submits": 0,
+  "records": [
+    {
+      "intent_id": "worker-intent-assignment-5f6d5bc0189d4861a6799a4653fd50bb",
+      "channel": "worker/worker-slot-1",
+      "conversation_url": "https://chatgpt.com/c/6aa93097-e084-83ee-a63f-1dc2b6e8f8ec",
+      "state": "RESPONSE_CAPTURED",
+      "response_sha256": "cf5d55dc260fd8c1213d08dfa264cbc294cbcaa8292a31560dd4417303d9c316",
+      "marker": "SCORPV4CANARYACK1"
+    },
+    {
+      "intent_id": "worker-intent-assignment-484667bf1d6f4ec983c8b7ae86b72d2c",
+      "channel": "worker/worker-slot-2",
+      "conversation_url": "https://chatgpt.com/c/6aa93098-2e28-83e9-bcb7-39b0db4cbd13",
+      "state": "RESPONSE_CAPTURED",
+      "response_sha256": "cb641c26c4a8d4526ee248d3dfe317d2dae98ae4f3aed00f4bd62de350d5b60d",
+      "marker": "SCORPV4CANARYACK2"
+    }
+  ],
+  "lifecycle_cleanup": {
+    "retired_turn_ids": [
+      "worker-intent-assignment-5f6d5bc0189d4861a6799a4653fd50bb",
+      "worker-intent-assignment-484667bf1d6f4ec983c8b7ae86b72d2c"
+    ],
+    "preserved": [],
+    "auth_session": {
+      "status": "RETIRED",
+      "session": "scorp-v4-live-auth-b7c65ae003e9",
+      "cleanup": "STOPPED"
+    }
+  },
+  "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
+  "limitations": [
+    "Prompts are harmless fixed-marker connectivity checks and do not perform repository work.",
+    "This does not authorize production cutover or an unattended soak."
+  ]
+}

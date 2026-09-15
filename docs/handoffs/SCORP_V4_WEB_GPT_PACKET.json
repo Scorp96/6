@@ -10,16 +10,16 @@
   "candidate_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
   "current_live_gate": {
     "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
-    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
+    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json",
     "rate_limit_recovery_preflight": {
-      "boundary": "当前候选真实 canary 未出现限制弹窗，因此没有人为制造该状态；确认/等待最多五分钟/最多刷新一次/失败关闭由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。",
+      "boundary": "当前候选已观察到一个真实请求限制弹窗：已点击唯一明确的“明白了”控件，随后只读快照显示限制弹窗消失且 composer 存在；未重发原提示词。确认/等待最多五分钟/必要时单次刷新/失败关闭仍由离线测试覆盖；双 Worker 对称恢复和完整代码闭环仍未通过。",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
       "result": "NOT_RATE_LIMITED"
     },
-    "reason": "当前候选在上一份真实浏览器证据之后新增了发送前请求限制恢复逻辑；本提交尚未重新执行真实浏览器 canary，因此旧 canary 不能升级为当前候选证据。",
+    "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；另有一个真实代码 Worker 会话在请求限制弹窗后只点击“明白了”并恢复到带 composer 的页面，未重发提示词。该结果不覆盖完整真实代码工作负载、Master 重绑定、另一 Worker 会话恢复、生产切换或无人值守 soak。",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
-    "status": "NOT_RUN_AFTER_CODE_CHANGE"
+    "status": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"
   },
   "evidence_binding": {
     "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json",
@@ -27,14 +27,14 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T11:42:52.982486Z",
+  "generated_at": "2026-09-15T12:02:34.817235Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
-    "allowed_root": "C:\\ScorpAgent\\workspaces\\project",
+    "allowed_root": "C:\\ScorpAgent\\v4-live-current-5bf7953\\workspace",
     "blockers": [],
     "capabilities": {
       "browser_rebind": {
-        "driver_state": "C:\\ScorpAgent\\v4-live-current-e7ca\\driver.json",
+        "driver_state": "C:\\ScorpAgent\\v4-live-current-5bf7953\\driver.json",
         "executable": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe",
         "reason": "Chrome Use executable and driver state are present.",
         "status": "READY_TO_REBIND"
@@ -64,9 +64,9 @@
         "status": "UNAVAILABLE"
       }
     },
-    "database_path": "C:\\ScorpAgent\\v4-runtime\\state.sqlite3",
+    "database_path": "C:\\ScorpAgent\\v4-live-current-5bf7953\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T11:42:52.982387Z",
+    "generated_at": "2026-09-15T12:02:34.817157Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",

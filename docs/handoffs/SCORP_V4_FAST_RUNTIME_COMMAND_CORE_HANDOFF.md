@@ -76,9 +76,9 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
-- 上一候选 e7ca0ae 曾在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾；该证据不绑定当前 5bf79536c03de8ae25a507723a34f4e162fe8bfa。当前提交新增了发送前请求限制恢复逻辑，真实浏览器 canary 尚未重跑。
-- 该 canary 的证据同时记录认证会话收尾为 `CLEANUP_BLOCKED`；没有盲目重试清理，后续会话生命周期验收必须先处理这个明确限制。
-- 请求限制 live preflight：上一候选 canary 未出现限制弹窗，因此没有人为制造该外部状态；确认按钮、最多五分钟只读等待、必要时单次刷新、composer 就绪和失败关闭已由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。
+- 当前候选 5bf79536c03de8ae25a507723a34f4e162fe8bfa 已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`。该结果只证明当前浏览器提交/响应边界，不覆盖真实代码工作负载、Master 重绑定或生产切换。
+- 本次当前候选 canary 的诊断认证会话已正常停止；此前旧 canary 的 `CLEANUP_BLOCKED` 记录仍保留为历史证据，不能作为当前候选状态。
+- 请求限制的当前候选实机观察：一个真实 Worker 会话出现了“请求过于频繁”弹窗，已点击唯一明确的“明白了”控件；随后只读快照显示弹窗消失且 composer 恢复，未重发提示词。证据见 `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json`。五分钟只读等待、必要时单次刷新、composer 就绪和失败关闭仍由离线测试覆盖；另一 Worker 会话变为 `about:blank` 后未盲目重试，因此完整双会话限流验收仍未通过。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json`。
