@@ -132,6 +132,26 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual(2, gateway.submit_calls)
         self.assertTrue(gateway.both_submits_entered)
 
+    def test_worker_transport_exception_becomes_blocked_outcome(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FailingSubmitGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start({"objective": "transport failure"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        step = controller.step(lambda claim: f"complete {claim.task_id}", lambda row: _result_for(row))
+
+        self.assertEqual("BLOCKED", step.status)
+        self.assertEqual((), step.outcomes)
+        self.assertEqual(("T1:DISPATCH_EXCEPTION:RuntimeError",), step.blockers)
+
     def test_controller_routes_structured_execution_request_through_adapter(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 
@@ -405,6 +425,11 @@ class _ConcurrentFakeGateway(_FakeGateway):
         if not self._submit_entered.wait(timeout=1.0):
             raise RuntimeError("DISPATCH_DID_NOT_OVERLAP")
         return super().submit_intent(intent_id)
+
+
+class _FailingSubmitGateway(_FakeGateway):
+    def submit_intent(self, intent_id):
+        raise RuntimeError("simulated transport failure")
 
 
 class _FakeExecutionReceipt:

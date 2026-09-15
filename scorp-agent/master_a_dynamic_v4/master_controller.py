@@ -261,6 +261,13 @@ class MasterAController:
                     except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
                         blockers.append(f"{claim.task_id}:{str(exc)}")
                         continue
+                    except Exception as exc:
+                        # Browser/transport adapters are external boundaries.
+                        # Convert an unexpected worker-side failure into an
+                        # auditable blocker so one Worker cannot crash Master
+                        # or cause a retry outside the durable intent fence.
+                        blockers.append(f"{claim.task_id}:DISPATCH_EXCEPTION:{type(exc).__name__}")
+                        continue
                     if outcome.get("status") == "BLOCKED":
                         blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
                     outcomes.append(outcome)
@@ -270,6 +277,11 @@ class MasterAController:
                     outcome = self._dispatch_claim(claim, worker_prompt_factory, worker_response_decoder)
                 except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
                     blockers.append(f"{claim.task_id}:{str(exc)}")
+                    continue
+                except Exception as exc:
+                    # Keep serial and concurrent dispatch fail-closed with the
+                    # same bounded, machine-readable outcome.
+                    blockers.append(f"{claim.task_id}:DISPATCH_EXCEPTION:{type(exc).__name__}")
                     continue
                 if outcome.get("status") == "BLOCKED":
                     blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
