@@ -206,6 +206,7 @@ def _worker_prompt(claim) -> str:
                 "Return exactly one JSON object with work_result_version=1 and no explanatory prose.",
                 "Use valid JSON string escaping; prefer forward-slash paths when a path is needed.",
                 "Set status=COMPLETE only after supplying execution_request and non-empty scope_completed, evidence, and acceptance_coverage.",
+                "Copy candidate_commit exactly from task_context into the result; include result_sha256 as a 64-hex value (the runtime recomputes it after execution_request).",
             ],
             "result_requirements": {
                 "complete_requires_nonempty": [
@@ -214,6 +215,8 @@ def _worker_prompt(claim) -> str:
                     "acceptance_coverage",
                 ],
                 "execution_request_required_for_complete": True,
+                "candidate_commit_required": True,
+                "result_sha256_required": True,
                 "result_sha256": "64-hex; the runtime recomputes it after execution_request",
             },
         },

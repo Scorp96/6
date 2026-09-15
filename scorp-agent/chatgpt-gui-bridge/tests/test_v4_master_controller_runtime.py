@@ -67,6 +67,28 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertIn("acceptance_coverage", payload["result_requirements"]["complete_requires_nonempty"])
         self.assertIn("scope_completed", payload["result_requirements"]["complete_requires_nonempty"])
 
+    def test_worker_prompt_requires_candidate_commit_and_result_hash(self):
+        runtime = load_runtime()
+        claim = types.SimpleNamespace(
+            project_id="p1",
+            assignment_id="a1",
+            task_id="T1",
+            worker_id="w1",
+            slot_id="worker-slot-1",
+            master_epoch=0,
+            base_state_version=1,
+            objective_sha256="a" * 64,
+            resource_scope=("C:/lab/orders.csv",),
+            access_mode="read",
+            task_context={"candidate_commit": "b" * 40},
+        )
+        payload = json.loads(runtime._worker_prompt(claim))
+        required = payload["result_requirements"]
+        self.assertTrue(required["candidate_commit_required"])
+        self.assertTrue(required["result_sha256_required"])
+        self.assertIn("candidate_commit", payload["instructions"][-1])
+        self.assertIn("result_sha256", payload["instructions"][-1])
+
     def test_runtime_requires_explicit_send_gate_before_opening_browser(self):
         runtime = load_runtime()
         with tempfile.TemporaryDirectory() as td:
