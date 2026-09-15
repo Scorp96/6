@@ -223,3 +223,5 @@ Logical Master A 发出 versioned semantic Runtime command；Command Core 负责
 Phase 1 的代码、测试和隔离文档已完成并通过离线回归。Phase 1 的 acceptance 仍受当前候选真实浏览器 blocker、生产未切换和 live recovery 未验证约束；因此阶段结论是 `PARTIAL`，不是 `PASS` 或 `ACCEPTED`。
 
 - 本候选新增 Daemon 动作前租约栅栏：初始观测之后再次确认当前 Daemon lease；失效时不写入 activation decision、不派发动作，返回 BLOCKED。
+
+- 最新只读 Windows/仓库/进程/任务/SQLite 路径审计见 SCORP_V4_PHASE0_LOCAL_AUDIT_2DE8448.json（candidate code 2de844875fde31ed072e3945dceeedaf75c009f9；生产未修改）。该快照观察到生产 bridge worker 有两个相关进程，故生产 P0-02 仍未验证。

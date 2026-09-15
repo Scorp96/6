@@ -38,7 +38,7 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "b0d2967f619c6aa9463d5f1ffe85823789ca3f7147fe3e03f317670f944ac5b4"
+      "sha256": "99dce4c2691c2e89465a3e615364381b3ee4e8f64cfbca942279a1cf7c1f0ec1"
     },
     "local_transport_live_verified": {
       "result": "PASS",
@@ -112,5 +112,6 @@
     "sha256": "bcc555708add88b698e2add2b6815ddcfbd4f0121802958eafe9e0b04b75945d",
     "file_count": 370
   },
-  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_2DE8448.json"
+  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_2DE8448.json",
+  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_LOCAL_AUDIT_2DE8448.json"
 }
