@@ -1,0 +1,26 @@
+{
+  "evidence_id": "SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414",
+  "candidate_commit": "fe7d414",
+  "operation": "explicit legacy SQLite snapshot migration",
+  "source": {
+    "path": "C:\\ScorpAgent\\v4-core-lab\\forensics\\production-v4-candidate-preincident-reconstructed.sqlite3",
+    "sha256": "09945e7bfe7cd29fea01bce6cfe26ff68b6bd44588617f73792a657a3254f1fc",
+    "size": 188416,
+    "opened": "read_only_uri",
+    "mutated": false
+  },
+  "destination": {
+    "path": "C:\\ScorpAgent\\v4-core-lab\\migrations\\smoke-20260915-2.sqlite3",
+    "sha256": "56fa50d8311214f166fa18b05d8b876c09009ad58338b76cdaff4c7a58cae98b",
+    "size": 245760,
+    "new_path_required": true
+  },
+  "observed": {
+    "result": "BLOCKED",
+    "conflicts": ["MISSING_ROOT_CONTRACT"],
+    "historical_events_copied": 0,
+    "historical_transitions_copied": 0,
+    "production_touched": false
+  },
+  "interpretation": "The explicit migration boundary works and preserves a blocked state when a valid root contract is absent. This is not production migration approval."
+}

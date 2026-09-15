@@ -106,8 +106,8 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit f8c6f1f96f01096880125645dde99d0c5dfcbf60 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json `
+  --candidate-commit fe7d4140287a9f1c0970a153db4181c4333b68be `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_FE7D414.json `
   --manifest-sha256 7f5f93824e4d2a852846f9771ee7be4606a2d0e3f84cff9cab4707d2eb8d35b2
 ```
 
@@ -270,8 +270,8 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit f8c6f1f96f01096880125645dde99d0c5dfcbf60 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json `
+  --candidate-commit fe7d4140287a9f1c0970a153db4181c4333b68be `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_FE7D414.json `
   --manifest-sha256 7f5f93824e4d2a852846f9771ee7be4606a2d0e3f84cff9cab4707d2eb8d35b2 `
   --send
 ```
@@ -568,6 +568,22 @@ authenticated Chrome Use session, a new empty SQLite path, and an evidence
 path. The two prompts are fixed marker-only messages; the script never reads
 repository files as Worker input.
 
+旧 SQLite 不能直接交给 `StateStore` 自动升级。若要迁移，必须先复制到隔离
+目录，再显式运行：
+
+```powershell
+$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
+python -B -m master_a_dynamic_v4.sqlite_migration_cli `
+  --source C:\ScorpAgent\v4-core-lab\forensics\legacy.sqlite3 `
+  --destination C:\ScorpAgent\v4-core-lab\migrations\new.sqlite3 `
+  --allowed-root C:\ScorpAgent\v4-core-lab
+```
+
+目标路径必须不存在；源文件以只读方式打开并保存 SHA、大小、修改时间和
+冲突。缺少根合同或遇到未知表时结果为 `BLOCKED`，不会伪造旧事件/transition
+历史，也不会写生产路径。实验副本的结果记录在
+`docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`。
+
 ## Production boundary
 
 Do not replace the Windows scheduled task, copy state into production, or change
@@ -593,13 +609,14 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `f8c6f1f` (`fix: block incomplete sqlite snapshots before migration`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, and the incomplete-snapshot migration guard are recorded in the current candidate evidence.
+- Current code candidate: `fe7d414` (`feat(v4): add explicit sqlite snapshot migration`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes, Worker pre-fill pages, and the post-fill/pre-send boundary. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, and explicit SQLite migration are recorded in the current candidate evidence.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
 - Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
 - Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
 - Current browser driver state used by that receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
+- Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
 
 The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by ambiguous Chrome Use browser state, and it is not `ACCEPTED`. The production SQLite incident is recovered logically and is not hidden as an unchanged-production claim.
 The current candidate has a fail-closed browser send blocker and no new

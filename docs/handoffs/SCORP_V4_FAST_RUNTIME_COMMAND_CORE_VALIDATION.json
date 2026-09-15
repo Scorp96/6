@@ -4,12 +4,12 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "f8c6f1f96f01096880125645dde99d0c5dfcbf60",
+  "implementation_commit": "fe7d4140287a9f1c0970a153db4181c4333b68be",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
         "result": "PASS",
-        "count": 194
+        "count": 197
       },
       "gui_bridge_tests": {
         "result": "PASS",
@@ -117,15 +117,24 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json",
-    "sha256": "3c6b5e8ac284685147154ad3dcad41f43378f3781e5641ac45feb2beeb18f6fd",
-    "manifest_sha256": "54457c6ede99da8f8e880daffda7868ce2d3025413549ff8eaf2319d8c294da0",
-    "file_count": 370
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_FE7D414.json",
+    "sha256": "6931166a28622e878c50bb01cb584e6b299f05dc8c4a86435b3b5700265813d9",
+    "manifest_sha256": "0a683bc3ae75caa744ca50b2bbf9e3b78bda2fdab3754003ca4ca91fef27b2cc",
+    "file_count": 373
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
   "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json",
   "rate_limit_recovery_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json",
   "runtime_pipe_oversized_frame_evidence": "docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json",
-  "sqlite_explicit_migration_evidence": "docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json",
+    "sqlite_explicit_migration_evidence": "docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json",
+  "sqlite_snapshot_migration": {
+    "implementation": "scorp-agent/master_a_dynamic_v4/sqlite_migration.py",
+    "cli": "scorp-agent/master_a_dynamic_v4/sqlite_migration_cli.py",
+    "result": "TEST_VERIFIED",
+    "lab_smoke": "BLOCKED_MISSING_ROOT_CONTRACT",
+    "source_sha256": "09945e7bfe7cd29fea01bce6cfe26ff68b6bd44588617f73792a657a3254f1fc",
+    "destination_sha256": "56fa50d8311214f166fa18b05d8b876c09009ad58338b76cdaff4c7a58cae98b",
+    "evidence": "docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json"
+  },
   "production_state_recovery": "docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json"
 }
