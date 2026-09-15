@@ -117,7 +117,7 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F.json",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json",
     "sha256": "3c6b5e8ac284685147154ad3dcad41f43378f3781e5641ac45feb2beeb18f6fd",
     "manifest_sha256": "54457c6ede99da8f8e880daffda7868ce2d3025413549ff8eaf2319d8c294da0",
     "file_count": 370

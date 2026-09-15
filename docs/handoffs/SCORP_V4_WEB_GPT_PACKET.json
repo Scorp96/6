@@ -22,7 +22,7 @@
     "status": "BLOCKED_EXTERNAL_PRECONDITION"
   },
   "evidence_binding": {
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json",
     "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },

@@ -4,7 +4,7 @@
   "evidence_binding": {
     "validated_commit": "f8c6f1f96f01096880125645dde99d0c5dfcbf60",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_424FFE3.json",
     "binding_note": "This handoff describes the f8c6f1f96f01096880125645dde99d0c5dfcbf60 code candidate, which includes the bounded Runtime Pipe oversized-frame fix and explicit-migration guard for unknown SQLite files. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked by ambiguous target evidence; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
     "manifest_sha256": "3c6b5e8ac284685147154ad3dcad41f43378f3781e5641ac45feb2beeb18f6fd"
