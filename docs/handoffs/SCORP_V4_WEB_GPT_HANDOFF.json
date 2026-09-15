@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d",
+  "candidate_commit": "f32e914f297893d97d78669e0e91eb4c08b3d486",
   "evidence_binding": {
-    "validated_commit": "4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d",
+    "validated_commit": "f32e914f297893d97d78669e0e91eb4c08b3d486",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_4BFBFB9.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F32E914.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the 4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit SQLite migration guards, result normalization, and Windows MCP pre-input rate-limit recovery. Runtime startup requires exact candidate binding. Historical live browser evidence is retained for context only and is not evidence for this candidate; the current candidate rate-limit popup branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "1264da21c2d5272a296748b5ad0816ccad6a4e8ad3b63a348eb23f5b964dd717"
+    "binding_note": "This handoff describes the f32e914f297893d97d78669e0e91eb4c08b3d486 code candidate, which includes bounded Runtime Pipe and SQLite safeguards, result normalization, and Windows MCP pre-input rate-limit recovery with explicit transport-failure blockers. Runtime startup requires exact candidate binding. Historical live browser evidence is retained for context only and is not evidence for this candidate; the current candidate rate-limit popup branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "ba905d16c503624b435b5540a60797206645e70bc730c3b8ce80455b96540c76"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

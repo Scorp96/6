@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "79610ae3f3864e133f750f0c9dfde40b17a91def",
-  "implementation_commit": "4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d",
+  "implementation_commit": "f32e914f297893d97d78669e0e91eb4c08b3d486",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 506,
+        "count": 507,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -25,7 +25,7 @@
     },
     "live_verified": {
       "result": "NOT_RUN",
-      "reason": "当前候选 4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d 的 Windows MCP 预发送限流恢复代码已通过离线回归，但尚未重新运行真实限流弹窗或当前候选浏览器 canary；历史候选的浏览器证据不能继承到本候选。",
+      "reason": "当前候选 f32e914f297893d97d78669e0e91eb4c08b3d486 的 Windows MCP 预发送限流恢复代码已通过离线回归，但尚未重新运行真实限流弹窗或当前候选浏览器 canary；历史候选的浏览器证据不能继承到本候选。",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
       "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
       "rate_limit_recovery_preflight": {
@@ -158,9 +158,9 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_4BFBFB9.json",
-    "sha256": "2a19b8bbdf5e22500170dace0de8abb85b0a9052cbe47968f97bd3e58dd51609",
-    "manifest_sha256": "1264da21c2d5272a296748b5ad0816ccad6a4e8ad3b63a348eb23f5b964dd717",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F32E914.json",
+    "sha256": "f815f870e53d08c1dd702b05b80ba2f3e0df387d5e5931839fe26ff961aa46ce",
+    "manifest_sha256": "ba905d16c503624b435b5540a60797206645e70bc730c3b8ce80455b96540c76",
     "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
