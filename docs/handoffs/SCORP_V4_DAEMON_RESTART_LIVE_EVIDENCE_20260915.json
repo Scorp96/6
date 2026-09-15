@@ -1,0 +1,54 @@
+{
+  "format": "scorp-v4-daemon-restart-live/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "83c07cc2727db29ed5b28fb6260e5094e75883bf",
+  "candidate_manifest_path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_83C07CC.json",
+  "observed_at_utc": "2026-09-15T10:04:01Z",
+  "environment": {
+    "host": "Windows",
+    "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "lab_root": "C:\\ScorpAgent\\v4-core-lab\\restart-live-20260915b",
+    "database": "C:\\ScorpAgent\\v4-core-lab\\restart-live-20260915b\\state.sqlite3",
+    "allowed_root": "C:\\ScorpAgent\\v4-core-lab\\restart-live-20260915b\\allowed",
+    "browser_send": "FORBIDDEN",
+    "production_state_touched": false,
+    "task_scheduler_changed": false
+  },
+  "procedure": [
+    "Created a fresh SQLite database and root contract in an isolated lab.",
+    "Started v4_daemon_runtime with daemon TTL 2 seconds and a live master session.",
+    "Confirmed the first daemon process was running, then terminated that process without graceful release.",
+    "Waited for the durable lease to expire.",
+    "Started a second daemon process against the same SQLite database with no fixed epoch.",
+    "Verified the second process acquired epoch 2 and completed a healthy bounded pass."
+  ],
+  "observed": {
+    "first_process": {
+      "started": true,
+      "forced_termination": true,
+      "graceful_exit": false
+    },
+    "second_process": {
+      "exit_code": 0,
+      "daemon_epoch": 2,
+      "status": "HEALTHY",
+      "decision_action": "HEARTBEAT_IDLE",
+      "browser_send": "FORBIDDEN"
+    },
+    "sqlite_after_restart": {
+      "daemon_epoch": 2,
+      "lease_status": "RELEASED",
+      "restart_count": 0,
+      "recovery_count": 1,
+      "circuit_state": "CLOSED",
+      "consecutive_failures": 0
+    },
+    "health_sha256": "a9fdae4bd53f463f7f30e9e94dcaf90ecf2c8a36e74745e4fd43c7d415ac30d7"
+  },
+  "result": "PASS_LOCAL_DAEMON_RESTART_RECOVERY",
+  "limitations": [
+    "This is a local SQLite/daemon process recovery gate only.",
+    "It does not prove Master browser rebind, ChatGPT rate-limit popup acknowledgement, or production Task Scheduler registration.",
+    "The forced termination is process-level and does not simulate Windows power loss."
+  ]
+}

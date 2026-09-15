@@ -70,22 +70,24 @@ browser reconcile and Send remain separate gates.
 
 ## Current evidence boundary
 
-- `TEST_VERIFIED`: the current isolated command-core candidate has V4 suite
-  201/201 and GUI bridge suite 501/501 on the bundled Windows Python runtime;
+- `TEST_VERIFIED`: the current isolated command-core candidate `83c07cc2727db29ed5b28fb6260e5094e75883bf` has V4 suite
+  202/202 and GUI bridge suite 508/508 on the bundled Windows Python runtime;
   task-context migration/prompt propagation, distinct CSV
   validate/aggregate/report operations, two Worker dispatch, independent
   reconcile, owned-tab isolation, rate-limit recovery unit cases, and the
   daemon missing-handler fail-closed case are included. The installed lab and
   short recovery soaks are separate simulated evidence.
-- `LIVE_VERIFIED`: the current candidate `852567b05a792c4f5bb5be4011c37bf9be9e6c68`
-  passed a fresh two-Worker harmless Chrome Use canary with two captured
-  responses, two submit actions, and zero duplicate submits. The receipt is
-  `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json`. The older c205
-  ambiguous receipt remains historical fail-closed evidence and was not
-  replayed. The rate-limit preflight still only proves the no-dialog branch.
+- `LIVE_VERIFIED`: the current candidate has a fresh isolated local-daemon
+  restart receipt at
+  `docs/handoffs/SCORP_V4_DAEMON_RESTART_LIVE_EVIDENCE_20260915.json`.
+  A first Windows daemon process was forcibly terminated, its SQLite lease was
+  allowed to expire, and a second process reacquired `daemon_epoch=2`, reached
+  `HEALTHY`, and recorded one recovery without browser I/O. The current
+  candidate's real ChatGPT browser canary and rate-limit-popup branch remain
+  unverified; the older Chrome Use canary is historical only.
 - `ACCEPTED`: not reached. A current-candidate browser pass, real repository
-  workload through live Workers, restart recovery, production registration and
-  long-duration unattended evidence are still required.
+  workload through live Workers, Master physical rebind, production
+  registration and long-duration unattended evidence are still required.
 
 ## Fresh live canary result
 
