@@ -670,11 +670,22 @@ class ChromeUseActorDriverV3:
             text = _render_payload(payload)
             classification = classify_chatgpt_snapshot(text, session)
             if classification["status"] == "AUTHENTICATED":
-                return {
-                    "status": "RECOVERED",
-                    "reason": "RATE_LIMIT_DIALOG_CLEARED",
-                    "snapshot_sha256": _sha(text),
-                }
+                # A dismissed dialog can leave the authenticated page in a
+                # reload/layout window with no usable composer yet.  Do not
+                # report recovery until the unique textbox is present; the
+                # caller will otherwise immediately fail on a stale/empty
+                # accessibility tree and may incorrectly treat the page as
+                # ready for a new attempt.
+                try:
+                    _editor_ref_from_snapshot(payload)
+                except ValueError:
+                    pass
+                else:
+                    return {
+                        "status": "RECOVERED",
+                        "reason": "RATE_LIMIT_DIALOG_CLEARED",
+                        "snapshot_sha256": _sha(text),
+                    }
             if classification["status"] in {"AUTHENTICATION_REQUIRED", "CAPTCHA_REQUIRED"}:
                 return {
                     "status": "BLOCKED",
@@ -694,11 +705,16 @@ class ChromeUseActorDriverV3:
                     text = _render_payload(payload)
                     classification = classify_chatgpt_snapshot(text, session)
                     if classification["status"] == "AUTHENTICATED":
-                        return {
-                            "status": "RECOVERED",
-                            "reason": "RATE_LIMIT_DIALOG_CLEARED_AFTER_REFRESH",
-                            "snapshot_sha256": _sha(text),
-                        }
+                        try:
+                            _editor_ref_from_snapshot(payload)
+                        except ValueError:
+                            pass
+                        else:
+                            return {
+                                "status": "RECOVERED",
+                                "reason": "RATE_LIMIT_DIALOG_CLEARED_AFTER_REFRESH",
+                                "snapshot_sha256": _sha(text),
+                            }
                     if classification["status"] in {"AUTHENTICATION_REQUIRED", "CAPTCHA_REQUIRED"}:
                         return {
                             "status": "BLOCKED",

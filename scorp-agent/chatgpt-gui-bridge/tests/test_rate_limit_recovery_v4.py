@@ -90,7 +90,10 @@ class RateLimitRecoveryV4Tests(unittest.TestCase):
                 {"e42": {"name": "确定", "role": "button"}},
             ),
             {"success": True},
-            snapshot("ChatGPT Plus\nReady"),
+            snapshot(
+                "ChatGPT Plus\nReady",
+                {"e99": {"name": "Message", "role": "textbox"}},
+            ),
         ])
         with tempfile.TemporaryDirectory() as td:
             driver = ChromeUseActorDriverV3(cli, pathlib.Path(td) / "state.json")
@@ -98,6 +101,43 @@ class RateLimitRecoveryV4Tests(unittest.TestCase):
         self.assertEqual("RECOVERED", result["status"])
         self.assertEqual(
             [["snapshot", "-i"], ["click", "@e42"], ["snapshot", "-i"]],
+            [args for _, args, _ in cli.calls],
+        )
+
+    def test_waits_for_composer_after_dialog_clears_before_reporting_recovered(self):
+        cli = FakeCli([
+            snapshot(
+                "请求过于频繁，请稍等几分钟后再重试",
+                {"e42": {"name": "确定", "role": "button"}},
+            ),
+            {"success": True},
+            snapshot("ChatGPT Plus\n页面正在加载", {}),
+            snapshot(
+                "ChatGPT Plus\nReady",
+                {"e99": {"name": "Message", "role": "textbox"}},
+            ),
+        ])
+        with tempfile.TemporaryDirectory() as td:
+            driver = ChromeUseActorDriverV3(
+                cli,
+                pathlib.Path(td) / "state.json",
+                sleeper=lambda _: asyncio.sleep(0),
+            )
+            result = asyncio.run(
+                driver.recover_rate_limit_dialog(
+                    "worker-session",
+                    max_wait_seconds=5,
+                    poll_seconds=5,
+                )
+            )
+        self.assertEqual("RECOVERED", result["status"])
+        self.assertEqual(
+            [
+                ["snapshot", "-i"],
+                ["click", "@e42"],
+                ["snapshot", "-i"],
+                ["snapshot", "-i"],
+            ],
             [args for _, args, _ in cli.calls],
         )
 
@@ -150,7 +190,10 @@ class RateLimitRecoveryV4Tests(unittest.TestCase):
             {"success": True},
             snapshot("请求过于频繁，请稍等几分钟后再重试"),
             {"success": True},
-            snapshot("ChatGPT Plus\nReady"),
+            snapshot(
+                "ChatGPT Plus\nReady",
+                {"e99": {"name": "Message", "role": "textbox"}},
+            ),
         ])
         ticks = iter([0.0, 6.0])
         with tempfile.TemporaryDirectory() as td:
