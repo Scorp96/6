@@ -118,6 +118,12 @@ class StateStore:
                     "UPDATE runtime_observations SET last_heartbeat_at=last_observed_at "
                     "WHERE last_heartbeat_at IS NULL"
                 )
+            lease_columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(leases)").fetchall()
+            }
+            if "heartbeat_at" not in lease_columns:
+                conn.execute("ALTER TABLE leases ADD COLUMN heartbeat_at TEXT")
+                conn.execute("UPDATE leases SET heartbeat_at=acquired_at WHERE heartbeat_at IS NULL")
             rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
             if not rows:
                 conn.execute("BEGIN IMMEDIATE")

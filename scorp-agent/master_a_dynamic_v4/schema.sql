@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS leases (
     master_epoch INTEGER NOT NULL CHECK (master_epoch >= 0),
     state TEXT NOT NULL,
     acquired_at TEXT NOT NULL,
+    heartbeat_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     released_at TEXT
 );

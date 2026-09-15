@@ -172,6 +172,16 @@ class V4BridgeGateway:
         """Rehydrate active durable Worker assignments after a restart."""
         return self.scheduler.load_active_claims(master_epoch=int(master_epoch), now=now)
 
+    def renew_worker_lease(self, claim, *, master_epoch=None, lease_token=None, now=None, lease_seconds=900):
+        """Renew one assignment lease through the scheduler fencing gate."""
+        return self.scheduler.renew_worker_lease(
+            claim,
+            master_epoch=master_epoch,
+            lease_token=lease_token,
+            now=now,
+            lease_seconds=lease_seconds,
+        )
+
     def record_worker_result(self, claim, *, kind: str, payload: Mapping[str, Any], now=None) -> str:
         return self.scheduler.record_candidate(
             claim.assignment_id,

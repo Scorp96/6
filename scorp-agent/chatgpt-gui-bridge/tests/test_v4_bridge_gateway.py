@@ -414,6 +414,9 @@ class V4GatewayTests(unittest.TestCase):
                     [claim.assignment_id for claim in claims],
                     [claim.assignment_id for claim in recovered],
                 )
+                renewed = gateway.renew_worker_lease(claims[0], lease_seconds=60)
+                self.assertEqual("ACTIVE", renewed["state"])
+                self.assertTrue(renewed["heartbeat_at"])
                 first = gateway.submit_worker_intent(claims[0], 'Complete T1 and return WORK_RESULT/1')
                 second = gateway.submit_worker_intent(claims[1], 'Complete T2 and return WORK_RESULT/1')
                 self.assertEqual('COMPLETED', gateway.store.get_outbox_for_intent(first['intent_id'])['state'])

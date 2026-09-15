@@ -438,13 +438,14 @@ class Scheduler:
                     ),
                 )
                 conn.execute(
-                    "INSERT INTO leases(lease_token,assignment_id,project_id,slot_id,master_epoch,state,acquired_at,expires_at) VALUES(?,?,?,?,?,'ACTIVE',?,?)",
+                    "INSERT INTO leases(lease_token,assignment_id,project_id,slot_id,master_epoch,state,acquired_at,heartbeat_at,expires_at) VALUES(?,?,?,?,?,'ACTIVE',?,?,?)",
                     (
                         lease_token,
                         assignment_id,
                         self.project_id,
                         slot_id,
                         int(master_epoch),
+                        stamp,
                         stamp,
                         expires,
                     ),
@@ -474,6 +475,114 @@ class Scheduler:
                 if len(claims) >= capacity:
                     break
         return claims
+
+    def renew_worker_lease(
+        self,
+        claim: AssignmentClaim,
+        *,
+        master_epoch: int | None = None,
+        lease_token: str | None = None,
+        now: dt.datetime | None = None,
+        lease_seconds: int = 900,
+    ) -> dict[str, Any]:
+        """Renew one active Worker lease through the durable fencing gate."""
+
+        if not isinstance(claim, AssignmentClaim) or claim.project_id != self.project_id:
+            raise WorkerFenceError("ASSIGNMENT_CLAIM_INVALID")
+        epoch = claim.master_epoch if master_epoch is None else int(master_epoch)
+        token = claim.lease_token if lease_token is None else str(lease_token)
+        try:
+            ttl = int(lease_seconds)
+        except (TypeError, ValueError) as exc:
+            raise SchedulerError("LEASE_SECONDS_INVALID") from exc
+        if ttl < 1:
+            raise SchedulerError("LEASE_SECONDS_INVALID")
+        current = _aware(now)
+        stamp = _timestamp(current)
+        expires = _timestamp(current + dt.timedelta(seconds=ttl))
+        expired = False
+        renewed: dict[str, Any] | None = None
+        with self.store._transaction() as conn:
+            state = conn.execute(
+                "SELECT master_epoch,status FROM project_state WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if state is None:
+                raise SchedulerError("PROJECT_NOT_FOUND")
+            if int(state["master_epoch"]) != epoch:
+                raise WorkerFenceError("MASTER_EPOCH_FENCED")
+            if str(state["status"]) not in {"ACTIVE", "RUNNING"}:
+                raise WorkerFenceError("WORKER_PROJECT_FENCED")
+            control = conn.execute(
+                "SELECT operator_state FROM operator_controls WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if control is None or str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+                raise WorkerFenceError("WORKER_OPERATOR_FENCED")
+            row = conn.execute(
+                """
+                SELECT a.*,l.state AS lease_state,l.expires_at,l.master_epoch AS lease_epoch,
+                       l.heartbeat_at,l.acquired_at
+                FROM assignments a JOIN leases l ON l.assignment_id=a.assignment_id
+                WHERE a.assignment_id=? AND a.project_id=?
+                """,
+                (claim.assignment_id, self.project_id),
+            ).fetchone()
+            if row is None:
+                raise WorkerFenceError("ASSIGNMENT_NOT_FOUND")
+            if str(row["lease_token"]) != token:
+                raise WorkerFenceError("LEASE_TOKEN_FENCED")
+            if int(row["master_epoch"]) != epoch or int(row["lease_epoch"]) != epoch:
+                raise WorkerFenceError("WORKER_EPOCH_FENCED")
+            if str(row["state"]) != "ACTIVE" or str(row["lease_state"]) != "ACTIVE":
+                raise WorkerFenceError("WORKER_LEASE_NOT_ACTIVE")
+            if str(row["expires_at"]) <= stamp:
+                conn.execute(
+                    "UPDATE leases SET state='EXPIRED',released_at=? WHERE assignment_id=? AND state='ACTIVE'",
+                    (stamp, claim.assignment_id),
+                )
+                conn.execute(
+                    "UPDATE assignments SET state='FENCED',updated_at=? WHERE assignment_id=? AND state='ACTIVE'",
+                    (stamp, claim.assignment_id),
+                )
+                conn.execute(
+                    "UPDATE task_nodes SET state='QUEUED',updated_at=? WHERE project_id=? AND task_id=? AND state='RUNNING'",
+                    (stamp, self.project_id, claim.task_id),
+                )
+                conn.execute(
+                    "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                    (
+                        f"event-{uuid.uuid4().hex}",
+                        self.project_id,
+                        "WORKER_LEASE_EXPIRED",
+                        canonical_json({
+                            "assignment_id": claim.assignment_id,
+                            "lease_token_sha256": sha256_json(token),
+                            "source": "RENEWAL",
+                        }),
+                        stamp,
+                    ),
+                )
+                expired = True
+            else:
+                conn.execute(
+                    "UPDATE leases SET heartbeat_at=?,expires_at=? WHERE assignment_id=? AND lease_token=? AND state='ACTIVE'",
+                    (stamp, expires, claim.assignment_id, token),
+                )
+                conn.execute(
+                    "UPDATE assignments SET updated_at=? WHERE assignment_id=? AND state='ACTIVE'",
+                    (stamp, claim.assignment_id),
+                )
+                renewed_row = conn.execute(
+                    "SELECT * FROM leases WHERE assignment_id=?",
+                    (claim.assignment_id,),
+                ).fetchone()
+                renewed = dict(renewed_row)
+        if expired:
+            raise WorkerFenceError("WORKER_LEASE_EXPIRED")
+        if renewed is None:
+            raise SchedulerError("WORKER_LEASE_RENEWAL_MISSING")
+        return renewed
 
     def record_work_result(
         self,

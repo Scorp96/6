@@ -3,9 +3,83 @@ from __future__ import annotations
 import pathlib
 import tempfile
 import unittest
+import datetime as dt
+
+
+UTC = dt.timezone.utc
 
 
 class WorkerClaimRecoveryTests(unittest.TestCase):
+    def _runtime(self, root: pathlib.Path):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+        from master_a_dynamic_v4.state_store import StateStore
+
+        worktree = root / "worktree"
+        worktree.mkdir()
+        db = root / "state.sqlite3"
+        store = StateStore(db, allowed_roots=[root])
+        store.create_contract(
+            "project-recovery",
+            root_contract={"objective": "renew claims"},
+            acceptance_contract={"required": ["AC-RECOVERY"]},
+        )
+        scheduler = Scheduler(store, "project-recovery", PathPolicy([root]), max_workers=2)
+        scheduler.enqueue_graph([
+            {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "a.txt"], "dependencies": []},
+        ])
+        return store, scheduler
+
+    def test_worker_lease_renews_with_fencing_and_persists_heartbeat(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler = self._runtime(root)
+            try:
+                started = dt.datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+                claim = scheduler.claim_runnable(master_epoch=0, now=started, lease_seconds=30)[0]
+                renewed = scheduler.renew_worker_lease(
+                    claim,
+                    master_epoch=0,
+                    now=started + dt.timedelta(seconds=10),
+                    lease_seconds=60,
+                )
+                self.assertEqual("ACTIVE", renewed["state"])
+                self.assertEqual("2026-09-15T12:00:10Z", renewed["heartbeat_at"])
+                self.assertEqual("2026-09-15T12:01:10Z", renewed["expires_at"])
+                with store._connection() as conn:
+                    row = conn.execute(
+                        "SELECT heartbeat_at,expires_at FROM leases WHERE assignment_id=?",
+                        (claim.assignment_id,),
+                    ).fetchone()
+                self.assertEqual("2026-09-15T12:00:10Z", row[0])
+                self.assertEqual("2026-09-15T12:01:10Z", row[1])
+            finally:
+                store.close()
+
+    def test_worker_lease_renewal_rejects_stale_epoch_wrong_token_and_expired_claim(self):
+        from master_a_dynamic_v4.scheduler import WorkerFenceError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler = self._runtime(root)
+            try:
+                started = dt.datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+                claim = scheduler.claim_runnable(master_epoch=0, now=started, lease_seconds=30)[0]
+                with self.assertRaisesRegex(WorkerFenceError, "MASTER_EPOCH_FENCED"):
+                    scheduler.renew_worker_lease(claim, master_epoch=1, now=started + dt.timedelta(seconds=1))
+                with self.assertRaisesRegex(WorkerFenceError, "LEASE_TOKEN_FENCED"):
+                    scheduler.renew_worker_lease(
+                        claim,
+                        lease_token="wrong-token",
+                        master_epoch=0,
+                        now=started + dt.timedelta(seconds=1),
+                    )
+                with self.assertRaisesRegex(WorkerFenceError, "WORKER_LEASE_EXPIRED"):
+                    scheduler.renew_worker_lease(claim, master_epoch=0, now=started + dt.timedelta(seconds=31))
+                self.assertEqual("FENCED", scheduler.get_assignment(claim.assignment_id)["state"])
+            finally:
+                store.close()
+
     def test_active_claims_can_be_rehydrated_after_store_reopen(self):
         from master_a_dynamic_v4.path_policy import PathPolicy
         from master_a_dynamic_v4.scheduler import Scheduler
