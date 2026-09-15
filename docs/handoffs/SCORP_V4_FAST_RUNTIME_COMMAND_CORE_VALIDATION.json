@@ -4,23 +4,33 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "e1e31d1eb2a0d996fb20d5f63cd04a3f123e46bb",
+  "implementation_commit": "b66afa87374e7de30149a2bd39c7fa4e76af0c7f",
   "verification": {
     "test_verified": {
-      "v4_core_tests": {"result": "PASS", "count": 169},
-      "gui_bridge_tests": {"result": "PASS", "count": 479, "pythonpath": ["scorp-agent", "scorp-agent/chatgpt-gui-bridge"]},
+      "v4_core_tests": {
+        "result": "PASS",
+        "count": 169
+      },
+      "gui_bridge_tests": {
+        "result": "PASS",
+        "count": 482,
+        "pythonpath": [
+          "scorp-agent",
+          "scorp-agent/chatgpt-gui-bridge"
+        ]
+      },
       "compileall": "PASS",
       "git_diff_check": "PASS",
       "candidate_validation_script": "PASS"
     },
     "live_verified": {
       "result": "BLOCKED",
-      "reason": "当前候选单 Worker canary 已在真实 Chrome Use 发送控制阶段 fail-closed：CHROME_USE_SEND_REF_COUNT_0 / Unknown ref；隔离 driver state 没有 conversation_url 或 response marker，未进行重试。",
-      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_A060ADC.json",
+      "reason": "当前候选 c205 单 Worker canary 在真实 Chrome Use 中记录了 conversation URL，但只读核对显示旧诊断回复且没有 c205 token；按 fail-closed 规则不重试。",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json",
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
-        "boundary": "当前页面没有限制弹窗，因此只验证了不点击分支；没有宣称确认按钮或五分钟等待已经完成真实弹窗验收。"
+        "boundary": "真实页面没有限制弹窗，因此只验证了不点击分支；确认按钮、等待窗口和刷新逻辑已通过离线测试，但真实弹窗分支尚未获得 LIVE_VERIFIED。"
       }
     },
     "accepted": false,
@@ -57,15 +67,16 @@
     "bounded Named Pipe client performs one validated request/response exchange without retry",
     "fail-closed stdio connector binds actor and forwards only the Runtime protocol",
     "project resume restores scheduler admission and active-claim rehydration",
-    "bounded rate-limit dialog acknowledgement and read-only recovery wait",
+    "bounded rate-limit dialog acknowledgement, read-only recovery wait, and one refresh after the wait",
     "installer manifest includes the rate-limit recovery auth dependency"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
     "Windows scheduled-task production cutover",
     "live Chrome Use submission and two-new-conversation end-to-end proof",
+    "real rate-limit dialog acknowledgement/wait/refresh branch",
     "24-hour unattended soak",
     "native Astra acceptance; this task used the requested Sol compatibility route",
-    "current single-worker canary is blocked by unresolved Chrome Use send ref; no blind retry or historical intent replay was attempted"
+    "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
   ]
 }

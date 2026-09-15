@@ -45,9 +45,9 @@ probe 都经过这一边界；该恢复动作本身不代表消息已发送。
 
 ## 当前证据边界
 
-- `TEST_VERIFIED`: V4 核心 169 个测试通过，GUI 桥接 479 个测试通过（含请求限制确认/等待/超时和安装依赖闭包回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
-- `LIVE_VERIFIED`: 当前候选单 Worker canary 已到真实 Chrome Use 发送控制阶段，但因 `CHROME_USE_SEND_REF_COUNT_0` fail-closed；隔离 driver state 没有 conversation URL，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_A060ADC.json`，不能盲重发。
-- 请求限制 live preflight：当前真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；这不等于真实弹窗确认和 5 分钟等待已验收。
+- `TEST_VERIFIED`: V4 核心 169 个测试通过，GUI 桥接 482 个测试通过（含请求限制确认/等待/超时/单次刷新和安装依赖闭包回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `LIVE_VERIFIED`: 当前候选 c205 单 Worker canary 已在真实 Chrome Use 中记录 conversation URL，但只读核对得到旧诊断回复且没有 c205 token；证据见 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`，按 fail-closed 规则不能盲重发。
+- 请求限制 live preflight：当前真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；确认按钮、等待窗口和单次刷新已由离线测试覆盖，但真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 机器可读记录见同目录的 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`。

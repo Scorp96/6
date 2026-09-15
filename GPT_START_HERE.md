@@ -233,9 +233,10 @@ task, open Chrome, send a ChatGPT message, or grant arbitrary local execution.
 The current Phase 0 field audit is recorded in
 `docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md`. At the latest inspection,
 the candidate is `TEST_VERIFIED`; the read-only browser preflight cleared, but
-the current single-worker canary is `LIVE_VERIFIED=BLOCKED` at the Chrome Use
-send-ref stage (`CHROME_USE_SEND_REF_COUNT_0`). Its isolated driver state has
-no conversation URL or response marker, and no blind retry is permitted.
+the current single-worker canary is `LIVE_VERIFIED=BLOCKED`: the c205 run
+recorded a conversation URL, but read-only reconciliation found an older
+diagnostic response and no c205 token. No blind retry is permitted; see
+`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
 
 The V4 daemon entrypoint may omit `--daemon-epoch`; it then acquires the
 current SQLite lease epoch. A fixed epoch is accepted only as an explicit
@@ -532,17 +533,20 @@ Do not use real customer data, credentials, private files, or production
 commands in the canary. A successful simulated test is not evidence of a real
 browser canary.
 
-The current candidate's single-worker live canary is fail-closed at the Chrome
-Use send-control stage; its receipt is
-`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_A060ADC.json`. It has no conversation
-URL or response marker and was not blindly retried. A separate read-only
-preflight is required before any new canary.
+The current candidate's single-worker live canary is fail-closed after
+ambiguous Chrome Use conversation binding; its receipt is
+`docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`. Read-only
+reconciliation found an older diagnostic response and no c205 token, so it was
+not blindly retried. A separate read-only preflight is required before any new
+canary.
 
 When a read-only auth probe sees the known `请求过于频繁` / `Too many requests`
 dialog, the current candidate may perform one bounded recovery: click exactly
 one recognized acknowledgement control (`确定`, `明白了`, `Got it`, `OK`, or
 `Okay`), then poll read-only snapshots for at most 300 seconds (normally every
-5 seconds). It does not force a prompt resend or bypass login/CAPTCHA. Missing
+5 seconds); if the window expires while the dialog remains, it may refresh the
+page once and perform one final read-only check. It does not force a prompt
+resend or bypass login/CAPTCHA. Missing
 or ambiguous acknowledgement controls, authentication challenges, and timeout
 remain `BLOCKED`.
 
@@ -578,13 +582,13 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Code candidate: `e1e31d1` (`fix: recover bounded ChatGPT rate-limit dialogs`) on `feature/v4-fast-runtime-command-core`.
+- Code candidate: `b66afa8` (`fix: refresh once after rate limit recovery wait`) on `feature/v4-fast-runtime-command-core`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
-- Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_A060ADC.json`.
-- Current browser driver state used by that receipt: `C:\ScorpAgent\v4-fast-runtime-live-a060adc\driver.json`.
+- Current live failure receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
+- Current browser driver state used by that receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 
-The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by the ChatGPT rate limit, and it is not `ACCEPTED`.
+The current result is `TEST_VERIFIED`; current-candidate `LIVE_VERIFIED` is blocked by ambiguous Chrome Use browser state, and it is not `ACCEPTED`.
 The current candidate has a fail-closed browser send blocker and no new
 conversation. It does not prove a real repository task over ChatGPT, live
 crash/restart recovery, scheduled-task registration, production cutover, or
