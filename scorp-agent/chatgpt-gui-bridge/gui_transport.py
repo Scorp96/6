@@ -512,6 +512,7 @@ async def open_new_chat_and_submit(
             await client.call_tool("Shortcut", {"shortcut": "ctrl+v"})
         submit_deadline = time.monotonic() + submit_timeout_seconds
         submit_attempts = 0
+        rate_limit_recovery_used = False
         while submit_attempts < submit_max_attempts:
             submit_attempts += 1
             submit_snap = await client.call_tool("Snapshot", {
@@ -520,7 +521,35 @@ async def open_new_chat_and_submit(
             })
             submit_text = result_text(submit_snap)
             if chatgpt_throttle_visible(submit_text):
-                raise ChatGptThrottleError("CHATGPT_REQUEST_THROTTLED")
+                if rate_limit_recovery_used:
+                    raise ChatGptThrottleError(
+                        "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_RECOVERY_ALREADY_USED"
+                    )
+                rate_limit_recovery_used = True
+                recovered_text = await recover_rate_limit_dialog(
+                    client,
+                    submit_text,
+                    max_wait_seconds=rate_limit_wait_seconds,
+                    poll_seconds=rate_limit_poll_seconds,
+                    clock=rate_limit_clock,
+                    sleeper=rate_limit_sleeper,
+                )
+                # Dismissing the dialog may have refreshed the page and
+                # invalidated the old accessibility ref. Refill this exact
+                # pre-submit intent through a fresh editor ref; no send or
+                # key-event retry occurs until a new Send control is observed.
+                editor = find_chat_editor(recovered_text)
+                await client.call_tool("Type", {
+                    "text": " ", "loc": list(editor), "clear": True, "press_enter": False,
+                })
+                await client.call_tool("Shortcut", {"shortcut": "backspace"})
+                for start in range(0, len(prompt), 1000):
+                    chunk = prompt[start:start + 1000]
+                    await client.call_tool("Clipboard", {"mode": "set", "text": chunk})
+                    await client.call_tool("Shortcut", {"shortcut": "ctrl+v"})
+                submit_deadline = time.monotonic() + submit_timeout_seconds
+                submit_attempts = 0
+                continue
             m = re.search(r'\((\d+),(\d+)\).*?(?:Send prompt|Send message|发送提示|发送消息)', submit_text, re.I)
             if m is not None:
                 await client.call_tool("Click", {"loc": [int(m.group(1)), int(m.group(2))]})
