@@ -55,6 +55,26 @@ class MasterSupervisorRuntimeTests(unittest.TestCase):
         self.assertEqual(1, len(driver.calls))
         self.assertEqual("RECOVERED", result["rate_limit_recovery"]["status"])
 
+    def test_auth_probe_converts_recovery_transport_exception_to_blocked_result(self):
+        runtime = load_runtime()
+
+        class Cli:
+            async def run_json(self, _session, *args, timeout_seconds=30):
+                if list(args)[:1] == ["open"]:
+                    return {"ok": True}
+                if list(args)[:1] == ["read"]:
+                    return {"snapshot": "请求过于频繁，请稍等几分钟后再重试"}
+                raise AssertionError(args)
+
+        class Driver:
+            async def recover_rate_limit_dialog(self, _session, **_kwargs):
+                raise RuntimeError("transport-lost")
+
+        probe = runtime._auth_probe(Cli(), "project-2", driver=Driver())
+        result = __import__("asyncio").run(probe("master"))
+        self.assertEqual("AUTH_PROBE_FAILED", result["status"])
+        self.assertEqual("RuntimeError", result["error"])
+
     def test_journal_persists_one_machine_readable_decision(self):
         runtime = load_runtime()
         decision = runtime.SupervisorDecision(

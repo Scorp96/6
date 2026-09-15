@@ -150,14 +150,17 @@ def _auth_probe(
         except Exception as exc:
             return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
         if driver is not None:
-            return await probe_chatgpt_auth(
-                cli,
-                driver,
-                session,
-                channel,
-                recovery_wait_seconds=recovery_wait_seconds,
-                recovery_poll_seconds=recovery_poll_seconds,
-            )
+            try:
+                return await probe_chatgpt_auth(
+                    cli,
+                    driver,
+                    session,
+                    channel,
+                    recovery_wait_seconds=recovery_wait_seconds,
+                    recovery_poll_seconds=recovery_poll_seconds,
+                )
+            except Exception as exc:
+                return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
         try:
             page = await cli.run_json(session, "read", timeout_seconds=30)
         except Exception as exc:
