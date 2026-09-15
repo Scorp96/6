@@ -5,8 +5,8 @@
     "validated_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
     "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E7CA0AE.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the e7ca0ae5a2b199557d77982d29705a87f6177899 code candidate, including blocked-worker execution fencing, ambiguous-browser URL retention, and fail-closed SQLite receipt durability errors. Offline validation is current; browser evidence from earlier candidates is historical and cannot be inherited. The current candidate rate-limit popup branch and fresh browser canary remain live-unverified. Production acceptance remains unresolved.",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
+    "binding_note": "This handoff describes the e7ca0ae5a2b199557d77982d29705a87f6177899 code candidate. Offline validation is current, and the current candidate has a fresh isolated two-Worker browser submit/capture receipt; real-code workload, Master replacement, unattended soak, and production acceptance remain unresolved.",
     "manifest_sha256": "d3b10a0e762541b9fdb86dbb7fbb6a533a057f60ff38061f63a8b853a8f87698"
   },
   "target_repository": "Scorp96/6",
@@ -61,7 +61,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "current_candidate_real_browser_revalidation_not_run; current_candidate_rate_limit_popup_branch_not_run; restart_and_unattended_soak_not_run; production_cutover_not_authorized"
+      "current_candidate_evidence": "current_candidate_two_worker_browser_canary_live_verified; current_candidate_real_code_workload_not_run; current_candidate_rate_limit_popup_branch_not_run; restart_and_unattended_soak_not_run; production_cutover_not_authorized"
     },
     "connector_contract": {
       "descriptor": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json",

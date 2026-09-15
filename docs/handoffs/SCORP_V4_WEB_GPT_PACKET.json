@@ -10,16 +10,16 @@
   "candidate_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
   "current_live_gate": {
     "candidate_code_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
-    "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
+    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
     "rate_limit_recovery_preflight": {
-      "boundary": "真实页面没有限制弹窗，因此只验证了不点击分支；当前候选的新页面/填入后恢复路径由离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。",
+      "boundary": "当前候选真实 canary 未出现限制弹窗，因此没有人为制造该状态；确认/等待最多五分钟/最多刷新一次/失败关闭由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
       "result": "NOT_RATE_LIMITED"
     },
-    "reason": "当前候选 e7ca0ae5a2b199557d77982d29705a87f6177899 已通过离线回归；未重新运行代码变更后的浏览器 canary 或真实限流弹窗分支，历史候选证据不能继承。",
+    "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾；没有重复提交。该证据只证明当前候选的真实浏览器提交/核对边界，不证明真实代码工作负载或生产切换。",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
-    "status": "NOT_RUN_AFTER_CODE_CHANGE"
+    "status": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"
   },
   "evidence_binding": {
     "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E7CA0AE.json",
@@ -27,14 +27,14 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T09:57:47.644382Z",
+  "generated_at": "2026-09-15T11:25:10.587217Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
-    "allowed_root": "C:\\ScorpAgent\\v4-core-lab\\canary-852567b",
+    "allowed_root": "C:\\ScorpAgent\\v4-live-current-e7ca\\workspace",
     "blockers": [],
     "capabilities": {
       "browser_rebind": {
-        "driver_state": "C:\\ScorpAgent\\v4-core-lab\\canary-852567b\\driver.json",
+        "driver_state": "C:\\ScorpAgent\\v4-live-current-e7ca\\driver.json",
         "executable": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe",
         "reason": "Chrome Use executable and driver state are present.",
         "status": "READY_TO_REBIND"
@@ -55,8 +55,8 @@
       },
       "sqlite_master_monitor": {
         "command": "scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py",
-        "reason": "An existing SQLite database and allowed root were supplied.",
-        "status": "READY"
+        "reason": "Supply an existing database and allowed root; the monitor will not create project state.",
+        "status": "NOT_CONFIGURED"
       },
       "web_gpt_direct_local_control": {
         "reason": "A web GPT cannot gain Windows or SQLite permissions by reading Git alone.",
@@ -64,12 +64,12 @@
         "status": "UNAVAILABLE"
       }
     },
-    "database_path": "C:\\ScorpAgent\\v4-core-lab\\canary-852567b\\state.sqlite3",
+    "database_path": "C:\\ScorpAgent\\v4-live-current-e7ca\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T09:57:47.644184Z",
+    "generated_at": "2026-09-15T11:25:10.587126Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
-    "python_executable": "C:\\Users\\scorp\\AppData\\Local\\Python\\pythoncore-3.15-64\\python.exe",
+    "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
     "repo_root": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
     "required_paths": {
       "GPT_START_HERE.md": true,

@@ -76,8 +76,8 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
-- LIVE_VERIFIED: Current candidate e7ca0ae5a2b199557d77982d29705a87f6177899 was not sent through a new browser canary after the code change; the prior 83c07cc Chrome Use evidence is historical and cannot be inherited. This turn verified offline regression and candidate identity only.
-- 请求限制 live preflight：当前候选真实 canary 仍没有出现限制弹窗，因此没有人为制造该外部状态；确认按钮、最多五分钟只读等待、必要时单次刷新和失败关闭已由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。
+- LIVE_VERIFIED（当前候选局部范围）：e7ca0ae5a2b199557d77982d29705a87f6177899 已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据见 `SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json`；该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。
+- 请求限制 live preflight：本次当前候选 canary 未出现限制弹窗，因此没有人为制造该外部状态；确认按钮、最多五分钟只读等待、必要时单次刷新、composer 就绪和失败关闭已由当前候选离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json`。
