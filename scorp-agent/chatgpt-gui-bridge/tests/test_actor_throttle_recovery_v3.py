@@ -151,6 +151,77 @@ class ActorThrottleRecoveryV3Tests(unittest.TestCase):
         self.assertFalse(any(name == "Type" for name, _ in client.calls))
         self.assertFalse(any(name == "Shortcut" and args.get("shortcut") == "ctrl+r" for name, args in client.calls))
 
+    def test_gui_transport_reconciles_ambiguous_ack_click_before_continuing(self):
+        throttle = (
+            "请求过于频繁，请稍等几分钟后再重试\n"
+            "(410,520) button \"确定\""
+        )
+        recovered = '(200,700) textbox "Message ChatGPT"'
+        send = '(900,700) button "Send message"'
+
+        class AmbiguousAckClient(FakeClient):
+            async def call_tool(self, name, args):
+                if name == "Click" and args.get("loc") == [410, 520]:
+                    self.calls.append((name, args))
+                    raise RuntimeError("simulated click timeout")
+                return await super().call_tool(name, args)
+
+        client = AmbiguousAckClient(
+            snapshots=["Focused Window: Chrome", throttle, recovered, send],
+            clipboard_reads=[
+                "Clipboard content:\noriginal",
+                "Clipboard content:\nhttps://chatgpt.com/",
+            ],
+        )
+        asyncio.run(open_new_chat_and_submit(
+            client,
+            "PROMPT",
+            page_wait_seconds=0,
+            rate_limit_wait_seconds=0,
+            rate_limit_poll_seconds=1,
+            rate_limit_sleeper=lambda _: asyncio.sleep(0),
+            rate_limit_clock=lambda: 0.0,
+        ))
+        self.assertEqual(
+            1,
+            sum(1 for name, args in client.calls if name == "Click" and args.get("loc") == [410, 520]),
+        )
+        self.assertEqual(1, sum(1 for name, _ in client.calls if name == "Type"))
+        self.assertFalse(any(name == "Shortcut" and args.get("shortcut") == "ctrl+r" for name, args in client.calls))
+
+    def test_gui_transport_blocks_ambiguous_ack_when_dialog_remains_visible(self):
+        throttle = (
+            "请求过于频繁，请稍等几分钟后再重试\n"
+            "(410,520) button \"确定\""
+        )
+
+        class AmbiguousAckClient(FakeClient):
+            async def call_tool(self, name, args):
+                if name == "Click" and args.get("loc") == [410, 520]:
+                    self.calls.append((name, args))
+                    raise RuntimeError("simulated click timeout")
+                return await super().call_tool(name, args)
+
+        client = AmbiguousAckClient(
+            snapshots=["Focused Window: Chrome", throttle, throttle],
+            clipboard_reads=[
+                "Clipboard content:\noriginal",
+                "Clipboard content:\nhttps://chatgpt.com/",
+            ],
+        )
+        with self.assertRaisesRegex(
+            ChatGptThrottleError,
+            "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_ACK_AMBIGUOUS",
+        ):
+            asyncio.run(open_new_chat_and_submit(
+                client,
+                "PROMPT",
+                page_wait_seconds=0,
+                rate_limit_wait_seconds=0,
+            ))
+        self.assertFalse(any(name == "Type" for name, _ in client.calls))
+        self.assertFalse(any(name == "Shortcut" and args.get("shortcut") == "ctrl+r" for name, args in client.calls))
+
     def test_gui_transport_waits_for_editor_after_dialog_clears_during_page_refresh(self):
         throttle = (
             "请求过于频繁，请稍等几分钟后再重试\n"

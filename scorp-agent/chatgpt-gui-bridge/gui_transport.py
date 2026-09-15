@@ -92,14 +92,6 @@ async def recover_rate_limit_dialog(
         # Preserve the legacy blocker prefix consumed by the deterministic
         # supervisor while retaining the precise fail-closed reason.
         raise ChatGptThrottleError(f"CHATGPT_REQUEST_THROTTLED:{exc}") from exc
-    try:
-        await client.call_tool("Click", {"loc": list(location)})
-    except Exception as exc:
-        raise ChatGptThrottleError(
-            "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_ACK_FAILED"
-        ) from exc
-    deadline = clock() + max_wait_seconds
-
     async def read_snapshot() -> str:
         try:
             result = await client.call_tool("Snapshot", {
@@ -118,8 +110,38 @@ async def recover_rate_limit_dialog(
             )
         return result_text(result)
 
+    reconciled_snapshot = None
+    try:
+        await client.call_tool("Click", {"loc": list(location)})
+    except Exception as exc:
+        # A timeout/EOF does not prove that the acknowledgement was not
+        # delivered. Reconcile the same physical page with a read-only
+        # snapshot before deciding whether recovery can continue. Never click
+        # the acknowledgement a second time and never refresh an ambiguous
+        # page blindly.
+        error_text = str(exc or "").casefold()
+        if not any(marker in error_text for marker in ("timeout", "timed out", "deadline", "eof")):
+            raise ChatGptThrottleError(
+                "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_ACK_FAILED"
+            ) from exc
+        try:
+            reconciled_snapshot = await read_snapshot()
+        except ChatGptThrottleError as reconcile_exc:
+            raise ChatGptThrottleError(
+                "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_ACK_AMBIGUOUS_READ_FAILED"
+            ) from reconcile_exc
+        if chatgpt_throttle_visible(reconciled_snapshot):
+            raise ChatGptThrottleError(
+                "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_ACK_AMBIGUOUS"
+            ) from exc
+    deadline = clock() + max_wait_seconds
+
     while True:
-        current = await read_snapshot()
+        if reconciled_snapshot is not None:
+            current = reconciled_snapshot
+            reconciled_snapshot = None
+        else:
+            current = await read_snapshot()
         if not chatgpt_throttle_visible(current):
             # A dismissed dialog can leave ChatGPT in a short page-reload
             # window with no composer yet.  Keep this read-only wait bounded
