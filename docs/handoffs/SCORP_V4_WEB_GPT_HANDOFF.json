@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "852567b05a792c4f5bb5be4011c37bf9be9e6c68",
+  "candidate_commit": "4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d",
   "evidence_binding": {
-    "validated_commit": "852567b05a792c4f5bb5be4011c37bf9be9e6c68",
+    "validated_commit": "4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_852567B.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_4BFBFB9.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the 852567b05a792c4f5bb5be4011c37bf9be9e6c68 code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit-migration guard for incomplete SQLite files, explicit legacy SQLite snapshot migration tests, and unambiguous alphanumeric live-canary markers. Runtime startup requires exact candidate binding. A fresh real two-worker Chrome canary passed with two captured responses and zero duplicate submits; evidence is docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "85030691064aa3fdb77a87c451c215825ee63a0c2b8529785a3529d3fe509a90"
+    "binding_note": "This handoff describes the 4bfbfb9b5deebf5fec3c2dfb7cbf0249f33d306d code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit SQLite migration guards, result normalization, and Windows MCP pre-input rate-limit recovery. Runtime startup requires exact candidate binding. Historical live browser evidence is retained for context only and is not evidence for this candidate; the current candidate rate-limit popup branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "1264da21c2d5272a296748b5ad0816ccad6a4e8ad3b63a348eb23f5b964dd717"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -61,7 +61,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "current_candidate_two_worker_harmless_canary_passed; real_repository_workload_over_browser_not_run; restart_and_unattended_soak_not_run; production_cutover_not_authorized"
+      "current_candidate_evidence": "current_candidate_real_browser_revalidation_not_run; current_candidate_rate_limit_popup_branch_not_run; restart_and_unattended_soak_not_run; production_cutover_not_authorized"
     },
     "connector_contract": {
       "descriptor": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json",
