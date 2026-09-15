@@ -103,6 +103,57 @@ class OperatorControlTests(unittest.TestCase):
         self.assertEqual("OBJECTIVE_SHA256_REQUIRED", response["error"]["code"])
         self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
 
+    def test_resume_restores_scheduler_admission_after_pause(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+
+        worktree = self.root / "resume-worktree"
+        worktree.mkdir()
+        scheduler = Scheduler(self.store, "p1", PathPolicy([worktree]), max_workers=2)
+        scheduler.enqueue_graph([
+            {
+                "task_id": "resume-task",
+                "objective_sha256": "e" * 64,
+                "resource_scope": [worktree / "one.txt"],
+                "dependencies": [],
+            }
+        ])
+
+        self.assertEqual("OK", self.service.execute(self.request("pause-admission", "project.pause"))["status"])
+        self.assertEqual(
+            "OK",
+            self.service.execute(self.request("resume-admission", "project.resume", state_version=1))["status"],
+        )
+
+        claims = scheduler.claim_runnable(master_epoch=0)
+        self.assertEqual(1, len(claims))
+
+    def test_resume_rehydrates_existing_claim_after_pause(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+
+        worktree = self.root / "resume-existing-worktree"
+        worktree.mkdir()
+        scheduler = Scheduler(self.store, "p1", PathPolicy([worktree]), max_workers=2)
+        scheduler.enqueue_graph([
+            {
+                "task_id": "existing-task",
+                "objective_sha256": "f" * 64,
+                "resource_scope": [worktree / "one.txt"],
+                "dependencies": [],
+            }
+        ])
+        claim = scheduler.claim_runnable(master_epoch=0)[0]
+
+        self.assertEqual("OK", self.service.execute(self.request("pause-existing", "project.pause"))["status"])
+        self.assertEqual(
+            "OK",
+            self.service.execute(self.request("resume-existing", "project.resume", state_version=1))["status"],
+        )
+
+        restored = scheduler.load_active_claims(master_epoch=0)
+        self.assertEqual([claim.assignment_id], [item.assignment_id for item in restored])
+
     def test_cancel_fences_active_assignments_leases_and_pending_results(self):
         from master_a_dynamic_v4.path_policy import PathPolicy
         from master_a_dynamic_v4.scheduler import Scheduler

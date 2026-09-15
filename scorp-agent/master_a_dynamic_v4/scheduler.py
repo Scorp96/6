@@ -266,7 +266,10 @@ class Scheduler:
                 raise SchedulerError("PROJECT_NOT_FOUND")
             if int(state["master_epoch"]) != int(master_epoch):
                 raise WorkerFenceError("MASTER_EPOCH_FENCED")
-            if str(state["status"]) != "ACTIVE":
+            # A successful project.resume records lifecycle status RUNNING;
+            # the explicit operator-state gate below still fences paused or
+            # superseded work.
+            if str(state["status"]) not in {"ACTIVE", "RUNNING"}:
                 return []
             rows = conn.execute(
                 """
@@ -336,7 +339,7 @@ class Scheduler:
                 raise SchedulerError("PROJECT_NOT_FOUND")
             if int(state["master_epoch"]) != int(master_epoch):
                 raise WorkerFenceError("MASTER_EPOCH_FENCED")
-            if str(state["status"]) != "ACTIVE":
+            if str(state["status"]) not in {"ACTIVE", "RUNNING"}:
                 return []
             control = conn.execute(
                 "SELECT operator_state FROM operator_controls WHERE project_id=?",
