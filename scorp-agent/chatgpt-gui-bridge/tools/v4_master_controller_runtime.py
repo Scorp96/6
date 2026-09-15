@@ -204,7 +204,18 @@ def _worker_prompt(claim) -> str:
                 "Only work inside the assignment resource_scope.",
                 "If local execution is required, include an execution_request using only approved fields.",
                 "Return exactly one JSON object with work_result_version=1 and no explanatory prose.",
+                "Use valid JSON string escaping; prefer forward-slash paths when a path is needed.",
+                "Set status=COMPLETE only after supplying execution_request and non-empty scope_completed, evidence, and acceptance_coverage.",
             ],
+            "result_requirements": {
+                "complete_requires_nonempty": [
+                    "scope_completed",
+                    "evidence",
+                    "acceptance_coverage",
+                ],
+                "execution_request_required_for_complete": True,
+                "result_sha256": "64-hex; the runtime recomputes it after execution_request",
+            },
         },
         ensure_ascii=False,
         sort_keys=True,

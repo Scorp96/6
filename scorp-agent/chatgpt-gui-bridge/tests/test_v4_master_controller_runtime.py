@@ -4,6 +4,7 @@ import importlib.util
 import json
 import pathlib
 import tempfile
+import types
 import unittest
 
 
@@ -44,6 +45,27 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         # is still intact and must be reconciled without resubmitting.
         snapshot = "#### ChatGPT ˵��:\n" + json.dumps(value) + "\n"
         self.assertEqual(value, runtime.parse_structured_response(snapshot, "intent-1"))
+
+    def test_worker_prompt_requires_evidence_for_complete_results(self):
+        runtime = load_runtime()
+        claim = types.SimpleNamespace(
+            project_id="p1",
+            assignment_id="a1",
+            task_id="T1",
+            worker_id="w1",
+            slot_id="worker-slot-1",
+            master_epoch=0,
+            base_state_version=1,
+            objective_sha256="a" * 64,
+            resource_scope=("C:/lab/orders.csv",),
+            access_mode="read",
+            task_context={"workload": "csv_summary"},
+        )
+        payload = json.loads(runtime._worker_prompt(claim))
+        self.assertIn("result_requirements", payload)
+        self.assertIn("evidence", payload["result_requirements"]["complete_requires_nonempty"])
+        self.assertIn("acceptance_coverage", payload["result_requirements"]["complete_requires_nonempty"])
+        self.assertIn("scope_completed", payload["result_requirements"]["complete_requires_nonempty"])
 
     def test_runtime_requires_explicit_send_gate_before_opening_browser(self):
         runtime = load_runtime()
