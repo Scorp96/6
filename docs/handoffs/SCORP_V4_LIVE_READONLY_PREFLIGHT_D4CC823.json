@@ -1,0 +1,14 @@
+{
+  "format": "scorp-v4-live-readonly-preflight/1",
+  "candidate_code_commit": "d4cc823e90563ae431d0050bf9313ea4d18cc088",
+  "observed_at": "2026-09-15T03:32:32.663866Z",
+  "session": "scorp-p0-turn-066069407e9baa4c",
+  "read_only": true,
+  "actions": [
+    "tab list"
+  ],
+  "raw_output": "{\"success\":true,\"data\":{\"tabs\":[{\"active\":true,\"label\":null,\"ownership\":\"created\",\"relayAttached\":false,\"tabId\":\"t1\",\"targetId\":\"3D6F10870DC67B11F42DCBA3266407B1\",\"title\":\"\",\"type\":\"page\",\"url\":\"\"}]},\"error\":null}",
+  "result": "BLOCKED_EXTERNAL_PRECONDITION",
+  "rule": "No send, no retry, no historical intent replay until current candidate binding and target state are unambiguous.",
+  "artifact_sha256": "8da3b99d0c2448e74456129eb769f2c2bea7e0e1575215a2e9e4e18ae028173c"
+}

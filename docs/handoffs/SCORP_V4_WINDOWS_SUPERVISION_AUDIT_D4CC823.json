@@ -1,0 +1,35 @@
+{
+  "evidence_id": "SCORP_V4_WINDOWS_SUPERVISION_AUDIT_D4CC823",
+  "observed_at": "2026-09-15T03:32:32.663866Z",
+  "candidate_code_commit": "d4cc823e90563ae431d0050bf9313ea4d18cc088",
+  "production_state_changed": false,
+  "scheduled_tasks": {
+    "ScorpFullAutoOrchestrator": "Ready",
+    "ScorpV4SelfUpgrade5561f44": "Ready",
+    "ScorpComputerAgent": "Running",
+    "ScorpChatGptGuiBridgeWatchdog": "Disabled",
+    "ScorpChatGptGuiBridge": "Running"
+  },
+  "bridge_worker_processes": [
+    {
+      "pid": 7876,
+      "parent_pid": 904,
+      "command_line": "\"C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe\" \"C:\\ScorpAgent\\chatgpt-gui-bridge\\bridge_worker.py\" --orchestrator-root C:\\ScorpAgent\\orchestrator-v1 --state-root C:\\ScorpAgent\\state-v4 --bridge-root \"C:\\ScorpAgent\\chatgpt-gui-bridge-state\" --control-repo Scorp96/scorp-control-plane --trusted-actor Scorp96 --v3-project-root \"C:\\ScorpAgent\\state-v3\\active\" --v3-max-inflight 3 --poll-seconds 10"
+    },
+    {
+      "pid": 13488,
+      "parent_pid": 7876,
+      "command_line": "\"C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe\"  \"C:\\ScorpAgent\\chatgpt-gui-bridge\\bridge_worker.py\" --orchestrator-root C:\\ScorpAgent\\orchestrator-v1 --state-root C:\\ScorpAgent\\state-v4 --bridge-root \"C:\\ScorpAgent\\chatgpt-gui-bridge-state\" --control-repo Scorp96/scorp-control-plane --trusted-actor Scorp96 --v3-project-root \"C:\\ScorpAgent\\state-v3\\active\" --v3-max-inflight 3 --poll-seconds 10"
+    }
+  ],
+  "health": {
+    "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json",
+    "status": "ERROR",
+    "reason": "CHROME_USE_EXIT_1: {\"success\":false,\"data\":null,\"error\":\"the tab this command was driving is gone — it navigated across processes (e.g. an OAuth/SSO redirect), was closed, or the relay lost it. The session did NOT silently retarget, since that could read or click the wrong tab. Run `tab list` first. If the tab is listed as `created` or `adopted`, preserve it with `tab select <ref>`; otherwise use `tab adopt <url-substring|targetId>`. Use `tab inspect <ref>` when its renderer is stuck. Only if it is absent, re-open it with `open <url>` / `navigate <url>`, then re-`snapshot`.\",\"code\":\"command_failed\",\"retryable\":false}"
+  },
+  "limitations": [
+    "candidate process lock has not been deployed to the production Scheduled Task",
+    "no production daemon cutover was authorized",
+    "stale chrome-use processes were not killed or globally cleaned"
+  ]
+}

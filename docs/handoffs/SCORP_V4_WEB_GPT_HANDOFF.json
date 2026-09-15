@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "eee86450a3250218cc564a72a5fd16135a02b12f",
+  "candidate_commit": "d4cc823e90563ae431d0050bf9313ea4d18cc088",
   "evidence_binding": {
-    "validated_commit": "eee86450a3250218cc564a72a5fd16135a02b12f",
+    "validated_commit": "d4cc823e90563ae431d0050bf9313ea4d18cc088",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_EEE8645.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_EEE8645.json",
-    "binding_note": "This handoff describes the eee86450a3250218cc564a72a5fd16135a02b12f code candidate; runtime startup requires exact candidate binding. A fresh read-only Chrome Use preflight is blocked because only one empty created tab is visible, with no current candidate composer or unique binding; see docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_EEE8645.json. No send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "c3b6cf9e89deccecaa8b282a2750b40d17d69bfe2ae7988fb7a5337e1b1e0e70"
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_D4CC823.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_D4CC823.json",
+    "binding_note": "This handoff describes the d4cc823e90563ae431d0050bf9313ea4d18cc088 code candidate; runtime startup requires exact candidate binding. A fresh read-only Chrome Use preflight is blocked because only one empty created tab is visible, with no current candidate composer or unique binding; see docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_D4CC823.json. No send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "31e2ffcb2ddb4ae3a1b55092600dd00be7570031b4ff339a5ca82f6d1cc79e1c"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
