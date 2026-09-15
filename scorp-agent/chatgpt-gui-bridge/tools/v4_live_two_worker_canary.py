@@ -35,8 +35,8 @@ from tools.v4_master_controller_runtime import validate_candidate_binding  # noq
 
 DEFAULT_EXECUTABLE = r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"
 MARKERS = {
-    "worker-slot-1": "SCORP_V4_WORKER_CANARY_ACK_1",
-    "worker-slot-2": "SCORP_V4_WORKER_CANARY_ACK_2",
+    "worker-slot-1": "SCORPV4CANARYACK1",
+    "worker-slot-2": "SCORPV4CANARYACK2",
 }
 
 

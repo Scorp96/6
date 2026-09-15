@@ -7,6 +7,8 @@ import tempfile
 import unittest
 
 from tools.v4_live_two_worker_canary import (
+    MARKERS,
+    _reply_matches,
     build_parser,
     cleanup_canary_lifecycle,
     dispatch_intents_concurrently,
@@ -17,6 +19,13 @@ from tools.v4_live_two_worker_canary import (
 
 
 class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
+    def test_canary_markers_are_unambiguous_and_strictly_matched(self):
+        for marker in MARKERS.values():
+            self.assertRegex(marker, r"^[A-Z0-9]+$")
+            self.assertFalse(marker.endswith("_"))
+            self.assertTrue(_reply_matches(f"#### ChatGPT said:\n{marker}", marker))
+            self.assertFalse(_reply_matches(f"#### ChatGPT said:\n{marker}_", marker))
+
     def test_canary_timeout_covers_five_minute_rate_limit_recovery_window(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
