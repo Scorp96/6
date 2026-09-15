@@ -77,7 +77,7 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
 - 前置候选 5bf79536c03de8ae25a507723a34f4e162fe8bfa 曾在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`。该结果只证明前置候选的固定标记浏览器提交/响应边界，不能作为当前 `a00ac7f` 的 live 证据。前置候选真实代码实验中 T2 的受限聚合执行通过，T1 Worker 返回 BLOCKED、T3 未运行；证据见 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`，同样不能提升到当前候选。
 - 本次当前候选 canary 的诊断认证会话已正常停止；此前旧 canary 的 `CLEANUP_BLOCKED` 记录仍保留为历史证据，不能作为当前候选状态。
-- 当前候选实机观察仍被请求限制阻塞：同一物理 tab 的只读复核仍显示限流弹窗且 composer 未就绪，证据见 `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json`。五分钟只读等待、页面自行恢复、必要时单次刷新、composer 就绪和失败关闭由离线测试覆盖；前置候选的限流观察属于历史证据，不能提升到当前候选。
+- 当前候选实机观察仍被请求限制阻塞：同一物理 tab 的只读复核仍显示限流弹窗且 composer 未就绪，证据见 `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_A00AC7F_20260915.json`。五分钟只读等待、页面自行恢复、必要时单次刷新、composer 就绪和失败关闭由离线测试覆盖；前置候选的限流观察属于历史证据，不能提升到当前候选。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json`。

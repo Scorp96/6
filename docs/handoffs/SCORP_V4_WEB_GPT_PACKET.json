@@ -10,11 +10,11 @@
   "candidate_commit": "a00ac7f777e50835aa6d1fcbc48ac543b02117cf",
   "current_live_gate": {
     "candidate_code_commit": "a00ac7f777e50835aa6d1fcbc48ac543b02117cf",
-    "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
+    "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_A00AC7F_20260915.json",
     "rate_limit_recovery_preflight": {
       "boundary": "同一物理 ChatGPT tab 仍显示请求过于频繁且 composer 未就绪；不得创建新 session、刷新或重发，直到只读证据确认阻塞清除。",
-      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
-      "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
+      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_A00AC7F_20260915.json",
+      "evidence_sha256": "9c45436ac0d2411ac8db4f851ce5aad98d995d619732d5033f9d0413f4c1351f",
       "result": "BLOCKED_EXTERNAL_PRECONDITION"
     },
     "reason": "当前候选代码已从 a5aab0a 更新为 a00ac7f；此前 LIVE evidence 绑定旧候选，不能提升到新候选。新候选尚未执行当前代码的浏览器 canary；同一物理 ChatGPT tab 仍有请求限制。",
@@ -28,7 +28,7 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T13:11:51.416079Z",
+  "generated_at": "2026-09-15T13:15:11.370522Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
     "allowed_root": "C:\\ScorpAgent\\v4-core-lab",
@@ -67,7 +67,7 @@
     },
     "database_path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T13:11:51.416005Z",
+    "generated_at": "2026-09-15T13:15:11.370368Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",

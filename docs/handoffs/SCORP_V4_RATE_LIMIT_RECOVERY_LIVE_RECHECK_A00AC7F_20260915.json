@@ -1,0 +1,24 @@
+{
+  "format": "scorp-v4-rate-limit-live-recheck/1",
+  "observed_at_utc": "2026-09-15T13:14:48.729276Z",
+  "candidate_commit": "a00ac7f777e50835aa6d1fcbc48ac543b02117cf",
+  "browser": {
+    "family": "Chrome",
+    "tab_id": "2033137551",
+    "provider_tab_id": "[\"abecb937-7f63-49bc-a49d-0282b71d8407\",\"2033137551\"]",
+    "tab_group": "scorp-v4-master-auth-ef84c20b4028",
+    "url": "https://chatgpt.com/"
+  },
+  "action": "READ_ONLY_AX_RECHECK",
+  "ack_click_attempted": false,
+  "refresh_attempted": false,
+  "send_attempted": false,
+  "new_session_created": false,
+  "state": "BLOCKED_EXTERNAL_PRECONDITION",
+  "rate_limit_dialog_present": true,
+  "composer_present": false,
+  "acknowledgement_control_observed": "明白了",
+  "raw_ax_snapshot": "0 AXWebArea ChatGPT, URL: chatgpt.com/\n1 container\n2 container\n3 text 1 条建议可用。第一条建议：Let me know when a new local-language demand term deserves promotion into my global monitoring pool\n4 container 请求过于频繁, ID: radix-_r_48_\n5 heading 请求过于频繁, Value: 2, ID: radix-_r_49_\n6 text 请求过于频繁\n7 text 你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。\n8 text 请稍等几分钟后再重试。\n9 button 明白了",
+  "raw_ax_snapshot_sha256": "75ab0edc7948a43086fa23070a4f0c550085675fa63ea9e5f01ec9f5d4fdeebb",
+  "interpretation": "同一物理 tab 仍受请求限制；保持 fail-closed，不执行点击、刷新、重发或新 session。"
+}

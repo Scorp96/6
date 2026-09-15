@@ -26,14 +26,14 @@
     "live_verified": {
       "result": "BLOCKED",
       "reason": "当前候选代码已从 a5aab0a 更新为 a00ac7f；此前 LIVE evidence 绑定旧候选，不能提升到新候选。新候选尚未执行当前代码的浏览器 canary；同一物理 ChatGPT tab 仍有请求限制。",
-      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
-      "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
+      "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_A00AC7F_20260915.json",
+      "evidence_sha256": "9c45436ac0d2411ac8db4f851ce5aad98d995d619732d5033f9d0413f4c1351f",
       "retry_count_after_ambiguity": 0,
       "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
       "rate_limit_recovery_preflight": {
         "result": "BLOCKED_EXTERNAL_PRECONDITION",
-        "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_20260915.json",
-        "evidence_sha256": "229765997ef383243dbeaa177f6ad3168e2ed8643f8b41713c4da4f6d95b0070",
+        "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_A00AC7F_20260915.json",
+        "evidence_sha256": "9c45436ac0d2411ac8db4f851ce5aad98d995d619732d5033f9d0413f4c1351f",
         "boundary": "同一物理 ChatGPT tab 仍显示请求过于频繁且 composer 未就绪；不得创建新 session、刷新或重发，直到只读证据确认阻塞清除。"
       }
     },
