@@ -4,12 +4,12 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "1d55b7acab3a91bf8c6ada23c7f951f59563cd2d",
+  "implementation_commit": "5e2fceb2906056665ac0ba62937463358005fd88",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
         "result": "PASS",
-        "count": 177
+        "count": 178
       },
       "gui_bridge_tests": {
         "result": "PASS",
@@ -26,7 +26,7 @@
     "live_verified": {
       "result": "BLOCKED",
       "reason": "新鲜 Windows Chrome Use 只读预检连续两次只看到同一个空的 created tab，未取得当前候选 ChatGPT composer 或唯一绑定；按 fail-closed 规则不发送。",
-      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_1D55B7A.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_5E2FCEB.json",
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
@@ -38,11 +38,11 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "5ced68ae5c180ebdd358834c5150d43fd9c6308fa66f2aeb79fd35552f0547b8"
+      "sha256": "2d88c5516902860f451627c5588209839d61ff86bc1445212e7e23345ca011c5"
     },
     "local_transport_live_verified": {
       "result": "PASS",
-      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_1D55B7A.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_5E2FCEB.json",
       "scope": "Windows authenticated Named Pipe and stdio connector process loop",
       "tests": 11
     }
@@ -83,7 +83,8 @@
     "activation snapshot derives active_worker_lost from expired or missing current-epoch leases and selects RESUME_WORKER",
     "SQLite schema v5 migration persists last_heartbeat_at and backfills old observations",
     "Master rebind auth probe invokes bounded rate-limit acknowledgement, read-only wait, and one-refresh recovery before authenticated classification",
-    "Master rebind recovery transport exceptions collapse to AUTH_PROBE_FAILED and stop follow-up browser actions"
+    "Master rebind recovery transport exceptions collapse to AUTH_PROBE_FAILED and stop follow-up browser actions",
+    "Expired Master recovery creates a disposable physical session id and preserves logical Master fencing"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -94,11 +95,11 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
   ],
-  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_1D55B7A.json",
+  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_5E2FCEB.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_1D55B7A.json",
-    "sha256": "fa428b6c56cde63dc31d4012c47506fd2ef79918ca17faf5a38050e163c18eb7",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5E2FCEB.json",
+    "sha256": "7751786a2bc27544a744f7529fe92fba1727ae8d6dd37a3fbf709ac00c181784",
     "file_count": 370
   },
-  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_1D55B7A.json"
+  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_5E2FCEB.json"
 }

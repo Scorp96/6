@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-current documentation snapshot (code candidate `1d55b7acab3a91bf8c6ada23c7f951f59563cd2d`; exact branch HEAD is recorded after this documentation update)
+current documentation snapshot (code candidate `5e2fceb2906056665ac0ba62937463358005fd88`; exact branch HEAD is recorded after this documentation update)
 
 ## REMOTE_MAIN_HEAD
 
@@ -73,7 +73,7 @@ Activation Arbiter 是无副作用、确定性的单决策函数。当前顺序�
 
 ## CURRENT_MASTER_MODEL
 
-Master A 是由 SQLite project、master epoch、checkpoint 和 evidence 绑定的逻辑身份，不等于某个固定 ChatGPT URL。旧 Master epoch 的 Runtime mutation 会被拒绝。当前代码具备 MasterSupervisor 接口，但真实 ChatGPT 会话替换和当前候选版本的 live 运行尚未通过。
+Master A 是由 SQLite project、master epoch、checkpoint 和 evidence 绑定的逻辑身份，不等于某个固定 ChatGPT URL。旧 Master epoch 的 Runtime mutation 会被拒绝。当前代码具备 MasterSupervisor 接口；过期恢复现在会为新的物理 ChatGPT/browser session 生成一次性 session id，旧物理 session 保留为 STALE，真实浏览器重绑定和当前候选版本的 live 运行尚未通过。
 
 ## CURRENT_WORKER_MODEL
 
@@ -83,9 +83,9 @@ Scheduler 使用最多两个动态 Worker slot，assignment、lease、task depen
 
 ## CURRENT_BROWSER_MODEL
 
-Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。本轮只读预检已显示正常新聊天 composer；随后当前候选 c205 单 Worker canary 记录了 conversation URL，但只读核对得到旧诊断回复且没有 c205 token，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json` 和当前只读预检 `SCORP_V4_LIVE_READONLY_PREFLIGHT_1D55B7A.json`。
+Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。本轮只读预检已显示正常新聊天 composer；随后当前候选 c205 单 Worker canary 记录了 conversation URL，但只读核对得到旧诊断回复且没有 c205 token，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json` 和当前只读预检 `SCORP_V4_LIVE_READONLY_PREFLIGHT_5E2FCEB.json`。
 
-因此本轮未确认新 prompt 已送达、未确认当前候选 Worker GPT 对话结果、未重放历史 ambiguous intent。请求限制恢复的历史只读 preflight 显示当时页面没有限制弹窗，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；当前会话状态不一致的只读证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_1D55B7A.json`；只证明了不点击分支，未证明真实弹窗确认和等待恢复。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
+因此本轮未确认新 prompt 已送达、未确认当前候选 Worker GPT 对话结果、未重放历史 ambiguous intent。请求限制恢复的历史只读 preflight 显示当时页面没有限制弹窗，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；当前会话状态不一致的只读证据见 `SCORP_V4_LIVE_READONLY_PREFLIGHT_5E2FCEB.json`；只证明了不点击分支，未证明真实弹窗确认和等待恢复。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
 
 ## CURRENT_EXECUTION_MODEL
 
@@ -93,14 +93,14 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：177 项测试通过。
+- V4 core：178 项测试通过。
 - GUI bridge：491 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
 - validation JSON：可解析。
-- 当前候选 validation：代码候选 `1d55b7acab3a91bf8c6ada23c7f951f59563cd2d`；请求限制 fail-closed 专项证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_1D55B7A.json`。
+- 当前候选 validation：代码候选 `5e2fceb2906056665ac0ba62937463358005fd88`；请求限制 fail-closed 专项证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E2FCEB.json`。
 - 当前候选真实 Chrome：`LIVE_VERIFIED = BLOCKED`，原因是当前 canary 的 Chrome Use send ref 无法解析。
-- Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_1D55B7A.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
+- Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_5E2FCEB.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
 - 当前候选：`ACCEPTED = false`。
 - 生产切换：未授权、未执行。
 
@@ -122,6 +122,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - daemon 缺少任何可执行 arbiter 动作处理器时 fail-closed 为 `BLOCKED`，不会伪报 `HEALTHY`。
 - bridge worker 启动前使用 OS 进程锁，重复进程直接退出；真实 Windows 子进程竞争测试通过。
 - Named Pipe 启动器允许省略固定 daemon epoch，并从当前 SQLite lease 重新获取；显式旧 epoch 仍被 fence；Windows 一次性进程回环已覆盖该路径。
+- Master 过期恢复不再复用旧物理 session id；真实 SQLite 集成回归证明会生成新的 `::resume-<nonce>` session，并推进新的 master epoch。
 
 ## PARTIAL
 
@@ -166,6 +167,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - P0 missing authority：缺失 `operator_controls` 时，新的 graph/assignment admission fail-closed。
 - P0 snapshot authority：缺失 `operator_controls` 的 activation snapshot 返回 `UNKNOWN`，不再伪造 `RUNNING`。
 - P0 resume admission：修复了 resume 后 scheduler 误把 `RUNNING` 当成非活动状态，避免暂停恢复后永久不派发任务或丢失活动 assignment。
+- P0 stale Master physical session：已修复同一 stale `session_id` 恢复命中 `MASTER_SESSION_ID_REUSED` 的断点；当前只证明真实 SQLite/离线恢复，尚未证明浏览器重绑定成功。
 - P0 auth/rate-limit human boundary：已实现有界确认/等待/单次刷新恢复；当前 live canary 仍有浏览器状态歧义，不能把恢复动作当作发送成功。
 - P0 current-candidate browser exactly-once：未达到 LIVE_VERIFIED。
 - P0 dedicated production daemon authority：未证明已安装。
