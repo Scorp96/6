@@ -1,0 +1,26 @@
+{
+  "format": "scorp-v4-rate-limit-recovery-live-failure/1",
+  "observed_at_utc": "2026-09-15T12:35:00Z",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+  "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json",
+  "browser": {
+    "family": "Chrome",
+    "tab_id": "2033137551",
+    "tab_group": "scorp-v4-master-auth-ef84c20b4028",
+    "url_before_action": "https://chatgpt.com/",
+    "visible_blocker": "请求过于频繁",
+    "acknowledgement_control": "明白了"
+  },
+  "action": {
+    "attempted": "click the single visible acknowledgement control once",
+    "result": "TRANSPORT_TIMEOUT",
+    "observed_after_action": "the accessibility tree still showed the same rate-limit dialog and the same acknowledgement button",
+    "refresh_attempted": false,
+    "prompt_resend_attempted": false,
+    "blind_retry": false
+  },
+  "classification": "BLOCKED_EXTERNAL_PRECONDITION",
+  "required_next_step": "A later bounded read-only recovery may inspect the same physical session; no refresh or prompt resend is authorized from this ambiguous acknowledgement attempt.",
+  "production_state_touched": false
+}

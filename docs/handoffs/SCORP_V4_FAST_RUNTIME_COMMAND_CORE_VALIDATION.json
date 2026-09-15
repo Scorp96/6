@@ -109,6 +109,14 @@
           "other Worker session became about:blank and was not retried",
           "this is not full real-code acceptance"
         ]
+      },
+      "rate_limit_recovery_live_failure_20260915": {
+        "result": "BLOCKED_EXTERNAL_PRECONDITION",
+        "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json",
+        "evidence_sha256": "2b3398d9003d698a51f355cd5fa1f5ab866f4b35588d88c8a67b99f17ea96db7",
+        "observed": "the visible acknowledgement click timed out and the same rate-limit dialog remained",
+        "refresh_attempted": false,
+        "prompt_resend_attempted": false
       }
     },
     "accepted": false,

@@ -86,7 +86,7 @@ Scheduler 使用最多两个动态 Worker slot，assignment、lease、task depen
 
 Chrome Use driver 已实现 durable intent、MAY_HAVE_SUBMITTED、原 actor reconcile、session/turn binding、受约束 retire 和 ambiguity fail-closed。当前候选 `5bf79536c03de8ae25a507723a34f4e162fe8bfa` 的新双 Worker 无害 Canary 已记录两个 conversation URL 和两个严格匹配响应，证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`；旧 c205 结果仍作为历史歧义证据保留。
 
-因此已确认固定无害 Canary prompt 已送达并捕获响应，但尚未确认真实代码任务完整通过 Worker GPT 对话。当前请求限制实机观察中，一个真实会话已点击唯一明确的“明白了”并恢复 composer，未重发 prompt；五分钟等待超时后的单次刷新仍由离线测试覆盖。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
+因此已确认固定无害 Canary prompt 已送达并捕获响应，但尚未确认真实代码任务完整通过 Worker GPT 对话。当前请求限制实机观察中，一个真实会话已点击唯一明确的“明白了”并恢复 composer，未重发 prompt；五分钟等待超时后的单次刷新仍由离线测试覆盖。最新现场检查在另一个已登录 tab 中再次观察到“请求过于频繁”；唯一确认控件的点击调用超时且弹窗仍在，系统没有刷新或重发，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json`。大量现存 tab/session 仍在 Chrome 中，但没有证据允许全局清理；只能由精确的 lifecycle binding 管理。
 
 ## CURRENT_EXECUTION_MODEL
 
