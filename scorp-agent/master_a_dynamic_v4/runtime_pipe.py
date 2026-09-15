@@ -81,6 +81,7 @@ class RuntimePipeServer:
         *,
         project_id: str,
         authkey: bytes,
+        actor: str,
         endpoint: str | None = None,
         max_message_bytes: int = MAX_MESSAGE_BYTES,
     ):
@@ -91,6 +92,9 @@ class RuntimePipeServer:
         if _PROJECT_ID.fullmatch(self.project_id) is None:
             raise ValueError("PIPE_PROJECT_ID_INVALID")
         self.authkey = _validate_authkey(authkey)
+        self.actor = str(actor or "").strip()
+        if not self.actor:
+            raise ValueError("PIPE_ACTOR_REQUIRED")
         try:
             limit = int(max_message_bytes)
         except (TypeError, ValueError) as exc:
@@ -122,6 +126,16 @@ class RuntimePipeServer:
                         request.request_id,
                         status="REJECTED",
                         code="PROJECT_SCOPE_MISMATCH",
+                        command=request.command,
+                        project_id=request.project_id,
+                    )
+                )
+            if request.actor != self.actor:
+                return self._encode_response(
+                    error_response(
+                        request.request_id,
+                        status="REJECTED",
+                        code="ACTOR_SCOPE_MISMATCH",
                         command=request.command,
                         project_id=request.project_id,
                     )
@@ -184,4 +198,3 @@ class RuntimePipeServer:
         finally:
             if owned:
                 current.close()
-

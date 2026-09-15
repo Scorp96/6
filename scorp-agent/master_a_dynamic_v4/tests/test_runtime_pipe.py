@@ -58,17 +58,30 @@ class RuntimePipeTests(unittest.TestCase):
             pipe_name(" ")
 
     def test_handle_bytes_delegates_only_versioned_runtime_request(self):
-        server = RuntimePipeServer(self.service, project_id="p1", authkey=self.authkey)
+        server = RuntimePipeServer(self.service, project_id="p1", authkey=self.authkey, actor="gpt-master")
         response = json.loads(server.handle_bytes(self.request()))
         self.assertEqual("scorp.runtime.response/1", response["protocol_version"])
         self.assertEqual("OK", response["status"])
         self.assertEqual("runtime.status", response["command"])
 
     def test_handle_bytes_rejects_oversized_message_without_dispatch(self):
-        server = RuntimePipeServer(self.service, project_id="p1", authkey=self.authkey)
+        server = RuntimePipeServer(self.service, project_id="p1", authkey=self.authkey, actor="gpt-master")
         response = json.loads(server.handle_bytes(b"x" * (MAX_MESSAGE_BYTES + 1)))
         self.assertEqual("REJECTED", response["status"])
         self.assertEqual("PIPE_MESSAGE_TOO_LARGE", response["error"]["code"])
+
+    def test_handle_bytes_rejects_actor_impersonation(self):
+        server = RuntimePipeServer(
+            self.service,
+            project_id="p1",
+            authkey=self.authkey,
+            actor="gpt-master",
+        )
+        raw = json.loads(self.request().decode("utf-8"))
+        raw["actor"] = "untrusted-local-client"
+        response = json.loads(server.handle_bytes(json.dumps(raw).encode("utf-8")))
+        self.assertEqual("REJECTED", response["status"])
+        self.assertEqual("ACTOR_SCOPE_MISMATCH", response["error"]["code"])
 
     @unittest.skipUnless(os.name == "nt", "Windows Named Pipe transport")
     def test_real_named_pipe_round_trip_uses_authenticated_connection(self):
@@ -82,7 +95,12 @@ class RuntimePipeTests(unittest.TestCase):
         service = RuntimeCommandService(
             self.store, project_id=scoped_project, daemon_epoch=lease["daemon_epoch"], actor="pipe"
         )
-        server = RuntimePipeServer(service, project_id=scoped_project, authkey=self.authkey)
+        server = RuntimePipeServer(
+            service,
+            project_id=scoped_project,
+            authkey=self.authkey,
+            actor="gpt-master",
+        )
         listener = create_listener(server.endpoint, authkey=self.authkey)
         failure: list[BaseException] = []
 

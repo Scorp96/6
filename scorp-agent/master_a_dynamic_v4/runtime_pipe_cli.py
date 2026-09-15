@@ -31,7 +31,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--allowed-root", action="append", required=True)
     parser.add_argument("--daemon-epoch", required=True, type=int)
-    parser.add_argument("--actor", default="runtime-pipe")
+    parser.add_argument("--actor", default="gpt-master")
     parser.add_argument("--authkey-env", default="SCORP_RUNTIME_PIPE_AUTHKEY")
     parser.add_argument("--once", action="store_true", help="serve exactly one authenticated connection")
     parser.add_argument("--max-connections", type=int, default=0, help="optional bounded connection count; 0 means run until stopped")
@@ -58,7 +58,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             daemon_epoch=args.daemon_epoch,
             actor=args.actor,
         )
-        server = RuntimePipeServer(service, project_id=args.project_id, authkey=authkey)
+        server = RuntimePipeServer(
+            service,
+            project_id=args.project_id,
+            authkey=authkey,
+            actor=args.actor,
+        )
         listener = create_listener(server.endpoint, authkey=authkey)
         handled = 0
         try:
@@ -81,4 +86,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
