@@ -591,8 +591,10 @@ class ChromeUseActorDriverV3:
         """Acknowledge one known rate-limit dialog and wait for page recovery.
 
         This is an explicit recovery operation.  It never enters a prompt, sends
-        a message, reloads blindly, or retries an ambiguous external action.  A
-        missing or ambiguous acknowledgement control remains blocked.
+        a message, or retries an ambiguous external action.  It waits for the
+        configured recovery window, then performs at most one explicit page
+        reload before the final read-only check.  A missing or ambiguous
+        acknowledgement control remains blocked.
         """
 
         session = str(session or "").strip()
@@ -651,11 +653,40 @@ class ChromeUseActorDriverV3:
                 }
             now = self.clock()
             if now >= deadline:
-                return {
-                    "status": "BLOCKED",
-                    "reason": "RATE_LIMIT_RECOVERY_TIMEOUT",
-                    "snapshot_sha256": _sha(text),
-                }
+                try:
+                    await self.cli.run_json(
+                        session,
+                        "reload",
+                        timeout_seconds=self.timeout_seconds,
+                    )
+                    payload = await read_snapshot()
+                    text = _render_payload(payload)
+                    classification = classify_chatgpt_snapshot(text, session)
+                    if classification["status"] == "AUTHENTICATED":
+                        return {
+                            "status": "RECOVERED",
+                            "reason": "RATE_LIMIT_DIALOG_CLEARED_AFTER_REFRESH",
+                            "snapshot_sha256": _sha(text),
+                        }
+                    if classification["status"] in {"AUTHENTICATION_REQUIRED", "CAPTCHA_REQUIRED"}:
+                        return {
+                            "status": "BLOCKED",
+                            "reason": "RATE_LIMIT_RECOVERY_REQUIRES_USER_AUTH",
+                            "page_status": classification["status"],
+                            "snapshot_sha256": _sha(text),
+                        }
+                    return {
+                        "status": "BLOCKED",
+                        "reason": "RATE_LIMIT_RECOVERY_TIMEOUT",
+                        "snapshot_sha256": _sha(text),
+                    }
+                except Exception as exc:
+                    return {
+                        "status": "BLOCKED",
+                        "reason": "RATE_LIMIT_REFRESH_FAILED",
+                        "error": str(exc),
+                        "snapshot_sha256": _sha(text),
+                    }
             await self.sleeper(min(poll, max(0.0, deadline - now)))
 
     async def _send_ref_after_input_repair(self, session, editor_ref, prompt):

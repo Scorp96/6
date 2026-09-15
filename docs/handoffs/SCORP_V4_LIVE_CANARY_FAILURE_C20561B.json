@@ -1,0 +1,32 @@
+{
+  "evidence_level": "LIVE_VERIFIED",
+  "status": "BLOCKED",
+  "candidate_commit": "c20561b218a5570ab94a02ac28641c607e8498e7",
+  "candidate_manifest": "C:\\ScorpAgent\\v4-c20561b-candidate-manifest.json",
+  "candidate_manifest_sha256": "a5ebbe9c99eeaa58c410bff3c651323177998cf1df8037c2911b4efd2692058f",
+  "started_at": "2026-09-15T09:12:20+08:00",
+  "finished_at": "2026-09-15T09:12:32+08:00",
+  "transport": "chrome-use",
+  "session": "scorp-p0-turn-be696fc624335fb9",
+  "turn_id": "scorp-v4-c20561b-live-single-20260915",
+  "token": "SCORP_V4_C20561B_LIVE_ACK_20260915",
+  "driver_state_path": "C:\\ScorpAgent\\v4-c20561b-live-single\\driver.json",
+  "driver_state_sha256": "10CB41B66EB7E90542DEBA0F9DE890C17B4C18BDF3C0F8689B49A0C8285FACB5",
+  "observed": {
+    "driver_binding_created": true,
+    "conversation_url": "https://chatgpt.com/c/6aa89b7c-4574-83e9-ac3b-b10f961d014e",
+    "read_final_url": "https://chatgpt.com/c/6aa89b7c-4574-83e9-ac3b-b10f961d014e",
+    "read_content_sha256": "48c4eb04a31387cb82b05f6c5c1ff1c86172e87b9dab3ff5fb6d8d67b8186818",
+    "expected_token_present": false,
+    "previous_diagnostic_token_present": true,
+    "read_only_reconciliation": true
+  },
+  "failure": {
+    "classification": "AMBIGUOUS_BROWSER_SIDE_EFFECT",
+    "reason": "conversation URL was recorded, but the page contained an older diagnostic response and no c205 canary token",
+    "transport_error": "CHROME_USE_EXIT_1: Invalid response: EOF while parsing a value at line 1 column 0 (after 5 retries - daemon may be busy or unresponsive)",
+    "retry_count": 0,
+    "replay_allowed": false
+  },
+  "interpretation": "The candidate reached the browser conversation-binding stage, but no valid c205 response was verified. This is not a live PASS and no blind retry is permitted."
+}

@@ -68,6 +68,8 @@ class RateLimitRecoveryV4Tests(unittest.TestCase):
             {"success": True},
             snapshot("请求过于频繁，请稍等几分钟后再重试"),
             snapshot("请求过于频繁，请稍等几分钟后再重试"),
+            {"success": True},
+            snapshot("请求过于频繁，请稍等几分钟后再重试"),
         ])
         ticks = iter([0.0, 0.0, 6.0])
         with tempfile.TemporaryDirectory() as td:
@@ -81,6 +83,39 @@ class RateLimitRecoveryV4Tests(unittest.TestCase):
         self.assertEqual("BLOCKED", result["status"])
         self.assertEqual("RATE_LIMIT_RECOVERY_TIMEOUT", result["reason"])
         self.assertEqual(1, len([args for _, args, _ in cli.calls if args[:1] == ["click"]]))
+        self.assertEqual(1, len([args for _, args, _ in cli.calls if args[:1] == ["reload"]]))
+
+    def test_wait_window_then_refreshes_once_before_final_read_only_check(self):
+        cli = FakeCli([
+            snapshot(
+                "请求过于频繁，请稍等几分钟后再重试",
+                {"e42": {"name": "确定", "role": "button"}},
+            ),
+            {"success": True},
+            snapshot("请求过于频繁，请稍等几分钟后再重试"),
+            {"success": True},
+            snapshot("ChatGPT Plus\nReady"),
+        ])
+        ticks = iter([0.0, 6.0])
+        with tempfile.TemporaryDirectory() as td:
+            driver = ChromeUseActorDriverV3(
+                cli,
+                pathlib.Path(td) / "state.json",
+                clock=lambda: next(ticks),
+                sleeper=lambda _: asyncio.sleep(0),
+            )
+            result = asyncio.run(
+                driver.recover_rate_limit_dialog(
+                    "worker-session",
+                    max_wait_seconds=5,
+                    poll_seconds=5,
+                )
+            )
+        self.assertEqual("RECOVERED", result["status"])
+        self.assertEqual(
+            [["snapshot", "-i"], ["click", "@e42"], ["snapshot", "-i"], ["reload"], ["snapshot", "-i"]],
+            [args for _, args, _ in cli.calls],
+        )
 
 
 if __name__ == "__main__":
