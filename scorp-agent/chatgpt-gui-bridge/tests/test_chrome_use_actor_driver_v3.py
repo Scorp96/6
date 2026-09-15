@@ -256,6 +256,40 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual(['Stop generating'], raised.exception.diagnostics['button_names'])
             self.assertEqual(64, len(raised.exception.diagnostics['snapshot_sha256']))
 
+    def test_key_event_repair_uses_editor_ref_from_fresh_failed_snapshot(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [
+                {
+                    'data': {
+                        'refs': {
+                            'e12': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e12]',
+                    }
+                },
+                {'success': True},
+                {
+                    'data': {
+                        'refs': {
+                            'e13': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                            'e20': {'name': 'Send', 'role': 'button'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e13]\n- button "Send" [ref=e20]',
+                    }
+                },
+            ]
+            driver = self._driver(td, cli)
+            self.assertEqual(
+                '@e20',
+                asyncio.run(driver._send_ref_after_input_repair('session-ref-remint', '@e11', 'hello')),
+            )
+            repair_calls = [
+                args for _, args, _ in cli.calls
+                if args and args[0] == 'type' and '--key-events' in args
+            ]
+            self.assertEqual([['type', '@e12', 'hello', '--key-events', '--clear']], repair_calls)
+
     def test_send_control_accepts_accessibility_aliases_and_shortcut_suffix(self):
         from chrome_use_actor_driver_v3 import _send_ref_from_snapshot
 

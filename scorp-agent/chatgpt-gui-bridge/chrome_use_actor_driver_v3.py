@@ -44,6 +44,7 @@ class SendControlResolutionError(ValueError):
 
     def __init__(self, reason: str, payload):
         self.reason = reason
+        self.payload = payload
         rendered = _render_payload(payload)
         try:
             refs = _refs_from_snapshot(payload)
@@ -675,10 +676,21 @@ class ChromeUseActorDriverV3:
                 first_error.add_context(key_event_repair="SKIPPED_ACTIVE_GENERATION")
                 raise
             try:
+                # Chrome Use remints accessibility refs on every snapshot. The
+                # editor ref captured before fill is therefore not safe to
+                # reuse after this failed post-fill snapshot.
+                repair_editor_ref = _editor_ref_from_snapshot(first_error.payload)
+            except ValueError as exc:
+                first_error.add_context(
+                    key_event_repair="FAILED_FRESH_EDITOR_REF",
+                    key_event_error=str(exc),
+                )
+                raise first_error from exc
+            try:
                 await self.cli.run_json(
                     session,
                     "type",
-                    editor_ref,
+                    repair_editor_ref,
                     prompt,
                     "--key-events",
                     "--clear",
