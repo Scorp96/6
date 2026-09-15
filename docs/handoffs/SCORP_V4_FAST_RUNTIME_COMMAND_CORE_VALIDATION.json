@@ -209,7 +209,7 @@
     "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
-  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_C4DEA24.json",
+  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json",
   "rate_limit_recovery_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json",
   "live_canary_success_evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json",
   "runtime_pipe_oversized_frame_evidence": "docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json",
@@ -242,5 +242,9 @@
     "git_diff_check": "PASS",
     "candidate_validation_script": "PASS"
   },
-  "real_code_workload_current_candidate_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json"
+  "real_code_workload_current_candidate_evidence": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
+  "phase0_audit": {
+    "path": "docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json",
+    "sha256": "efdcf7e72f3ea991ac172d4c1c01cf8eb757d238154a3514de9f9cfb1eb11e80"
+  }
 }

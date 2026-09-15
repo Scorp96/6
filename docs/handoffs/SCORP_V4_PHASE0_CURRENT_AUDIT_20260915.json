@@ -1,0 +1,72 @@
+{
+  "format": "scorp-v4-phase0-current-audit/1",
+  "observed_at_utc": "2026-09-15T12:14:57.955296Z",
+  "repository": "Scorp96/6",
+  "remote_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
+  "current_worktree": {
+    "path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
+    "branch": "feature/v4-fast-runtime-command-core",
+    "head": "ccb34aa5ed094aed81c887a0138b9d9b2e238389",
+    "git_status": "CLEAN"
+  },
+  "production_checkout": {
+    "path": "C:\\ScorpAgent\\_publish_git6",
+    "head": "bd67ae78c874d2a5f897101097db0578f01a5c00",
+    "branch": "main",
+    "status": "DIRTY_PREEXISTING_OBSERVED",
+    "observed_modifications": [
+      "GPT_START_HERE.md",
+      "docs/handoffs/SCORP_V4_DAEMON_HANDOFF.md",
+      "docs/handoffs/SCORP_V4_GIT6_HANDOFF.md",
+      "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json",
+      "docs/handoffs/SCORP_V4_MASTER_A_DYNAMIC_WORKERS.yaml",
+      "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
+      "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md",
+      "docs/handoffs/SCORP_V4_WEB_GPT_PACKET.json"
+    ],
+    "action": "NOT_MODIFIED_OR_CLEANED_BY_THIS_TURN"
+  },
+  "candidate": {
+    "code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+    "docs_head": "ccb34aa5ed094aed81c887a0138b9d9b2e238389",
+    "worktree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core"
+  },
+  "runtime_paths": {
+    "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime",
+    "chrome_use": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe",
+    "production_state": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
+    "current_canary_state": "C:\\ScorpAgent\\v4-live-current-5bf7953\\state.sqlite3",
+    "real_code_state": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\runtime.sqlite3"
+  },
+  "windows_supervision": {
+    "scheduled_tasks": {
+      "ScorpChatGptGuiBridge": "Running",
+      "ScorpComputerAgent": "Running",
+      "ScorpFullAutoOrchestrator": "Ready",
+      "ScorpV4SelfUpgrade5561f44": "Ready",
+      "ScorpChatGptGuiBridgeWatchdog": "Disabled"
+    },
+    "production_task_mutation": "NOT_PERFORMED"
+  },
+  "real_code_current_candidate": {
+    "evidence": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
+    "result": "BLOCKED",
+    "T1": "BLOCKED",
+    "T2": "ACCEPTED_EXIT_0",
+    "T3": "QUEUED_NOT_RUN",
+    "browser_resend_count": 0,
+    "terminal_worker_cleanup": "T1/T2 RETIRED STOPPED"
+  },
+  "classification": {
+    "TEST_VERIFIED": "offline candidate tests and protocol checks pass",
+    "LIVE_VERIFIED": "scoped fixed-marker two-worker canary; scoped real rate-limit recovery; T2 real-code execution",
+    "ACCEPTED": false
+  },
+  "open_findings": [
+    "T1 real Worker must produce an admissible COMPLETE result before its bounded validate execution may run",
+    "T3 depends on T1 and remains queued",
+    "full Master replacement, unattended soak, production cutover, and complete code workload remain unverified",
+    "existing production checkout has dirty unpublished state and must not be overwritten"
+  ],
+  "production_state_touched": false
+}
