@@ -10,13 +10,13 @@
   "candidate_commit": "12fc17b491affd5d7b1989e1d97a21e09fefeb83",
   "current_live_gate": {
     "candidate_code_commit": "12fc17b491affd5d7b1989e1d97a21e09fefeb83",
-    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json",
+    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_12FC17B.json",
     "rate_limit_recovery_preflight": {
       "boundary": "真实页面没有限制弹窗，因此只验证了不点击分支；确认按钮、等待窗口和刷新逻辑已通过离线测试，但真实弹窗分支尚未获得 LIVE_VERIFIED。",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
       "result": "NOT_RATE_LIMITED"
     },
-    "reason": "当前候选 c205 单 Worker canary 在真实 Chrome Use 中记录了 conversation URL，但只读核对显示旧诊断回复且没有 c205 token；按 fail-closed 规则不重试。",
+    "reason": "新鲜 Windows Chrome Use 只读预检显示 active tab 与 inspected ChatGPT target 的状态互相矛盾，未取得当前候选唯一绑定；按 fail-closed 规则不发送。",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
     "status": "BLOCKED_EXTERNAL_PRECONDITION"
@@ -27,7 +27,7 @@
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T02:26:22.332615Z",
+  "generated_at": "2026-09-15T02:35:32.648311Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
     "allowed_root": "C:\\ScorpAgent\\v4-core-lab",
@@ -66,7 +66,7 @@
     },
     "database_path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T02:26:22.332234Z",
+    "generated_at": "2026-09-15T02:35:32.647773Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
