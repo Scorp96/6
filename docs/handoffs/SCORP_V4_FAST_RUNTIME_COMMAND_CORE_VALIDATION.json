@@ -36,9 +36,20 @@
       "prior_ambiguous_canary_evidence": "docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json",
       "real_code_workload": {
         "result": "BLOCKED",
-        "reason": "T1/T2 的首次真实 Worker 提交进入 BLOCKED_AMBIGUOUS；T2 只读核对证实已收到并返回结构化结果，但执行适配器未运行；T1 会话不可控，未盲目重发。",
-        "evidence_path": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\evidence.json",
-        "current_candidate_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_OBSERVATION_5BF7953.json"
+        "reason": "当前候选真实代码闭环已完成浏览器歧义核对并处理已捕获回复：T2 获得 COMPLETE，受限只读聚合通过并有本地执行回执；T1 获得 BLOCKED，按规则未执行其 execution_request；T3 因 T1 未接受保持 QUEUED。",
+        "evidence_path": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
+        "evidence_sha256": "25daec0e69d91602d93cdcbaa8a19cb336083c3c76e913d6501c05c5ad4ec325",
+        "tasks": {
+          "T1": "BLOCKED",
+          "T2": "ACCEPTED",
+          "T3": "QUEUED"
+        },
+        "local_execution": {
+          "T2": "PASS_EXIT_0",
+          "T1": "NOT_RUN_BY_FAIL_CLOSED_RULE",
+          "T3": "NOT_RUN"
+        },
+        "production_state_touched": false
       },
       "historical_live_canary": {
         "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
@@ -186,8 +197,8 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "full product completion gate with release identity and production candidate remains unaccepted",
     "真实请求限制全路径（两个 Worker 对称恢复、五分钟等待超时后的单次刷新）尚未作为完整验收通过；当前仅一个真实会话恢复到 composer，另一个会话不可控",
-    "current candidate real-code workload was blocked before local execution; no T1/T2 execution receipt or T3 integration",
-    "second request-limit requirement was not specified"
+    "second request-limit requirement was not specified",
+    "current candidate real-code workload is partially live-verified: T2 execution passed, T1 Worker result is BLOCKED, and T3 was not run"
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
@@ -212,7 +223,7 @@
     "evidence": "docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json"
   },
   "production_state_recovery": "docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json",
-  "real_code_workload_evidence": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\evidence.json",
+  "real_code_workload_evidence": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
   "test_verified": {
     "v4_core_tests": {
       "result": "PASS",

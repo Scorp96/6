@@ -1,0 +1,123 @@
+{
+  "format": "scorp-v4-real-code-live-worker-current/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+  "candidate_manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e",
+  "observed_at_utc": "2026-09-15T12:10:14.013241Z",
+  "project_id": "scorp-v4-real-code-5bf7953-r1",
+  "runtime_database": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\runtime.sqlite3",
+  "browser_io": "CURRENT_CANDIDATE_REAL_BROWSER_RECONCILED",
+  "tasks": [
+    {
+      "task_id": "T1",
+      "task_state": "BLOCKED",
+      "result_sha256": "02352543b12dee9399457ead329cfd28da98e5c4f5199e6456850f3ad04269ce",
+      "assignment": {
+        "assignment_id": "assignment-fc1f310afbe04ee09376a749915cea43",
+        "state": "RETIRED",
+        "slot_id": "worker-slot-1",
+        "worker_id": "worker-5dc2ca76de434f3a86c3977819ecbb78"
+      },
+      "browser_intent": {
+        "state": "RESPONSE_CAPTURED",
+        "conversation_url": "https://chatgpt.com/c/6aa931fa-8128-83e8-a719-29935ea708f4",
+        "response_sha256": "7ea78f8dd6deaf68881c900f34763e0290bc0f78958ea492df0d458cb0291444",
+        "ambiguity_reason": null
+      },
+      "candidate_result": {
+        "result_id": "result-assignment-fc1f310afbe04ee09376a749915cea43",
+        "verification_state": "VERIFIED",
+        "status": "BLOCKED",
+        "result_sha256": "02352543b12dee9399457ead329cfd28da98e5c4f5199e6456850f3ad04269ce",
+        "execution_receipt": null
+      }
+    },
+    {
+      "task_id": "T2",
+      "task_state": "ACCEPTED",
+      "result_sha256": "e4f693f6fc9f6e6fb81df6f9339ccd8849e6826f881042b34fcf014201e065b9",
+      "assignment": {
+        "assignment_id": "assignment-52fc73e5b3b440068d29f733a8383b87",
+        "state": "RETIRED",
+        "slot_id": "worker-slot-2",
+        "worker_id": "worker-26011e7ae825484b97711ec927ed2d98"
+      },
+      "browser_intent": {
+        "state": "RESPONSE_CAPTURED",
+        "conversation_url": "https://chatgpt.com/c/6aa931fa-a04c-83ee-a5f1-309f02904a0c",
+        "response_sha256": "6aa5dd3f7a28953ff1a3bb9b4e822612093b9db19e00f2e1e23300fc87b8bbbf",
+        "ambiguity_reason": null
+      },
+      "candidate_result": {
+        "result_id": "result-assignment-52fc73e5b3b440068d29f733a8383b87",
+        "verification_state": "VERIFIED",
+        "status": "COMPLETE",
+        "result_sha256": "e4f693f6fc9f6e6fb81df6f9339ccd8849e6826f881042b34fcf014201e065b9",
+        "execution_receipt": {
+          "artifact_sha256": {
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\repo\\orders.csv": "c9b2fee12b3a135f8469620833fcb2040eb0145a8b0790fb4945cd92f2327207"
+          },
+          "assignment_id": "assignment-52fc73e5b3b440068d29f733a8383b87",
+          "command": [
+            "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+            "-B",
+            "-m",
+            "master_a_dynamic_v4.csv_workload.cli",
+            "C:/ScorpAgent/v4-core-lab/real-code-5bf7953-r1/repo/orders.csv",
+            "--operation",
+            "aggregate"
+          ],
+          "exit_code": 0,
+          "finished_at": "2026-09-15T12:07:52.272354Z",
+          "started_at": "2026-09-15T12:07:51.889128Z",
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "{\"categories\":{\"alpha\":\"12.30\",\"beta\":\"10.00\"}}\n",
+          "stdout_sha256": "b7bae4d79b00dc07db12d1e541fa32993a56bb9b09961220f0bb5340d96ce086",
+          "task_id": "T2",
+          "working_directory": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\repo"
+        }
+      },
+      "execution_intent": {
+        "state": "RESPONSE_CAPTURED",
+        "receipt": {
+          "artifact_sha256": {
+            "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\repo\\orders.csv": "c9b2fee12b3a135f8469620833fcb2040eb0145a8b0790fb4945cd92f2327207"
+          },
+          "assignment_id": "assignment-52fc73e5b3b440068d29f733a8383b87",
+          "command": [
+            "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+            "-B",
+            "-m",
+            "master_a_dynamic_v4.csv_workload.cli",
+            "C:/ScorpAgent/v4-core-lab/real-code-5bf7953-r1/repo/orders.csv",
+            "--operation",
+            "aggregate"
+          ],
+          "exit_code": 0,
+          "finished_at": "2026-09-15T12:07:52.272354Z",
+          "started_at": "2026-09-15T12:07:51.889128Z",
+          "stderr": "",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout": "{\"categories\":{\"alpha\":\"12.30\",\"beta\":\"10.00\"}}\n",
+          "stdout_sha256": "b7bae4d79b00dc07db12d1e541fa32993a56bb9b09961220f0bb5340d96ce086",
+          "task_id": "T2",
+          "working_directory": "C:\\ScorpAgent\\v4-core-lab\\real-code-5bf7953-r1\\repo"
+        }
+      }
+    },
+    {
+      "task_id": "T3",
+      "task_state": "QUEUED",
+      "result_sha256": null
+    }
+  ],
+  "result": "BLOCKED",
+  "reason": "T1 Worker returned BLOCKED and therefore its execution_request was not executed; T2 was accepted and its bounded read-only aggregate operation executed with exit_code 0. T3 remained queued because T1 was not accepted.",
+  "no_blind_retry": true,
+  "production_state_touched": false,
+  "limitations": [
+    "This fixture proves partial real-code closure only.",
+    "No code was changed in the fixture repository; T3 write/report path did not run."
+  ]
+}
