@@ -38,6 +38,12 @@
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
       "sha256": "393B4E228E455A9C8923D951E2BEE4AC4B90A23F7A389F3E12D67A27E11BCED2"
+    },
+    "local_transport_live_verified": {
+      "result": "PASS",
+      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_36C9C22.json",
+      "scope": "Windows authenticated Named Pipe and stdio connector process loop",
+      "tests": 10
     }
   },
   "implemented": [

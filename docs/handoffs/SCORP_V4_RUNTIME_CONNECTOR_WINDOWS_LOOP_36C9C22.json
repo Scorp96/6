@@ -1,0 +1,29 @@
+{
+  "evidence_level": "LIVE_VERIFIED",
+  "status": "PASS",
+  "candidate_code_commit": "36c9c22d32cded0062d6ac8c5cd87b51a2faa819",
+  "repository": "Scorp96/6",
+  "branch": "feature/v4-fast-runtime-command-core",
+  "environment": {
+    "os": "Windows",
+    "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "transport": "authenticated Windows Named Pipe",
+    "production_state_changed": false
+  },
+  "command": "python -m unittest -v master_a_dynamic_v4.tests.test_runtime_pipe_client master_a_dynamic_v4.tests.test_runtime_pipe master_a_dynamic_v4.tests.test_runtime_connector_cli",
+  "observed": {
+    "tests_run": 10,
+    "tests_passed": 10,
+    "exit_code": 0,
+    "elapsed_seconds": 2.2,
+    "coverage": [
+      "one bounded client request/response",
+      "project and message-size fencing",
+      "authenticated real Named Pipe round trip",
+      "stdio connector actor binding",
+      "stdio connector process round trip",
+      "malformed request rejection without transport"
+    ]
+  },
+  "boundary": "This proves the local connector transport loop only. It does not prove that ordinary web ChatGPT has registered or can invoke this connector, nor does it prove browser submission or production daemon cutover."
+}

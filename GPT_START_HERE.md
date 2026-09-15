@@ -196,6 +196,12 @@ This command core is a local feature-branch implementation and a testable
 handoff surface. Its focused tests and offline regression do not prove live
 ChatGPT browser acceptance or production cutover.
 
+The current candidate also has a fresh Windows process-loop receipt for the
+restricted stdio connector and authenticated Named Pipe transport at
+`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_36C9C22.json`. This proves
+only the local transport loop; it does not register the connector with ordinary
+web ChatGPT or grant it local permissions automatically.
+
 The candidate also contains an optional Windows Named Pipe adapter at
 `scorp-agent/master_a_dynamic_v4/runtime_pipe.py`. It requires a local
 authenticated `multiprocessing.connection` client, uses a fixed project-scoped
