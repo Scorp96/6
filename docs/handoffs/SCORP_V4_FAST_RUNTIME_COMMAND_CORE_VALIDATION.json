@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "7c06d6516c08c77d1049d07d27504072062ae0f4",
+  "implementation_commit": "5e60a3d90239e1184224c10d1377cd120d44042e",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -114,11 +114,11 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_7C06D65.json",
-    "sha256": "e656e96457545951397323d7c4910f1cb2b0df96976d7a73fc37cf13065b7098",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5E60A3D.json",
+    "sha256": "7f5f93824e4d2a852846f9771ee7be4606a2d0e3f84cff9cab4707d2eb8d35b2",
     "file_count": 370
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
   "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_LOCAL_AUDIT_424FFE3.json",
-  "rate_limit_recovery_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_7C06D65.json"
+  "rate_limit_recovery_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json"
 }

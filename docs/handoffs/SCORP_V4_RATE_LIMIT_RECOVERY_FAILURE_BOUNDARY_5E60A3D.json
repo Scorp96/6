@@ -1,0 +1,35 @@
+{
+  "format": "scorp-v4-rate-limit-recovery-failure-boundary/1",
+  "candidate_commit": "5e60a3d90239e1184224c10d1377cd120d44042e",
+  "status": "TEST_VERIFIED",
+  "scope": "新页面打开后以及 prompt 填入后、发送前出现请求限制时，确认/等待/单次刷新恢复；恢复失败保持 fail-closed。",
+  "parent_evidence": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_7C06D65.json",
+  "focused_tests": {
+    "command": "PYTHONPATH=scorp-agent;scorp-agent/chatgpt-gui-bridge; python -B -m unittest scorp-agent/chatgpt-gui-bridge/tests/test_chrome_use_actor_driver_v3.py scorp-agent/chatgpt-gui-bridge/tests/test_rate_limit_recovery_v4.py scorp-agent/chatgpt-gui-bridge/tests/test_actor_throttle_recovery_v3.py scorp-agent/chatgpt-gui-bridge/tests/test_v4_auth.py scorp-agent/chatgpt-gui-bridge/tests/test_v4_master_supervisor_runtime.py scorp-agent/chatgpt-gui-bridge/tests/test_v4_live_two_worker_canary.py",
+    "result": "53/53 PASS"
+  },
+  "runtime_core_regression": {
+    "result": "191/191 PASS"
+  },
+  "gui_bridge_regression": {
+    "result": "498/498 PASS"
+  },
+  "transport_regression": {
+    "result": "11/11 PASS",
+    "evidence": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json"
+  },
+  "new_behavior": [
+    "worker page rate-limit dialog is acknowledged before prompt fill",
+    "post-fill pre-send rate-limit recovery refills the same prompt with a fresh textbox ref and skips key-event retry",
+    "live canary timeout default is at least 360 seconds to cover the five-minute recovery window"
+  ],
+  "live_verification": {
+    "result": "UNVERIFIED",
+    "reason": "真实请求限制弹窗确认分支和当前候选真实发送仍未获得 LIVE_VERIFIED；浏览器只读阻塞未被重放。"
+  },
+  "production_changed": false,
+  "evidence_id": "SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D",
+  "candidate_code_commit": "5e60a3d90239e1184224c10d1377cd120d44042e",
+  "observed_at": "2026-09-15T05:58:13.284752Z",
+  "artifact_sha256": "51ae3ecc7fde98bfcdf3bae837b588e92045b7dc2db4d537a05e3175c044db23"
+}
