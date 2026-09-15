@@ -27,7 +27,7 @@
     "action": "NOT_MODIFIED_OR_CLEANED_BY_THIS_TURN"
   },
   "candidate": {
-    "code_commit": "82f0f50597ebc194f21cb383e46b52ba9a3f3b10",
+    "code_commit": "998d4eb2fc3480fffb81be65b730585b1612d00e",
     "docs_head": "573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core"
   },

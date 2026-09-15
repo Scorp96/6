@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 82f0f50597ebc194f21cb383e46b52ba9a3f3b10 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_82F0F50.json `
-  --manifest-sha256 657093e3647aa926d02d7af3231cce1f8f1f6ba7c673fb53470b899e21eac07f
+  --candidate-commit 998d4eb2fc3480fffb81be65b730585b1612d00e `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_998D4EB.json `
+  --manifest-sha256 78e56280bb9a9ea2ee49ca63316c8843a5bec867b1636a12148b3f6d6edfc932
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -279,9 +279,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 82f0f50597ebc194f21cb383e46b52ba9a3f3b10 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_82F0F50.json `
-  --manifest-sha256 657093e3647aa926d02d7af3231cce1f8f1f6ba7c673fb53470b899e21eac07f `
+  --candidate-commit 998d4eb2fc3480fffb81be65b730585b1612d00e `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_998D4EB.json `
+  --manifest-sha256 78e56280bb9a9ea2ee49ca63316c8843a5bec867b1636a12148b3f6d6edfc932 `
   --send
 ```
 
@@ -630,7 +630,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `82f0f50597ebc194f21cb383e46b52ba9a3f3b10` (`feat: require explicit blocked task replanning`) on `feature/v4-fast-runtime-command-core`; it adds an explicit, fenced replan path for a BLOCKED Worker result, requiring a new objective hash, current state version, current Master epoch, and a durable `TASK_REPLANNED` event before a new assignment can be created. The predecessor `5bf7953` browser and real-code evidence is historical and is not promoted to this candidate. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.
+- Current code candidate: `998d4eb2fc3480fffb81be65b730585b1612d00e` (`feat: require explicit blocked task replanning`) on `feature/v4-fast-runtime-command-core`; it adds an explicit, fenced replan path for a BLOCKED Worker result, requiring a new objective hash, current state version, current Master epoch, and a durable `TASK_REPLANNED` event before a new assignment can be created. The predecessor `5bf7953` browser and real-code evidence is historical and is not promoted to this candidate. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
@@ -640,9 +640,9 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
 
 The current candidate is `TEST_VERIFIED` for the offline core and is `BLOCKED` for current-candidate live browser evidence. The predecessor `5bf7953` real-code workload was partially live-verified: T2 executed through the local adapter with exit 0, T1 returned BLOCKED and was not executed, and T3 remained queued. That evidence is retained as historical context and cannot be promoted automatically. Master replacement, unattended stability, and production cutover remain unverified. This is not `ACCEPTED`: release identity, current-candidate browser evidence, restart recovery, symmetric rate-limit recovery, scheduled-task cutover, and production cutover remain separate gates.
-The predecessor's two-Worker browser receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`; it belongs to `5bf7953`, not the current `82f0f50` candidate. The current live blocker is recorded in `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_82F0F50_20260915.json`. Do not claim a current-candidate browser or real-code pass.
+The predecessor's two-Worker browser receipt is `docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`; it belongs to `5bf7953`, not the current `998d4eb` candidate. The current live blocker is recorded in `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json`. Do not claim a current-candidate browser or real-code pass.
 The latest live check found the same “请求过于频繁” dialog in an existing authenticated tab. The single acknowledgement click timed out and the dialog remained; the system did not refresh or resend. Evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json`. Keep this state `BLOCKED_EXTERNAL_PRECONDITION` until the same physical actor can be reconciled.
-The subsequent read-only recheck of that same tab still showed the dialog and no composer; evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_82F0F50_20260915.json`. Do not create a new session or resend while this physical actor remains unresolved.
+The subsequent read-only recheck of that same tab still showed the dialog and no composer; evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json`. Do not create a new session or resend while this physical actor remains unresolved.
 
 An ordinary web GPT cannot infer or invoke local Windows, SQLite, Python, or
 Chrome Use control merely by reading GitHub. It must either work through an

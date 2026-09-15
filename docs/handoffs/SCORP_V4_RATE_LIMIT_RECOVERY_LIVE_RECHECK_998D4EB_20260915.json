@@ -1,0 +1,22 @@
+{
+  "format": "scorp-v4-rate-limit-live-recheck/1",
+  "candidate_commit": "998d4eb2fc3480fffb81be65b730585b1612d00e",
+  "observed_at": "2026-09-15T13:31:21.254250+00:00",
+  "browser": "Chrome",
+  "browser_id": "2",
+  "tab_id": "2033137551",
+  "tab_group": "scorp-v4-master-auth-ef84c20b4028",
+  "url": "https://chatgpt.com/",
+  "action": "READ_ONLY_AX_RECHECK",
+  "ack_click_attempted": false,
+  "refresh_attempted": false,
+  "send_attempted": false,
+  "new_session_created": false,
+  "state": "BLOCKED_EXTERNAL_PRECONDITION",
+  "dialog_visible": true,
+  "composer_visible": false,
+  "blocking_text": "请求过于频繁。你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。请稍等几分钟后再重试。",
+  "raw_ax_state": "0 AXWebArea ChatGPT, URL: chatgpt.com/\n\t1 container\n\t\t2 container\n\t\t\t3 text 1 条建议可用。第一条建议：Let me know when a new local-language demand term deserves promotion into my global monitoring pool\n\t\t4 container 请求过于频繁, ID: radix-_r_48_\n\t\t\t5 heading 请求过于频繁, Value: 2, ID: radix-_r_49_\n\t\t\t\t6 text 请求过于频繁\n\t\t\t7 text 你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。\n\t\t\t8 text 请稍等几分钟后再重试。\n\t\t\t9 button 明白了\n\nThe focused UI element is 9 button 明白了",
+  "raw_ax_state_sha256": "a1a77107b3e1cbb589a90572295c1b46fd70da8d04ec1a0c018892b6459b1931",
+  "interpretation": "No browser mutation was attempted. The same physical tab remains rate limited. The candidate recovery path acknowledges one recognized button, waits up to 300 seconds using read-only checks, accepts a natural page recovery, and refreshes at most once only after the window expires. No new session or resend is allowed while blocked."
+}

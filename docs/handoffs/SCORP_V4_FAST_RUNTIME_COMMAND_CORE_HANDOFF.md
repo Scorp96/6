@@ -1,6 +1,6 @@
 # SCORP V4 Fast Local Runtime Command Core
 
-这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `82f0f50597ebc194f21cb383e46b52ba9a3f3b10`，现场审计快照 HEAD 为 `573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32`。前置候选 `5bf7953` 的浏览器/真实代码证据仅作历史取证，不能提升到当前候选。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
+这是 `Scorp96/6` 的隔离实施分支 `feature/v4-fast-runtime-command-core`。当前代码候选为 `998d4eb2fc3480fffb81be65b730585b1612d00e`，现场审计快照 HEAD 为 `573412e4a569f3aa3f31dfbdbb57b7ce60ed0f32`。前置候选 `5bf7953` 的浏览器/真实代码证据仅作历史取证，不能提升到当前候选。实现目标是给本地 GPT/浏览器桥接一个受限的 JSON 命令边界；它不会把普通 GPT 的自然语言变成任意 PowerShell、Python、Git 或浏览器操作。
 
 ## 运行
 
@@ -67,17 +67,17 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 本轮现场状态的最新只读快照见
 `SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`；生产 SQLite 误迁移及逻辑恢复记录见
 `SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`。该快照记录前一文档状态；当前隔离候选为
-`82f0f50597ebc194f21cb383e46b52ba9a3f3b10`，其前置浏览器证据绑定在 `5bf7953`，不能提升；旧的
+`998d4eb2fc3480fffb81be65b730585b1612d00e`，其前置浏览器证据绑定在 `5bf7953`，不能提升；旧的
 `SCORP_V4_PHASE0_LOCAL_AUDIT_424FFE3.json` 仅作为历史证据，不代表当前现场。
 
-- `TEST_VERIFIED`: 当前候选 V4 核心 207 个测试通过，GUI 桥接 514 个测试通过（含请求限制确认/等待/超时/单次刷新/新页面恢复/填入后恢复/确认与读取失败 fail-closed、BLOCKED Worker 显式 replan fencing、Named Pipe 超长帧 fail-closed、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `TEST_VERIFIED`: 当前候选 V4 核心 207 个测试通过，GUI 桥接 515 个测试通过（含请求限制确认/等待/超时/单次刷新/新页面恢复/填入后恢复/确认与读取失败 fail-closed、BLOCKED Worker 显式 replan fencing、Named Pipe 超长帧 fail-closed、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
 - Master 物理重绑定的认证探针现在接入同一条请求限制恢复路径：先只读确认限流，再只点击一次已知“确定”控件，最多等待 300 秒，必要时最多刷新一次；恢复失败仍保持 `BLOCKED`，不会进入发送。Master 心跳现在先做只读物理健康检查；限流或认证阻塞不会创建新 epoch，浏览器失联才进入受控重绑定。Master epoch 变化会同步 fence 旧 Worker lease 和迟到结果。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
 - `LIVE_VERIFIED`（局部 transport）：当前 Windows 上真实跑通了 11 项 stdio/Named Pipe 进程回环测试，证据见 `SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_424FFE3.json`；这不等于网页 GPT 已注册该 connector。
-- 前置候选 5bf79536c03de8ae25a507723a34f4e162fe8bfa 曾在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`。该结果只证明前置候选的固定标记浏览器提交/响应边界，不能作为当前 `82f0f50` 的 live 证据。前置候选真实代码实验中 T2 的受限聚合执行通过，T1 Worker 返回 BLOCKED、T3 未运行；证据见 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`，同样不能提升到当前候选。
+- 前置候选 5bf79536c03de8ae25a507723a34f4e162fe8bfa 曾在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0；证据见 `SCORP_V4_LIVE_CANARY_CURRENT_5BF7953.json`。该结果只证明前置候选的固定标记浏览器提交/响应边界，不能作为当前 `998d4eb` 的 live 证据。前置候选真实代码实验中 T2 的受限聚合执行通过，T1 Worker 返回 BLOCKED、T3 未运行；证据见 `SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`，同样不能提升到当前候选。
 - 本次当前候选 canary 的诊断认证会话已正常停止；此前旧 canary 的 `CLEANUP_BLOCKED` 记录仍保留为历史证据，不能作为当前候选状态。
-- 当前候选实机观察仍被请求限制阻塞：同一物理 tab 的只读复核仍显示限流弹窗且 composer 未就绪，证据见 `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_82F0F50_20260915.json`。五分钟只读等待、页面自行恢复、必要时单次刷新、composer 就绪和失败关闭由离线测试覆盖；前置候选的限流观察属于历史证据，不能提升到当前候选。
+- 当前候选实机观察仍被请求限制阻塞：同一物理 tab 的只读复核仍显示限流弹窗且 composer 未就绪，证据见 `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json`。五分钟只读等待、页面自行恢复、必要时单次刷新、composer 就绪和失败关闭由离线测试覆盖；前置候选的限流观察属于历史证据，不能提升到当前候选。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 进度/心跳和旧 SQLite 迁移的专门证据见 `SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json`。
