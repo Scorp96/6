@@ -33,7 +33,7 @@ Runtime daemon 启动时可以省略固定的 `--daemon-epoch`，由 SQLite leas
 
 ## 当前证据边界
 
-- `TEST_VERIFIED`: V4 核心 161 个测试通过，GUI 桥接 475 个测试通过，Named Pipe Windows 回环和一次性 launcher 测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `TEST_VERIFIED`: V4 核心 163 个测试通过，GUI 桥接 475 个测试通过，Named Pipe Windows 回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
 - `LIVE_VERIFIED`: 当前只读 Chrome 预检仍显示 ChatGPT “请求过于频繁”；本分支未重新点击真实 ChatGPT 提交，不能盲重发。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 

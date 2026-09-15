@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`b9ab184`
+`4c71accf8571f9545ddae7ba64f1d911c8798d0f`
 
 ## REMOTE_MAIN_HEAD
 
@@ -69,7 +69,7 @@
 
 Activation Arbiter 是无副作用、确定性的单决策函数。当前顺序已覆盖：terminal、emergency stop、operator fencing、auth/host blocker、ambiguous reconciliation、stale result fencing、Master resume、pending result wake、lost Worker resume、confirmed stall recovery、ready assignment、idle。
 
-`IDLE` 不更新 `last_progress_at`。`project.supersede` 现在持久化 `SUPERSEDED`，新 objective 必须显式 `project.resume` 才能进入 `RUNNING`。`project.emergency_stop` 持久化 `EMERGENCY_STOPPED` 并 fence 当前工作。
+`IDLE` 不更新 `last_progress_at`。`project.supersede` 现在持久化 `SUPERSEDED`，新 objective 必须显式 `project.resume` 才能进入 `RUNNING`。`project.emergency_stop` 持久化 `EMERGENCY_STOPPED` 并 fence 当前工作。`project.resume` 后调度器同时接受 `ACTIVE` 与 `RUNNING` 生命周期状态，既有活动 assignment 可以重新装载，新的 READY 任务可以重新派发。
 
 ## CURRENT_MASTER_MODEL
 
@@ -157,6 +157,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - P0 operator fence admission：`PAUSED`、`SUPERSEDED`、`CANCELLED` 和 `EMERGENCY_STOPPED` 状态拒绝新的 task graph admission。
 - P0 missing authority：缺失 `operator_controls` 时，新的 graph/assignment admission fail-closed。
 - P0 snapshot authority：缺失 `operator_controls` 的 activation snapshot 返回 `UNKNOWN`，不再伪造 `RUNNING`。
+- P0 resume admission：修复了 resume 后 scheduler 误把 `RUNNING` 当成非活动状态，避免暂停恢复后永久不派发任务或丢失活动 assignment。
 - P0 auth/rate-limit human boundary：现场只读证据显示阻塞被识别，不能发送。
 - P0 current-candidate browser exactly-once：未达到 LIVE_VERIFIED。
 - P0 dedicated production daemon authority：未证明已安装。
