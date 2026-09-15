@@ -31,6 +31,20 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertIsNone(runtime.parse_structured_response("#### ChatGPT said:\nfinished", "intent-1"))
         self.assertIsNone(runtime.parse_structured_response("#### ChatGPT said:\n{} trailing", "intent-1"))
 
+    def test_parser_accepts_mojibake_assistant_marker_from_windows_bridge(self):
+        runtime = load_runtime()
+        value = {
+            "work_result_version": "1",
+            "project_id": "p1",
+            "assignment_id": "a1",
+            "task_id": "T1",
+        }
+        # The real Windows Chrome Use read path can decode the Chinese
+        # assistant marker as this mojibake string.  The response JSON itself
+        # is still intact and must be reconciled without resubmitting.
+        snapshot = "#### ChatGPT ˵��:\n" + json.dumps(value) + "\n"
+        self.assertEqual(value, runtime.parse_structured_response(snapshot, "intent-1"))
+
     def test_runtime_requires_explicit_send_gate_before_opening_browser(self):
         runtime = load_runtime()
         with tempfile.TemporaryDirectory() as td:

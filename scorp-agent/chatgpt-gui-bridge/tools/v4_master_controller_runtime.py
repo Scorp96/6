@@ -62,15 +62,37 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
         if len(lines) < 3 or lines[0].strip().lower() not in {"```", "```json"}:
             return None
         text = "\n".join(lines[1:-1]).strip()
-    if not text.startswith("{") or not text.endswith("}"):
+    value = None
+    if text.startswith("{") and text.endswith("}"):
+        try:
+            value = json.loads(text)
+        except (TypeError, ValueError):
+            value = None
+    if isinstance(value, Mapping) and str(value.get("work_result_version") or "") == "1":
+        return dict(value)
+
+    # The Windows Chrome Use read path can preserve the assistant response but
+    # decode the localized ``#### ChatGPT 说：`` marker as mojibake and append
+    # a provider footer after the JSON.  Reconciliation must still consume the
+    # already captured object; it must never resubmit merely because the
+    # display marker or trailing page text is not canonical.  Restrict the
+    # fallback to a JSON object appearing after an assistant marker and take
+    # the last such object so the user's assignment prompt cannot be treated
+    # as the Worker result.
+    marker_position = str(snapshot or "").rfind("#### ChatGPT")
+    if marker_position < 0:
         return None
-    try:
-        value = json.loads(text)
-    except (TypeError, ValueError):
-        return None
-    if not isinstance(value, Mapping) or str(value.get("work_result_version") or "") != "1":
-        return None
-    return dict(value)
+    tail = str(snapshot or "")[marker_position:]
+    decoder = json.JSONDecoder()
+    starts = list(re.finditer(r'\{\s*"work_result_version"\s*:', tail))
+    for match in reversed(starts):
+        try:
+            candidate, _ = decoder.raw_decode(tail[match.start() :])
+        except (TypeError, ValueError):
+            continue
+        if isinstance(candidate, Mapping) and str(candidate.get("work_result_version") or "") == "1":
+            return dict(candidate)
+    return None
 
 
 def _load_plan(path: pathlib.Path) -> dict[str, Any]:
