@@ -11,11 +11,22 @@ from multiprocessing.connection import Client
 from unittest.mock import patch
 
 from master_a_dynamic_v4.runtime_pipe import pipe_name
-from master_a_dynamic_v4.runtime_pipe_cli import authkey_from_env
+from master_a_dynamic_v4.runtime_pipe_cli import _parser, authkey_from_env
 from master_a_dynamic_v4.state_store import StateStore
 
 
 class RuntimePipeCliTests(unittest.TestCase):
+    def test_daemon_epoch_is_optional_for_restart_epoch_reacquisition(self):
+        args = _parser().parse_args(
+            [
+                "--database", "C:/runtime.sqlite",
+                "--project-id", "p1",
+                "--allowed-root", "C:/runtime",
+                "--once",
+            ]
+        )
+        self.assertIsNone(args.daemon_epoch)
+
     def test_authkey_from_env_requires_a_nontrivial_secret(self):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaisesRegex(ValueError, "PIPE_AUTHKEY_ENV_MISSING"):
@@ -33,7 +44,7 @@ class RuntimePipeCliTests(unittest.TestCase):
             store.create_contract(
                 "p1", root_contract={"objective": "pipe-cli"}, acceptance_contract={"required": []}
             )
-            lease = store.acquire_daemon_lease("p1", "pipe-cli-daemon")
+            store.acquire_daemon_lease("p1", "pipe-cli-daemon")
             store.close()
 
             authkey = "scorp-cli-test-authkey"
@@ -53,8 +64,6 @@ class RuntimePipeCliTests(unittest.TestCase):
                     "p1",
                     "--allowed-root",
                     str(root),
-                    "--daemon-epoch",
-                    str(lease["daemon_epoch"]),
                     "--authkey-env",
                     "SCORP_TEST_PIPE_AUTHKEY",
                     "--once",

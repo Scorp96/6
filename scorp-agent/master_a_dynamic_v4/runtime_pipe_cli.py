@@ -30,7 +30,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--database", "--database-path", dest="database", required=True)
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--allowed-root", action="append", required=True)
-    parser.add_argument("--daemon-epoch", required=True, type=int)
+    parser.add_argument(
+        "--daemon-epoch",
+        required=False,
+        type=int,
+        help="Optional expected epoch; omit to acquire the current SQLite lease epoch.",
+    )
     parser.add_argument("--actor", default="gpt-master")
     parser.add_argument("--authkey-env", default="SCORP_RUNTIME_PIPE_AUTHKEY")
     parser.add_argument("--once", action="store_true", help="serve exactly one authenticated connection")
@@ -40,7 +45,7 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
-    if args.daemon_epoch < 0:
+    if args.daemon_epoch is not None and args.daemon_epoch < 0:
         _parser().error("--daemon-epoch must be non-negative")
     if args.max_connections < 0:
         _parser().error("--max-connections must be non-negative")
