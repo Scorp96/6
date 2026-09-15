@@ -260,6 +260,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allowed-root", required=True, type=pathlib.Path)
     parser.add_argument("--project-id", default="scorp-v4-live-two-worker-canary")
     parser.add_argument("--evidence-path", required=True, type=pathlib.Path)
+    parser.add_argument(
+        "--timeout-seconds",
+        type=int,
+        default=360,
+        help="bounded submit timeout; includes the five-minute rate-limit recovery window",
+    )
     return parser
 
 
@@ -289,7 +295,7 @@ async def run_canary(args: argparse.Namespace) -> int:
         driver,
         auth_probe=auth_probe,
         response_parser=_parse_response(expected_by_intent),
-        timeout_seconds=75,
+        timeout_seconds=max(1, int(args.timeout_seconds)),
     )
     gateway = V4BridgeGateway(
         args.database_path,

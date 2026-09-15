@@ -238,6 +238,112 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual([], press_calls)
             self.assertFalse(any('#prompt-textarea' in args for _, args, _ in cli.calls))
 
+    def test_submit_recovers_worker_rate_limit_before_filling_prompt(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = NewTabFakeCli()
+            conversation = 'https://chatgpt.com/c/rate-limit-recovered'
+            cli.responses = [
+                {'data': {'value': 'https://chatgpt.com/'}},
+                {
+                    'data': {
+                        'refs': {'e42': {'name': '确定', 'role': 'button'}},
+                        'snapshot': '请求过于频繁，请稍等几分钟后再重试',
+                    }
+                },
+                {
+                    'data': {
+                        'refs': {'e42': {'name': '确定', 'role': 'button'}},
+                        'snapshot': '请求过于频繁，请稍等几分钟后再重试',
+                    }
+                },
+                {'success': True},
+                {'data': {'snapshot': 'ChatGPT Plus\nReady'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {'data': {'refs': {'e20': {'name': 'Send', 'role': 'button'}}}},
+                {'success': True},
+                {'data': {'value': conversation}},
+                {'success': True, 'data': {'broughtToFront': True}},
+                {'data': {'snapshot': 'submitted'}},
+            ]
+            driver = ChromeUseActorDriverV3(
+                cli,
+                pathlib.Path(td) / 'chrome-use-driver-v3.json',
+                sleeper=lambda _: asyncio.sleep(0),
+                clock=lambda: 0.0,
+            )
+            original_recovery = driver.recover_rate_limit_dialog
+            recovery_called = []
+
+            async def bounded_recovery(session, **kwargs):
+                recovery_called.append(session)
+                kwargs['max_wait_seconds'] = 0
+                return await original_recovery(session, **kwargs)
+
+            driver.recover_rate_limit_dialog = bounded_recovery
+            result = asyncio.run(driver.submit_prompt(
+                prompt='worker prompt',
+                turn_id='turn-rate-limit-worker',
+                actor_kind='WORKER',
+                conversation_url=None,
+            ))
+            self.assertIn(conversation, result)
+            calls = [args for _, args, _ in cli.calls]
+            self.assertEqual(['click', '@e42'], calls[4])
+            self.assertEqual(1, len([args for args in calls if args[:1] == ['click'] and args[1:] == ['@e42']]))
+            self.assertEqual(1, len([args for args in calls if args[:1] == ['fill']]))
+            self.assertEqual(1, len(recovery_called))
+
+    def test_submit_recovers_rate_limit_after_fill_before_send_without_key_event_retry(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = NewTabFakeCli()
+            conversation = 'https://chatgpt.com/c/rate-limit-after-fill'
+            cli.responses = [
+                {'data': {'value': 'https://chatgpt.com/'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {
+                    'data': {
+                        'refs': {'e42': {'name': '确定', 'role': 'button'}},
+                        'snapshot': '请求过于频繁，请稍等几分钟后再重试',
+                    }
+                },
+                {
+                    'data': {
+                        'refs': {'e42': {'name': '确定', 'role': 'button'}},
+                        'snapshot': '请求过于频繁，请稍等几分钟后再重试',
+                    }
+                },
+                {'success': True},
+                {'data': {'snapshot': 'ChatGPT Plus\nReady'}},
+                {'data': {'refs': {'e12': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {'data': {'refs': {'e20': {'name': 'Send', 'role': 'button'}}}},
+                {'success': True},
+                {'data': {'value': conversation}},
+                {'success': True, 'data': {'broughtToFront': True}},
+                {'data': {'snapshot': 'submitted'}},
+            ]
+            driver = self._driver(td, cli)
+            original_recovery = driver.recover_rate_limit_dialog
+
+            async def bounded_recovery(session, **kwargs):
+                kwargs['max_wait_seconds'] = 0
+                return await original_recovery(session, **kwargs)
+
+            driver.recover_rate_limit_dialog = bounded_recovery
+            result = asyncio.run(driver.submit_prompt(
+                prompt='worker prompt',
+                turn_id='turn-rate-limit-after-fill',
+                actor_kind='WORKER',
+                conversation_url=None,
+            ))
+            self.assertIn(conversation, result)
+            calls = [args for _, args, _ in cli.calls]
+            self.assertEqual(1, len([args for args in calls if args[:1] == ['click'] and args[1:] == ['@e42']]))
+            self.assertEqual(2, len([args for args in calls if args[:1] == ['fill']]))
+            self.assertFalse(any(args[:1] == ['type'] and '--key-events' in args for args in calls))
+
     def test_missing_send_control_reports_safe_post_fill_diagnostics(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()

@@ -572,9 +572,17 @@ class ChromeUseActorDriverV3:
         if callable(prepare):
             await prepare(session, timeout_seconds=self.timeout_seconds)
 
-    async def _editor_ref(self, session):
+    async def _editor_ref(self, session, *, allow_rate_limit_recovery=True):
         await self._prepare_interactive(session)
         payload = await self.cli.run_json(session, "snapshot", "-i", timeout_seconds=self.timeout_seconds)
+        if allow_rate_limit_recovery and chatgpt_throttle_visible(_render_payload(payload)):
+            recovery = await self.recover_rate_limit_dialog(session)
+            if recovery.get("status") != "RECOVERED":
+                reason = str(recovery.get("reason") or "UNKNOWN")
+                raise ValueError(f"CHROME_USE_RATE_LIMIT_RECOVERY_BLOCKED:{reason}")
+            # The recovery path may refresh the page, so resolve a fresh
+            # textbox ref and never reuse a pre-refresh accessibility target.
+            return await self._editor_ref(session, allow_rate_limit_recovery=False)
         return _editor_ref_from_snapshot(payload)
 
     async def _send_ref(self, session):
@@ -726,6 +734,42 @@ class ChromeUseActorDriverV3:
         try:
             return await self._send_ref(session)
         except SendControlResolutionError as first_error:
+            if chatgpt_throttle_visible(_render_payload(first_error.payload)):
+                recovery = await self.recover_rate_limit_dialog(session)
+                if recovery.get("status") != "RECOVERED":
+                    first_error.add_context(
+                        key_event_repair="SKIPPED_RATE_LIMIT",
+                        rate_limit_recovery=dict(recovery),
+                    )
+                    raise first_error
+                try:
+                    # A recovery refresh can discard the unsent composer.  Fill
+                    # the exact same intent into a fresh textbox ref before
+                    # resolving Send; never use key-event repair on the dialog.
+                    recovered_editor_ref = await self._editor_ref(
+                        session,
+                        allow_rate_limit_recovery=False,
+                    )
+                    await self.cli.run_json(
+                        session,
+                        "fill",
+                        recovered_editor_ref,
+                        prompt,
+                        timeout_seconds=self.timeout_seconds,
+                    )
+                    return await self._send_ref(session)
+                except SendControlResolutionError as recovered_error:
+                    recovered_error.add_context(
+                        rate_limit_recovery="RECOVERED_BUT_SEND_CONTROL_UNRESOLVED",
+                        initial_snapshot_sha256=first_error.diagnostics.get("snapshot_sha256"),
+                    )
+                    raise
+                except Exception as exc:
+                    first_error.add_context(
+                        rate_limit_recovery="RECOVERED_BUT_REFILL_FAILED",
+                        rate_limit_recovery_error=type(exc).__name__,
+                    )
+                    raise first_error from exc
             labels = {
                 str(value or "").casefold()
                 for value in first_error.diagnostics.get("button_names", [])

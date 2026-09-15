@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from tools.v4_live_two_worker_canary import (
+    build_parser,
     cleanup_canary_lifecycle,
     dispatch_intents_concurrently,
     failure_evidence,
@@ -16,6 +17,17 @@ from tools.v4_live_two_worker_canary import (
 
 
 class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
+    def test_canary_timeout_covers_five_minute_rate_limit_recovery_window(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            args = build_parser().parse_args([
+                '--database-path', str(root / 'state.sqlite3'),
+                '--driver-state-path', str(root / 'driver.json'),
+                '--allowed-root', str(root),
+                '--evidence-path', str(root / 'evidence.json'),
+            ])
+        self.assertGreaterEqual(args.timeout_seconds, 360)
+
     def test_cleanup_closes_auth_and_only_terminal_worker_sessions(self):
         class Store:
             def __init__(self):
