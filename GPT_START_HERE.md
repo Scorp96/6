@@ -200,10 +200,12 @@ The candidate also contains an optional Windows Named Pipe adapter at
 `scorp-agent/master_a_dynamic_v4/runtime_pipe.py`. It requires a local
 authenticated `multiprocessing.connection` client, uses a fixed project-scoped
 `\\.\pipe\scorp-runtime-<project>` endpoint, and accepts only the same bounded
-`scorp.runtime.command/1` envelope. It is not registered as a production
-listener and does not give an ordinary web GPT direct Windows access. A future
-approved local connector may use this adapter after its own authentication,
-process supervision, and evidence gates are verified.
+`scorp.runtime.command/1` envelope. The matching bounded client is
+`runtime_pipe_client.py`: it validates the request and response, performs one
+exchange, and never retries a timeout. The transport is not registered as a
+production listener and does not give an ordinary web GPT direct Windows
+access. A future approved local connector may use this adapter after its own
+authentication, process supervision, and evidence gates are verified.
 
 For a bounded local test, `runtime_pipe_cli.py --once` starts exactly one
 authenticated connection and exits after returning one response. The auth key

@@ -6,7 +6,7 @@
 
 ## CURRENT_HEAD
 
-`4c71accf8571f9545ddae7ba64f1d911c8798d0f`
+`0545e0a49a8c92139fa85e0fdca955ec738b5d2e`
 
 ## REMOTE_MAIN_HEAD
 
@@ -46,7 +46,7 @@
 - `ScorpFullAutoOrchestrator = Ready`
 - `ScorpV4SelfUpgrade5561f44 = Ready`
 
-没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。当前进程计数包括约 57 个 `chrome`、2 个 `chrome-use`、8 个 `python` 进程。进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
+没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。现场还观察到一个旧的 `chrome-use.exe --json get url` 进程和生产 `bridge_worker.py` 进程；这证明存在历史 transport/session 生命周期残留，但不提供安全依据去全局杀进程或切换生产任务。当前进程计数包括约 57 个 `chrome`、2 个 `chrome-use`、8 个 `python` 进程。进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
 
 ## CURRENT_SQLITE_STATE_MODEL
 
@@ -93,7 +93,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## CURRENT_EVIDENCE_MODEL
 
-- V4 core：161 项测试通过。
+- V4 core：165 项测试通过。
 - GUI bridge：475 项测试通过。
 - compileall：通过。
 - `git diff --check`：通过。
@@ -117,7 +117,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## PARTIAL
 
-- Runtime 已有 stdin/stdout transport，并有经过真实 Windows 回环测试的 Named Pipe 候选适配器和一次性/有界 launcher；尚无正式 approved ChatGPT connector 或生产 listener 注册。
+- Runtime 已有 stdin/stdout transport，并有经过真实 Windows 回环测试的 Named Pipe 客户端、服务端和一次性/有界 launcher；尚无正式 approved ChatGPT connector 或生产 listener 注册。
 - daemon 有监督和恢复 seam，但没有生产 Scheduled Task 证据。
 - Master/Worker browser actor lifecycle 有持久化边界，但真实当前候选双 Worker 提交未验证。
 - session lifecycle 有精确 retire API，但现有 Chrome 中历史 tab/session 数量仍较多。
@@ -164,7 +164,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 
 ## P1_FINDINGS
 
-- stdio 已可用，Named Pipe 仅作为未注册的候选 transport（含一次性 launcher）；正式 local connector 尚未接入。
+- stdio 已可用，Named Pipe 客户端/服务端仅作为未注册的候选 transport（含一次性 launcher）；正式 local connector 尚未接入。
 - 真实 browser dispatch 的并行隔离需要单独修复或 live 复验。
 - 旧 SQLite 快照与候选 schema 的安装/迁移边界需要显式操作流程。
 - session/target lifecycle 需要继续收敛，但不能做无绑定的全局清理。
