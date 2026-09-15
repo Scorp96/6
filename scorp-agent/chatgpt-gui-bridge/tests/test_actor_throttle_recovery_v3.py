@@ -41,6 +41,77 @@ class Factory:
 
 
 class ActorThrottleRecoveryV3Tests(unittest.TestCase):
+    def test_gui_transport_acknowledges_pre_input_rate_limit_then_waits_for_page_recovery(self):
+        throttle = (
+            "请求过于频繁，请稍等几分钟后再重试\n"
+            "(410,520) button \"确定\""
+        )
+        recovered = '(200,700) textbox "Message ChatGPT"'
+        send = '(900,700) button "Send message"'
+        client = FakeClient(
+            snapshots=[
+                "Focused Window: Chrome",
+                throttle,
+                recovered,
+                send,
+            ],
+            clipboard_reads=[
+                "Clipboard content:\noriginal",
+                "Clipboard content:\nhttps://chatgpt.com/",
+            ],
+        )
+        asyncio.run(open_new_chat_and_submit(
+            client,
+            "PROMPT",
+            page_wait_seconds=0,
+            rate_limit_wait_seconds=0,
+            rate_limit_poll_seconds=1,
+            rate_limit_sleeper=lambda _: asyncio.sleep(0),
+            rate_limit_clock=lambda: 0.0,
+        ))
+        self.assertEqual(
+            1,
+            sum(
+                1 for name, args in client.calls
+                if name == "Click" and args.get("loc") == [410, 520]
+            ),
+        )
+        self.assertEqual(1, sum(1 for name, _ in client.calls if name == "Type"))
+
+    def test_gui_transport_refreshes_once_after_bounded_rate_limit_wait(self):
+        throttle = (
+            "请求过于频繁，请稍等几分钟后再重试\n"
+            "(410,520) button \"确定\""
+        )
+        recovered = '(200,700) textbox "Message ChatGPT"'
+        send = '(900,700) button "Send message"'
+        client = FakeClient(
+            snapshots=["Focused Window: Chrome", throttle, throttle, recovered, send],
+            clipboard_reads=[
+                "Clipboard content:\noriginal",
+                "Clipboard content:\nhttps://chatgpt.com/",
+            ],
+        )
+        ticks = iter([0.0, 6.0])
+        asyncio.run(open_new_chat_and_submit(
+            client,
+            "PROMPT",
+            page_wait_seconds=0,
+            rate_limit_wait_seconds=5,
+            rate_limit_poll_seconds=5,
+            rate_limit_sleeper=lambda _: asyncio.sleep(0),
+            rate_limit_clock=lambda: next(ticks),
+        ))
+        self.assertEqual(
+            1,
+            sum(1 for name, args in client.calls if name == "Click" and args.get("loc") == [410, 520]),
+        )
+        self.assertEqual(
+            1,
+            sum(1 for name, args in client.calls if name == "Shortcut" and args.get("shortcut") == "ctrl+r"),
+        )
+        self.assertEqual(1, sum(1 for name, _ in client.calls if name == "Type"))
+
     def test_gui_transport_classifies_throttle_before_any_prompt_input(self):
         throttle = "请求过于频繁，请稍等几分钟后再重试"
         client = FakeClient(

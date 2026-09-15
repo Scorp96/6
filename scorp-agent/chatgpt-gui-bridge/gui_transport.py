@@ -31,6 +31,99 @@ def chatgpt_throttle_visible(snapshot: str) -> bool:
     return chinese or english
 
 
+_RATE_LIMIT_ACK_LABEL = re.compile(
+    r"(?:确定|OK|Okay|Got\s+it|I\s+understand|知道了|关闭|Close)",
+    re.I,
+)
+
+
+def _rate_limit_ack_location(snapshot: str) -> tuple[int, int]:
+    """Resolve one visible acknowledgement button from a Windows-MCP snapshot.
+
+    The coordinate is accepted only from a line that contains both a button
+    role and a known acknowledgement label.  If the accessibility tree does
+    not prove exactly one such control, recovery stops instead of guessing.
+    """
+
+    candidates = set()
+    for line in str(snapshot or "").splitlines():
+        if not re.search(r"(?:button|按钮)", line, re.I):
+            continue
+        if _RATE_LIMIT_ACK_LABEL.search(line) is None:
+            continue
+        for x, y in re.findall(r"\((\d+)\s*,\s*(\d+)\)", line):
+            candidates.add((int(x), int(y)))
+    if len(candidates) != 1:
+        raise ChatGptThrottleError(
+            f"CHATGPT_RATE_LIMIT_ACK_REF_COUNT_{len(candidates)}"
+        )
+    return next(iter(candidates))
+
+
+async def recover_rate_limit_dialog(
+    client,
+    snapshot: str,
+    *,
+    max_wait_seconds: float = 300,
+    poll_seconds: float = 5,
+    clock=time.monotonic,
+    sleeper=None,
+) -> str:
+    """Acknowledge one pre-input rate-limit dialog and wait for recovery.
+
+    This function is called only before the prompt has been entered.  It
+    performs one known acknowledgement click, waits up to five minutes for a
+    read-only snapshot to stop showing the dialog, and performs at most one
+    Ctrl+R after the wait expires.  It never submits a prompt or retries an
+    ambiguous external action.
+    """
+
+    max_wait_seconds = float(max_wait_seconds)
+    poll_seconds = float(poll_seconds)
+    if max_wait_seconds < 0 or poll_seconds <= 0:
+        raise ValueError("CHATGPT_RATE_LIMIT_WAIT_INVALID")
+    sleeper = sleeper or asyncio.sleep
+    if not chatgpt_throttle_visible(snapshot):
+        return str(snapshot or "")
+
+    try:
+        location = _rate_limit_ack_location(snapshot)
+    except ChatGptThrottleError as exc:
+        # Preserve the legacy blocker prefix consumed by the deterministic
+        # supervisor while retaining the precise fail-closed reason.
+        raise ChatGptThrottleError(f"CHATGPT_REQUEST_THROTTLED:{exc}") from exc
+    await client.call_tool("Click", {"loc": list(location)})
+    deadline = clock() + max_wait_seconds
+
+    async def read_snapshot() -> str:
+        result = await client.call_tool("Snapshot", {
+            "use_vision": False,
+            "use_dom": False,
+            "use_annotation": True,
+            "use_ui_tree": True,
+        })
+        if getattr(result, "isError", False):
+            raise ChatGptThrottleError(
+                "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_RECOVERY_READ_FAILED"
+            )
+        return result_text(result)
+
+    while True:
+        current = await read_snapshot()
+        if not chatgpt_throttle_visible(current):
+            return current
+        now = clock()
+        if now >= deadline:
+            await client.call_tool("Shortcut", {"shortcut": "ctrl+r"})
+            refreshed = await read_snapshot()
+            if not chatgpt_throttle_visible(refreshed):
+                return refreshed
+            raise ChatGptThrottleError(
+                "CHATGPT_REQUEST_THROTTLED:CHATGPT_RATE_LIMIT_RECOVERY_TIMEOUT"
+            )
+        await sleeper(min(poll_seconds, max(0.0, deadline - now)))
+
+
 def normalize_snapshot_text(raw: str) -> str:
     raw = raw or ""
     try:
@@ -343,6 +436,10 @@ async def open_new_chat_and_submit(
     submit_timeout_seconds: float = 5.0,
     submit_poll_seconds: float = 0.25,
     submit_max_attempts: int = 24,
+    rate_limit_wait_seconds: float = 300,
+    rate_limit_poll_seconds: float = 5,
+    rate_limit_clock=time.monotonic,
+    rate_limit_sleeper=None,
 ):
     await acquire_chatgpt_window(
         client, page_wait_seconds, conversation_url,
@@ -369,8 +466,20 @@ async def open_new_chat_and_submit(
             editor = find_chat_editor(text)
         except ValueError as exc:
             if str(exc) == "CHAT_EDITOR_NOT_FOUND" and chatgpt_throttle_visible(text):
-                raise ChatGptThrottleError("CHATGPT_REQUEST_THROTTLED") from exc
-            raise
+                try:
+                    text = await recover_rate_limit_dialog(
+                        client,
+                        text,
+                        max_wait_seconds=rate_limit_wait_seconds,
+                        poll_seconds=rate_limit_poll_seconds,
+                        clock=rate_limit_clock,
+                        sleeper=rate_limit_sleeper,
+                    )
+                    editor = find_chat_editor(text)
+                except ChatGptThrottleError as recovery_error:
+                    raise recovery_error from exc
+            else:
+                raise
         await client.call_tool("Type", {
             "text": " ", "loc": list(editor), "clear": True, "press_enter": False,
         })
