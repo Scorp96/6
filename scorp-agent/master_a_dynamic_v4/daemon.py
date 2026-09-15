@@ -82,6 +82,7 @@ class LocalDaemon:
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
         self.arbiter = ActivationArbiter(actor_id=actor_id)
         self._last_progress_at: str | None = None
+        self._last_run_status: str | None = None
 
     def run_once(self) -> ActivationDecision:
         snapshot_raw = self.snapshot_provider()
@@ -139,6 +140,7 @@ class LocalDaemon:
                 status = "BLOCKED"
                 error = f"ACTION_FAILED:{type(exc).__name__}"
         self._write_health(status=status, snapshot=snapshot, decision=decision, error=error)
+        self._last_run_status = status
         return decision
 
     def run_loop(
@@ -158,6 +160,8 @@ class LocalDaemon:
             if stop_event is not None and bool(stop_event.is_set()):
                 break
             decisions.append(self.run_once())
+            if self._last_run_status in {"BLOCKED", "TERMINAL"}:
+                break
             if stop_event is not None and bool(stop_event.is_set()):
                 break
             if max_iterations is None or len(decisions) < int(max_iterations):
