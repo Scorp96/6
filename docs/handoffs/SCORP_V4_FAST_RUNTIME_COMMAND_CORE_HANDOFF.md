@@ -60,17 +60,17 @@ key-event 发送修复。该恢复动作本身不代表消息已发送。
 `BLOCKED/RATE_LIMIT_ACK_FAILED` 或
 `BLOCKED/RATE_LIMIT_RECOVERY_READ_FAILED`；这两种情况都不会刷新、重试或把
 异常当成可以继续发送的信号。对应证据见
-`SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`。
+`SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`（前置候选证据）；当前传输边界证据见 `SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_EC2D690.json`。
 
 ## 当前证据边界
 
 本轮现场状态的最新只读快照见
-`SCORP_V4_PHASE0_CURRENT_AUDIT_F212EAC.json`。该快照把代码候选
-`5e60a3d90239e1184224c10d1377cd120d44042e` 与当前 checkout 文档头
-`f212eace1cf06e02e06b78889285a4e8be403755` 分开记录；旧的
+`SCORP_V4_PHASE0_CURRENT_AUDIT_EC2D690.json`。该快照把代码候选
+`ec2d6902a92902f86b44791a42134e10b0032400` 与审计采集时的 checkout
+头分别记录；后续文档提交不会改变该代码候选；旧的
 `SCORP_V4_PHASE0_LOCAL_AUDIT_424FFE3.json` 仅作为历史证据，不代表当前现场。
 
-- `TEST_VERIFIED`: V4 核心 191 个测试通过，GUI 桥接 498 个测试通过（含请求限制确认/等待/超时/单次刷新/新页面恢复/填入后恢复/确认与读取失败 fail-closed、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `TEST_VERIFIED`: V4 核心 192 个测试通过，GUI 桥接 498 个测试通过（含请求限制确认/等待/超时/单次刷新/新页面恢复/填入后恢复/确认与读取失败 fail-closed、Named Pipe 超长帧 fail-closed、安装依赖闭包和 bridge worker 单进程门禁回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
 - Master 物理重绑定的认证探针现在接入同一条请求限制恢复路径：先只读确认限流，再只点击一次已知“确定”控件，最多等待 300 秒，必要时最多刷新一次；恢复失败仍保持 `BLOCKED`，不会进入发送。Master 心跳现在先做只读物理健康检查；限流或认证阻塞不会创建新 epoch，浏览器失联才进入受控重绑定。Master epoch 变化会同步 fence 旧 Worker lease 和迟到结果。
 - 恢复探针本身的传输异常也会收敛为 `AUTH_PROBE_FAILED` 结果，保留阻塞证据并停止后续动作，不把异常冒泡成可继续状态。
 - Master 过期恢复现在为新的物理 session 生成一次性 `::resume-<nonce>` 标识，不再复用已标记为 `STALE` 的旧 session id；这不等于已经通过真实浏览器重绑定。
