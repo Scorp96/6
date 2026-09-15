@@ -1,0 +1,1220 @@
+{
+  "format": "scorp-v4-phase0-local-audit/1",
+  "observed_at": "2026-09-15T05:12:18.3008342Z",
+  "candidate_code_commit": "141a6450369984a765b753d091e14caec73b666d",
+  "candidate_branch": "feature/v4-fast-runtime-command-core",
+  "origin_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
+  "production_checkout_head": "bd67ae78c874d2a5f897101097db0578f01a5c00",
+  "production_state_changed": false,
+  "git_status": [
+    " M GPT_START_HERE.md",
+    " M docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_HANDOFF.md",
+    " M docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
+    " M docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
+    " M docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
+    " M docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md",
+    " M docs/handoffs/SCORP_V4_WEB_GPT_PACKET.json",
+    "?? docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_141A645.json",
+    "?? docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_141A645.json",
+    "?? docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_141A645.json",
+    "?? docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_141A645.json",
+    "?? docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_141A645.json",
+    "?? docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_141A645.json",
+    "?? docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_141A645.json"
+  ],
+  "worktree_porcelain": [
+    "worktree C:/ScorpAgent/_publish_git6",
+    "HEAD bd67ae78c874d2a5f897101097db0578f01a5c00",
+    "branch refs/heads/main",
+    "",
+    "worktree C:/ScorpAgent/v4-source-13cfffd",
+    "HEAD 13cfffd533a71bd546fc26d5d8452e38ff8b0427",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-210dcf6",
+    "HEAD 210dcf64a5445c7509bc09d528fa18d0cf8bb662",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-44fa51b",
+    "HEAD 44fa51b6e10fe92b2afbb1d66538f474d2314ab8",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-4d98463",
+    "HEAD 4d984632643289cb98a223d527867b6c8c431763",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-55cc173",
+    "HEAD 55cc17326ec614f7cda2e4878b15adde1acf60d9",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-5c4a127",
+    "HEAD 5c4a127f03642778799c65abdf04aa1fbdddcb9e",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-6da3893",
+    "HEAD 6da3893b79dfcd94090481bdb1f670e6c6edef52",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-75aa02f",
+    "HEAD 75aa02fc3359c5c614b2a83a85cae4ac146ac971",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-767168e",
+    "HEAD 767168e2b96a89fb6281decad9205f8f0fa89c01",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-87dc771",
+    "HEAD 87dc77101259e3473b9407bbce92c67aa7f0d73b",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-8ee4414",
+    "HEAD 8ee4414cc66e67f2fc0eb136f29a1b75f3adb710",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-9a0be50",
+    "HEAD 9a0be50dc12c74959894bd239c58ff0ba49e8d8a",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-9a6ad04",
+    "HEAD 9a6ad04e50fd5dd76716585d2bd22a285dc7cff6",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-a385f7b",
+    "HEAD a385f7b362cf87ba194fd8ba9c119771db44c42a",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-a48b27f",
+    "HEAD a48b27f208ba62abb1650f890af26bb1e1847fe3",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-a90ee33",
+    "HEAD a90ee333385f7d6039ed0d51d8273cee867f8914",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-b4d7129",
+    "HEAD b4d71294957f741e9bdb3969ee75310324f8acc1",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-bbb5c60",
+    "HEAD bbb5c6004f057f9ed2e71e0c95d5201cc13e97b9",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-bbb5c60b",
+    "HEAD bbb5c6004f057f9ed2e71e0c95d5201cc13e97b9",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-bd67ae7",
+    "HEAD bd67ae78c874d2a5f897101097db0578f01a5c00",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-c177c84",
+    "HEAD c177c843df318b9a48e1bd12f8c15cefdc9c86bd",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-ec20a3d",
+    "HEAD ec20a3d360e1b2f1eb34a7f5a36c610b5a3345b2",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-ee64ca4",
+    "HEAD ee64ca4d943cdc4cdd761c11d7f4f74e881c7e81",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/v4-source-f26d201",
+    "HEAD f26d2015a4ac923225cec55b73f50ab9296cdf82",
+    "detached",
+    "",
+    "worktree C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "HEAD 141a6450369984a765b753d091e14caec73b666d",
+    "branch refs/heads/feature/v4-fast-runtime-command-core",
+    ""
+  ],
+  "active_relevant_processes": [
+    {
+      "pid": 7876,
+      "parent_pid": 904,
+      "name": "python.exe",
+      "command_line": "\"C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe\" \"C:\\ScorpAgent\\chatgpt-gui-bridge\\bridge_worker.py\" --orchestrator-root C:\\ScorpAgent\\orchestrator-v1 --state-root C:\\ScorpAgent\\state-v4 --bridge-root \"C:\\ScorpAgent\\chatgpt-gui-bridge-state\" --control-repo Scorp96/scorp-control-plane --trusted-actor Scorp96 --v3-project-root \"C:\\ScorpAgent\\state-v3\\active\" --v3-max-inflight 3 --poll-seconds 10"
+    },
+    {
+      "pid": 13488,
+      "parent_pid": 7876,
+      "name": "python.exe",
+      "command_line": "\"C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe\"  \"C:\\ScorpAgent\\chatgpt-gui-bridge\\bridge_worker.py\" --orchestrator-root C:\\ScorpAgent\\orchestrator-v1 --state-root C:\\ScorpAgent\\state-v4 --bridge-root \"C:\\ScorpAgent\\chatgpt-gui-bridge-state\" --control-repo Scorp96/scorp-control-plane --trusted-actor Scorp96 --v3-project-root \"C:\\ScorpAgent\\state-v3\\active\" --v3-max-inflight 3 --poll-seconds 10"
+    },
+    {
+      "pid": 14912,
+      "parent_pid": 15028,
+      "name": "cmd.exe",
+      "command_line": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c \"\"C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe\" chrome-extension://knfcmbamhjmaonkfnjhldjedeobeafmk/ --parent-window=0\" < \\\\.\\pipe\\chrome.nativeMessaging.in.f54946a609708268 > \\\\.\\pipe\\chrome.nativeMessaging.out.f54946a609708268"
+    },
+    {
+      "pid": 15024,
+      "parent_pid": 14912,
+      "name": "chrome-use.exe",
+      "command_line": "\"C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe\"  chrome-extension://knfcmbamhjmaonkfnjhldjedeobeafmk/ --parent-window=0 "
+    },
+    {
+      "pid": 3676,
+      "parent_pid": 14268,
+      "name": "chrome-use.exe",
+      "command_line": "\"\\\\?\\C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe\""
+    },
+    {
+      "pid": 26368,
+      "parent_pid": 13488,
+      "name": "chrome-use.exe",
+      "command_line": "C:\\ScorpAgent\\p0-transport-bakeoff\\chrome-use\\bin\\chrome-use.exe --session scorp-p0-turn-066069407e9baa4c --json get url"
+    },
+    {
+      "pid": 18748,
+      "parent_pid": 17592,
+      "name": "pwsh.exe",
+      "command_line": "\"C:\\Users\\scorp\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\n$ErrorActionPreference='Stop'; $root=(Get-Location).Path; $gitHead=(git rev-parse HEAD).Trim(); $branch=(git branch --show-current).Trim(); $origin=(git ls-remote origin refs/heads/main | ForEach-Object { ($_ -split '\\s+')[0] } | Select-Object -First 1); $mainHead=(git -C C:\\ScorpAgent\\_publish_git6 rev-parse HEAD).Trim(); $status=@(git status --short); $worktrees=@(git worktree list --porcelain); $proc=@(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'bridge_worker|chrome-use|v4_daemon|master_a' } | ForEach-Object { [ordered]@{pid=$_.ProcessId;parent_pid=$_.ParentProcessId;name=$_.Name;command_line=$_.CommandLine} }); $tasks=@(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -match 'Scorp|scorp' } | ForEach-Object { [ordered]@{name=$_.TaskName;state=[string]$_.State;path=$_.TaskPath} }); $services=@(Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Scorp|scorp' -or $_.DisplayName -match 'Scorp|scorp' } | ForEach-Object { [ordered]@{name=$_.Name;status=[string]$_.Status;start_type=[string]$_.StartType;display_name=$_.DisplayName} }); $sqlite=@(Get-ChildItem -Path C:\\ScorpAgent -Recurse -File -Include *.sqlite,*.sqlite3,*.db -ErrorAction SilentlyContinue | Select-Object -First 80 | ForEach-Object { [ordered]@{path=$_.FullName;length=$_.Length;last_write_time=$_.LastWriteTime.ToUniversalTime().ToString('o')} }); $driver=@(Get-ChildItem -Path C:\\ScorpAgent -Recurse -File -Include *driver*.json,*session*.json,*health*.json -ErrorAction SilentlyContinue | Select-Object -First 120 | ForEach-Object { [ordered]@{path=$_.FullName;length=$_.Length;last_write_time=$_.LastWriteTime.ToUniversalTime().ToString('o')} }); $e=[ordered]@{format='scorp-v4-phase0-local-audit/1';observed_at=[DateTime]::UtcNow.ToString('o');candidate_code_commit=$gitHead;candidate_branch=$branch;origin_main_head=$origin;production_checkout_head=$mainHead;production_state_changed=$false;git_status=$status;worktree_porcelain=$worktrees;active_relevant_processes=$proc;scheduled_tasks=$tasks;services=$services;sqlite_paths=$sqlite;driver_state_paths=$driver;findings=@('Production scheduled task ScorpChatGptGuiBridge is Running.','Production bridge worker currently has two related processes; production singleton lock deployment is not proven.','Watchdog candidate now blocks restart when bridge workers exist without a scheduler root; production Watchdog remains Disabled, so this fix is not deployed.','Candidate branch remains isolated; no production process or task was changed.')} ; $out=Join-Path $root 'docs\\handoffs\\SCORP_V4_PHASE0_LOCAL_AUDIT_141A645.json'; $e | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $out -Encoding UTF8; Write-Output $out; Write-Output ($e | ConvertTo-Json -Depth 2)\""
+    }
+  ],
+  "scheduled_tasks": [
+    {
+      "name": "ScorpChatGptGuiBridge",
+      "state": "Running",
+      "path": "\\"
+    },
+    {
+      "name": "ScorpChatGptGuiBridgeWatchdog",
+      "state": "Disabled",
+      "path": "\\"
+    },
+    {
+      "name": "ScorpComputerAgent",
+      "state": "Running",
+      "path": "\\"
+    },
+    {
+      "name": "ScorpFullAutoOrchestrator",
+      "state": "Ready",
+      "path": "\\"
+    },
+    {
+      "name": "ScorpV4SelfUpgrade5561f44",
+      "state": "Ready",
+      "path": "\\"
+    }
+  ],
+  "services": [
+    {
+      "name": "ScorpPrivilegedBroker",
+      "status": "Running",
+      "start_type": "Automatic",
+      "display_name": "Scorp Privileged Broker"
+    }
+  ],
+  "sqlite_paths": [
+    {
+      "path": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
+      "length": 180224,
+      "last_write_time": "2026-09-14T08:28:20.4406658Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\0760c26-live-0b0b9cba\\state.sqlite",
+      "length": 0,
+      "last_write_time": "2026-09-14T14:33:33.8337152Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\0760c26-live-0b0b9cba\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T14:29:33.4134705Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\31622f1-live-20260914-232500\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T15:25:53.0603718Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\760a7d7-live-20260914-224117\\state.sqlite3",
+      "length": 208896,
+      "last_write_time": "2026-09-14T14:42:39.3649881Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\760a7d7-r2-live-20260914-224725\\state.sqlite3",
+      "length": 208896,
+      "last_write_time": "2026-09-14T14:48:49.7104450Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\760a7d7-r3-live-20260914-225234\\state.sqlite3",
+      "length": 208896,
+      "last_write_time": "2026-09-14T14:53:20.1244698Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\7a08e0e-live-87425a77\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T14:21:43.4204894Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\git6-live-e2e-r4-2d2b484dfcf94356bb86adc9ce7f180a\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:24:17.4312606Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\git6-master-e2e-f26d201-r1\\runtime\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T12:19:15.5019618Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\runtime\\social-cbi\\browser-diagnostic-profile\\Default\\declarative_performance_observer.db",
+      "length": 32768,
+      "last_write_time": "2026-09-11T07:14:29.8045871Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\runtime\\social-cbi\\browser-diagnostic-profile\\GPUPersistentCache\\DawnGraphiteCache\\3VTFBHJDFNU2V4IGSN4IATDSGV2NT3ME\\cache.db",
+      "length": 0,
+      "last_write_time": "2026-09-11T07:14:24.4794402Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\runtime\\social-cbi\\browser-diagnostic-profile\\first_party_sets.db",
+      "length": 49152,
+      "last_write_time": "2026-09-11T07:14:29.7758425Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\runtime\\social-cbi\\browser-profile\\Default\\declarative_performance_observer.db",
+      "length": 32768,
+      "last_write_time": "2026-09-11T07:00:14.6431430Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\runtime\\social-cbi\\browser-profile\\Default\\heavy_ad_intervention_opt_out.db",
+      "length": 16384,
+      "last_write_time": "2026-09-11T07:00:14.7497095Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\runtime\\social-cbi\\browser-profile\\GPUPersistentCache\\DawnGraphiteCache\\3VTFBHJDFNU2V4IGSN4IATDSGV2NT3ME\\cache.db",
+      "length": 0,
+      "last_write_time": "2026-09-11T07:00:10.6142406Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\runtime\\social-cbi\\browser-profile\\first_party_sets.db",
+      "length": 49152,
+      "last_write_time": "2026-09-11T08:07:27.0603341Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab\\short-soak.sqlite3",
+      "length": 483328,
+      "last_write_time": "2026-09-13T23:14:49.0393754Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
+      "length": 188416,
+      "last_write_time": "2026-09-13T23:20:40.2343077Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-0fe4464\\short-soak.sqlite3",
+      "length": 360448,
+      "last_write_time": "2026-09-14T15:00:51.8516151Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-0fe4464\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T14:59:42.1414423Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-13cfffd\\short-soak.sqlite3",
+      "length": 520192,
+      "last_write_time": "2026-09-14T12:10:27.3997578Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-13cfffd\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:10:40.9622805Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-1e69c0a\\short-soak.sqlite3",
+      "length": 520192,
+      "last_write_time": "2026-09-14T12:52:09.3906720Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-1e69c0a\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:51:38.4693681Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-1e69c0a\\supervisor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:52:45.7963224Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-210dcf6\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:58:57.9758412Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-210dcf6-r1\\short-soak.sqlite3",
+      "length": 536576,
+      "last_write_time": "2026-09-14T12:00:36.9259924Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-210dcf6-r1\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:01:13.4026620Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-31622f1c\\short-soak.sqlite3",
+      "length": 331776,
+      "last_write_time": "2026-09-14T15:24:47.3747079Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-31622f1c\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T15:24:08.9571905Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-4246ac13\\short-soak.sqlite3",
+      "length": 323584,
+      "last_write_time": "2026-09-14T15:35:33.8392781Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-4246ac13\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T15:34:58.9191455Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-44fa51b\\monitor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:08:32.4045863Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-44fa51b\\short-soak.sqlite3",
+      "length": 540672,
+      "last_write_time": "2026-09-14T11:08:09.6229822Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-44fa51b\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:07:37.1763457Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-44fa51b-script\\monitor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:13:24.8996260Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-44fa51b-script\\short-soak.sqlite3",
+      "length": 503808,
+      "last_write_time": "2026-09-14T11:13:11.2797839Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-44fa51b-script\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:12:48.6513782Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-4d98463\\short-soak.sqlite3",
+      "length": 520192,
+      "last_write_time": "2026-09-14T12:59:14.8710957Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-4d98463\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:58:56.6679136Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-4d98463\\supervisor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:59:26.5109526Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-55cc173\\short-soak.sqlite3",
+      "length": 339968,
+      "last_write_time": "2026-09-14T16:03:41.0403741Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-55cc173\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T16:03:14.8074627Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-5c4a127\\short-soak.sqlite3",
+      "length": 516096,
+      "last_write_time": "2026-09-14T12:22:53.3419995Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-5c4a127\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:23:07.4843698Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-6da3893\\short-soak.sqlite3",
+      "length": 540672,
+      "last_write_time": "2026-09-14T10:34:04.9360022Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-6da3893\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T10:33:42.8167482Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-75aa02f\\short-soak.sqlite3",
+      "length": 540672,
+      "last_write_time": "2026-09-14T10:27:59.4430910Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-75aa02f\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T10:27:13.7904297Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-767168e\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:38:03.1945384Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-767168e-retry\\monitor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:39:54.3916060Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-767168e-retry\\short-soak.sqlite3",
+      "length": 503808,
+      "last_write_time": "2026-09-14T11:39:09.3551270Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-767168e-retry\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T11:38:40.9772674Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-87dc771\\short-soak.sqlite3",
+      "length": 520192,
+      "last_write_time": "2026-09-14T12:36:02.6494489Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-87dc771\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T12:36:40.6829409Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-8ee4414\\short-soak.sqlite3",
+      "length": 516096,
+      "last_write_time": "2026-09-14T13:20:31.8120146Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-8ee4414\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:19:58.9745204Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-8ee4414\\supervisor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:21:03.7620374Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-9a0be50\\short-soak.sqlite3",
+      "length": 540672,
+      "last_write_time": "2026-09-14T10:43:03.7734034Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-9a0be50\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T10:42:40.3846395Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-9a6ad04\\short-soak.sqlite3",
+      "length": 520192,
+      "last_write_time": "2026-09-14T13:07:24.0885541Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-9a6ad04\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:07:05.3647615Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-9a6ad04\\supervisor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:07:35.5741160Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a385f7b\\short-soak.sqlite3",
+      "length": 520192,
+      "last_write_time": "2026-09-14T13:13:01.3743594Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a385f7b\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:12:43.1291447Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a385f7b\\supervisor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:13:13.0130010Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a48b27f\\short-soak.sqlite3",
+      "length": 540672,
+      "last_write_time": "2026-09-14T10:48:09.4405725Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a48b27f\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T10:47:46.9799071Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a90ee33\\short-soak.sqlite3",
+      "length": 540672,
+      "last_write_time": "2026-09-14T13:30:44.0528029Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a90ee33\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:30:20.1396764Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-a90ee33\\supervisor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:31:03.7598898Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-b4d7129\\short-soak.sqlite3",
+      "length": 520192,
+      "last_write_time": "2026-09-14T13:36:16.8273198Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-b4d7129\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:35:58.7297084Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-b4d7129\\supervisor.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T13:36:31.6288593Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-bbb5c60\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T10:53:21.4668532Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-bbb5c60b\\short-soak.sqlite3",
+      "length": 540672,
+      "last_write_time": "2026-09-14T10:54:18.8830181Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-bbb5c60b\\state.sqlite3",
+      "length": 192512,
+      "last_write_time": "2026-09-14T10:53:54.4690634Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-bd67ae7\\short-soak.sqlite3",
+      "length": 319488,
+      "last_write_time": "2026-09-14T16:26:50.4127984Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab-bd67ae7\\state.sqlite3",
+      "length": 200704,
+      "last_write_time": "2026-09-14T16:26:13.0580648Z"
+    }
+  ],
+  "driver_state_paths": [
+    {
+      "path": "C:\\ScorpAgent\\0760c26-live-0b0b9cba\\driver.json",
+      "length": 698,
+      "last_write_time": "2026-09-14T14:28:47.0029728Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\31622f1-live-20260914-232500\\driver.json",
+      "length": 1281,
+      "last_write_time": "2026-09-14T15:25:06.6531722Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\760a7d7-live-20260914-224117\\driver.json",
+      "length": 1797,
+      "last_write_time": "2026-09-14T14:41:57.7293334Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\760a7d7-r2-live-20260914-224725\\driver.json",
+      "length": 1797,
+      "last_write_time": "2026-09-14T14:48:14.5684604Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\760a7d7-r3-live-20260914-225234\\driver.json",
+      "length": 1797,
+      "last_write_time": "2026-09-14T14:53:18.1530228Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\7a08e0e-live-87425a77\\driver.json",
+      "length": 698,
+      "last_write_time": "2026-09-14T14:21:43.4321186Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json",
+      "length": 812,
+      "last_write_time": "2026-09-15T05:11:43.5027200Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\watchdog-health.json",
+      "length": 248,
+      "last_write_time": "2026-09-12T08:58:37.8563042Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\git6-live-e2e-r4-2d2b484dfcf94356bb86adc9ce7f180a\\driver.json",
+      "length": 251,
+      "last_write_time": "2026-09-14T11:24:17.4377345Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\git6-master-e2e-f26d201-r1\\runtime\\driver.json",
+      "length": 407,
+      "last_write_time": "2026-09-14T12:19:15.5164115Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-13T10:29:11.7116471Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4\\bootstrap-health-result.json",
+      "length": 1357,
+      "last_write_time": "2026-09-13T10:29:12.1961145Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910071207\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-09T17:12:23.8652336Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910071207\\bootstrap-health-result.json",
+      "length": 1357,
+      "last_write_time": "2026-09-09T17:12:24.3360334Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910073337\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-09T23:12:15.4290409Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910073337\\bootstrap-health-result.json",
+      "length": 1357,
+      "last_write_time": "2026-09-09T23:12:15.9283721Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910095618\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-09T23:33:45.1934964Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910095618\\bootstrap-health-result.json",
+      "length": 1357,
+      "last_write_time": "2026-09-09T23:33:45.8776252Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910151741\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-10T01:56:25.0995569Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910151741\\bootstrap-health-result.json",
+      "length": 1357,
+      "last_write_time": "2026-09-10T01:56:25.5317972Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910163523\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-10T07:17:50.5190755Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910163523\\bootstrap-health-result.json",
+      "length": 1354,
+      "last_write_time": "2026-09-10T07:17:51.1499462Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910172805\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-10T08:35:33.1569696Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910172805\\bootstrap-health-result.json",
+      "length": 1353,
+      "last_write_time": "2026-09-10T08:35:33.6117064Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910173957\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-10T09:28:17.7472410Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910173957\\bootstrap-health-result.json",
+      "length": 1354,
+      "last_write_time": "2026-09-10T09:28:18.3485223Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910174108\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-10T09:40:06.0313056Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260910174108\\bootstrap-health-result.json",
+      "length": 1354,
+      "last_write_time": "2026-09-10T09:40:06.4646981Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260911130725\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-10T09:41:18.8981984Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260911130725\\bootstrap-health-result.json",
+      "length": 1354,
+      "last_write_time": "2026-09-10T09:41:19.4697560Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260913182901\\bootstrap-health-envelope.json",
+      "length": 417,
+      "last_write_time": "2026-09-11T05:07:34.4530522Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\gpt-native-v4.rollback.20260913182901\\bootstrap-health-result.json",
+      "length": 1354,
+      "last_write_time": "2026-09-11T05:07:34.8855416Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\orchestrator-v1\\health.json",
+      "length": 341,
+      "last_write_time": "2026-09-14T02:21:10.8270166Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-round1-readfix-g791\\live\\canary-r1-0927-q6m4\\driver.json",
+      "length": 405,
+      "last_write_time": "2026-09-13T01:27:37.6228604Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-round3-install-g809\\staged\\live\\autoresume-g815\\chrome-use-driver-v3.json",
+      "length": 590,
+      "last_write_time": "2026-09-13T01:41:38.6387509Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-round3-install-g809\\staged\\live\\autoresume-g815\\sessions-v3.json",
+      "length": 1472,
+      "last_write_time": "2026-09-13T01:41:49.7814943Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\crash-g975-r1-driver.json",
+      "length": 402,
+      "last_write_time": "2026-09-13T06:26:03.7100945Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\durable-0138-x9k2-driver.json",
+      "length": 402,
+      "last_write_time": "2026-09-12T17:52:52.3734539Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g1003-current-head-driver-state.json",
+      "length": 215,
+      "last_write_time": "2026-09-13T07:00:43.0856676Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g1045-relay-driver-state.json",
+      "length": 213,
+      "last_write_time": "2026-09-13T08:22:40.7083243Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g1055-relay-driver-state.json",
+      "length": 396,
+      "last_write_time": "2026-09-13T08:40:04.8688591Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g674-driver-state.json",
+      "length": 206,
+      "last_write_time": "2026-09-12T12:16:22.4666824Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g680-driver-state.json",
+      "length": 206,
+      "last_write_time": "2026-09-12T13:09:37.3093352Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g682-driver-state.json",
+      "length": 206,
+      "last_write_time": "2026-09-12T13:17:39.2127554Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g702-driver-state.json",
+      "length": 206,
+      "last_write_time": "2026-09-12T13:37:33.7181448Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g707-driver-state.json",
+      "length": 206,
+      "last_write_time": "2026-09-12T14:08:30.4527546Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g714-driver-state.json",
+      "length": 389,
+      "last_write_time": "2026-09-12T15:18:44.3053927Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g735-driver-state.json",
+      "length": 389,
+      "last_write_time": "2026-09-12T15:39:54.9630034Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\g939-current-head-driver-state.json",
+      "length": 397,
+      "last_write_time": "2026-09-13T06:07:32.2540655Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\live\\recipient-v18-driver-state.json",
+      "length": 408,
+      "last_write_time": "2026-09-13T10:31:42.8540555Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\p0-transport-bakeoff\\workers\\round1-gpt-20260913\\driver.json",
+      "length": 411,
+      "last_write_time": "2026-09-13T01:15:01.7938844Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json",
+      "length": 1835,
+      "last_write_time": "2026-09-14T02:21:19.7045761Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\sessions-v3.json",
+      "length": 1090,
+      "last_write_time": "2026-09-14T02:21:11.2209567Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\production-e2e-g274-123f6ebc-v3-20260913T024724125465Z\\chrome-use-driver-v3.json",
+      "length": 1320,
+      "last_write_time": "2026-09-13T02:39:07.1524996Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\production-e2e-g274-123f6ebc-v3-20260913T024724125465Z\\sessions-v3.json",
+      "length": 2805,
+      "last_write_time": "2026-09-13T02:44:16.9296609Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\production-e2e-round3-g866-89570488-v2-20260913T030450568485Z\\chrome-use-driver-v3.json",
+      "length": 1105,
+      "last_write_time": "2026-09-13T02:58:50.9984848Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\production-e2e-round3-g866-89570488-v2-20260913T030450568485Z\\sessions-v3.json",
+      "length": 1020,
+      "last_write_time": "2026-09-13T02:59:02.2011416Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\production-final-unattended-g875-4e4059b6-v5-20260913T031806524149Z\\chrome-use-driver-v3.json",
+      "length": 2566,
+      "last_write_time": "2026-09-13T03:17:42.4341134Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\production-final-unattended-g875-4e4059b6-v5-20260913T031806524149Z\\sessions-v3.json",
+      "length": 1499,
+      "last_write_time": "2026-09-13T03:18:04.3046381Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\review-swarm-a6b2db5-r1-20260913-f7151404-v5-20260913T131614756885Z\\chrome-use-driver-v3.json",
+      "length": 5218,
+      "last_write_time": "2026-09-13T05:50:38.0467604Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\archive\\review-swarm-a6b2db5-r1-20260913-f7151404-v5-20260913T131614756885Z\\sessions-v3.json",
+      "length": 2990,
+      "last_write_time": "2026-09-13T05:53:30.8223801Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\demo-a-stop-d-resume-g296\\sessions-v3.json",
+      "length": 915,
+      "last_write_time": "2026-09-12T03:33:47.0734300Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\demo-persistent-a\\sessions-v3.json",
+      "length": 891,
+      "last_write_time": "2026-09-12T03:37:55.3529096Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\abandoned-production-e2e-g274-20260912-164005\\sessions-v3.json",
+      "length": 1341,
+      "last_write_time": "2026-09-12T01:57:38.7446299Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\feature-g325\\active\\sessions-v3.json",
+      "length": 2088,
+      "last_write_time": "2026-09-12T04:44:31.9654275Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\feature-g333\\active\\sessions-v3.json",
+      "length": 1538,
+      "last_write_time": "2026-09-12T05:04:20.3129708Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\feature-g351\\active\\sessions-v3.json",
+      "length": 1018,
+      "last_write_time": "2026-09-12T06:44:13.9672635Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\parallel-g143\\sessions-v3.json",
+      "length": 445,
+      "last_write_time": "2026-09-11T15:36:21.6034769Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\parallel-g151\\sessions-v3.json",
+      "length": 445,
+      "last_write_time": "2026-09-11T15:47:57.4004966Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\parallel-g170\\sessions-v3.json",
+      "length": 445,
+      "last_write_time": "2026-09-11T16:39:34.6704791Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\parallel-g181\\sessions-v3.json",
+      "length": 445,
+      "last_write_time": "2026-09-11T16:56:19.1949256Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\parallel-g187\\sessions-v3.json",
+      "length": 445,
+      "last_write_time": "2026-09-11T17:14:02.8503933Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\parallel-g257\\sessions-v3.json",
+      "length": 445,
+      "last_write_time": "2026-09-12T00:33:53.0488386Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3-live-canary\\parallel-g273\\sessions-v3.json",
+      "length": 1431,
+      "last_write_time": "2026-09-12T01:01:38.5781842Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\audit-v4-transaction-core-20260914\\_runtime_isolation\\bridge-root\\health.json",
+      "length": 196,
+      "last_write_time": "2026-09-14T00:56:20.3467098Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\audit-v4-transaction-core-20260914\\chrome-use-driver-v3.json",
+      "length": 223,
+      "last_write_time": "2026-09-14T00:56:10.7753543Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\blocked-34-final-health-018-e365acdf.json",
+      "length": 1560,
+      "last_write_time": "2026-09-09T23:24:35.4626934Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1001-action-p0-g939-original-session-after-host-reconnect-20260913-1-envelope.json",
+      "length": 1747,
+      "last_write_time": "2026-09-13T06:58:32.8796854Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1001-action-p0-g939-original-session-after-host-reconnect-20260913-1-result.json",
+      "length": 3076,
+      "last_write_time": "2026-09-13T06:58:40.0737347Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1009-action-p0-g1003-session-status-20260913-1-envelope.json",
+      "length": 1586,
+      "last_write_time": "2026-09-13T07:07:23.3134861Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1009-action-p0-g1003-session-status-20260913-1-result.json",
+      "length": 1605,
+      "last_write_time": "2026-09-13T07:07:30.2880423Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1017-action-p0-g939-tab-inventory-recovery-session-20260913-1-envelope.json",
+      "length": 1552,
+      "last_write_time": "2026-09-13T07:28:00.5887521Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1017-action-p0-g939-tab-inventory-recovery-session-20260913-1-result.json",
+      "length": 711,
+      "last_write_time": "2026-09-13T07:28:22.2088117Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1018-action-p0-stop-wedged-g939-session-20260913-1-envelope.json",
+      "length": 1566,
+      "last_write_time": "2026-09-13T07:58:30.1946066Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1018-action-p0-stop-wedged-g939-session-20260913-1-result.json",
+      "length": 2700,
+      "last_write_time": "2026-09-13T07:58:37.8024817Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1019-action-p0-drop-stale-g939-session-record-20260913-1-envelope.json",
+      "length": 1610,
+      "last_write_time": "2026-09-13T07:58:59.1343492Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1019-action-p0-drop-stale-g939-session-record-20260913-1-result.json",
+      "length": 1687,
+      "last_write_time": "2026-09-13T07:59:06.3981942Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1021-action-p0-chrome-use-help-session-recovery-20260913-1-envelope.json",
+      "length": 1300,
+      "last_write_time": "2026-09-13T08:00:15.5376025Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1021-action-p0-chrome-use-help-session-recovery-20260913-1-result.json",
+      "length": 71517,
+      "last_write_time": "2026-09-13T08:00:23.0163040Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1026-action-p0-named-session-inventory-after-runtime-recovery-20260913-1-envelope.json",
+      "length": 1431,
+      "last_write_time": "2026-09-13T08:03:45.9705201Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1026-action-p0-named-session-inventory-after-runtime-recovery-20260913-1-result.json",
+      "length": 1886,
+      "last_write_time": "2026-09-13T08:03:53.3851879Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1027-action-p0-drop-stale-recovery-session-20260913-1-envelope.json",
+      "length": 1512,
+      "last_write_time": "2026-09-13T08:04:14.9865738Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1027-action-p0-drop-stale-recovery-session-20260913-1-result.json",
+      "length": 1616,
+      "last_write_time": "2026-09-13T08:04:23.2259635Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1028-action-p0-fresh-named-session-smoke-20260913-1-envelope.json",
+      "length": 1493,
+      "last_write_time": "2026-09-13T08:04:39.1526247Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1028-action-p0-fresh-named-session-smoke-20260913-1-result.json",
+      "length": 681,
+      "last_write_time": "2026-09-13T08:05:00.9271070Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1029-action-p0-chrome-use-session-help-20260913-1-envelope.json",
+      "length": 1324,
+      "last_write_time": "2026-09-13T08:05:33.0140736Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1029-action-p0-chrome-use-session-help-20260913-1-result.json",
+      "length": 5536,
+      "last_write_time": "2026-09-13T08:05:40.4932754Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1030-action-p0-prune-diagnostic-session-daemons-20260913-1-envelope.json",
+      "length": 1411,
+      "last_write_time": "2026-09-13T08:06:01.8641032Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1030-action-p0-prune-diagnostic-session-daemons-20260913-1-result.json",
+      "length": 1679,
+      "last_write_time": "2026-09-13T08:06:10.3077750Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1031-action-p0-fresh-named-session-smoke-after-prune-20260913-1-envelope.json",
+      "length": 1527,
+      "last_write_time": "2026-09-13T08:06:32.9218060Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1031-action-p0-fresh-named-session-smoke-after-prune-20260913-1-result.json",
+      "length": 717,
+      "last_write_time": "2026-09-13T08:06:55.5476556Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1032-action-p0-fresh-named-session-tab-new-smoke-20260913-1-envelope.json",
+      "length": 1664,
+      "last_write_time": "2026-09-13T08:07:40.8747347Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1032-action-p0-fresh-named-session-tab-new-smoke-20260913-1-result.json",
+      "length": 705,
+      "last_write_time": "2026-09-13T08:08:13.5070421Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-113-action-final-production-health-001-envelope.json",
+      "length": 2778,
+      "last_write_time": "2026-09-11T06:01:00.5608858Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-113-action-final-production-health-001-result.json",
+      "length": 2750,
+      "last_write_time": "2026-09-11T06:01:12.0679217Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-116-action-orch-accept-v2-health-a-envelope.json",
+      "length": 616,
+      "last_write_time": "2026-09-10T06:05:41.8148604Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-116-action-orch-accept-v2-health-a-result.json",
+      "length": 1302,
+      "last_write_time": "2026-09-10T06:05:48.5048733Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-123-action-orch-accept-v2-pause-health-envelope.json",
+      "length": 572,
+      "last_write_time": "2026-09-10T06:20:32.2767690Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-123-action-orch-accept-v2-pause-health-result.json",
+      "length": 1313,
+      "last_write_time": "2026-09-10T06:20:39.9559302Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1233-action-inspect-installed-chrome-driver-submit-flow-20260914-1-envelope.json",
+      "length": 2337,
+      "last_write_time": "2026-09-14T01:09:38.8597669Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1233-action-inspect-installed-chrome-driver-submit-flow-20260914-1-result.json",
+      "length": 12434,
+      "last_write_time": "2026-09-14T01:09:46.4188951Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1234-action-inspect-chrome-turn-session-url-20260914-1-envelope.json",
+      "length": 2025,
+      "last_write_time": "2026-09-14T01:10:08.6343073Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1234-action-inspect-chrome-turn-session-url-20260914-1-result.json",
+      "length": 4909,
+      "last_write_time": "2026-09-14T01:10:16.4388591Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1279-action-git6-v4-r4-browser-session-forensic-20260914-1-envelope.json",
+      "length": 3692,
+      "last_write_time": "2026-09-14T11:33:06.1600715Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1279-action-git6-v4-r4-browser-session-forensic-20260914-1-result.json",
+      "length": 5702,
+      "last_write_time": "2026-09-14T11:33:15.3274457Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1289-action-git6-v4-new-session-preflight-after-cleanup-20260914-1-envelope.json",
+      "length": 3532,
+      "last_write_time": "2026-09-14T11:46:02.5385632Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1289-action-git6-v4-new-session-preflight-after-cleanup-20260914-1-result.json",
+      "length": 729,
+      "last_write_time": "2026-09-14T11:47:05.0349946Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1290-action-git6-v4-read-chrome-use-session-docs-20260914-1-envelope.json",
+      "length": 2020,
+      "last_write_time": "2026-09-14T11:47:46.7380197Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1290-action-git6-v4-read-chrome-use-session-docs-20260914-1-result.json",
+      "length": 63370,
+      "last_write_time": "2026-09-14T11:47:55.0568837Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\issue-1294-action-git6-v4-stuck-session-status-tabs-20260914-1-envelope.json",
+      "length": 2398,
+      "last_write_time": "2026-09-14T11:49:51.7351213Z"
+    }
+  ],
+  "findings": [
+    "Production scheduled task ScorpChatGptGuiBridge is Running.",
+    "Production bridge worker currently has two related processes; production singleton lock deployment is not proven.",
+    "Watchdog candidate now blocks restart when bridge workers exist without a scheduler root; production Watchdog remains Disabled, so this fix is not deployed.",
+    "Candidate branch remains isolated; no production process or task was changed."
+  ]
+}

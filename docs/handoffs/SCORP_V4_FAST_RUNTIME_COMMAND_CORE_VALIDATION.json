@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "bd67ae78c874d2a5f897101097db0578f01a5c00",
-  "implementation_commit": "2de844875fde31ed072e3945dceeedaf75c009f9",
+  "implementation_commit": "141a6450369984a765b753d091e14caec73b666d",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -26,7 +26,7 @@
     "live_verified": {
       "result": "BLOCKED",
       "reason": "新鲜 Windows Chrome Use 只读预检连续两次只看到同一个空的 created tab，未取得当前候选 ChatGPT composer 或唯一绑定；按 fail-closed 规则不发送。",
-      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_2DE8448.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_141A645.json",
       "rate_limit_recovery_preflight": {
         "result": "NOT_RATE_LIMITED",
         "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
@@ -38,11 +38,11 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "99dce4c2691c2e89465a3e615364381b3ee4e8f64cfbca942279a1cf7c1f0ec1"
+      "sha256": "86d925291a260585d8f6f9b939958c5db4eaf30f35901641848a62c1aff1de31"
     },
     "local_transport_live_verified": {
       "result": "PASS",
-      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_2DE8448.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_WINDOWS_LOOP_141A645.json",
       "scope": "Windows authenticated Named Pipe and stdio connector process loop",
       "tests": 11
     }
@@ -95,7 +95,8 @@
     "Local daemon rechecks its fenced lease immediately before journaling a decision or invoking an action handler",
     "Graceful daemon shutdown persists RELEASED lease state, preserves monotonic epoch, and does not consume crash restart budget",
     "Released or expired daemon lease cannot authorize Runtime Command mutations",
-    "SQLite schema v6 migration records daemon lease status and released_at metadata"
+    "SQLite schema v6 migration records daemon lease status and released_at metadata",
+    "Watchdog detects bridge workers without a scheduler root and fails closed without starting a duplicate process"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -106,12 +107,12 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
   ],
-  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_2DE8448.json",
+  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_141A645.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_2DE8448.json",
-    "sha256": "bcc555708add88b698e2add2b6815ddcfbd4f0121802958eafe9e0b04b75945d",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_141A645.json",
+    "sha256": "e8259f23d133525bad0299d4942f47938cfbede78c7ee4780c9d053aed5534b3",
     "file_count": 370
   },
-  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_2DE8448.json",
-  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_LOCAL_AUDIT_2DE8448.json"
+  "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_141A645.json",
+  "phase0_local_audit": "docs/handoffs/SCORP_V4_PHASE0_LOCAL_AUDIT_141A645.json"
 }
