@@ -119,5 +119,24 @@
   "limitations": [
     "This fixture proves partial real-code closure only.",
     "No code was changed in the fixture repository; T3 write/report path did not run."
-  ]
+  ],
+  "lifecycle_cleanup": {
+    "retired_turn_ids": [
+      "worker-intent-assignment-fc1f310afbe04ee09376a749915cea43",
+      "worker-intent-assignment-52fc73e5b3b440068d29f733a8383b87"
+    ],
+    "sessions": [
+      {
+        "session": "scorp-p0-turn-3c7b9240d87ec8e1",
+        "status": "RETIRED",
+        "cleanup": "STOPPED"
+      },
+      {
+        "session": "scorp-p0-turn-d7b952dd08af7c79",
+        "status": "RETIRED",
+        "cleanup": "STOPPED"
+      }
+    ],
+    "resend_count": 0
+  }
 }

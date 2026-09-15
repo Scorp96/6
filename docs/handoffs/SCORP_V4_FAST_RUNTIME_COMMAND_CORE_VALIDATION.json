@@ -38,7 +38,7 @@
         "result": "BLOCKED",
         "reason": "当前候选真实代码闭环已完成浏览器歧义核对并处理已捕获回复：T2 获得 COMPLETE，受限只读聚合通过并有本地执行回执；T1 获得 BLOCKED，按规则未执行其 execution_request；T3 因 T1 未接受保持 QUEUED。",
         "evidence_path": "docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json",
-        "evidence_sha256": "25daec0e69d91602d93cdcbaa8a19cb336083c3c76e913d6501c05c5ad4ec325",
+        "evidence_sha256": "ad2de6583a2bdaf6ba769e0f9a768c47b16ac2b56283fa1283c077996fcfef40",
         "tasks": {
           "T1": "BLOCKED",
           "T2": "ACCEPTED",
@@ -49,7 +49,8 @@
           "T1": "NOT_RUN_BY_FAIL_CLOSED_RULE",
           "T3": "NOT_RUN"
         },
-        "production_state_touched": false
+        "production_state_touched": false,
+        "lifecycle_cleanup": "T1/T2 terminal Worker sessions retired and stopped; resend_count=0"
       },
       "historical_live_canary": {
         "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
