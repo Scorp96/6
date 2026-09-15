@@ -34,11 +34,66 @@ class FailingCli(FakeCli):
         return await super().run_json(session, *args, timeout_seconds=timeout_seconds)
 
 
+class AmbiguousClickCli(FakeCli):
+    """A click transport timeout is reconciled by a later read-only snapshot."""
+
+    def __init__(self, responses):
+        super().__init__(responses)
+        self.click_attempts = 0
+
+    async def run_json(self, session, *args, timeout_seconds=30):
+        self.calls.append((session, list(args), timeout_seconds))
+        if list(args)[:1] == ["click"]:
+            self.click_attempts += 1
+            raise RuntimeError("simulated click timeout")
+        if not self.responses:
+            raise AssertionError(f"unexpected call: {session} {args}")
+        return self.responses.pop(0)
+
+
 def snapshot(text, refs=None):
     return {"data": {"refs": refs or {}, "snapshot": text}}
 
 
 class RateLimitRecoveryV4Tests(unittest.TestCase):
+    def test_ambiguous_ack_click_reconciles_clear_dialog_without_second_click(self):
+        cli = AmbiguousClickCli([
+            snapshot(
+                "请求过于频繁，请稍等几分钟后再重试",
+                {"e42": {"name": "确定", "role": "button"}},
+            ),
+            snapshot(
+                "ChatGPT Plus\nReady",
+                {"e99": {"name": "Message", "role": "textbox"}},
+            ),
+        ])
+        with tempfile.TemporaryDirectory() as td:
+            driver = ChromeUseActorDriverV3(cli, pathlib.Path(td) / "state.json")
+            result = asyncio.run(driver.recover_rate_limit_dialog("worker-session", max_wait_seconds=0))
+        self.assertEqual("RECOVERED", result["status"])
+        self.assertEqual("RATE_LIMIT_DIALOG_CLEARED_AFTER_AMBIGUOUS_ACK", result["reason"])
+        self.assertEqual(1, cli.click_attempts)
+        self.assertEqual(
+            [["snapshot", "-i"], ["click", "@e42"], ["snapshot", "-i"]],
+            [args for _, args, _ in cli.calls],
+        )
+
+    def test_ambiguous_ack_click_with_dialog_still_visible_fails_closed_without_refresh(self):
+        cli = AmbiguousClickCli([
+            snapshot(
+                "请求过于频繁，请稍等几分钟后再重试",
+                {"e42": {"name": "确定", "role": "button"}},
+            ),
+            snapshot("请求过于频繁，请稍等几分钟后再重试"),
+        ])
+        with tempfile.TemporaryDirectory() as td:
+            driver = ChromeUseActorDriverV3(cli, pathlib.Path(td) / "state.json")
+            result = asyncio.run(driver.recover_rate_limit_dialog("worker-session", max_wait_seconds=300))
+        self.assertEqual("BLOCKED", result["status"])
+        self.assertEqual("RATE_LIMIT_ACK_AMBIGUOUS", result["reason"])
+        self.assertEqual(1, cli.click_attempts)
+        self.assertEqual(0, len([args for _, args, _ in cli.calls if args[:1] == ["reload"]]))
+
     def test_ack_failure_fails_closed_without_retrying_or_raising(self):
         cli = FailingCli(
             [snapshot(

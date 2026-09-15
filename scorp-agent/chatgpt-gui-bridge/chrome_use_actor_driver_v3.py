@@ -667,15 +667,56 @@ class ChromeUseActorDriverV3:
                 "error": str(exc),
                 "snapshot_sha256": _sha(text),
             }
+        ambiguous_ack = False
         try:
             await self.cli.run_json(session, "click", ack_ref, timeout_seconds=self.timeout_seconds)
         except Exception as exc:
-            return {
-                "status": "BLOCKED",
-                "reason": "RATE_LIMIT_ACK_FAILED",
-                "error": str(exc),
-                "snapshot_sha256": _sha(text),
-            }
+            # A transport timeout is not proof that the acknowledgement did
+            # not reach the page.  Reconcile the same physical actor with a
+            # read-only snapshot before deciding whether recovery can continue.
+            # Other click failures are deterministic failures and remain
+            # blocked without an extra browser operation.
+            error_text = str(exc or "").casefold()
+            if not any(marker in error_text for marker in ("timeout", "timed out", "deadline", "eof")):
+                return {
+                    "status": "BLOCKED",
+                    "reason": "RATE_LIMIT_ACK_FAILED",
+                    "error": str(exc),
+                    "snapshot_sha256": _sha(text),
+                }
+            ambiguous_ack = True
+            try:
+                payload = await read_snapshot()
+            except Exception as reconcile_exc:
+                return {
+                    "status": "BLOCKED",
+                    "reason": "RATE_LIMIT_ACK_AMBIGUOUS_READ_FAILED",
+                    "error": str(reconcile_exc),
+                    "click_error": str(exc),
+                    "snapshot_sha256": _sha(text),
+                }
+            text = _render_payload(payload)
+            if chatgpt_throttle_visible(text):
+                return {
+                    "status": "BLOCKED",
+                    "reason": "RATE_LIMIT_ACK_AMBIGUOUS",
+                    "click_error": str(exc),
+                    "snapshot_sha256": _sha(text),
+                }
+            classification = classify_chatgpt_snapshot(text, session)
+            if classification["status"] in {"AUTHENTICATION_REQUIRED", "CAPTCHA_REQUIRED"}:
+                return {
+                    "status": "BLOCKED",
+                    "reason": "RATE_LIMIT_RECOVERY_REQUIRES_USER_AUTH",
+                    "page_status": classification["status"],
+                    "snapshot_sha256": _sha(text),
+                }
+            if classification["status"] == "AUTHENTICATED" and _composer_ready_or_unreported(payload):
+                return {
+                    "status": "RECOVERED",
+                    "reason": "RATE_LIMIT_DIALOG_CLEARED_AFTER_AMBIGUOUS_ACK",
+                    "snapshot_sha256": _sha(text),
+                }
 
         deadline = self.clock() + max_wait
         while True:
@@ -700,7 +741,11 @@ class ChromeUseActorDriverV3:
                 if _composer_ready_or_unreported(payload):
                     return {
                         "status": "RECOVERED",
-                        "reason": "RATE_LIMIT_DIALOG_CLEARED",
+                        "reason": (
+                            "RATE_LIMIT_DIALOG_CLEARED_AFTER_AMBIGUOUS_ACK"
+                            if ambiguous_ack
+                            else "RATE_LIMIT_DIALOG_CLEARED"
+                        ),
                         "snapshot_sha256": _sha(text),
                     }
             if classification["status"] in {"AUTHENTICATION_REQUIRED", "CAPTCHA_REQUIRED"}:
@@ -725,7 +770,11 @@ class ChromeUseActorDriverV3:
                         if _composer_ready_or_unreported(payload):
                             return {
                                 "status": "RECOVERED",
-                                "reason": "RATE_LIMIT_DIALOG_CLEARED_AFTER_REFRESH",
+                                "reason": (
+                                    "RATE_LIMIT_DIALOG_CLEARED_AFTER_AMBIGUOUS_ACK_AFTER_REFRESH"
+                                    if ambiguous_ack
+                                    else "RATE_LIMIT_DIALOG_CLEARED_AFTER_REFRESH"
+                                ),
                                 "snapshot_sha256": _sha(text),
                             }
                     if classification["status"] in {"AUTHENTICATION_REQUIRED", "CAPTCHA_REQUIRED"}:
