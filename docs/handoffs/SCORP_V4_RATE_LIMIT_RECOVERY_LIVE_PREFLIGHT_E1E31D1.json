@@ -1,0 +1,13 @@
+{
+  "format": "scorp-v4-rate-limit-recovery-live-preflight/1",
+  "candidate_commit": "e1e31d1eb2a0d996fb20d5f63cd04a3f123e46bb",
+  "observed_at_utc": "2026-09-15T01:01:47.739997Z",
+  "session": "scorp-p0-turn-16388812d0915356",
+  "result": {
+    "status": "NOT_RATE_LIMITED",
+    "reason": "RATE_LIMIT_DIALOG_NOT_VISIBLE",
+    "snapshot_sha256": "9c7121b7efc8b07146fdaf4ecb0bcd534f1936c6f2e182ae3f761d1dc88bd4f5"
+  },
+  "action": "READ_ONLY_NO_ACK_CLICK",
+  "evidence_boundary": "No rate-limit dialog was visible; this proves the no-click branch only, not dialog acknowledgement or five-minute recovery."
+}

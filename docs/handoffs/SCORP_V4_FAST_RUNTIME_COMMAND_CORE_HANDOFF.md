@@ -32,10 +32,22 @@ Runtime daemon 启动时可以省略固定的 `--daemon-epoch`，由 SQLite leas
 
 普通 GPT 的交接方式是：它只生成上述结构化 JSON 请求，读取 JSON 响应中的 `status`、`state_version`、`master_epoch`、`generation`、`receipt_id` 和 `error`，然后根据 `runtime.status` 再构造下一次 CAS 请求。它不能把自然语言中的“继续”“重试”当作浏览器盲重发许可。`MAY_HAVE_SUBMITTED`、`BLOCKED_AMBIGUOUS`、登录失效、验证码和 Windows 交互会话不可用都必须暂停并报告。
 
+## 请求限制恢复边界
+
+当前候选在 `chrome_use_actor_driver_v3.py` 提供显式的
+`recover_rate_limit_dialog()`。它只在新鲜 Chrome Use 无障碍快照同时包含已知
+请求限制文案时，解析唯一的确认按钮（`确定`、`好的`、`明白`、`明白了`、
+`Got it`、`OK` 或 `Okay`）并点击一次；随后只读轮询页面，默认每 5 秒一次、
+最长 300 秒。页面恢复到已认证状态才返回 `RECOVERED`。按钮缺失/重复、登录、
+验证码、未知页面或超时均保持 `BLOCKED`，不会填充、点击发送、强制盲刷新或
+重放之前不明确的浏览器提交。Master A 运行入口和双 Worker canary 的 auth
+probe 都经过这一边界；该恢复动作本身不代表消息已发送。
+
 ## 当前证据边界
 
-- `TEST_VERIFIED`: V4 核心 169 个测试通过，GUI 桥接 475 个测试通过，stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
-- `LIVE_VERIFIED`: 当前只读 Chrome 预检仍显示 ChatGPT “请求过于频繁”；本分支未重新点击真实 ChatGPT 提交，不能盲重发。
+- `TEST_VERIFIED`: V4 核心 169 个测试通过，GUI 桥接 479 个测试通过（含请求限制确认/等待/超时和安装依赖闭包回归），stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `LIVE_VERIFIED`: 当前候选单 Worker canary 已到真实 Chrome Use 发送控制阶段，但因 `CHROME_USE_SEND_REF_COUNT_0` fail-closed；隔离 driver state 没有 conversation URL，证据见 `SCORP_V4_LIVE_CANARY_FAILURE_A060ADC.json`，不能盲重发。
+- 请求限制 live preflight：当前真实页面没有限制弹窗，因此只记录了不点击分支，证据见 `SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json`；这不等于真实弹窗确认和 5 分钟等待已验收。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 
 机器可读记录见同目录的 `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`。
