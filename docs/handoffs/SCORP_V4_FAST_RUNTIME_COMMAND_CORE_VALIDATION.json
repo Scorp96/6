@@ -25,7 +25,7 @@
     },
     "live_verified": {
       "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
-      "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾；没有重复提交。该证据只证明当前候选的真实浏览器提交/核对边界，不证明真实代码工作负载或生产切换。",
+      "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据见 `SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json`；该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。 证据中的认证会话清理为 CLEANUP_BLOCKED，未盲目重试清理。",
       "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
       "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
       "rate_limit_recovery_preflight": {
@@ -80,7 +80,9 @@
           "fixed marker prompts only",
           "no repository work",
           "no production cutover or unattended soak"
-        ]
+        ],
+        "cleanup_status": "CLEANUP_BLOCKED",
+        "cleanup_note": "Canary evidence records the retired auth session cleanup as CLEANUP_BLOCKED; no blind cleanup retry was performed."
       },
       "evidence_sha256": "780adf2205263a93f95e6acd29f37715c471e03414068da673913c7e1d27c59a"
     },
