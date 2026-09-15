@@ -128,7 +128,13 @@ class LocalDaemon:
             error = f"ACTION_HANDLER_REQUIRED:{decision.action}"
         elif handler is not None:
             try:
-                handler(decision)
+                result = handler(decision)
+                if isinstance(result, Mapping):
+                    result_status = str(result.get("status") or "").strip().upper()
+                    if result_status in {"BLOCKED", "FAIL", "FAILED", "ERROR", "REJECTED"}:
+                        status = "BLOCKED"
+                        reason = str(result.get("reason") or result_status).strip()
+                        error = f"ACTION_BLOCKED:{reason}"
             except Exception as exc:  # fail closed but leave the decision durable
                 status = "BLOCKED"
                 error = f"ACTION_FAILED:{type(exc).__name__}"

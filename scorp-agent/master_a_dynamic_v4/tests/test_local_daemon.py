@@ -114,6 +114,25 @@ class LocalDaemonTests(unittest.TestCase):
             self.assertEqual("BLOCKED", health["status"])
             self.assertEqual("ACTION_HANDLER_REQUIRED:ASSIGN_WORKER", health["error"])
 
+    def test_action_handler_blocked_result_is_not_reported_healthy(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 1, 1, 0),
+                action_handlers={"ASSIGN_WORKER": lambda _decision: {"status": "BLOCKED", "reason": "AUTH_REQUIRED"}},
+                health_path=root / "health.json",
+            )
+            result = daemon.run_once()
+            health = json.loads((root / "health.json").read_text(encoding="utf-8"))
+            self.assertEqual("ASSIGN_WORKER", result.action)
+            self.assertEqual("BLOCKED", health["status"])
+            self.assertEqual("ACTION_BLOCKED:AUTH_REQUIRED", health["error"])
+
     def test_idle_updates_observation_but_not_progress_timestamp(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
