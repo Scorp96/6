@@ -46,7 +46,7 @@
 - `ScorpFullAutoOrchestrator = Ready`
 - `ScorpV4SelfUpgrade5561f44 = Ready`
 
-没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。现场还观察到多个旧的 `chrome-use.exe` 进程和生产 `bridge_worker.py` 进程；这证明存在历史 transport/session 生命周期残留，但不提供安全依据去全局杀进程或切换生产任务。进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
+没有证据表明专用的 V4 Runtime daemon Scheduled Task 已完成生产注册；V4 daemon installer 仍是候选安装入口。现场还观察到两个同时存在的旧 `bridge_worker.py` 实例：PID 7876 使用 bundled Python，PID 13488 使用 uv Python，二者命令参数相同且后者的父进程是前者；`health.json` 当前为 `ERROR`，错误为 Chrome Use tab 已丢失。现场还观察到多个旧的 `chrome-use.exe` 进程；这证明存在历史 transport/session 生命周期残留和当前旧桥接的重复进程风险，但不提供安全依据去全局杀进程或切换生产任务。候选分支已加入进程锁，但尚未部署到生产任务。进程存在不等于 UI 自动化可用，也不等于候选版本正在运行。
 
 ## CURRENT_SQLITE_STATE_MODEL
 
@@ -100,6 +100,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - validation JSON：可解析。
 - 当前候选 validation：`TEST_VERIFIED`（代码候选 `1c19065`）。
 - 当前候选真实 Chrome：`LIVE_VERIFIED = BLOCKED`，原因是当前 canary 的 Chrome Use send ref 无法解析。
+- Windows supervision snapshot：见 `SCORP_V4_WINDOWS_SUPERVISION_AUDIT_1C19065.json`；生产旧 bridge worker 曾出现重复进程，候选进程锁仅在隔离代码中验证。
 - 当前候选：`ACCEPTED = false`。
 - 生产切换：未授权、未执行。
 
@@ -116,7 +117,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - 现有 V4 regression 与 GUI bridge regression。
 - 请求限制恢复：明确确认按钮只点击一次，最多等待 300 秒并只读复核；窗口结束仍限流时最多刷新一次；未知按钮、登录和验证码保持阻塞。
 - daemon 缺少任何可执行 arbiter 动作处理器时 fail-closed 为 `BLOCKED`，不会伪报 `HEALTHY`。
-- daemon 缺少任何可执行 arbiter 动作处理器时 fail-closed 为 `BLOCKED`。
+- bridge worker 启动前使用 OS 进程锁，重复进程直接退出；真实 Windows 子进程竞争测试通过。
 
 ## PARTIAL
 
@@ -164,6 +165,7 @@ LocalExecutionAdapter 对 project、assignment、master epoch、lease、allowed 
 - P0 auth/rate-limit human boundary：已实现有界确认/等待/单次刷新恢复；当前 live canary 仍有浏览器状态歧义，不能把恢复动作当作发送成功。
 - P0 current-candidate browser exactly-once：未达到 LIVE_VERIFIED。
 - P0 dedicated production daemon authority：未证明已安装。
+- P0 legacy bridge singleton：当前生产现场曾有两个同命令 bridge worker；候选已修复启动门禁，但生产尚未切换，因此现场 P0 仍未关闭。
 
 ## P1_FINDINGS
 

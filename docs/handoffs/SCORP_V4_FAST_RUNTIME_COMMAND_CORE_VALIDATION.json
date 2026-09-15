@@ -37,7 +37,7 @@
     "acceptance_boundary": "单元/离线回归通过不等于真实浏览器或生产切换通过。",
     "phase0_audit": {
       "path": "docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md",
-      "sha256": "92A5861A795DC419058A3740D98CE397224EFFFC682593D82E266D5D0AD3AFA4"
+      "sha256": "335809C00088EA712DEB9E697D271785342090EBEE8FBDE3F3B113ADE24B48BF"
     },
     "local_transport_live_verified": {
       "result": "PASS",
@@ -87,6 +87,7 @@
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "current single-worker canary is blocked by ambiguous Chrome Use browser state; no blind retry or historical intent replay was attempted"
   ],
+  "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_1C19065.json",
   "candidate_manifest": {
     "path": "C:\\ScorpAgent\\v4-87b4695-candidate-manifest.json",
     "sha256": "11fbb719e98fda99c8fd3e69cfec9587b4131488423c6db936cbba72154957de",

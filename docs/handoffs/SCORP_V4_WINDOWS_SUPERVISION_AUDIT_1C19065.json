@@ -1,0 +1,43 @@
+{
+  "evidence_id": "SCORP_V4_WINDOWS_SUPERVISION_AUDIT_1C19065",
+  "observed_at": "2026-09-15T09:58:31+08:00",
+  "candidate_code_commit": "1c19065ba9817725e384cc1265344e61b964b1cd",
+  "production_state_changed": false,
+  "scheduled_tasks": {
+    "ScorpChatGptGuiBridge": "Running",
+    "ScorpChatGptGuiBridgeWatchdog": "Disabled",
+    "ScorpComputerAgent": "Running",
+    "ScorpFullAutoOrchestrator": "Ready",
+    "ScorpV4SelfUpgrade5561f44": "Ready"
+  },
+  "bridge_worker_processes": [
+    {
+      "pid": 7876,
+      "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+      "role": "legacy bridge worker",
+      "ownership": "scheduled task process"
+    },
+    {
+      "pid": 13488,
+      "python": "C:\\Users\\scorp\\AppData\\Roaming\\uv\\python\\cpython-3.14-windows-x86_64-none\\python.exe",
+      "role": "legacy bridge worker",
+      "ownership": "child of PID 7876; duplicate command line"
+    }
+  ],
+  "health": {
+    "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json",
+    "status": "ERROR",
+    "reason": "Chrome Use reported that the driven tab was gone; no silent retarget was performed"
+  },
+  "candidate_remediation": {
+    "component": "BridgeProcessLease",
+    "behavior": "duplicate bridge process exits before runtime startup",
+    "test": "real Windows child-process lock competition",
+    "result": "PASS"
+  },
+  "limitations": [
+    "candidate process lock has not been deployed to the production Scheduled Task",
+    "no production daemon cutover was authorized",
+    "stale chrome-use processes were not killed or globally cleaned"
+  ]
+}
