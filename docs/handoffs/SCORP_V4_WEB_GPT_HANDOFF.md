@@ -2,7 +2,7 @@
 
 这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
 
-Current candidate e7ca0ae5a2b199557d77982d29705a87f6177899 is the GPT-5.6 Sol compatibility path. Earlier daemon and Chrome Use receipts are historical only and cannot be inherited after this code change. The current candidate now has a fresh isolated two-Worker browser submit/capture receipt; its rate-limit recovery behavior is offline-tested, while the real popup branch remains LIVE_UNVERIFIED. The canary did not perform repository work or authorize production cutover. This does not establish real-code workload, Master rebind, unattended stability, or production cutover.
+Current candidate 5bf79536c03de8ae25a507723a34f4e162fe8bfa is the GPT-5.6 Sol compatibility path. Earlier daemon and Chrome Use receipts are historical only and cannot be inherited after this code change. The previous candidate had a fresh isolated two-Worker browser submit/capture receipt; this candidate adds pre-submit rate-limit recovery, so the real browser receipt must be rerun and the popup branch remains LIVE_UNVERIFIED. The canary did not perform repository work or authorize production cutover. This does not establish real-code workload, Master rebind, unattended stability, or production cutover.
 
 ## 先判断你现在是哪一种模式
 

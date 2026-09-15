@@ -4,7 +4,7 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "79610ae3f3864e133f750f0c9dfde40b17a91def",
-  "implementation_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
+  "implementation_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
@@ -13,7 +13,7 @@
       },
       "gui_bridge_tests": {
         "result": "PASS",
-        "count": 509,
+        "count": 510,
         "pythonpath": [
           "scorp-agent",
           "scorp-agent/chatgpt-gui-bridge"
@@ -24,8 +24,8 @@
       "candidate_validation_script": "PASS"
     },
     "live_verified": {
-      "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
-      "reason": "当前候选已在隔离 Windows Chrome Use 会话完成两个固定无害 Worker 提交、两个响应捕获和只读收尾，重复提交为 0。证据中的认证会话清理遗留一个已知的、未激活的 about:blank created tab；单次定向关闭因 Cannot close the last tab 被拒绝，未执行全局清理或强制停止。该结果不覆盖真实代码工作负载、Master 重绑定或生产切换。",
+      "result": "NOT_RUN_AFTER_CODE_CHANGE",
+      "reason": "当前候选在上一份真实浏览器证据之后新增了发送前请求限制恢复逻辑；本提交尚未重新执行真实浏览器 canary，因此旧 canary 不能升级为当前候选证据。",
       "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
       "read_only_preflight_evidence": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
       "rate_limit_recovery_preflight": {
@@ -61,30 +61,11 @@
         "production_state_touched": false
       },
       "current_candidate_canary": {
-        "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
-        "candidate_code_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
-        "candidate_manifest_sha256": "d3b10a0e762541b9fdb86dbb7fbb6a533a057f60ff38061f63a8b853a8f87698",
-        "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
-        "evidence_sha256": "780adf2205263a93f95e6acd29f37715c471e03414068da673913c7e1d27c59a",
-        "project_id": "scorp-v4-live-two-worker-canary",
-        "worker_count": 2,
-        "submit_actions": 2,
-        "response_messages": 2,
-        "duplicate_submits": 0,
-        "retry_count": 0,
-        "conversation_urls": [
-          "https://chatgpt.com/c/6aa92a61-f0e0-83e8-9b2d-a6c723d665c7",
-          "https://chatgpt.com/c/6aa92a69-f2dc-83ee-afcc-029764b168b5"
-        ],
-        "limitations": [
-          "fixed marker prompts only",
-          "no repository work",
-          "no production cutover or unattended soak"
-        ],
-        "cleanup_status": "CLEANUP_BLOCKED",
-        "cleanup_note": "The retired diagnostic session left one created, inactive about:blank tab. Targeted tab close was attempted once and returned BLOCKED_LAST_TAB; global cleanup and force stop were not attempted.",
-        "cleanup_evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CLEANUP_BLOCKED_E7CA0AE.json",
-        "cleanup_evidence_sha256": "03ffb9e27b053af742d764e81bf38eb77b39fd52442505ab415da19bab129178"
+        "result": "NOT_RUN_AFTER_CODE_CHANGE",
+        "candidate_code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
+        "superseded_candidate_code_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
+        "superseded_evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
+        "reason": "发送前请求限制恢复新增后，必须重新执行真实浏览器 canary；旧提交的双 Worker 结果仅保留为历史背景。"
       },
       "evidence_sha256": "780adf2205263a93f95e6acd29f37715c471e03414068da673913c7e1d27c59a"
     },
@@ -165,7 +146,8 @@
     "Windows MCP Worker pre-input rate-limit dialog recovery clicks one recognized acknowledgement, waits up to five minutes, refreshes at most once, and never resends ambiguously; recovery is reported only after a unique composer textbox is present",
     "blocked Worker result cannot execute its embedded local request; non-COMPLETE results remain BLOCKED",
     "ambiguous browser submit observations retain a valid observed conversation URL for read-only reconciliation",
-    "runtime mutation receipt durability failure returns machine-readable ERROR after transaction rollback"
+    "runtime mutation receipt durability failure returns machine-readable ERROR after transaction rollback",
+    "旧 GUI transport 在 prompt 已填入、发送前出现请求限制时，确认一次后最多等待 300 秒、必要时单次刷新，并用新 textbox ref 重新填入同一 prompt；再次受限直接 BLOCKED"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -173,15 +155,16 @@
     "24-hour unattended soak",
     "native Astra acceptance; this task used the requested Sol compatibility route",
     "full product completion gate with release identity and production candidate remains unaccepted",
-    "真实请求限制弹窗分支仍未获得 LIVE_VERIFIED；本次当前候选 canary 未出现限制弹窗，未人为制造该外部状态",
+    "真实请求限制弹窗分支仍未获得 LIVE_VERIFIED；本次上一候选 canary 未出现限制弹窗，未人为制造该外部状态",
     "current candidate real-code workload was not run through live ChatGPT Worker conversations",
-    "second request-limit requirement was not specified"
+    "second request-limit requirement was not specified",
+    "本提交的真实浏览器 canary 尚未重跑；上一候选 live receipt 不绑定本提交"
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E7CA0AE.json",
-    "sha256": "cdd4c1b8156b4f89cb8b2732d8bd48154cd2d7044476318a213155c15c542efd",
-    "manifest_sha256": "d3b10a0e762541b9fdb86dbb7fbb6a533a057f60ff38061f63a8b853a8f87698",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json",
+    "sha256": "59c744103007a236e26c1ea17a2e4624a5e36b9e78d23c5649d544e3de9f010b",
+    "manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e",
     "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
@@ -208,7 +191,7 @@
     },
     "gui_bridge_tests": {
       "result": "PASS",
-      "count": 509,
+      "count": 510,
       "pythonpath": [
         "scorp-agent",
         "scorp-agent/chatgpt-gui-bridge"

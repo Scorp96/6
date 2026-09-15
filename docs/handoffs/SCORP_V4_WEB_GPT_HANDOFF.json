@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
+  "candidate_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
   "evidence_binding": {
-    "validated_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
+    "validated_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_E7CA0AE.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_5BF7953.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_CANARY_CURRENT_E7CA0AE.json",
-    "binding_note": "This handoff describes the e7ca0ae5a2b199557d77982d29705a87f6177899 code candidate. Offline validation is current, and the current candidate has a fresh isolated two-Worker browser submit/capture receipt; real-code workload, Master replacement, unattended soak, and production acceptance remain unresolved.",
-    "manifest_sha256": "d3b10a0e762541b9fdb86dbb7fbb6a533a057f60ff38061f63a8b853a8f87698"
+    "binding_note": "This handoff describes the 5bf79536c03de8ae25a507723a34f4e162fe8bfa code candidate. Offline validation is current; the prior e7ca0ae browser receipt is historical and is not evidence for this post-submit rate-limit recovery change. Real popup recovery, real-code workload, Master replacement, unattended soak, and production acceptance remain unresolved.",
+    "manifest_sha256": "09b26d15101d4a415a2f5ba93ccfbbced3f94cb2da20da3b1e474d3ec6e0b76e"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
