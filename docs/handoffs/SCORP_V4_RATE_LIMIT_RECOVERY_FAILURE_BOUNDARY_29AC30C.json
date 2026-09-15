@@ -1,0 +1,40 @@
+{
+  "format": "scorp-v4-rate-limit-recovery-failure-boundary/1",
+  "candidate_commit": "29ac30c9fd0f96dad072863508e4ea3983a5df43",
+  "status": "TEST_VERIFIED",
+  "scope": "确认按钮点击或等待期间只读读取失败时 fail-closed，不刷新、不重试、不冒泡为可继续动作。",
+  "focused_tests": {
+    "command": "$env:PYTHONPATH=(Join-Path $PWD 'scorp-agent') + ';' + (Join-Path $PWD 'scorp-agent/chatgpt-gui-bridge'); & C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe -m unittest scorp-agent/chatgpt-gui-bridge/tests/test_rate_limit_recovery_v4.py scorp-agent/chatgpt-gui-bridge/tests/test_v4_auth.py",
+    "result": "10/10 PASS"
+  },
+  "full_regression": {
+    "command": "scripts/run-candidate-validation.ps1",
+    "result": "V4 173/173 PASS; GUI 489/489 PASS; CANDIDATE_VALIDATION=PASS"
+  },
+  "new_cases": [
+    {
+      "case": "ack transport failure",
+      "expected": "BLOCKED/RATE_LIMIT_ACK_FAILED; no retry or raise"
+    },
+    {
+      "case": "post-ack snapshot read failure",
+      "expected": "BLOCKED/RATE_LIMIT_RECOVERY_READ_FAILED; no reload or retry"
+    }
+  ],
+  "live_verification": {
+    "result": "UNVERIFIED",
+    "reason": "当前真实弹窗确认分支未取得 LIVE_VERIFIED；现有浏览器门禁仍 fail-closed。"
+  },
+  "artifacts": {
+    "scorp-agent/chatgpt-gui-bridge/chrome_use_actor_driver_v3.py": {
+      "sha256": "0cb5ecda9febe76ef454afb38775eb4698b4d5f8b56e4df22c489af794938c0c",
+      "size": 44404
+    },
+    "scorp-agent/chatgpt-gui-bridge/tests/test_rate_limit_recovery_v4.py": {
+      "sha256": "67bbefbf7b032b72b25273cd55041cc7d3fd0cc0b54964a601b19a0fdfd621c2",
+      "size": 7562
+    }
+  },
+  "production_changed": false,
+  "artifact_sha256": "428cae789b38d03d59cc10247395c84b570b028a962d0b6dc22acd4496bd358e"
+}
