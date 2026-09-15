@@ -1,12 +1,12 @@
 {
   "format": "scorp-v4-phase0-current-audit/1",
-  "observed_at_utc": "2026-09-15T12:21:00Z",
+  "observed_at_utc": "2026-09-15T12:31:00Z",
   "repository": "Scorp96/6",
   "remote_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
   "current_worktree": {
     "path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
     "branch": "feature/v4-fast-runtime-command-core",
-    "head": "1309f2bd3c4a09b2f299b86bf73868241fa4dbab",
+    "head": "5adcb7bec8b5b5af01edda0feb134c85364cc039",
     "git_status": "CLEAN"
   },
   "production_checkout": {
@@ -28,7 +28,7 @@
   },
   "candidate": {
     "code_commit": "5bf79536c03de8ae25a507723a34f4e162fe8bfa",
-    "docs_head": "1309f2bd3c4a09b2f299b86bf73868241fa4dbab",
+    "docs_head": "5adcb7bec8b5b5af01edda0feb134c85364cc039",
     "worktree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core"
   },
   "runtime_paths": {
@@ -80,7 +80,7 @@
   ],
   "production_state_touched": false,
   "required_phase0_sections": {
-    "CURRENT_HEAD": "1309f2bd3c4a09b2f299b86bf73868241fa4dbab",
+    "CURRENT_HEAD": "5adcb7bec8b5b5af01edda0feb134c85364cc039",
     "REMOTE_MAIN_HEAD": "79610ae3f3864e133f750f0c9dfde40b17a91def",
     "BRANCH": "feature/v4-fast-runtime-command-core",
     "WORKTREE": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
