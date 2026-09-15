@@ -1,0 +1,294 @@
+{
+  "format": "scorp-v4-phase0-current-audit/3",
+  "observed_at_utc": "2026-09-15T11:15:39.2532924Z",
+  "checkout_head": "15340aa09775ca0049e0f8099a2d28ef2ec0779f",
+  "candidate_code_commit": "e7ca0ae5a2b199557d77982d29705a87f6177899",
+  "candidate_package_commit": "15340aa09775ca0049e0f8099a2d28ef2ec0779f",
+  "candidate_branch": "feature/v4-fast-runtime-command-core",
+  "origin_main_head": "79610ae3f3864e133f750f0c9dfde40b17a91def",
+  "production_checkout_head": "bd67ae78c874d2a5f897101097db0578f01a5c00",
+  "production_state_changed": false,
+  "git_status": {
+    "clean": true,
+    "porcelain": [],
+    "unpublished_commits": 191
+  },
+  "worktree_path": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
+  "active_relevant_processes": [
+    {
+      "ProcessId": 7876,
+      "ParentProcessId": 904,
+      "Name": "python.exe"
+    },
+    {
+      "ProcessId": 13488,
+      "ParentProcessId": 7876,
+      "Name": "python.exe"
+    },
+    {
+      "ProcessId": 15028,
+      "ParentProcessId": 8452,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 15052,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 14568,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 8420,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 12964,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 14736,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 15024,
+      "ParentProcessId": 14912,
+      "Name": "chrome-use.exe"
+    },
+    {
+      "ProcessId": 3676,
+      "ParentProcessId": 14268,
+      "Name": "chrome-use.exe"
+    },
+    {
+      "ProcessId": 5068,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 20736,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 22460,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 4672,
+      "ParentProcessId": 17592,
+      "Name": "python.exe"
+    },
+    {
+      "ProcessId": 2136,
+      "ParentProcessId": 4672,
+      "Name": "python.exe"
+    },
+    {
+      "ProcessId": 22388,
+      "ParentProcessId": 27352,
+      "Name": "python.exe"
+    },
+    {
+      "ProcessId": 18124,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 26256,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 18520,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    },
+    {
+      "ProcessId": 10660,
+      "ParentProcessId": 15028,
+      "Name": "chrome.exe"
+    }
+  ],
+  "scheduled_tasks": [
+    {
+      "TaskName": "ScorpChatGptGuiBridge",
+      "State": "Running"
+    },
+    {
+      "TaskName": "ScorpChatGptGuiBridgeWatchdog",
+      "State": "Disabled"
+    },
+    {
+      "TaskName": "ScorpComputerAgent",
+      "State": "Running"
+    },
+    {
+      "TaskName": "ScorpFullAutoOrchestrator",
+      "State": "Ready"
+    },
+    {
+      "TaskName": "ScorpV4SelfUpgrade5561f44",
+      "State": "Ready"
+    }
+  ],
+  "services": [
+    {
+      "Name": "ScorpPrivilegedBroker",
+      "Status": "Running",
+      "StartType": 2
+    }
+  ],
+  "runtime_paths": [
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge",
+      "exists": true
+    },
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state",
+      "exists": true
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active",
+      "exists": true
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4",
+      "exists": true
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab",
+      "exists": true
+    }
+  ],
+  "sqlite_paths": [
+    {
+      "path": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
+      "exists": true,
+      "length": 188416,
+      "last_write_utc": "2026-09-15T06:41:12.4501411Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab\\state.sqlite3",
+      "exists": true,
+      "length": 188416,
+      "last_write_utc": "2026-09-13T23:20:40.2343077Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\v4-core-lab\\short-soak.sqlite3",
+      "exists": true,
+      "length": 483328,
+      "last_write_utc": "2026-09-13T23:14:49.0393754Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v4\\state.sqlite3",
+      "exists": false,
+      "length": null,
+      "last_write_utc": null
+    }
+  ],
+  "driver_state_paths": [
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json",
+      "exists": true,
+      "length": 1835,
+      "last_write_utc": "2026-09-14T02:21:19.7045761Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\master-window-lease.json",
+      "exists": true,
+      "length": 544,
+      "last_write_utc": "2026-09-15T11:01:24.9070373Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\state-v3\\active\\project-state.json",
+      "exists": true,
+      "length": 2145,
+      "last_write_utc": "2026-09-13T14:33:41.8131368Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json",
+      "exists": true,
+      "length": 812,
+      "last_write_utc": "2026-09-15T11:15:15.3382922Z"
+    },
+    {
+      "path": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\watchdog-health.json",
+      "exists": true,
+      "length": 248,
+      "last_write_utc": "2026-09-12T08:58:37.8563042Z"
+    }
+  ],
+  "classification": {
+    "implemented": [
+      "Versioned bounded Runtime protocol and command registry",
+      "SQLite durable receipts, CAS, daemon/master/generation fencing",
+      "Operator pause/resume/cancel/supersede/emergency-stop",
+      "Deterministic arbiter stall ordering and IDLE/progress separation",
+      "Rate-limit acknowledgement, five-minute read-only wait, one refresh, and composer-readiness gate",
+      "Authenticated stdio/Named Pipe local transport loop tests"
+    ],
+    "partial": [
+      "stdio/Named Pipe transport is tested but no approved ChatGPT host connector is registered",
+      "daemon supervision seam exists but production scheduled-task cutover is not proven",
+      "browser lifecycle and two-worker dispatch are implemented offline but current-candidate live dual-worker proof is absent",
+      "production SQLite remains old/incomplete and has not been migrated"
+    ],
+    "missing": [
+      "current-candidate live ChatGPT send/capture",
+      "real two-worker browser conversation proof",
+      "production daemon cutover",
+      "real rate-limit dialog branch evidence",
+      "24-hour unattended soak",
+      "formal GPT-to-local connector registration"
+    ],
+    "incorrect": [
+      "treating unit tests, assignments, or existing browser processes as live acceptance",
+      "blind resend after ambiguous browser side effect",
+      "opening an incomplete legacy SQLite file as current V4 authority"
+    ],
+    "unverified": [
+      "Windows restart and hard-crash recovery at full product scope",
+      "physical Master conversation replacement live path",
+      "real Worker local execution/Git workload binding",
+      "native Astra acceptance"
+    ]
+  },
+  "p0_findings": [
+    "Production bridge health and task state are external live state; this audit does not mutate them",
+    "Current candidate live browser exactly-once is not verified"
+  ],
+  "p1_findings": [
+    "Formal approved ChatGPT host connector is not registered",
+    "Live parallel Worker isolation remains unverified",
+    "Production SQLite requires explicit migration and valid root contract"
+  ],
+  "p2_findings": [
+    "Goal/World/Memory/Learning layers remain outside this phase",
+    "Codex provider live actuator proof remains missing"
+  ],
+  "current_execution_ceiling": "隔离候选可运行事务核心、命令协议、故障注入、Windows transport loop、显式 SQLite 迁移和只读浏览器预检；不能安全证明当前候选已向 ChatGPT 发送新 prompt",
+  "current_chat_dependencies": [
+    "Windows interactive session logged in",
+    "ChatGPT valid login/subscription",
+    "no CAPTCHA/security challenge/rate-limit blocker at send time",
+    "fresh candidate SHA and read-only browser preflight"
+  ],
+  "current_manual_steps": [
+    "保持生产任务不切换",
+    "生产桥接健康恢复前不发送新的浏览器任务",
+    "由操作者单独授权当前候选 canary",
+    "记录 conversation URL/response marker/candidate SHA/evidence receipt"
+  ],
+  "current_codex_provider_status": "gpt-5.6-sol/high compatibility fallback; not native Astra acceptance",
+  "phase_1_verdict": "PARTIAL",
+  "test_verified": true,
+  "live_verified": false,
+  "accepted": false
+}
