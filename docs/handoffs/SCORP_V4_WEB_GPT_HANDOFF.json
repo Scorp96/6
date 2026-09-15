@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "f8c6f1f96f01096880125645dde99d0c5dfcbf60",
+  "candidate_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
   "evidence_binding": {
-    "validated_commit": "f8c6f1f96f01096880125645dde99d0c5dfcbf60",
+    "validated_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json",
-    "preflight_receipt": "docs/handoffs/SCORP_V4_FAST_RUNTIME_PREFLIGHT_424FFE3.json",
-    "binding_note": "This handoff describes the f8c6f1f96f01096880125645dde99d0c5dfcbf60 code candidate, which includes the bounded Runtime Pipe oversized-frame fix and explicit-migration guard for unknown SQLite files. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked by ambiguous target evidence; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "3c6b5e8ac284685147154ad3dcad41f43378f3781e5641ac45feb2beeb18f6fd"
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_6265F49.json",
+    "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
+    "binding_note": "This handoff describes the 6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9 code candidate, which includes the bounded Runtime Pipe oversized-frame fix, explicit-migration guard for incomplete SQLite files, and explicit legacy SQLite snapshot migration tests. Runtime startup requires exact candidate binding. Current real Chrome send remains blocked because the inspected physical tab no longer exists; no send or retry was performed. The rate-limit dialog branch remains live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "a74dcf662e2d09a3bc74516b4d4616d52f0aef4dbd28bd74c39c7b23626a31e7"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

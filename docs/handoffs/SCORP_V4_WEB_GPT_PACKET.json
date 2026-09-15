@@ -7,30 +7,30 @@
     "windows_host": "executes_only_after_local_adapter_and_scope_checks"
   },
   "blockers": [],
-  "candidate_commit": "f8c6f1f96f01096880125645dde99d0c5dfcbf60",
+  "candidate_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
   "current_live_gate": {
-    "candidate_code_commit": "f8c6f1f96f01096880125645dde99d0c5dfcbf60",
-    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json",
+    "candidate_code_commit": "6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9",
+    "evidence_path": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
     "rate_limit_recovery_preflight": {
       "boundary": "真实页面没有限制弹窗，因此只验证了不点击分支；当前候选的新页面/填入后恢复路径由离线测试覆盖，真实弹窗分支仍未获得 LIVE_VERIFIED。",
       "evidence_path": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_PREFLIGHT_E1E31D1.json",
       "result": "NOT_RATE_LIMITED"
     },
-    "reason": "当前候选代码已增加 Worker 发送前限流恢复，但没有新的真实发送；上一份只读 Chrome 证据仍显示目标绑定不明确，因此按 fail-closed 规则不发送。",
+    "reason": "当前候选没有新的真实发送；浏览器目标绑定仍不明确，按 fail-closed 规则不发送。生产 SQLite 曾被一次错误的只读检查触发自动迁移，已按取证记录逻辑恢复；这不构成浏览器或生产切换验收。",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
     "status": "BLOCKED_EXTERNAL_PRECONDITION"
   },
   "evidence_binding": {
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_F8C6F1F_FINAL.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_6265F49.json",
     "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-15T06:27:32.503979Z",
+  "generated_at": "2026-09-15T07:24:53.977969Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
-    "allowed_root": "C:\\ScorpAgent\\workspaces\\project",
+    "allowed_root": null,
     "blockers": [],
     "capabilities": {
       "browser_rebind": {
@@ -64,9 +64,9 @@
         "status": "UNAVAILABLE"
       }
     },
-    "database_path": "C:\\ScorpAgent\\_publish_git6\\state\\v4-candidate.sqlite3",
+    "database_path": null,
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-15T06:27:32.503871Z",
+    "generated_at": "2026-09-15T07:24:53.977828Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
@@ -80,7 +80,7 @@
       "scripts/run-candidate-validation.ps1": true
     }
   },
-  "prompt": "You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.\n\nThis packet was produced for candidate commit f8c6f1f96f01096880125645dde99d0c5dfcbf60. Its current packet status is READY.\nRead the packet and the repository handoff documents before making any claim.\n\nHard boundary:\n- A Git repository does not grant this chat access to Windows, Python, SQLite, Chrome, or browser sessions.\n- Treat WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE as authoritative unless a separate local connector provides current evidence.\n- Do not ask for or store API keys, cookies, passwords, CAPTCHA answers, or login data.\n- Do not claim that a plan ran, a Worker chat was created, or a project is complete without a current evidence record.\n\nReturn exactly these sections:\n1. CAPABILITY: web_only, operator_handoff, sqlite_monitor, or browser_connected.\n2. PLAN: one root_contract, acceptance_contract, and dependency-aware plan with at most two Worker assignments.\n3. REQUIRED_LOCAL_ACTION: the next safe command or state transition for the Windows operator, or BLOCKED with the precise blocker.\n4. ACCEPTANCE: PASS, FAIL, BLOCKED, or NOT_RUN for each criterion, each bound to candidate commit, command/action, observed state, raw output reference, and artifact hash.\n\nIf the packet is BLOCKED, stop at the blocker. Do not convert BLOCKED or NOT_RUN into PASS.\n",
+  "prompt": "You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.\n\nThis packet was produced for candidate commit 6265f49e04ce9bd47d25e4a2a3609bf3878b9fc9. Its current packet status is READY.\nRead the packet and the repository handoff documents before making any claim.\n\nHard boundary:\n- A Git repository does not grant this chat access to Windows, Python, SQLite, Chrome, or browser sessions.\n- Treat WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE as authoritative unless a separate local connector provides current evidence.\n- Do not ask for or store API keys, cookies, passwords, CAPTCHA answers, or login data.\n- Do not claim that a plan ran, a Worker chat was created, or a project is complete without a current evidence record.\n\nReturn exactly these sections:\n1. CAPABILITY: web_only, operator_handoff, sqlite_monitor, or browser_connected.\n2. PLAN: one root_contract, acceptance_contract, and dependency-aware plan with at most two Worker assignments.\n3. REQUIRED_LOCAL_ACTION: the next safe command or state transition for the Windows operator, or BLOCKED with the precise blocker.\n4. ACCEPTANCE: PASS, FAIL, BLOCKED, or NOT_RUN for each criterion, each bound to candidate commit, command/action, observed state, raw output reference, and artifact hash.\n\nIf the packet is BLOCKED, stop at the blocker. Do not convert BLOCKED or NOT_RUN into PASS.\n",
   "status": "READY",
   "target_repository": "Scorp96/6"
 }
