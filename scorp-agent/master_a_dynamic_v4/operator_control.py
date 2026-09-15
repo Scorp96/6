@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import re
+import sqlite3
 from collections.abc import Mapping
 from typing import Any
 
@@ -229,6 +230,20 @@ class OperatorControlService:
                 status="ERROR",
                 daemon_epoch=self.daemon_epoch,
                 error={"code": str(exc).split(":", 1)[0], "detail": str(exc)},
+            )
+        except sqlite3.Error as exc:
+            # The transaction context has already rolled back.  A mutation
+            # without a durable receipt must never be reported as successful;
+            # return a machine-readable fail-closed response so the caller can
+            # reconcile the database before issuing another request.
+            return build_response(
+                request,
+                status="ERROR",
+                daemon_epoch=self.daemon_epoch,
+                error={
+                    "code": "SQLITE_DURABILITY_FAILURE",
+                    "detail": type(exc).__name__,
+                },
             )
 
     def apply(self, command: str | RuntimeRequest, request: RuntimeRequest | None = None) -> dict[str, Any]:

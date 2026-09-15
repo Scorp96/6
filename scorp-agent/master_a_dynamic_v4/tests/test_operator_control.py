@@ -3,7 +3,9 @@ from __future__ import annotations
 import tempfile
 import unittest
 import datetime as dt
+import sqlite3
 from pathlib import Path
+from unittest.mock import patch
 
 from master_a_dynamic_v4.operator_control import OperatorControlService
 from master_a_dynamic_v4.runtime_protocol import parse_request
@@ -53,6 +55,21 @@ class OperatorControlTests(unittest.TestCase):
         conflict = self.service.execute(self.request("pause-1", "project.pause", payload={"x": 1}))
         self.assertEqual("REJECTED", conflict["status"])
         self.assertEqual("RUNTIME_RECEIPT_IDEMPOTENCY_CONFLICT", conflict["error"]["code"])
+
+    def test_sqlite_receipt_failure_rolls_back_mutation_and_returns_fail_closed_error(self):
+        request = self.request("pause-sqlite-failure", "project.pause")
+        with patch.object(
+            self.service,
+            "_insert_receipt",
+            side_effect=sqlite3.OperationalError("database or disk is full"),
+        ):
+            response = self.service.execute(request)
+
+        self.assertEqual("ERROR", response["status"])
+        self.assertEqual("SQLITE_DURABILITY_FAILURE", response["error"]["code"])
+        self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
+        self.assertEqual("RUNNING", self.store.get_operator_control("p1")["operator_state"])
+        self.assertIsNone(self.store.get_runtime_command_receipt("pause-sqlite-failure"))
 
     def test_identical_request_replays_after_store_reopen(self):
         request = self.request("pause-reopen", "project.pause")
