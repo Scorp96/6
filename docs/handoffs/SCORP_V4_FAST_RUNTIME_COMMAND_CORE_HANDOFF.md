@@ -22,7 +22,7 @@ Runtime daemon 启动时可以省略固定的 `--daemon-epoch`，由 SQLite leas
 每个控制命令还写入语义化的 append-only event kind：`PROJECT_PAUSED`、`PROJECT_RESUMED`、`PROJECT_CANCELLED`、`OBJECTIVE_SUPERSEDED` 或 `EMERGENCY_STOPPED`；receipt 与 event 在同一事务内提交。
 
 当前候选还提供 `scorp-agent/master_a_dynamic_v4/runtime_pipe.py`、
-`runtime_pipe_client.py` 和 `runtime_pipe_cli.py`。它们使用固定的
+`runtime_pipe_client.py`、`runtime_connector_cli.py` 和 `runtime_pipe_cli.py`。它们使用固定的
 `\\.\pipe\scorp-runtime-<project>` Windows Named Pipe、认证 `authkey` 和 64 KiB
 消息上限，只转发同一版本化 Runtime JSON 协议。客户端只做一次请求/响应交换，
 超时不自动重试。它是库级候选 transport，尚未注册
@@ -34,7 +34,7 @@ Runtime daemon 启动时可以省略固定的 `--daemon-epoch`，由 SQLite leas
 
 ## 当前证据边界
 
-- `TEST_VERIFIED`: V4 核心 165 个测试通过，GUI 桥接 475 个测试通过，Named Pipe 客户端/服务端 Windows 回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
+- `TEST_VERIFIED`: V4 核心 169 个测试通过，GUI 桥接 475 个测试通过，stdio connector → Named Pipe client → Named Pipe server → SQLite 的 Windows 进程回环、客户端/服务端回环和一次性 launcher 测试通过，暂停后 resume 的派发/assignment 恢复测试通过，compileall 和 `git diff --check` 通过；privileged broker 的分组测试也已通过。
 - `LIVE_VERIFIED`: 当前只读 Chrome 预检仍显示 ChatGPT “请求过于频繁”；本分支未重新点击真实 ChatGPT 提交，不能盲重发。
 - `ACCEPTED`: 未声明。生产安装、生产切换、24 小时 soak 和真实双 Worker 浏览器闭环均不由本记录自动批准。
 

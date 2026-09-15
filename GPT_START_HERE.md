@@ -204,8 +204,12 @@ authenticated `multiprocessing.connection` client, uses a fixed project-scoped
 `runtime_pipe_client.py`: it validates the request and response, performs one
 exchange, and never retries a timeout. The transport is not registered as a
 production listener and does not give an ordinary web GPT direct Windows
-access. A future approved local connector may use this adapter after its own
-authentication, process supervision, and evidence gates are verified.
+access. The candidate also contains `runtime_connector_cli.py`, a fail-closed
+stdio facade that binds one configured actor and forwards only this protocol to
+the Named Pipe client. It is a connector building block, not proof that a
+ChatGPT host has registered or authorized it. A future approved local
+connector may use this facade after its own authentication, process
+supervision, and evidence gates are verified.
 
 For a bounded local test, `runtime_pipe_cli.py --once` starts exactly one
 authenticated connection and exits after returning one response. The auth key
