@@ -597,6 +597,7 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Latest rate-limit failure-boundary evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
+- Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_F212EAC.json` (the older `424FFE3` audit is historical and does not describe the current checkout).
 - Current live blocker receipt: `docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_424FFE3.json`; prior ambiguous canary receipt: `docs/handoffs/SCORP_V4_LIVE_CANARY_FAILURE_C20561B.json`.
 - Current browser driver state used by that receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 
