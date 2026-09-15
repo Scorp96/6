@@ -12,6 +12,7 @@ import dataclasses
 import concurrent.futures
 import hashlib
 import json
+import uuid
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
@@ -133,15 +134,25 @@ class MasterAController:
     def resume(self) -> dict[str, Any]:
         """Reacquire the durable Master session after a physical restart."""
 
-        session = self.gateway.start_master_session(self.session_id)
+        previous_session_id = self.session_id
+        logical_session_prefix = previous_session_id.split("::resume-", 1)[0]
+        replacement_session_id = f"{logical_session_prefix}::resume-{uuid.uuid4().hex[:16]}"
+        # A physical ChatGPT/browser session is disposable.  Reusing a stale
+        # session id is deliberately rejected by StateStore, so replacement
+        # must obtain a fresh id while keeping the logical Master A identity
+        # and project epoch bound to the same controller.
+        session = self.gateway.start_master_session(replacement_session_id)
         try:
             self.master_epoch = int(session["master_epoch"])
         except (KeyError, TypeError, ValueError) as exc:
             raise ControllerRejected("MASTER_EPOCH_MISSING") from exc
+        self.session_id = replacement_session_id
         claims = self.gateway.load_worker_claims(master_epoch=self.master_epoch)
         return {
             "project_id": self.project_id,
             "session_id": self.session_id,
+            "previous_session_id": previous_session_id,
+            "physical_session_replaced": True,
             "master_epoch": self.master_epoch,
             "active_claims": tuple(claim.assignment_id for claim in claims),
         }

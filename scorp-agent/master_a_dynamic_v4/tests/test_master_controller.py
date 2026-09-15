@@ -5,10 +5,57 @@ import pathlib
 import tempfile
 import threading
 import unittest
+import datetime as dt
 from dataclasses import dataclass
 
 
 class MissingControllerTests(unittest.TestCase):
+    def test_resume_replaces_expired_physical_session_id_in_real_sqlite(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+        from master_a_dynamic_v4.state_store import StateStore
+
+        class Gateway:
+            project_id = "controller-project"
+
+            def __init__(self, store):
+                self.store = store
+
+            def start_master_session(self, session_id):
+                return self.store.start_master_session(
+                    self.project_id,
+                    session_id,
+                    now=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
+                    ttl_seconds=60,
+                )
+
+            def load_worker_claims(self, *, master_epoch):
+                return []
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("controller-project", root_contract={"objective": "resume"}, acceptance_contract={"ids": []})
+            store.start_master_session(
+                "controller-project",
+                "master-a",
+                now=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
+                ttl_seconds=1,
+            )
+            store.inspect_master_session(
+                "controller-project",
+                now=dt.datetime(2026, 1, 1, 0, 0, 2, tzinfo=dt.timezone.utc),
+            )
+            controller = MasterAController(Gateway(store), "master-a")
+            resumed = controller.resume()
+            self.assertNotEqual("master-a", resumed["session_id"])
+            self.assertEqual(resumed["session_id"], controller.session_id)
+            self.assertEqual(1, resumed["master_epoch"])
+            active = store.inspect_master_session(
+                "controller-project",
+                now=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
+            )
+            self.assertEqual("MASTER_ACTIVE", active["status"])
+
     def test_attach_existing_active_session_adopts_current_epoch(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 
