@@ -4,12 +4,12 @@
   "repository": "Scorp96/6",
   "branch": "feature/v4-fast-runtime-command-core",
   "baseline_commit": "79610ae3f3864e133f750f0c9dfde40b17a91def",
-  "implementation_commit": "9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa",
+  "implementation_commit": "3bec96b1b68a9a0d94dfe470221978260804ba50",
   "verification": {
     "test_verified": {
       "v4_core_tests": {
         "result": "PASS",
-        "count": 205
+        "count": 206
       },
       "gui_bridge_tests": {
         "result": "PASS",
@@ -141,7 +141,8 @@
     "live Canary uses alphanumeric response tokens with strict exact matching",
     "Windows MCP Worker pre-input rate-limit dialog recovery clicks one recognized acknowledgement, waits up to five minutes, refreshes at most once, and never resends ambiguously",
     "blocked Worker result cannot execute its embedded local request; non-COMPLETE results remain BLOCKED",
-    "ambiguous browser submit observations retain a valid observed conversation URL for read-only reconciliation"
+    "ambiguous browser submit observations retain a valid observed conversation URL for read-only reconciliation",
+    "runtime mutation receipt durability failure returns machine-readable ERROR after transaction rollback"
   ],
   "not_implemented_or_not_proven": [
     "packaged ChatGPT connector transport and production Named Pipe registration",
@@ -155,9 +156,9 @@
   ],
   "windows_supervision_audit": "docs/handoffs/SCORP_V4_WINDOWS_SUPERVISION_AUDIT_424FFE3.json",
   "candidate_manifest": {
-    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9AACD7C.json",
-    "sha256": "13387002b3090a5d9ca2dd37bbd298acd43acb8d5007858d9e370dfcca4b6ef2",
-    "manifest_sha256": "0d729ae1a8bdc43e3a7de92b604490150f4770b43316b10cbd9a1c19098d3efe",
+    "path": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_3BEC96B.json",
+    "sha256": "4d1f81366bcdf65fdbab513c1607b12c9403fc88752b342d6aa3f62691b762b2",
+    "manifest_sha256": "a81b1eb161fc29084696e726481fe41010055a9d1d44c15e4c0f24f20b2631c5",
     "file_count": 376
   },
   "progress_semantics_evidence": "docs/handoffs/SCORP_V4_PROGRESS_SEMANTICS_424FFE3.json",
@@ -176,5 +177,22 @@
     "evidence": "docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json"
   },
   "production_state_recovery": "docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json",
-  "real_code_workload_evidence": "docs/handoffs/SCORP_V4_REAL_CODE_LIVE_WORKER_EVIDENCE_F5B8240.json"
+  "real_code_workload_evidence": "docs/handoffs/SCORP_V4_REAL_CODE_LIVE_WORKER_EVIDENCE_F5B8240.json",
+  "test_verified": {
+    "v4_core_tests": {
+      "result": "PASS",
+      "count": 206
+    },
+    "gui_bridge_tests": {
+      "result": "PASS",
+      "count": 508,
+      "pythonpath": [
+        "scorp-agent",
+        "scorp-agent/chatgpt-gui-bridge"
+      ]
+    },
+    "compileall": "PASS",
+    "git_diff_check": "PASS",
+    "candidate_validation_script": "PASS"
+  }
 }

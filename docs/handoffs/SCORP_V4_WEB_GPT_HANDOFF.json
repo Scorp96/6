@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa",
+  "candidate_commit": "3bec96b1b68a9a0d94dfe470221978260804ba50",
   "evidence_binding": {
-    "validated_commit": "9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa",
+    "validated_commit": "3bec96b1b68a9a0d94dfe470221978260804ba50",
     "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9AACD7C.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_3BEC96B.json",
     "preflight_receipt": "docs/handoffs/SCORP_V4_LIVE_READONLY_PREFLIGHT_28B0F28.json",
-    "binding_note": "This handoff describes the 9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa code candidate, including blocked-worker execution fencing and ambiguous-browser URL retention. Offline validation is current; browser evidence from 83c07cc is historical and cannot be inherited. The current candidate rate-limit popup branch and fresh browser canary remain live-unverified. Production acceptance remains unresolved.",
-    "manifest_sha256": "0d729ae1a8bdc43e3a7de92b604490150f4770b43316b10cbd9a1c19098d3efe"
+    "binding_note": "This handoff describes the 3bec96b1b68a9a0d94dfe470221978260804ba50 code candidate, including blocked-worker execution fencing, ambiguous-browser URL retention, and fail-closed SQLite receipt durability errors. Offline validation is current; browser evidence from earlier candidates is historical and cannot be inherited. The current candidate rate-limit popup branch and fresh browser canary remain live-unverified. Production acceptance remains unresolved.",
+    "manifest_sha256": "a81b1eb161fc29084696e726481fe41010055a9d1d44c15e4c0f24f20b2631c5"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",

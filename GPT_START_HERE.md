@@ -106,9 +106,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9AACD7C.json `
-  --manifest-sha256 0d729ae1a8bdc43e3a7de92b604490150f4770b43316b10cbd9a1c19098d3efe
+  --candidate-commit 3bec96b1b68a9a0d94dfe470221978260804ba50 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_3BEC96B.json `
+  --manifest-sha256 a81b1eb161fc29084696e726481fe41010055a9d1d44c15e4c0f24f20b2631c5
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -279,9 +279,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_9AACD7C.json `
-  --manifest-sha256 0d729ae1a8bdc43e3a7de92b604490150f4770b43316b10cbd9a1c19098d3efe `
+  --candidate-commit 3bec96b1b68a9a0d94dfe470221978260804ba50 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_3BEC96B.json `
+  --manifest-sha256 a81b1eb161fc29084696e726481fe41010055a9d1d44c15e4c0f24f20b2631c5 `
   --send
 ```
 
@@ -627,7 +627,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `9aacd7c1b4b3a229c4fa61d44ac88eac95a570fa` (`fix(gui): wait for composer after rate-limit refresh`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes and the Windows MCP Worker pre-input page; the current candidate has not received a fresh live popup test. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, Worker evidence requirements, and result-envelope normalization are recorded in the current candidate evidence.
+- Current code candidate: `3bec96b1b68a9a0d94dfe470221978260804ba50` (`fix(gui): wait for composer after rate-limit refresh`) on `feature/v4-fast-runtime-command-core`; the five-minute wait and one-refresh boundary now cover auth probes and the Windows MCP Worker pre-input page; the current candidate has not received a fresh live popup test. Fail-closed rate-limit transport errors, durable heartbeat/progress separation, lost-worker detection, incomplete-snapshot rejection, explicit SQLite migration, strict alphanumeric canary markers, Worker evidence requirements, and result-envelope normalization are recorded in the current candidate evidence.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
