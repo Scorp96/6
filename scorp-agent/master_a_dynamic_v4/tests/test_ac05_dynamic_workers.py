@@ -205,6 +205,39 @@ class DynamicWorkerTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_expired_result_received_lease_is_requeued_without_accepting_result(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler, worktree = self.make_runtime(root)
+            try:
+                scheduler.enqueue_graph([
+                    {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "one.txt"], "dependencies": []}
+                ])
+                started = dt.datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+                claim = scheduler.claim_runnable(master_epoch=0, now=started, lease_seconds=30)[0]
+                result_id = scheduler.record_candidate(
+                    claim.assignment_id,
+                    lease_token=claim.lease_token,
+                    master_epoch=0,
+                    kind="HANDOFF",
+                    payload={"artifact_sha256": "a" * 64, "result_sha256": "a" * 64},
+                    now=started,
+                )
+                self.assertEqual("RESULT_RECEIVED", scheduler.get_assignment(claim.assignment_id)["state"])
+                self.assertEqual(1, scheduler.recover_expired_leases(now=started + dt.timedelta(seconds=31)))
+                self.assertEqual("FENCED", scheduler.get_assignment(claim.assignment_id)["state"])
+                self.assertEqual("QUEUED", scheduler.get_task("T1")["state"])
+                with store._connection() as conn:
+                    self.assertEqual(
+                        "FENCED",
+                        conn.execute(
+                            "SELECT verification_state FROM candidate_results WHERE result_id=?",
+                            (result_id,),
+                        ).fetchone()[0],
+                    )
+            finally:
+                store.close()
+
 
     def test_verify_candidate_rejects_digest_not_bound_to_recorded_result(self):
         from master_a_dynamic_v4.scheduler import SchedulerError

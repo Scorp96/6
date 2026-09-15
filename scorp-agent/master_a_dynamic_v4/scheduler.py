@@ -223,10 +223,15 @@ class Scheduler:
                     "UPDATE assignments SET state='FENCED',updated_at=? WHERE assignment_id=?",
                     (stamp, lease["assignment_id"]),
                 )
-                if str(lease["assignment_state"]) == "ACTIVE":
+                if str(lease["assignment_state"]) in {"ACTIVE", "RESULT_RECEIVED"}:
                     conn.execute(
                         "UPDATE task_nodes SET state='QUEUED',updated_at=? WHERE project_id=? AND task_id=?",
                         (stamp, self.project_id, lease["task_id"]),
+                    )
+                if str(lease["assignment_state"]) == "RESULT_RECEIVED":
+                    conn.execute(
+                        "UPDATE candidate_results SET verification_state='FENCED' WHERE assignment_id=? AND verification_state='PENDING'",
+                        (lease["assignment_id"],),
                     )
                 conn.execute(
                     "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
