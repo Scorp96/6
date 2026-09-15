@@ -112,6 +112,39 @@ class SqliteSchemaTests(unittest.TestCase):
             with self.assertRaisesRegex(StoreInvariantError, "SCHEMA_VERSION_UNSUPPORTED"):
                 StateStore(db, allowed_roots=[root])
 
+    def test_non_v4_existing_sqlite_requires_explicit_migration(self):
+        StateStore, StoreInvariantError = self.load_api()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            db = root / "legacy.sqlite3"
+            conn = sqlite3.connect(db)
+            try:
+                conn.execute("CREATE TABLE legacy_state (project_id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+                conn.execute("INSERT INTO legacy_state(project_id,payload) VALUES('p1','legacy')")
+                conn.execute("PRAGMA user_version=0")
+                conn.commit()
+            finally:
+                conn.close()
+
+            with self.assertRaisesRegex(StoreInvariantError, "EXPLICIT_MIGRATION_REQUIRED"):
+                StateStore(db, allowed_roots=[root])
+
+            # The guard is read-only: it must not add V4 tables or alter the
+            # legacy source before a named migration operation is selected.
+            conn = sqlite3.connect(db)
+            try:
+                tables = {
+                    row[0]
+                    for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+                    )
+                }
+                row = conn.execute("SELECT payload FROM legacy_state WHERE project_id='p1'").fetchone()
+            finally:
+                conn.close()
+            self.assertEqual({"legacy_state"}, tables)
+            self.assertEqual(("legacy",), row)
+
 
 if __name__ == "__main__":
     unittest.main()

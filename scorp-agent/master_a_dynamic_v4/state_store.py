@@ -35,6 +35,7 @@ class StateStore:
             raise StoreInvariantError("ALLOWED_ROOTS_EMPTY")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._closed = False
+        self._reject_unmarked_existing_database()
         self._migrate()
 
     def __enter__(self) -> "StateStore":
@@ -87,6 +88,34 @@ class StateStore:
             yield conn
         finally:
             conn.close()
+
+    def _reject_unmarked_existing_database(self) -> None:
+        """Refuse to silently graft V4 tables onto an unknown SQLite file.
+
+        A missing path (or a genuinely empty SQLite file) is a new V4 store.
+        An existing database with user tables but without the V4 migration
+        marker must go through an explicit, auditable migration operation.  In
+        particular, opening a legacy ``user_version=0`` snapshot must not turn
+        it into a mixed legacy/V4 authority as a side effect of construction.
+        """
+
+        if not self.path.is_file() or self.path.stat().st_size == 0:
+            return
+        try:
+            conn = sqlite3.connect(self.path)
+            try:
+                names = {
+                    str(row[0])
+                    for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+                    )
+                }
+            finally:
+                conn.close()
+        except sqlite3.DatabaseError as exc:
+            raise StoreInvariantError("SQLITE_DATABASE_UNREADABLE") from exc
+        if names and "schema_migrations" not in names:
+            raise StoreInvariantError("EXPLICIT_MIGRATION_REQUIRED")
 
     def _migrate(self) -> None:
         schema_path = pathlib.Path(__file__).with_name("schema.sql")
