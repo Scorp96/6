@@ -21,7 +21,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_1A10823.json",
-    "file_sha256": "PENDING_AFTER_COMMIT"
+    "file_sha256": "05eef1048d4f4eeecfd7716ce360defdb98b107f9bdbcf4442c19bed998ac62a"
   },
   "authority": {
     "sqlite": "local transactional authority",
@@ -96,10 +96,10 @@
     ]
   },
   "test_result_hashes": {
-    "v4_core_unittest": "sha256:215-pass",
-    "gui_bridge_unittest": "sha256:518-pass",
-    "python_compileall": "sha256:compileall-pass",
-    "v4_hardening": "sha256:critical-production-selfheal-pass"
+    "v4_core_unittest": "57d50ece955cd9051a56bead4c754b763eb0c2c7dc31bc6b7425c8f5b05c384a",
+    "gui_bridge_unittest": "beb9c6955ca67b0a0e34933b8b015b1caa3a47720cfca8cc8708ed03565d97a0",
+    "python_compileall": "84c570d8325029de1c9c154d4e82c83bed312545f9a9533faabdf7fa04a91777",
+    "v4_hardening": "05d722e9935e5778bff0de218a879e844a497348884ad2e1d800c1cd191219fc"
   },
   "deployment": {
     "DEPLOYED": false,

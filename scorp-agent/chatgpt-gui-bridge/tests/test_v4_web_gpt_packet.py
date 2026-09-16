@@ -114,9 +114,9 @@ class V4WebGptPacketTests(unittest.TestCase):
 
     def test_repository_startup_commands_use_current_candidate_manifest_hash(self):
         repo_root = pathlib.Path(__file__).resolve().parents[3]
-        validation_path = repo_root / "docs" / "handoffs" / "SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
-        validation = json.loads(validation_path.read_text(encoding="utf-8"))
-        expected = validation["candidate_manifest"]["manifest_sha256"]
+        manifest_path = repo_root / "docs" / "handoffs" / "SCORP_V4_CANDIDATE_MANIFEST_1A10823.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        expected = manifest["manifest_sha256"]
         startup = (repo_root / "GPT_START_HERE.md").read_text(encoding="utf-8")
         values = re.findall(r"--manifest-sha256\s+([0-9a-f]{64})", startup)
         self.assertGreaterEqual(len(values), 2)
