@@ -21,7 +21,7 @@
     "validation_record": "docs/handoffs/SCORP_V4_VALIDATION_DEA5433.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-16T05:56:04.465474Z",
+  "generated_at": "2026-09-16T06:03:28.843790Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
     "allowed_root": null,
@@ -60,7 +60,7 @@
     },
     "database_path": null,
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-16T05:56:04.465348Z",
+    "generated_at": "2026-09-16T06:03:28.843538Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",

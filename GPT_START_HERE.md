@@ -107,7 +107,7 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit dea5433ba48dde4391f0105a0868c87be45d3850 `
+  --candidate-commit dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62 `
   --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_DEA5433.json `
   --manifest-sha256 ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1
 ```
@@ -280,7 +280,7 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit dea5433ba48dde4391f0105a0868c87be45d3850 `
+  --candidate-commit dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62 `
   --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_DEA5433.json `
   --manifest-sha256 ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1 `
   --send
@@ -632,7 +632,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `dea5433ba48dde4391f0105a0868c87be45d3850` (`fix: cache positive shared Chrome Use auth probe`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes, immutable Git-object release identity, graph crash rollback regression, and current Release Record packet binding. The current candidate has a fresh no-send composer and real tab-promotion diagnostic; the previous d53 two-worker canary is historical BLOCKED; dea5433 has not run a fresh send after the auth-probe cache fix.
+- Current code candidate: `dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62` (`fix: serialize complete Chrome Use submissions`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes, immutable Git-object release identity, graph crash rollback regression, serialized shared Chrome Use probes, preflight fencing, and whole-submit serialization. The current no-send composer diagnostic passes, while the current two-worker canary is BLOCKED_AMBIGUOUS with CONVERSATION_URL_MISSING; do not retry it.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_VALIDATION_DEA5433.json`.

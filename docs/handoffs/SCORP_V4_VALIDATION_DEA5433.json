@@ -93,7 +93,7 @@
     "DEPLOYED": false,
     "PRODUCTION_CHANGED": false,
     "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
-    "remote_feature_ref": null,
+    "remote_feature_ref": "origin/fix/v4-p0-runtime-closure",
     "install_receipt": "C:/ScorpAgent/v4-core-lab/dea5433-install/install-receipt.json",
     "runtime_identity": "dea5433 candidate; not production"
   },

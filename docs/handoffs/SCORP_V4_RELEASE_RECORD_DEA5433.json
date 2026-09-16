@@ -20,7 +20,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_DEA5433.json",
-    "file_sha256": "f4cf2f6d0cb89df1b77b009116428eb0f622467b56880cc58c98dc344b635b36"
+    "file_sha256": "3d82b82fe8e62e5bb22f23243d32212a73db168913fbd0a865bb1d419726e8f4"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_DEA5433",
@@ -123,7 +123,7 @@
     "PRODUCTION_CHANGED": false,
     "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
     "runtime_identity": "dea5433 candidate; not production",
-    "remote_feature_ref": null
+    "remote_feature_ref": "origin/fix/v4-p0-runtime-closure"
   },
   "handoff": {
     "ordinary_web_gpt": "先读 GPT_START_HERE.md、当前发布记录和 packet；保持 web_only，不能声称连接本机或创建 GPT 会话。",
