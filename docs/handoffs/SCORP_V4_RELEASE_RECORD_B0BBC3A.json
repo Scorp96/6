@@ -8,7 +8,6 @@
   "candidate_commit": "b0bbc3afa68bacff07616c5c7667407f84e6fe34",
   "baseline_commit": "40301e5da335048bfaf8780196bb5d5d9381fcb2",
   "status": "TEST_VERIFIED_LIVE_UNVERIFIED",
-  "accepted": false,
   "TEST_VERIFIED": true,
   "LIVE_VERIFIED": false,
   "ACCEPTED": false,

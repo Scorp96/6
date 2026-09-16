@@ -20,6 +20,23 @@ def load_packet():
 
 
 class V4WebGptPacketTests(unittest.TestCase):
+    def test_current_release_record_has_no_case_insensitive_duplicate_keys(self):
+        repo_root = pathlib.Path(__file__).resolve().parents[3]
+        release_path = repo_root / "docs" / "handoffs" / "SCORP_V4_RELEASE_RECORD_B0BBC3A.json"
+
+        def reject_casefold_duplicates(pairs):
+            seen = set()
+            result = {}
+            for key, value in pairs:
+                folded = key.casefold()
+                if folded in seen:
+                    raise AssertionError(f"duplicate case-insensitive release key: {key}")
+                seen.add(folded)
+                result[key] = value
+            return result
+
+        json.loads(release_path.read_text(encoding="utf-8"), object_pairs_hook=reject_casefold_duplicates)
+
     def _fixture(self, root: pathlib.Path, *, candidate: str = "a" * 40):
         (root / "GPT_START_HERE.md").write_text("start\n", encoding="utf-8")
         (root / "scripts").mkdir()
