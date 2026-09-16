@@ -9,6 +9,7 @@ may attach the existing Master A controller in later runtime construction.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import pathlib
 import sys
@@ -20,6 +21,10 @@ if str(AGENT_ROOT) not in sys.path:
 if str(BRIDGE_ROOT) not in sys.path:
     sys.path.insert(0, str(BRIDGE_ROOT))
 
+from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3  # noqa: E402
+from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
+from master_a_dynamic_v4.execution_adapter import LocalExecutionAdapter  # noqa: E402
+from master_a_dynamic_v4.git_worktree import GitWorktreeManager  # noqa: E402
 from master_a_dynamic_v4.daemon import (  # noqa: E402
     LocalDaemon,
     MasterSupervisorActionHandler,
@@ -31,6 +36,13 @@ from master_a_dynamic_v4.path_policy import PathPolicy  # noqa: E402
 from master_a_dynamic_v4.scheduler import Scheduler, WorkerFenceError  # noqa: E402
 from master_a_dynamic_v4.state_store import StateStore  # noqa: E402
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
+from tools.v4_master_controller_runtime import (  # noqa: E402
+    DEFAULT_EXECUTABLE,
+    _worker_prompt,
+    parse_structured_response,
+)
+from v4_auth import probe_chatgpt_auth  # noqa: E402
+from v4_browser_engine import build_v4_browser_engine  # noqa: E402
 
 
 class MonitorOnlyEngine:
@@ -107,6 +119,58 @@ def _build_persistent_action_handlers(
     }
 
 
+
+def _build_active_controller_runtime(
+    database_path: pathlib.Path,
+    project_id: str,
+    allowed_root: pathlib.Path,
+    driver_state_path: pathlib.Path,
+    master_session_id: str,
+):
+    """Build the existing fenced browser/controller stack without performing I/O."""
+    executable = pathlib.Path(DEFAULT_EXECUTABLE)
+    if not executable.is_file():
+        raise RuntimeError("CHROME_USE_EXECUTABLE_MISSING")
+    state_path = pathlib.Path(driver_state_path).resolve()
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    cli = ChromeUseCliV3(executable=str(executable))
+    driver = ChromeUseActorDriverV3(cli, state_path, timeout_seconds=120)
+
+    async def auth_probe(channel: str):
+        session = "scorp-v4-daemon-auth-" + hashlib.sha256(str(project_id).encode()).hexdigest()[:12]
+        try:
+            await cli.run_json(session, "open", "https://chatgpt.com/", timeout_seconds=30)
+            return await probe_chatgpt_auth(cli, driver, session, channel)
+        except Exception as exc:
+            return {"status": "AUTH_PROBE_FAILED", "channel": channel, "error": type(exc).__name__}
+
+    engine = build_v4_browser_engine(
+        driver,
+        auth_probe=auth_probe,
+        response_parser=parse_structured_response,
+        timeout_seconds=120,
+    )
+    gateway = V4BridgeGateway(
+        database_path,
+        str(project_id),
+        [allowed_root],
+        engine,
+        master_ttl_seconds=1500,
+    )
+    controller = MasterAController(
+        gateway,
+        str(master_session_id),
+        execution_adapter=LocalExecutionAdapter(
+            [allowed_root],
+            python_executable=sys.executable,
+            pythonpath=AGENT_ROOT,
+            allowed_modules=["master_a_dynamic_v4.csv_workload.cli"],
+        ),
+        git_worktree_manager=GitWorktreeManager([allowed_root]),
+    )
+    controller.attach_existing_session()
+    return gateway, controller
+
 def run_runtime(args: argparse.Namespace) -> int:
     database_path = pathlib.Path(args.database_path).resolve()
     if not database_path.is_file():
@@ -125,7 +189,7 @@ def run_runtime(args: argparse.Namespace) -> int:
 
     store = StateStore(database_path, [allowed_root])
     scheduler = Scheduler(store, str(args.project_id), PathPolicy([allowed_root]), max_workers=2)
-    supervisor_gateway = None
+    controller_gateway = None
     lease = None
     graceful_exit = False
     run_loop_started = False
@@ -147,22 +211,41 @@ def run_runtime(args: argparse.Namespace) -> int:
         daemon_epoch = int(lease["daemon_epoch"])
         action_handlers = {}
         master_supervision = False
-        if args.supervise_master:
-            supervisor_gateway = V4BridgeGateway(
+        controller = None
+        if args.active_controller:
+            controller_gateway, controller = _build_active_controller_runtime(
                 database_path,
                 str(args.project_id),
-                [allowed_root],
-                MonitorOnlyEngine(),
-                master_ttl_seconds=max(60, int(args.daemon_ttl_seconds)),
+                allowed_root,
+                pathlib.Path(args.driver_state_path),
+                str(args.master_session_id),
             )
-            controller = MasterAController(supervisor_gateway, str(args.master_session_id))
-            controller.attach_existing_session()
+            action_handlers.update(
+                _build_persistent_action_handlers(
+                    controller,
+                    controller_gateway,
+                    worker_prompt_factory=_worker_prompt,
+                )
+            )
+        if args.supervise_master:
+            if controller is None:
+                controller_gateway = V4BridgeGateway(
+                    database_path,
+                    str(args.project_id),
+                    [allowed_root],
+                    MonitorOnlyEngine(),
+                    master_ttl_seconds=max(60, int(args.daemon_ttl_seconds)),
+                )
+                controller = MasterAController(controller_gateway, str(args.master_session_id))
+                controller.attach_existing_session()
             supervisor = MasterSupervisor(controller)
             supervisor_handler = MasterSupervisorActionHandler(supervisor)
-            action_handlers = {
-                "RESUME_MASTER": supervisor_handler,
-                "HEARTBEAT_IDLE": supervisor_handler,
-            }
+            action_handlers.update(
+                {
+                    "RESUME_MASTER": supervisor_handler,
+                    "HEARTBEAT_IDLE": supervisor_handler,
+                }
+            )
             master_supervision = True
         daemon = LocalDaemon(
             store,
@@ -222,8 +305,8 @@ def run_runtime(args: argparse.Namespace) -> int:
                 str(args.actor_id),
                 daemon_epoch=int(lease["daemon_epoch"]),
             )
-        if supervisor_gateway is not None:
-            supervisor_gateway.close()
+        if controller_gateway is not None:
+            controller_gateway.close()
         store.close()
 
 
