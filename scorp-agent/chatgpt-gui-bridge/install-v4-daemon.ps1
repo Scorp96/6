@@ -3,6 +3,8 @@ param(
     [Parameter(Mandatory=$true)][string]$DatabasePath,
     [Parameter(Mandatory=$true)][string]$AllowedRoot,
     [Parameter(Mandatory=$true)][string]$ProjectId,
+    [Parameter(Mandatory=$true)][string]$DriverStatePath,
+    [string]$MasterSessionId = 'master-a-runtime',
     [ValidateRange(-1, [int]::MaxValue)][int]$DaemonEpoch = -1,
     [string]$Python = 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe',
     [string]$TaskName = 'SCORP_V4_DAEMON',
@@ -26,12 +28,15 @@ try {
         @{Value=$DatabasePath;Name='DatabasePath'},
         @{Value=$AllowedRoot;Name='AllowedRoot'},
         @{Value=$ProjectId;Name='ProjectId'},
+        @{Value=$DriverStatePath;Name='DriverStatePath'},
+        @{Value=$MasterSessionId;Name='MasterSessionId'},
         @{Value=$Python;Name='Python'},
         @{Value=$TaskName;Name='TaskName'}
     )) { Assert-NoQuote $pair.Value $pair.Name }
 
     $database = [IO.Path]::GetFullPath($DatabasePath)
     $allowed = [IO.Path]::GetFullPath($AllowedRoot)
+    $driverState = [IO.Path]::GetFullPath($DriverStatePath)
     if (-not (Test-Path -LiteralPath $database -PathType Leaf)) { throw 'STATE_DATABASE_MISSING' }
     if (-not (Test-Path -LiteralPath $allowed -PathType Container)) { throw 'ALLOWED_ROOT_MISSING' }
     if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { throw 'PYTHON_RUNTIME_MISSING' }
@@ -68,6 +73,12 @@ try {
             '--forever'
         )
     }
+    $argumentList += @(
+        '--active-controller',
+        '--driver-state-path', ('"{0}"' -f $driverState),
+        '--supervise-master',
+        '--master-session-id', ('"{0}"' -f $MasterSessionId)
+    )
     $arguments = $argumentList -join ' '
     $action = New-ScheduledTaskAction -Execute $Python -Argument $arguments -WorkingDirectory (Split-Path -Parent $daemonScript)
     $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
@@ -84,7 +95,7 @@ try {
     $installSucceeded = $true
     $epochValue = if ($DaemonEpoch -ge 0) { $DaemonEpoch } else { $null }
     $epochMode = if ($DaemonEpoch -ge 0) { 'EXPECTED' } else { 'ACQUIRE_CURRENT' }
-    [pscustomobject]@{ task_name=$resolvedTaskName; database=$database; project_id=$ProjectId; daemon_epoch=$epochValue; epoch_mode=$epochMode; started=[bool]$Start; script=$daemonScript }
+    [pscustomobject]@{ task_name=$resolvedTaskName; database=$database; project_id=$ProjectId; driver_state_path=$driverState; master_session_id=$MasterSessionId; active_controller=$true; supervise_master=$true; daemon_epoch=$epochValue; epoch_mode=$epochMode; started=[bool]$Start; script=$daemonScript }
 }
 finally {
     if (-not $installSucceeded) {

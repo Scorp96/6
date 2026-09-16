@@ -23,6 +23,18 @@ class V4DaemonInstallerTests(unittest.TestCase):
         ):
             self.assertIn(token, text)
 
+    def test_installer_registers_persistent_active_controller_startup(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("[Parameter(Mandatory=$true)][string]$DriverStatePath", text)
+        self.assertIn("[string]$MasterSessionId = 'master-a-runtime'", text)
+        for token in (
+            "--active-controller",
+            "--driver-state-path",
+            "--supervise-master",
+            "--master-session-id",
+        ):
+            self.assertIn(token, text)
     def test_installer_refuses_missing_database_and_has_rollback_boundary(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
         text = path.read_text(encoding="utf-8")
