@@ -201,6 +201,33 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
         results = asyncio.run(exercise())
         self.assertEqual(["worker/worker-slot-1", "worker/worker-slot-2"], [r["channel"] for r in results])
 
+    def test_shared_authenticated_probe_is_cached_after_first_success(self):
+        from tools import v4_live_two_worker_canary as module
+
+        class Cli:
+            def __init__(self):
+                self.opens = 0
+
+            async def run_json(self, *args, **kwargs):
+                self.opens += 1
+                return {}
+
+        async def fake_probe(cli, driver, session, channel):
+            return {"status": "AUTHENTICATED", "channel": channel}
+
+        async def exercise():
+            cli = Cli()
+            probe = module.build_serialized_auth_probe(cli, object(), "shared-auth-session")
+            with mock.patch.object(module, "probe_chatgpt_auth", fake_probe):
+                first = await probe("worker/worker-slot-1")
+                second = await probe("worker/worker-slot-2")
+            return cli.opens, first, second
+
+        opens, first, second = asyncio.run(exercise())
+        self.assertEqual(1, opens)
+        self.assertEqual("worker/worker-slot-1", first["channel"])
+        self.assertEqual("worker/worker-slot-2", second["channel"])
+
     def test_send_gate_refuses_without_explicit_flag(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
