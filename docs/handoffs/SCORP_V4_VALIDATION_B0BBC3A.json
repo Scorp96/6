@@ -34,7 +34,13 @@
       "result": "PASS",
       "marker": "V4_SELFHEAL_HARDENING_PASS"
     },
-    "hardening_combined_output_sha256": "fec4d46e5fcf431f21e6db951e99b50cc2e06fcb0f188bcb46dc065e9309fa8c"
+    "hardening_combined_output_sha256": "fec4d46e5fcf431f21e6db951e99b50cc2e06fcb0f188bcb46dc065e9309fa8c",
+    "immutable_install": {
+      "result": "PASS",
+      "receipt_path": "C:/ScorpAgent/v4-core-lab/b0bbc3a-install/install-receipt.json",
+      "receipt_sha256": "7a0bd509d25c14fc0b909c1c0c0690646a2ff69555a2ef2f26b22a7c5a5cd1f6",
+      "manifest_sha256": "9b6efa2f0cbb778155b49a6e233d1adf852fbf4decc753cd8cd92404b844f059"
+    }
   },
   "old_failure_probes": {
     "P0-A": "PASS_RECONCILE_REQUIRED_OPEN_0_SEND_0",
@@ -45,7 +51,7 @@
     "P0-F": "PASS_SELF_REPORT_DEPENDENCY_BLOCKED",
     "P0-G": "PASS_DAEMON_RECOVERY_BEFORE_SNAPSHOT",
     "P0-H": "PASS_HEALTH_AND_GENERATION_FENCED_RENEWAL",
-    "P0-I": "PASS_GIT_BLOB_IDENTITY",
+    "P0-I": "PASS_GIT_BLOB_IDENTITY_AND_IMMUTABLE_INSTALL",
     "P0-K": "PASS_PACKET_CURRENT_RELEASE_IDENTITY_AND_COMPETING_RECORD_REJECT"
   },
   "new_regression_tests": [

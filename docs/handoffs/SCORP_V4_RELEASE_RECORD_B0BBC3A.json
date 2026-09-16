@@ -21,7 +21,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json",
-    "file_sha256": "b873096475d6a42d2d0a449395cd488d3882c878a9d8f9502cf37bf5491624cb"
+    "file_sha256": "c3dd79d79eb5700895537030d65035b27cb9555587d384b8d4966208ae58ac66"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_B0BBC3A",
@@ -87,6 +87,12 @@
       "id": "git_bundle_backup",
       "result": "PASS",
       "path": "C:/ScorpAgent/backups/scorp-v4-p0-runtime-closure-b0bbc3a.bundle"
+    },
+    {
+      "id": "immutable_candidate_install",
+      "result": "PASS",
+      "path": "C:/ScorpAgent/v4-core-lab/b0bbc3a-install/install-receipt.json",
+      "receipt_sha256": "7a0bd509d25c14fc0b909c1c0c0690646a2ff69555a2ef2f26b22a7c5a5cd1f6"
     }
   ],
   "live_evidence": {
