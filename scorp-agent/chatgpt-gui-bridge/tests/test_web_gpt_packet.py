@@ -16,9 +16,14 @@ def load_tool():
 
 
 class WebGptPacketTests(unittest.TestCase):
+    def _current_release(self):
+        paths = sorted((ROOT / 'docs' / 'handoffs').glob('SCORP_V4_RELEASE_RECORD_*.json'))
+        self.assertEqual(1, len(paths), paths)
+        path = paths[0]
+        return path, json.loads(path.read_text(encoding='utf-8'))
+
     def test_packet_prefers_unique_current_release_record(self):
-        release_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_RELEASE_RECORD_B0BBC3A.json'
-        release = json.loads(release_path.read_text(encoding='utf-8'))
+        release_path, release = self._current_release()
         validation_path = ROOT / release['validation_record']['path']
         validation = json.loads(validation_path.read_text(encoding='utf-8'))
         packet = load_tool().build_packet(ROOT)
@@ -33,8 +38,7 @@ class WebGptPacketTests(unittest.TestCase):
         )
 
     def test_packet_carries_current_live_gate_from_validation_record(self):
-        release_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_RELEASE_RECORD_B0BBC3A.json'
-        release = json.loads(release_path.read_text(encoding='utf-8'))
+        release_path, release = self._current_release()
         validation_path = ROOT / release['validation_record']['path']
         validation = json.loads(validation_path.read_text(encoding='utf-8'))
         live = validation['live']

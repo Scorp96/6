@@ -20,9 +20,14 @@ def load_packet():
 
 
 class V4WebGptPacketTests(unittest.TestCase):
-    def test_current_release_record_has_no_case_insensitive_duplicate_keys(self):
+    def _current_release(self):
         repo_root = pathlib.Path(__file__).resolve().parents[3]
-        release_path = repo_root / "docs" / "handoffs" / "SCORP_V4_RELEASE_RECORD_B0BBC3A.json"
+        release_paths = sorted((repo_root / "docs" / "handoffs").glob("SCORP_V4_RELEASE_RECORD_*.json"))
+        self.assertEqual(1, len(release_paths), release_paths)
+        return repo_root, release_paths[0], json.loads(release_paths[0].read_text(encoding="utf-8"))
+
+    def test_current_release_record_has_no_case_insensitive_duplicate_keys(self):
+        _repo_root, release_path, _release = self._current_release()
 
         def reject_casefold_duplicates(pairs):
             seen = set()
@@ -147,7 +152,8 @@ class V4WebGptPacketTests(unittest.TestCase):
 
     def test_repository_startup_commands_use_current_candidate_manifest_hash(self):
         repo_root = pathlib.Path(__file__).resolve().parents[3]
-        manifest_path = repo_root / "docs" / "handoffs" / "SCORP_V4_CANDIDATE_MANIFEST_B0BBC3A.json"
+        _repo_root, _release_path, release = self._current_release()
+        manifest_path = repo_root / release["candidate_manifest"]["path"]
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         expected = manifest["manifest_sha256"]
         startup = (repo_root / "GPT_START_HERE.md").read_text(encoding="utf-8")

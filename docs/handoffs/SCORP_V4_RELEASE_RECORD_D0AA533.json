@@ -1,0 +1,128 @@
+{
+  "format": "scorp-v4-release-record/2",
+  "release_id": "SCORP_V4_D0AA533",
+  "repository": "Scorp96/6",
+  "branch": "fix/v4-p0-runtime-closure",
+  "code_candidate_sha": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
+  "evidence_head_sha": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
+  "candidate_commit": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
+  "baseline_commit": "40301e5da335048bfaf8780196bb5d5d9381fcb2",
+  "status": "TEST_VERIFIED_LIVE_UNVERIFIED",
+  "TEST_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "created_at": "2026-09-16T04:47:06.749008Z",
+  "supersedes_release_id": "SCORP_V4_B0BBC3A",
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D0AA533.json",
+    "manifest_sha256": "6ddeacb01cfc97bc450048b1da670d20cfc01ba63d388c047689496a0d967d30",
+    "file_sha256": "1bd3e1e38c862aad949becb0bfe16ddfdda91197a18ea35e746b400382c1ff7f"
+  },
+  "validation_record": {
+    "path": "docs/handoffs/SCORP_V4_VALIDATION_D0AA533.json",
+    "file_sha256": "a5510adc6882914cd36fb964598b3be1db31f2a84288f000d5bbd713f7aed0a6"
+  },
+  "evidence_ids": {
+    "offline_validation": "SCORP_V4_VALIDATION_D0AA533",
+    "candidate_manifest": "SCORP_V4_CANDIDATE_MANIFEST_D0AA533",
+    "live": []
+  },
+  "authority": {
+    "sqlite": "local transactional authority",
+    "web_gpt": "planning and evidence review only",
+    "browser": "explicitly gated Windows side effect",
+    "git": "candidate and evidence transport only"
+  },
+  "p0": {
+    "P0-A": "CLOSED_OFFLINE",
+    "P0-B": "CLOSED_OFFLINE",
+    "P0-C": "CLOSED_OFFLINE",
+    "P0-D": "CLOSED_OFFLINE",
+    "P0-E": "CLOSED_OFFLINE",
+    "P0-F": "CLOSED_OFFLINE",
+    "P0-G": "CLOSED_OFFLINE",
+    "P0-H": "CLOSED_OFFLINE",
+    "P0-I": "CLOSED_OFFLINE",
+    "P0-J": "CLOSED_OFFLINE",
+    "P0-K": "CLOSED_OFFLINE"
+  },
+  "changes": [
+    "fail-closed physical browser URL reconciliation",
+    "stale Worker intent and lease fencing before browser I/O",
+    "assignment working-directory, argument, and repository scope enforcement",
+    "atomic Master proposal plus task-graph materialization",
+    "independent verification event for structured Worker results",
+    "daemon-side expired lease recovery and bounded Worker renewal",
+    "Git blob identity binding for candidate manifests",
+    "Web GPT packet candidate identity regression",
+    "select and settle newly created Chrome Use tabs before URL observation",
+    "updated current-release test identity helpers after historical record archival",
+    "recorded P0-J single-current-release audit and refreshed isolated matrix evidence"
+  ],
+  "offline_evidence": [
+    {
+      "id": "v4_core_unittest",
+      "result": "PASS",
+      "observed": "215 tests",
+      "raw_output_sha256": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e"
+    },
+    {
+      "id": "bridge_unittest",
+      "result": "PASS",
+      "observed": "523 tests",
+      "raw_output_sha256": "39c727df00f7e7a728364b4dec8f144da8469c076991e04c38b00ccf829e497c"
+    },
+    {
+      "id": "python_compileall",
+      "result": "PASS",
+      "raw_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "browser_fill_diagnostic",
+      "result": "PASS",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-d0aa533/evidence.json",
+      "artifact_sha256": "62543c93a2dc8f7c28641f00c53ca79c36905387a82639bd7f5c33857b8ec28f",
+      "submit_actions": 0,
+      "click_performed": false
+    },
+    {
+      "id": "immutable_candidate_install",
+      "result": "PASS",
+      "path": "C:/ScorpAgent/v4-core-lab/d0aa533-install/install-receipt.json",
+      "receipt_sha256": "2fca409de0b221c901e4cc38f261aaa95780a138cb954f1262b6e0817450558d"
+    },
+    {
+      "id": "tab_creation_real_chrome_use",
+      "result": "PASS",
+      "observed": "tab select plus URL settle; no send"
+    }
+  ],
+  "live_evidence": {
+    "status": "LIVE_UNVERIFIED",
+    "reason": "Fresh current-candidate two-worker canary not run after tab-promotion fix; older b0 ambiguous receipt is preserved and not replayed.",
+    "not_run": [
+      "fresh d0 two-worker send",
+      "physical browser rebind",
+      "restart recovery with live browser",
+      "continuous unattended soak",
+      "production cutover"
+    ]
+  },
+  "test_result_hashes": {
+    "v4_core_unittest": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e",
+    "gui_bridge_unittest": "39c727df00f7e7a728364b4dec8f144da8469c076991e04c38b00ccf829e497c",
+    "python_compileall": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "runtime_identity": "d0aa533 install receipt; not production",
+    "remote_feature_ref": null
+  },
+  "handoff": {
+    "ordinary_web_gpt": "先读 GPT_START_HERE.md 和本记录；保持 web_only，不能声称连接本机或创建 GPT 会话。",
+    "windows_operator": "在有效 Windows 登录和 ChatGPT 登录会话中运行本候选版本的本地 preflight，再单独执行受控 canary。",
+    "completion_rule": "只有同一候选提交同时拥有离线回归、真实浏览器、重启恢复和验收凭据，才可改为 ACCEPTED。"
+  }
+}

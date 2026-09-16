@@ -1,0 +1,101 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_D0AA533",
+  "candidate_commit": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
+  "evidence_head_sha": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
+  "branch": "fix/v4-p0-runtime-closure",
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 215,
+      "command": "PYTHONPATH=scorp-agent python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
+      "raw_output_sha256": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 523,
+      "command": "PYTHONPATH=scorp-agent; scorp-agent/chatgpt-gui-bridge python -B -m unittest discover -s tests -p test_*.py",
+      "raw_output_sha256": "39c727df00f7e7a728364b4dec8f144da8469c076991e04c38b00ccf829e497c"
+    },
+    "python_compileall": {
+      "result": "PASS",
+      "command": "python -B -m compileall -q scorp-agent/master_a_dynamic_v4 scorp-agent/chatgpt-gui-bridge",
+      "raw_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "browser_fill_diagnostic": {
+      "result": "PASS",
+      "status": "READY_TO_SEND_NO_CLICK",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-d0aa533/evidence.json",
+      "artifact_sha256": "62543c93a2dc8f7c28641f00c53ca79c36905387a82639bd7f5c33857b8ec28f",
+      "submit_actions": 0,
+      "click_performed": false
+    },
+    "immutable_install": {
+      "result": "PASS",
+      "receipt_path": "C:/ScorpAgent/v4-core-lab/d0aa533-install/install-receipt.json",
+      "receipt_sha256": "2fca409de0b221c901e4cc38f261aaa95780a138cb954f1262b6e0817450558d",
+      "manifest_sha256": "6ddeacb01cfc97bc450048b1da670d20cfc01ba63d388c047689496a0d967d30"
+    },
+    "tab_creation_real_chrome_use": {
+      "result": "PASS",
+      "observed": "tab new returned t2; explicit tab select followed by get url returned https://chatgpt.com/; no prompt entered or sent"
+    }
+  },
+  "old_failure_probes": {
+    "P0-A": "PASS_RECONCILE_REQUIRED_OPEN_0_SEND_0",
+    "P0-B": "PASS_STALE_INTENT_SUBMIT_0",
+    "P0-C": "PASS_SCOPE_REJECT",
+    "P0-D": "PASS_REPOSITORY_BINDING_REJECT",
+    "P0-E": "PASS_TRANSACTION_ROLLBACK_AND_POST_STATE_UPDATE_CRASH_ROLLBACK",
+    "P0-F": "PASS_SELF_REPORT_DEPENDENCY_BLOCKED",
+    "P0-G": "PASS_DAEMON_RECOVERY_BEFORE_SNAPSHOT",
+    "P0-H": "PASS_HEALTH_AND_GENERATION_FENCED_RENEWAL",
+    "P0-I": "PASS_GIT_BLOB_IDENTITY_AND_IMMUTABLE_INSTALL",
+    "P0-K": "PASS_PACKET_CURRENT_RELEASE_IDENTITY_AND_COMPETING_RECORD_REJECT",
+    "BROWSER_TAB_PROMOTION": "PASS_SELECT_AND_SETTLE_BEFORE_URL_OBSERVATION",
+    "P0-J": "PASS_SINGLE_CURRENT_RELEASE_RECORD_WITH_BOUND_HASHES"
+  },
+  "new_regression_tests": [
+    "test_open_new_tab_selects_the_created_tab_before_returning",
+    "test_open_new_tab_waits_for_selected_tab_url_after_transient_blank",
+    "test_current_release_record_has_no_case_insensitive_duplicate_keys",
+    {
+      "name": "current release tests resolve one active release record",
+      "status": "PASS",
+      "evidence": "test_v4_web_gpt_packet.py and test_web_gpt_packet.py"
+    }
+  ],
+  "live": {
+    "LIVE_VERIFIED": false,
+    "status": "LIVE_UNVERIFIED",
+    "reason": "No current-candidate prompt was sent after the tab-promotion fix; prior b0 canary ambiguity is preserved separately and not replayed."
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "remote_feature_ref": null,
+    "install_receipt": "C:/ScorpAgent/v4-core-lab/d0aa533-install/install-receipt.json"
+  },
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D0AA533.json",
+    "manifest_sha256": "6ddeacb01cfc97bc450048b1da670d20cfc01ba63d388c047689496a0d967d30",
+    "file_sha256": "1bd3e1e38c862aad949becb0bfe16ddfdda91197a18ea35e746b400382c1ff7f"
+  },
+  "isolated_deployment": {
+    "status": "PARTIAL",
+    "browser_send": "NOT_RUN_AFTER_TAB_FIX",
+    "scope": [
+      "new tab selection and URL-settle real Chrome Use diagnostic",
+      "offline runtime and bridge regression",
+      "immutable candidate install"
+    ],
+    "open": [
+      "host registration",
+      "fresh current-candidate two-worker canary",
+      "physical browser rebind",
+      "Windows reboot no login",
+      "production cutover"
+    ]
+  }
+}

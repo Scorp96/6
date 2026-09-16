@@ -1,0 +1,48 @@
+{
+  "format": "scorp-v4-p1-isolated-matrix/1",
+  "candidate_commit": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
+  "status": "PARTIAL",
+  "scope": "isolated local runtime and current browser adapter; no current-candidate send",
+  "evidence": {
+    "raw_output_path": "C:/ScorpAgent/v4-core-lab/gui-bridge-unittest-final-d0aa533.txt",
+    "raw_output_sha256": "39c727df00f7e7a728364b4dec8f144da8469c076991e04c38b00ccf829e497c",
+    "tests_run": 523
+  },
+  "items": [
+    {
+      "id": "P1_OFFLINE_REGRESSION",
+      "status": "TEST_VERIFIED",
+      "evidence": "V4 core 215; GUI Bridge 523; compileall PASS"
+    },
+    {
+      "id": "P1_TAB_PROMOTION",
+      "status": "LIVE_UNVERIFIED",
+      "evidence": "real Chrome Use tab new/select/get-url diagnostic passed without send"
+    },
+    {
+      "id": "P1_HOST_REGISTRATION",
+      "status": "BLOCKED",
+      "reason": "descriptor registration.status remains UNREGISTERED_HOST"
+    },
+    {
+      "id": "P1_CURRENT_CANDIDATE_BROWSER_CANARY",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "not run after d0 tab-promotion fix"
+    },
+    {
+      "id": "P1_PHYSICAL_BROWSER_REBIND",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "no current-candidate physical browser evidence"
+    },
+    {
+      "id": "P1_WINDOWS_REBOOT_NO_LOGIN",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "interactive-session boundary not proven"
+    },
+    {
+      "id": "P1_PRODUCTION_CUTOVER",
+      "status": "NOT_RUN",
+      "reason": "production mutation not authorized"
+    }
+  ]
+}

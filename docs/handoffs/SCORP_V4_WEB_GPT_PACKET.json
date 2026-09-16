@@ -6,22 +6,22 @@
     "web_gpt": "planning and evidence review only"
   },
   "blockers": [],
-  "candidate_commit": "b0bbc3afa68bacff07616c5c7667407f84e6fe34",
+  "candidate_commit": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
   "current_live_gate": {
-    "candidate_code_commit": "b0bbc3afa68bacff07616c5c7667407f84e6fe34",
+    "candidate_code_commit": "d0aa533f714b66406ca9ce78a5f81e472912dd1e",
     "evidence_path": null,
-    "reason": "当前 ChatGPT 浏览器会话处于请求限流状态，未执行真实发送。",
+    "reason": "No current-candidate prompt was sent after the tab-promotion fix; prior b0 canary ambiguity is preserved separately and not replayed.",
     "retry_count_after_ambiguity": 0,
     "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
-    "status": "BLOCKED_EXTERNAL_PRECONDITION"
+    "status": "LIVE_UNVERIFIED"
   },
   "evidence_binding": {
-    "candidate_manifest": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_B0BBC3A.json",
-    "handoff_record": "docs/handoffs/SCORP_V4_RELEASE_RECORD_B0BBC3A.json",
-    "validation_record": "docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json"
+    "candidate_manifest": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D0AA533.json",
+    "handoff_record": "docs/handoffs/SCORP_V4_RELEASE_RECORD_D0AA533.json",
+    "validation_record": "docs/handoffs/SCORP_V4_VALIDATION_D0AA533.json"
   },
   "format": "scorp-v4-web-gpt-packet/1",
-  "generated_at": "2026-09-16T04:21:11.814097Z",
+  "generated_at": "2026-09-16T05:00:29.766902Z",
   "next_action": "Upload this packet to the ordinary web GPT; it must remain in planning/review mode until a local operator returns current evidence.",
   "preflight": {
     "allowed_root": null,
@@ -60,7 +60,7 @@
     },
     "database_path": null,
     "format": "scorp-v4-local-preflight/1",
-    "generated_at": "2026-09-16T04:21:11.813928Z",
+    "generated_at": "2026-09-16T05:00:29.766796Z",
     "handoff_rule": "Do not claim local execution, browser control, or completion unless the corresponding capability has current evidence.",
     "overall_status": "READY",
     "python_executable": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
@@ -74,7 +74,7 @@
       "scripts/run-candidate-validation.ps1": true
     }
   },
-  "prompt": "You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.\n\nThis packet was produced for candidate commit b0bbc3afa68bacff07616c5c7667407f84e6fe34. Its current packet status is READY.\nRead the packet and the repository handoff documents before making any claim.\n\nHard boundary:\n- A Git repository does not grant this chat access to Windows, Python, SQLite, Chrome, or browser sessions.\n- Treat WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE as authoritative unless a separate local connector provides current evidence.\n- Do not ask for or store API keys, cookies, passwords, CAPTCHA answers, or login data.\n- Do not claim that a plan ran, a Worker chat was created, or a project is complete without a current evidence record.\n\nReturn exactly these sections:\n1. CAPABILITY: web_only, operator_handoff, sqlite_monitor, or browser_connected.\n2. PLAN: one root_contract, acceptance_contract, and dependency-aware plan with at most two Worker assignments.\n3. REQUIRED_LOCAL_ACTION: the next safe command or state transition for the Windows operator, or BLOCKED with the precise blocker.\n4. ACCEPTANCE: PASS, FAIL, BLOCKED, or NOT_RUN for each criterion, each bound to candidate commit, command/action, observed state, raw output reference, and artifact hash.\n\nIf the packet is BLOCKED, stop at the blocker. Do not convert BLOCKED or NOT_RUN into PASS.\n",
+  "prompt": "You are the SCORP V4 planning and evidence-review GPT, not a Windows executor.\n\nThis packet was produced for candidate commit d0aa533f714b66406ca9ce78a5f81e472912dd1e. Its current packet status is READY.\nRead the packet and the repository handoff documents before making any claim.\n\nHard boundary:\n- A Git repository does not grant this chat access to Windows, Python, SQLite, Chrome, or browser sessions.\n- Treat WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE as authoritative unless a separate local connector provides current evidence.\n- Do not ask for or store API keys, cookies, passwords, CAPTCHA answers, or login data.\n- Do not claim that a plan ran, a Worker chat was created, or a project is complete without a current evidence record.\n\nReturn exactly these sections:\n1. CAPABILITY: web_only, operator_handoff, sqlite_monitor, or browser_connected.\n2. PLAN: one root_contract, acceptance_contract, and dependency-aware plan with at most two Worker assignments.\n3. REQUIRED_LOCAL_ACTION: the next safe command or state transition for the Windows operator, or BLOCKED with the precise blocker.\n4. ACCEPTANCE: PASS, FAIL, BLOCKED, or NOT_RUN for each criterion, each bound to candidate commit, command/action, observed state, raw output reference, and artifact hash.\n\nIf the packet is BLOCKED, stop at the blocker. Do not convert BLOCKED or NOT_RUN into PASS.\n",
   "status": "READY",
   "target_repository": "Scorp96/6"
 }
