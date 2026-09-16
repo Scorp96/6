@@ -68,6 +68,23 @@ def build_serialized_auth_probe(cli, driver, session: str):
     return auth_probe
 
 
+async def ensure_auth_preflight(auth_probe, *, timeout_seconds: float = 60.0):
+    """Prove the shared browser session before creating any Worker intents."""
+
+    try:
+        result = await asyncio.wait_for(
+            auth_probe("canary-preflight"), timeout=max(1.0, float(timeout_seconds))
+        )
+    except asyncio.TimeoutError as exc:
+        raise RuntimeError("AUTH_PRECHECK_TIMEOUT") from exc
+    if not isinstance(result, Mapping):
+        raise RuntimeError("AUTH_PRECHECK_INVALID")
+    status = str(result.get("status") or "UNKNOWN_AUTH_STATE")
+    if status != "AUTHENTICATED":
+        raise RuntimeError(f"AUTH_PRECHECK_BLOCKED:{status}")
+    return dict(result)
+
+
 def failure_evidence(*, project_id: str, error: Exception, intents: list[Mapping[str, object]]) -> dict[str, object]:
     """Build a fail-closed receipt after a live canary exception.
 
@@ -343,6 +360,10 @@ async def run_canary(args: argparse.Namespace) -> int:
     )
     records = []
     try:
+        await ensure_auth_preflight(
+            auth_probe,
+            timeout_seconds=min(60.0, float(args.timeout_seconds)),
+        )
         gateway.ensure_contract(
             {"objective": "harmless live two-worker connectivity canary", "canary": True},
             {"required": ["LIVE_WORKER_CANARY"]},
