@@ -23,6 +23,11 @@
     "path": "docs/handoffs/SCORP_V4_VALIDATION_1A10823.json",
     "file_sha256": "05eef1048d4f4eeecfd7716ce360defdb98b107f9bdbcf4442c19bed998ac62a"
   },
+  "evidence_ids": {
+    "offline_validation": "SCORP_V4_VALIDATION_1A10823",
+    "candidate_manifest": "SCORP_V4_CANDIDATE_MANIFEST_1A10823",
+    "live": []
+  },
   "authority": {
     "sqlite": "local transactional authority",
     "web_gpt": "planning and evidence review only",
@@ -80,7 +85,7 @@
     {
       "id": "git_bundle_backup",
       "result": "PASS",
-      "path": "C:/ScorpAgent/backups/scorp-v4-p0-runtime-closure-b25b093.bundle"
+      "path": "C:/ScorpAgent/backups/scorp-v4-p0-runtime-closure-bf6be9d.bundle"
     }
   ],
   "live_evidence": {
