@@ -1,0 +1,100 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_421BA62",
+  "candidate_commit": "421ba622784a868aa55cc71d83309b32911f7803",
+  "evidence_parent_sha": "215e47a260b0cdb387f96771840cde3640516ac5",
+  "branch": "fix/v4-p0-runtime-closure",
+  "TEST_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 215,
+      "verification_receipt_sha256": "70d95da5a9df37b5f5c444caa679c74f3192d0e1978e3d3d293441fae28b80ea"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 528,
+      "verification_receipt_sha256": "70d95da5a9df37b5f5c444caa679c74f3192d0e1978e3d3d293441fae28b80ea"
+    },
+    "focused_unpromoted_recovery": {
+      "result": "PASS",
+      "tests_run": 1,
+      "verification_receipt_sha256": "70d95da5a9df37b5f5c444caa679c74f3192d0e1978e3d3d293441fae28b80ea"
+    },
+    "live_ack_recovery": {
+      "result": "PASS",
+      "tests_run": 6,
+      "verification_receipt_sha256": "70d95da5a9df37b5f5c444caa679c74f3192d0e1978e3d3d293441fae28b80ea"
+    },
+    "python_compileall": {
+      "result": "PASS",
+      "verification_receipt_sha256": "70d95da5a9df37b5f5c444caa679c74f3192d0e1978e3d3d293441fae28b80ea"
+    },
+    "candidate_manifest": {
+      "result": "PASS",
+      "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_421BA62.json",
+      "manifest_sha256": "e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89",
+      "raw_file_sha256": "2f52b2d3bb65dcd4d90f86b90120c4b7d728eeb287eafa637f7adad414951616",
+      "verification_receipt_sha256": "20e720204338806e206711a037ad3b621ccdae96ebc663e5a61e8b4a59e5b9af"
+    },
+    "live_two_worker_browser_canary": {
+      "result": "PASS",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/canary-421ba62-20260916-1526/evidence.json",
+      "artifact_sha256": "d40352ff8d89ed3c4afe3d9b62f8e41639d22d26e14008b502d79b542de90ee4",
+      "worker_count": 2,
+      "submit_actions": 2,
+      "response_messages": 2,
+      "duplicate_submits": 0,
+      "verification_receipt_sha256": "9a698fc9d658cde76a8d3815d7cf44deaa129852388f562b5fcf9a9ba2cb0542"
+    },
+    "durable_sqlite_canary": {
+      "result": "PASS",
+      "action_intents": 2,
+      "response_captured": 2,
+      "ambiguity_count": 0,
+      "verification_receipt_sha256": "20c955c7efab8ac49f38bc3af080d4f8907724dbca983bc19c0b4fa576d8d2f9"
+    }
+  },
+  "old_failure_probes": {
+    "P0-A": "CLOSED_OFFLINE",
+    "P0-B": "CLOSED_OFFLINE",
+    "P0-C": "CLOSED_OFFLINE",
+    "P0-D": "CLOSED_OFFLINE",
+    "P0-E": "CLOSED_OFFLINE",
+    "P0-F": "CLOSED_OFFLINE",
+    "P0-G": "CLOSED_OFFLINE",
+    "P0-H": "CLOSED_OFFLINE",
+    "P0-I": "CLOSED_OFFLINE",
+    "P0-J": "CLOSED_OFFLINE",
+    "P0-K": "CLOSED_OFFLINE",
+    "BROWSER_UNPROMOTED_RECOVERY": "PASS_LIVE_TWO_WORKER"
+  },
+  "new_regression_tests": [
+    "test_reconcile_recovers_unpromoted_turn_before_url_based_reconcile"
+  ],
+  "live": {
+    "status": "PARTIAL",
+    "browser_two_worker_gate": "PASS",
+    "candidate_commit": "421ba622784a868aa55cc71d83309b32911f7803",
+    "evidence_path": "C:/ScorpAgent/v4-core-lab/canary-421ba62-20260916-1526/evidence.json",
+    "evidence_sha256": "d40352ff8d89ed3c4afe3d9b62f8e41639d22d26e14008b502d79b542de90ee4",
+    "reason": "Real two-Worker Chrome Use submit, conversation promotion, response capture and read-only reconciliation passed on fresh state. Whole-product LIVE_VERIFIED remains false until structured WORK_RESULT to LocalExecutionAdapter, rebind/restart, reboot/no-login and unattended-soak gates pass.",
+    "remaining": [
+      "structured WORK_RESULT to candidate_results to LocalExecutionAdapter",
+      "physical browser rebind",
+      "restart recovery with live browser",
+      "Windows reboot without interactive login",
+      "continuous unattended soak",
+      "production cutover"
+    ]
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "remote_feature_ref": "origin/fix/v4-p0-runtime-closure",
+    "runtime_identity": "421ba62 candidate; not production"
+  }
+}
