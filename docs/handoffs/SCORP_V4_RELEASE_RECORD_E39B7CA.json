@@ -1,0 +1,86 @@
+{
+  "format": "scorp-v4-release-record/1",
+  "repository": "Scorp96/6",
+  "branch": "fix/v4-p0-runtime-closure",
+  "candidate_commit": "e39b7caf0006a02424a1705c35c448ada9e612c3",
+  "baseline_commit": "40301e5da335048bfaf8780196bb5d5d9381fcb2",
+  "status": "TEST_VERIFIED_LIVE_UNVERIFIED",
+  "accepted": false,
+  "authority": {
+    "sqlite": "local transactional authority",
+    "web_gpt": "planning and evidence review only",
+    "browser": "explicitly gated Windows side effect",
+    "git": "candidate and evidence transport only"
+  },
+  "p0": {
+    "P0-A": "CLOSED_OFFLINE",
+    "P0-B": "CLOSED_OFFLINE",
+    "P0-C": "CLOSED_OFFLINE",
+    "P0-D": "CLOSED_OFFLINE",
+    "P0-E": "CLOSED_OFFLINE",
+    "P0-F": "CLOSED_OFFLINE",
+    "P0-G": "CLOSED_OFFLINE",
+    "P0-H": "CLOSED_OFFLINE",
+    "P0-I": "CLOSED_OFFLINE",
+    "P0-J": "CLOSED_OFFLINE",
+    "P0-K": "CLOSED_OFFLINE"
+  },
+  "changes": [
+    "fail-closed physical browser URL reconciliation",
+    "stale Worker intent and lease fencing before browser I/O",
+    "assignment working-directory, argument, and repository scope enforcement",
+    "atomic Master proposal plus task-graph materialization",
+    "independent verification event for structured Worker results",
+    "daemon-side expired lease recovery and bounded Worker renewal",
+    "Git blob identity binding for candidate manifests",
+    "Web GPT packet candidate identity regression"
+  ],
+  "offline_evidence": [
+    {
+      "id": "v4_core_unittest",
+      "result": "PASS",
+      "observed": "213 tests, 22.617s"
+    },
+    {
+      "id": "bridge_unittest",
+      "result": "PASS",
+      "observed": "518 tests, 20.510s"
+    },
+    {
+      "id": "python_compileall",
+      "result": "PASS",
+      "observed": "all scorp-agent Python sources compiled"
+    },
+    {
+      "id": "powershell_v4_hardening",
+      "result": "PASS",
+      "observed": [
+        "V4_CRITICAL_HARDENING_PASS",
+        "V4_PRODUCTION_HARDENING_PASS",
+        "V4_SELFHEAL_HARDENING_PASS"
+      ]
+    },
+    {
+      "id": "git_bundle_backup",
+      "result": "PASS",
+      "path": "C:/ScorpAgent/backups/scorp-v4-p0-runtime-closure-e39b7ca.bundle"
+    }
+  ],
+  "live_evidence": {
+    "status": "LIVE_UNVERIFIED",
+    "reason": "当前 ChatGPT 浏览器会话处于请求限流状态；本轮没有重发不明确的浏览器副作用。",
+    "not_run": [
+      "fresh Windows plus Chrome worker send",
+      "two real GPT conversations",
+      "physical browser rebind",
+      "restart recovery with live browser",
+      "continuous unattended soak",
+      "production cutover"
+    ]
+  },
+  "handoff": {
+    "ordinary_web_gpt": "先读 GPT_START_HERE.md 和本记录；保持 web_only，不能声称连接本机或创建 GPT 会话。",
+    "windows_operator": "在有效 Windows 登录和 ChatGPT 登录会话中运行本候选版本的本地 preflight，再单独执行受控 canary。",
+    "completion_rule": "只有同一候选提交同时拥有离线回归、真实浏览器、重启恢复和验收凭据，才可改为 ACCEPTED。"
+  }
+}
