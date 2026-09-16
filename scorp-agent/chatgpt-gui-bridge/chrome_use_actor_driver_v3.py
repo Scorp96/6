@@ -581,6 +581,46 @@ class ChromeUseActorDriverV3:
         payload = await self.cli.run_json(session, "read", timeout_seconds=self.timeout_seconds)
         return "Focused Window: Chrome\n" + url + "\n" + _render_payload(payload)
 
+    def _existing_physical_binding(self, channel):
+        """Resolve one durable actor session without creating or adopting state."""
+
+        channel = str(channel or "").strip().casefold()
+        if not channel:
+            raise ValueError("CHROME_USE_CHANNEL_MISSING")
+        role = "MASTER" if channel == "master" else "WORKER" if channel.startswith("worker") else None
+        if role is None:
+            raise ValueError("CHROME_USE_CHANNEL_UNSUPPORTED")
+        with self._state_mutex:
+            state = self._load()
+            candidates = []
+            for session, row in state.get("sessions", {}).items():
+                if not isinstance(row, dict) or row.get("status") != "ACTIVE":
+                    continue
+                if self._normalise_role(row.get("role", "UNKNOWN")) != role:
+                    continue
+                urls = sorted({str(value or "").strip() for value in row.get("conversation_urls", []) if str(value or "").strip()})
+                if len(urls) != 1:
+                    continue
+                candidates.append((str(session), urls[0]))
+        if len(candidates) != 1:
+            raise ValueError(f"CHROME_USE_PHYSICAL_BINDING_COUNT_{len(candidates)}")
+        return candidates[0]
+
+    async def observe_current_binding(self, channel):
+        """Observe driver and physical browser identity without navigation or focus."""
+
+        session, driver_url = self._existing_physical_binding(channel)
+        physical_url = await self._get_url(session)
+        if physical_url == _ROOT_URL:
+            raise ValueError("CHROME_USE_PHYSICAL_CONVERSATION_MISSING")
+        payload = await self.cli.run_json(session, "read", timeout_seconds=self.timeout_seconds)
+        return {
+            "driver_url": driver_url,
+            "physical_url": physical_url,
+            "snapshot": "Focused Window: Chrome\n" + physical_url + "\n" + _render_payload(payload),
+            "session": session,
+        }
+
     async def _prepare_interactive(self, session):
         """Request foreground rendering when the transport supports it.
 

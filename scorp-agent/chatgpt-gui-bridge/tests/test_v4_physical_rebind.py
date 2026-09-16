@@ -26,9 +26,13 @@ class ReadOnlyPhysicalRebindTests(unittest.TestCase):
             def __init__(self):
                 self.snapshots = []
 
-            async def snapshot_conversation(self, url):
-                self.snapshots.append(url)
-                return f"Focused Window: Chrome\\n{url}\\nexisting content"
+            async def observe_current_binding(self, _channel):
+                self.snapshots.append("observe")
+                return {
+                    "driver_url": "https://chatgpt.com/c/existing",
+                    "physical_url": "https://chatgpt.com/c/existing",
+                    "snapshot": "Focused Window: Chrome\\nhttps://chatgpt.com/c/existing\\nexisting content",
+                }
 
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
@@ -54,7 +58,7 @@ class ReadOnlyPhysicalRebindTests(unittest.TestCase):
                 )
                 result = rebinder({"master_epoch": 3})
                 self.assertEqual("REBOUND", result["status"])
-                self.assertEqual(["https://chatgpt.com/c/existing"], driver.snapshots)
+                self.assertEqual(["observe"], driver.snapshots)
                 self.assertEqual(
                     "READ_ONLY_PHYSICAL_REBIND",
                     result["evidence"]["source"],
@@ -71,7 +75,7 @@ class ReadOnlyPhysicalRebindTests(unittest.TestCase):
         from v4_physical_rebind import PhysicalRebindError, ReadOnlyBrowserRebinder
 
         class Driver:
-            async def snapshot_conversation(self, _url):
+            async def observe_current_binding(self, _channel):
                 raise AssertionError("snapshot must not run after auth block")
 
         with tempfile.TemporaryDirectory() as td:
@@ -105,8 +109,12 @@ class ReadOnlyPhysicalRebindTests(unittest.TestCase):
         from v4_physical_rebind import ReadOnlyBrowserRebinder
 
         class Driver:
-            async def snapshot_conversation(self, url):
-                return f"Focused Window: Chrome\\n{url}\\nexisting content"
+            async def observe_current_binding(self, _channel):
+                return {
+                    "driver_url": "https://chatgpt.com/c/existing",
+                    "physical_url": "https://chatgpt.com/c/existing",
+                    "snapshot": "Focused Window: Chrome\\nhttps://chatgpt.com/c/existing\\nexisting content",
+                }
 
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
@@ -134,6 +142,60 @@ class ReadOnlyPhysicalRebindTests(unittest.TestCase):
                 self.assertEqual("HEALTHY", result["status"])
                 self.assertEqual("READ_ONLY_PHYSICAL_HEALTH", result["evidence"]["source"])
                 self.assertEqual(before, dict(store.get_browser_binding("rebind-project", "master")))
+            finally:
+                store.close()
+
+    def test_three_way_binding_conflict_fails_closed_without_navigation_or_send(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        from v4_physical_rebind import PhysicalRebindError, ReadOnlyBrowserRebinder
+
+        sqlite_url = "https://chatgpt.com/c/sqlite-a"
+        driver_url = "https://chatgpt.com/c/driver-b"
+
+        class Driver:
+            def __init__(self):
+                self.snapshot_calls = []
+                self.open_calls = []
+
+            async def observe_current_binding(self, _channel):
+                self.snapshot_calls.append("observe")
+                return {
+                    "driver_url": driver_url,
+                    "physical_url": driver_url,
+                    "snapshot": f"Focused Window: Chrome\n{driver_url}\nexisting content",
+                }
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = self._store(root)
+            try:
+                adapter = BrowserAdapter(store, object())
+                adapter.rebind(
+                    "rebind-project",
+                    "master",
+                    actor_id="A",
+                    conversation_url=sqlite_url,
+                    predecessor_url=None,
+                    reason="INITIAL_BINDING",
+                    evidence={"source": "fixture"},
+                )
+                driver = Driver()
+                rebinder = ReadOnlyBrowserRebinder(
+                    store=store,
+                    browser_adapter=adapter,
+                    driver=driver,
+                    auth_probe=lambda _channel: {"status": "AUTHENTICATED"},
+                    project_id="rebind-project",
+                )
+                result = rebinder.health_probe()
+                self.assertEqual("PHYSICAL_UNAVAILABLE", result["status"])
+                self.assertIn("RECONCILE_REQUIRED", result["reason"])
+                self.assertEqual(["observe"], driver.snapshot_calls)
+                self.assertEqual([], driver.open_calls)
+                self.assertEqual(
+                    sqlite_url,
+                    store.get_browser_binding("rebind-project", "master")["conversation_url"],
+                )
             finally:
                 store.close()
 

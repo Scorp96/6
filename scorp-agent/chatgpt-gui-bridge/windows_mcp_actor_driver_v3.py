@@ -250,6 +250,20 @@ class WindowsMcpActorDriverV3:
         url = await focused_chatgpt_url(client)
         return None if url == "https://chatgpt.com/" else url
 
+    async def observe_current_binding(self, _channel):
+        """Read the focused browser identity without opening or navigating a URL."""
+
+        async with self.session_factory() as client:
+            snapshot = await self._snapshot(client)
+            physical_url = await self._focused_conversation_url(client)
+            if not physical_url:
+                raise ValueError("ACTOR_GUI_PHYSICAL_CONVERSATION_MISSING")
+            return {
+                "driver_url": physical_url,
+                "physical_url": physical_url,
+                "snapshot": _bound_snapshot(snapshot, physical_url),
+            }
+
 
     async def submit_prompt(self, *, prompt, turn_id, actor_kind, conversation_url):
         turn_id = str(turn_id or "").strip()

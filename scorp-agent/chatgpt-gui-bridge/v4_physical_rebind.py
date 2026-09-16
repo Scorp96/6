@@ -31,10 +31,12 @@ def _run_sync(value: Any) -> Any:
 class ReadOnlyBrowserRebinder:
     """Verify and rebind an existing logical conversation without sending.
 
-    The driver must provide ``snapshot_conversation(url)`` and the injected
-    authentication probe must return ``{"status": "AUTHENTICATED"}``. The
-    adapter only re-records the already-known URL with evidence; it never
-    creates a chat, fills a composer, or clicks Send.
+    The driver must provide ``observe_current_binding(channel)``.  That
+    observation is required to report the driver's durable URL, the physical
+    URL currently visible in the browser, and a read-only snapshot.  The
+    rebinder never calls a URL-targeted snapshot method because those methods
+    may navigate to the requested URL and would silently erase a three-way
+    binding conflict.
     """
 
     def __init__(
@@ -119,22 +121,39 @@ class ReadOnlyBrowserRebinder:
             status = str(auth.get("status") if isinstance(auth, Mapping) else "INVALID")
             raise PhysicalRebindError(f"AUTH_BLOCKED:{status}")
 
+        observe = getattr(self.driver, "observe_current_binding", None)
+        if not callable(observe):
+            raise PhysicalRebindError("PHYSICAL_OBSERVER_UNAVAILABLE")
         try:
-            snapshot = _run_sync(
+            observed = _run_sync(
                 asyncio.wait_for(
-                    self.driver.snapshot_conversation(url),
+                    observe(self.channel),
                     timeout=self.timeout_seconds,
                 )
             )
         except Exception as exc:
-            raise PhysicalRebindError(f"BROWSER_SNAPSHOT_FAILED:{type(exc).__name__}") from exc
-        text = str(snapshot or "")
+            raise PhysicalRebindError(f"BROWSER_OBSERVATION_FAILED:{type(exc).__name__}") from exc
+        if not isinstance(observed, Mapping):
+            raise PhysicalRebindError("BROWSER_OBSERVATION_INVALID")
+        try:
+            driver_url = validate_conversation_url(str(observed.get("driver_url") or ""))
+            physical_url = validate_conversation_url(str(observed.get("physical_url") or ""))
+        except (TypeError, ValueError) as exc:
+            raise PhysicalRebindError("BROWSER_OBSERVED_URL_INVALID") from exc
+        if driver_url != url or physical_url != url or driver_url != physical_url:
+            raise PhysicalRebindError(
+                "RECONCILE_REQUIRED:"
+                f"sqlite={url};driver={driver_url};physical={physical_url}"
+            )
+        text = str(observed.get("snapshot") or "")
         if url not in text:
             raise PhysicalRebindError("BROWSER_URL_NOT_CONFIRMED")
 
         evidence = {
             "source": source,
             "auth_status": "AUTHENTICATED",
+            "driver_url": driver_url,
+            "physical_url": physical_url,
             "snapshot_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "binding_generation": int(binding.get("generation", 0)),
         }
