@@ -21,7 +21,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json",
-    "file_sha256": "c6db0dac1030ff7401d972dcddcb6a19c8c47f012e0b1d631a2b7a6808af8f75"
+    "file_sha256": "01fdffaeb8d099545253979ea1ce4a664f75eb2a578743e058e155ee5075fab3"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_B0BBC3A",
@@ -116,6 +116,15 @@
       "raw_output_sha256": {
         "active": "df1a6ffa9e41c91312d4b773ee80b029c2939ac815bca4d11cebae29184f1537",
         "missing_physical_rebind": "dd345d8d28c683493df2c57d2896bda1287ab2a6be5eecc5b1502fbb7dda713b"
+      }
+    },
+    {
+      "id": "operator_control_process_loop",
+      "result": "PASS",
+      "observed": "stale epoch rejected, reacquired epoch accepted pause/resume with durable receipts",
+      "raw_output_sha256": {
+        "stale": "acdfe0aadac0e7085e253b04c081254bfd0540bd143580836a5f7e5a78d8b9ae",
+        "reacquired": "b4f533ff6bbf3c6ab81ad07eec31d2e1d67d6425c9a1b1f0ecd3d92d9d5e3b6e"
       }
     }
   ],

@@ -69,6 +69,17 @@
         "active": "df1a6ffa9e41c91312d4b773ee80b029c2939ac815bca4d11cebae29184f1537",
         "missing_physical_rebind": "dd345d8d28c683493df2c57d2896bda1287ab2a6be5eecc5b1502fbb7dda713b"
       }
+    },
+    "operator_control_process_loop": {
+      "result": "PASS",
+      "stale_epoch": "REJECTED_DAEMON_EPOCH_CONFLICT",
+      "reacquired_epoch": "2",
+      "pause": "OK",
+      "resume": "OK",
+      "raw_output_sha256": {
+        "stale": "acdfe0aadac0e7085e253b04c081254bfd0540bd143580836a5f7e5a78d8b9ae",
+        "reacquired": "b4f533ff6bbf3c6ab81ad07eec31d2e1d67d6425c9a1b1f0ecd3d92d9d5e3b6e"
+      }
     }
   },
   "old_failure_probes": {
