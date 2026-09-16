@@ -21,7 +21,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json",
-    "file_sha256": "c3dd79d79eb5700895537030d65035b27cb9555587d384b8d4966208ae58ac66"
+    "file_sha256": "533ba1458be33a04606c4c7e75dedb368b2135f76942bb1d9f3e38088bf40ad4"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_B0BBC3A",
@@ -93,6 +93,15 @@
       "result": "PASS",
       "path": "C:/ScorpAgent/v4-core-lab/b0bbc3a-install/install-receipt.json",
       "receipt_sha256": "7a0bd509d25c14fc0b909c1c0c0690646a2ff69555a2ef2f26b22a7c5a5cd1f6"
+    },
+    {
+      "id": "isolated_runtime_lifecycle",
+      "result": "PASS",
+      "tests": "runtime_pipe_cli 3; daemon/supervisor lifecycle 15",
+      "raw_output_sha256": {
+        "runtime_pipe_cli": "9453b0b21a95e22bec4ab2ac01bc2fa594248fe343329297f0d918c7ddec0c81",
+        "daemon_supervisor": "c2fb541db8cfe0f33fa5113103be4bc1e742f702191f4004d3ee4d22342faff5"
+      }
     }
   ],
   "live_evidence": {

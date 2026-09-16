@@ -40,6 +40,18 @@
       "receipt_path": "C:/ScorpAgent/v4-core-lab/b0bbc3a-install/install-receipt.json",
       "receipt_sha256": "7a0bd509d25c14fc0b909c1c0c0690646a2ff69555a2ef2f26b22a7c5a5cd1f6",
       "manifest_sha256": "9b6efa2f0cbb778155b49a6e233d1adf852fbf4decc753cd8cd92404b844f059"
+    },
+    "runtime_pipe_cli_windows": {
+      "result": "PASS",
+      "tests_run": 3,
+      "raw_output_path": "C:/ScorpAgent/v4-runtime-evidence-b0bbc3a/runtime-pipe-cli.txt",
+      "raw_output_sha256": "9453b0b21a95e22bec4ab2ac01bc2fa594248fe343329297f0d918c7ddec0c81"
+    },
+    "daemon_supervisor_lifecycle": {
+      "result": "PASS",
+      "tests_run": 15,
+      "raw_output_path": "C:/ScorpAgent/v4-runtime-evidence-b0bbc3a/daemon-supervisor.txt",
+      "raw_output_sha256": "c2fb541db8cfe0f33fa5113103be4bc1e742f702191f4004d3ee4d22342faff5"
     }
   },
   "old_failure_probes": {
@@ -74,5 +86,15 @@
     "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_B0BBC3A.json",
     "manifest_sha256": "9b6efa2f0cbb778155b49a6e233d1adf852fbf4decc753cd8cd92404b844f059",
     "file_sha256": "8c40bb4be76f4c617f666184470fe97f80275765ce1d9bf47e662fa8264ba8a3"
+  },
+  "isolated_deployment": {
+    "status": "TEST_VERIFIED",
+    "browser_send": "NOT_ATTEMPTED",
+    "scope": [
+      "daemon singleton and epoch fencing",
+      "restart and lease recovery",
+      "Master supervisor liveness and physical rebind blocker",
+      "authenticated Windows Named Pipe one-shot exchange"
+    ]
   }
 }
