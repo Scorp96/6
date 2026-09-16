@@ -10,6 +10,11 @@ class _StoreNeverBound:
         return None
 
 
+class _StoreMalformedBinding:
+    def get_browser_binding(self, project_id, channel):
+        return "CORRUPT_BINDING"
+
+
 class _NoBrowserAdapter:
     def rebind(self, *args, **kwargs):
         raise AssertionError("rebind must not be called for a never-bound local-only Master")
@@ -40,6 +45,17 @@ class LocalOnlyMasterRebindTests(unittest.TestCase):
         result = self._rebinder().health_probe()
         self.assertEqual("HEALTHY", result["status"])
         self.assertEqual("LOCAL_ONLY_MASTER", result["mode"])
+
+    def test_malformed_existing_binding_never_downgrades_to_local_only(self):
+        rebinder = ReadOnlyBrowserRebinder(
+            store=_StoreMalformedBinding(), browser_adapter=_NoBrowserAdapter(), driver=_NoBrowserDriver(),
+            auth_probe=_no_auth, project_id="p1", channel="master", actor_id="A", timeout_seconds=1)
+        with self.assertRaisesRegex(Exception, "MASTER_BROWSER_BINDING_MISSING"):
+            rebinder({"master_epoch": 2})
+        health = rebinder.health_probe()
+        self.assertEqual("PHYSICAL_UNAVAILABLE", health["status"])
+        self.assertIn("MASTER_BROWSER_BINDING_MISSING", health["reason"])
+
 
 
 if __name__ == "__main__":
