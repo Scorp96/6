@@ -111,7 +111,8 @@ class V4DaemonActiveControllerTests(unittest.TestCase):
             worker_prompt_factory=lambda claim: "prompt",
         )
         result = handlers["RECONCILE_AMBIGUOUS"](_decision("RECONCILE_AMBIGUOUS"))
-        self.assertEqual("BLOCKED", result["status"])
+        self.assertEqual("WAITING", result["status"])
+        self.assertEqual("BROWSER_RECONCILIATION_PENDING", result["reason"])
         self.assertEqual(0, controller.step_calls)
 
 
