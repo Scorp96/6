@@ -124,9 +124,13 @@ class ReleaseIdentityTests(unittest.TestCase):
             subprocess.run(["git", "add", "tool.py"], cwd=source, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=source, check=True)
             commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
-            (source / "tool.py").write_text("VALUE = 2\n", encoding="utf-8")
-            with self.assertRaisesRegex(InstallIdentityError, "SOURCE_FILE_NOT_AT_CANDIDATE"):
-                build_candidate_manifest(source, commit, ["tool.py"])
+            (source / "tool.py").write_text("VALUE = 222\n", encoding="utf-8")
+            manifest = build_candidate_manifest(source, commit, ["tool.py"])
+            self.assertEqual("VALUE = 1\n", subprocess.check_output(
+                ["git", "show", f"{commit}:tool.py"], cwd=source, text=True
+            ))
+            self.assertEqual(manifest["files"]["tool.py"]["git_blob_size"], manifest["files"]["tool.py"]["size"])
+            self.assertNotEqual((source / "tool.py").stat().st_size, manifest["files"]["tool.py"]["git_blob_size"])
 
 
 if __name__ == "__main__":

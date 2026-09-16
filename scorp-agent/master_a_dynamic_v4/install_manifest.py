@@ -73,6 +73,21 @@ def _git_object_metadata(root: pathlib.Path, commit: str, relative: str) -> dict
     }
 
 
+def _git_blob_content(root: pathlib.Path, commit: str, relative: str) -> bytes:
+    metadata = _git_object_metadata(root, commit, relative)
+    if metadata is None:
+        raise InstallIdentityError(f"SOURCE_GIT_OBJECT_MISSING:{relative}")
+    content = subprocess.run(
+        ["git", "cat-file", "blob", metadata["git_blob_oid"]],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if content.returncode != 0:
+        raise InstallIdentityError(f"SOURCE_GIT_BLOB_UNAVAILABLE:{relative}")
+    return content.stdout
+
+
 def _validated_relative(root: pathlib.Path, raw: str | pathlib.Path) -> tuple[str, pathlib.Path]:
     relative = pathlib.Path(raw)
     if relative.is_absolute() or not relative.parts:
@@ -110,8 +125,11 @@ def build_candidate_manifest(
         metadata: dict[str, Any] = {"sha256": _file_sha256(source), "size": stat.st_size}
         git_metadata = _git_object_metadata(root, candidate, relative)
         if git_metadata is not None:
-            if metadata["sha256"] != git_metadata["git_blob_sha256"] or metadata["size"] != git_metadata["git_blob_size"]:
-                raise InstallIdentityError(f"SOURCE_FILE_NOT_AT_CANDIDATE:{relative}")
+            # The release identity is the immutable Git blob.  A Windows
+            # checkout may materialize the same text with different EOL bytes;
+            # those working-tree bytes must not redefine the candidate.
+            metadata["sha256"] = git_metadata["git_blob_sha256"]
+            metadata["size"] = git_metadata["git_blob_size"]
             metadata.update(git_metadata)
         files[relative] = metadata
     if not files:
@@ -135,13 +153,18 @@ def verify_candidate_manifest(
     root = pathlib.Path(source_root).resolve(strict=True)
     candidate = str(expected_commit or "").strip().lower()
     actual = str(observed_commit or _git_head(root)).strip().lower()
-    if candidate != actual or str(manifest.get("candidate_commit")) != candidate:
+    if str(manifest.get("candidate_commit")) != candidate:
         raise InstallIdentityError("CANDIDATE_COMMIT_MISMATCH")
     if str(manifest.get("source_tree")) != str(root):
         raise InstallIdentityError("SOURCE_TREE_MISMATCH")
     files = manifest.get("files")
     if not isinstance(files, Mapping) or not files:
         raise InstallIdentityError("CANDIDATE_FILESET_EMPTY")
+    # A later documentation commit may be checked out around an immutable
+    # candidate. Git blob metadata is sufficient to verify the candidate in
+    # that case; manifests without blob identity still require HEAD equality.
+    if candidate != actual and not all(isinstance(value, Mapping) and value.get("git_blob_oid") for value in files.values()):
+        raise InstallIdentityError("CANDIDATE_COMMIT_MISMATCH")
     core = {key: manifest[key] for key in ("format", "candidate_commit", "source_tree", "files")}
     if str(manifest.get("manifest_sha256")) != sha256_json(core):
         raise InstallIdentityError("CANDIDATE_MANIFEST_HASH_MISMATCH")
@@ -149,16 +172,16 @@ def verify_candidate_manifest(
         _, source = _validated_relative(root, str(raw))
         if not isinstance(metadata, Mapping):
             raise InstallIdentityError("SOURCE_FILE_METADATA_INVALID")
-        current_hash = _file_sha256(source)
-        if current_hash != str(metadata.get("sha256")) or source.stat().st_size != int(metadata.get("size", -1)):
-            raise InstallIdentityError(f"SOURCE_FILE_HASH_MISMATCH:{raw}")
         git_oid = str(metadata.get("git_blob_oid") or "").strip().lower()
         if git_oid:
             git_metadata = _git_object_metadata(root, candidate, str(raw))
             if git_metadata is None or git_metadata["git_blob_oid"] != git_oid:
                 raise InstallIdentityError(f"SOURCE_GIT_OBJECT_MISMATCH:{raw}")
-            if current_hash != git_metadata["git_blob_sha256"]:
-                raise InstallIdentityError(f"SOURCE_FILE_NOT_AT_CANDIDATE:{raw}")
+            if str(metadata.get("sha256")) != git_metadata["git_blob_sha256"] or int(metadata.get("size", -1)) != git_metadata["git_blob_size"]:
+                raise InstallIdentityError(f"SOURCE_GIT_METADATA_MISMATCH:{raw}")
+        else:
+            if _file_sha256(source) != str(metadata.get("sha256")) or source.stat().st_size != int(metadata.get("size", -1)):
+                raise InstallIdentityError(f"SOURCE_FILE_HASH_MISMATCH:{raw}")
 
 
 def snapshot_paths(paths: Iterable[str | pathlib.Path]) -> dict[str, Any]:
@@ -229,7 +252,11 @@ def install_to_lab(
         if not _inside(destination, target):
             raise InstallIdentityError("INSTALL_DESTINATION_ESCAPE")
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_file, destination)
+        metadata = manifest["files"][relative]
+        if metadata.get("git_blob_oid"):
+            destination.write_bytes(_git_blob_content(source, str(manifest["candidate_commit"]), relative))
+        else:
+            shutil.copy2(source_file, destination)
     database = target / "state.sqlite3"
     StateStore(database, allowed_roots=[target]).close()
     after = snapshot_paths(protected)
