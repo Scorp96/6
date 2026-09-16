@@ -43,6 +43,7 @@ from tools.v4_master_controller_runtime import (  # noqa: E402
 )
 from v4_auth import probe_chatgpt_auth  # noqa: E402
 from v4_browser_engine import build_v4_browser_engine  # noqa: E402
+from v4_physical_rebind import ReadOnlyBrowserRebinder  # noqa: E402
 
 
 class MonitorOnlyEngine:
@@ -169,7 +170,17 @@ def _build_active_controller_runtime(
         git_worktree_manager=GitWorktreeManager([allowed_root]),
     )
     controller.attach_existing_session()
-    return gateway, controller
+    rebind_callback = ReadOnlyBrowserRebinder(
+        store=gateway.store,
+        browser_adapter=gateway.adapter,
+        driver=driver,
+        auth_probe=auth_probe,
+        project_id=str(project_id),
+        channel="master",
+        actor_id="A",
+        timeout_seconds=120,
+    )
+    return gateway, controller, rebind_callback
 
 def run_runtime(args: argparse.Namespace) -> int:
     database_path = pathlib.Path(args.database_path).resolve()
@@ -212,8 +223,9 @@ def run_runtime(args: argparse.Namespace) -> int:
         action_handlers = {}
         master_supervision = False
         controller = None
+        rebind_callback = None
         if args.active_controller:
-            controller_gateway, controller = _build_active_controller_runtime(
+            controller_gateway, controller, rebind_callback = _build_active_controller_runtime(
                 database_path,
                 str(args.project_id),
                 allowed_root,
@@ -238,7 +250,17 @@ def run_runtime(args: argparse.Namespace) -> int:
                 )
                 controller = MasterAController(controller_gateway, str(args.master_session_id))
                 controller.attach_existing_session()
-            supervisor = MasterSupervisor(controller)
+            physical_health_probe = (
+                rebind_callback.health_probe
+                if rebind_callback is not None
+                and callable(getattr(rebind_callback, "health_probe", None))
+                else None
+            )
+            supervisor = MasterSupervisor(
+                controller,
+                rebind_callback=rebind_callback,
+                physical_health_probe=physical_health_probe,
+            )
             supervisor_handler = MasterSupervisorActionHandler(supervisor)
             action_handlers.update(
                 {
