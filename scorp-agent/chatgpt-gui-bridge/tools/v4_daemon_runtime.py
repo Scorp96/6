@@ -1,9 +1,9 @@
 """Run the V4 local daemon against an existing SQLite state database.
 
-This entrypoint is intentionally monitor-only in its first production seam:
-it reads the durable snapshot, journals the ActivationArbiter decision and
-reports blockers.  Browser sends, Master rebinds and Worker claims remain
-owned by their fenced adapters and are never guessed here.
+This entrypoint is intentionally monitor-only by default: it reads the durable
+snapshot, journals the ActivationArbiter decision and reports blockers. Browser
+sends remain owned by fenced adapters. An explicit ``--active-controller`` gate
+may attach the existing Master A controller in later runtime construction.
 """
 
 from __future__ import annotations
@@ -20,7 +20,11 @@ if str(AGENT_ROOT) not in sys.path:
 if str(BRIDGE_ROOT) not in sys.path:
     sys.path.insert(0, str(BRIDGE_ROOT))
 
-from master_a_dynamic_v4.daemon import LocalDaemon, MasterSupervisorActionHandler  # noqa: E402
+from master_a_dynamic_v4.daemon import (  # noqa: E402
+    LocalDaemon,
+    MasterSupervisorActionHandler,
+    PersistentControllerActionHandler,
+)
 from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
 from master_a_dynamic_v4.master_supervisor import MasterSupervisor  # noqa: E402
 from master_a_dynamic_v4.path_policy import PathPolicy  # noqa: E402
@@ -65,7 +69,42 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--forever", action="store_true")
     parser.add_argument("--supervise-master", action="store_true")
     parser.add_argument("--master-session-id", default="master-a-runtime")
+    parser.add_argument(
+        "--active-controller",
+        action="store_true",
+        help="explicitly enable the fenced MasterAController action adapter",
+    )
+    parser.add_argument("--driver-state-path", type=pathlib.Path)
     return parser
+
+
+def _validate_active_controller_options(args: argparse.Namespace) -> None:
+    """Fail before any browser-capable runtime can be built."""
+    if not bool(getattr(args, "active_controller", False)):
+        return
+    if getattr(args, "driver_state_path", None) is None:
+        raise RuntimeError("DRIVER_STATE_PATH_REQUIRED_FOR_ACTIVE_CONTROLLER")
+
+
+def _build_persistent_action_handlers(
+    controller,
+    gateway,
+    *,
+    worker_prompt_factory,
+):
+    """Map only safe arbiter actions to the existing fenced controller seams."""
+    handler = PersistentControllerActionHandler(
+        controller,
+        worker_prompt_factory=worker_prompt_factory,
+        recover_callback=gateway.recover,
+    )
+    return {
+        "RECONCILE_AMBIGUOUS": handler,
+        "ASSIGN_WORKER": handler,
+        "WAKE_MASTER": handler,
+        "RESUME_WORKER": handler,
+        "RECOVER_STALLED": handler,
+    }
 
 
 def run_runtime(args: argparse.Namespace) -> int:
@@ -81,6 +120,7 @@ def run_runtime(args: argparse.Namespace) -> int:
         raise RuntimeError("DAEMON_INTERVAL_INVALID")
     if not args.forever and int(args.max_iterations) <= 0:
         raise RuntimeError("DAEMON_ITERATION_BOUND_INVALID")
+    _validate_active_controller_options(args)
     health_path = pathlib.Path(args.health_path).resolve() if args.health_path else database_path.with_suffix(".daemon-health.json")
 
     store = StateStore(database_path, [allowed_root])
@@ -164,6 +204,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             "health_path": str(health_path),
             "browser_send": "FORBIDDEN",
             "master_supervision": master_supervision,
+            "active_controller": bool(args.active_controller),
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         graceful_exit = True
