@@ -295,6 +295,9 @@ class MasterAController:
                 master_epoch=epoch,
                 blockers=(f"MASTER_{str(watchdog.get('status') or 'UNKNOWN')}",),
             )
+        recover_captured = getattr(self.gateway, "recover_captured_response_claims", None)
+        if callable(recover_captured):
+            recover_captured(master_epoch=epoch)
         active = list(self.gateway.load_worker_claims(master_epoch=epoch))
         free = max(0, 2 - len(active))
         claims = active + (list(self.gateway.claim_workers(master_epoch=epoch, limit=free)) if free else [])

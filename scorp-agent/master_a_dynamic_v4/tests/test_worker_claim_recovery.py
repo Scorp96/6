@@ -201,5 +201,45 @@ class WorkerClaimRecoveryTests(unittest.TestCase):
                 reopened.close()
 
 
+    def test_expired_assignment_with_captured_response_can_recover_processing_lease_without_new_assignment(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler = self._runtime(root)
+            try:
+                started = dt.datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+                claim = scheduler.claim_runnable(master_epoch=0, now=started, lease_seconds=1)[0]
+                intent_id = f"worker-intent-{claim.assignment_id}"
+                store.prepare_intent(
+                    "project-recovery", intent_id, actor_id=claim.worker_id,
+                    channel=f"worker/{claim.slot_id}", action_kind="CHATGPT_WORKER_SUBMIT",
+                    payload={"prompt":"x","worker_assignment":{"assignment_id":claim.assignment_id}},
+                )
+                with store._transaction() as conn:
+                    conn.execute("UPDATE action_intents SET state='BLOCKED_AMBIGUOUS' WHERE intent_id=?", (intent_id,))
+                    conn.execute("UPDATE outbox SET state='BLOCKED' WHERE intent_id=?", (intent_id,))
+                scheduler.recover_expired_leases(now=started + dt.timedelta(seconds=2))
+                store.capture_response(
+                    intent_id,
+                    response={"kind":"WORK_RESULT","payload":{"work_result_version":"1"}},
+                    conversation_url="https://chatgpt.com/c/test",
+                    remote_identity="remote",
+                    observation={"source":"test"},
+                )
+                recovered = scheduler.recover_captured_response_claims(
+                    master_epoch=0, now=started + dt.timedelta(seconds=3), lease_seconds=60
+                )
+                self.assertEqual(1, len(recovered))
+                self.assertEqual(claim.assignment_id, recovered[0].assignment_id)
+                self.assertNotEqual(claim.lease_token, recovered[0].lease_token)
+                self.assertEqual("ACTIVE", scheduler.get_assignment(claim.assignment_id)["state"])
+                with store._connection() as conn:
+                    lease = conn.execute("SELECT state FROM leases WHERE assignment_id=?", (claim.assignment_id,)).fetchone()[0]
+                    task = conn.execute("SELECT state FROM task_nodes WHERE project_id=? AND task_id='T1'", ("project-recovery",)).fetchone()[0]
+                self.assertEqual("ACTIVE", lease)
+                self.assertEqual("RUNNING", task)
+            finally:
+                store.close()
+
+
 if __name__ == "__main__":
     unittest.main()

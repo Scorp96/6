@@ -18,7 +18,7 @@ from master_a_dynamic_v4.master_watchdog import MasterWatchdog
 from master_a_dynamic_v4.path_policy import PathPolicy
 from master_a_dynamic_v4.recovery import recover_pending_intents
 from master_a_dynamic_v4.scheduler import AssignmentClaim, Scheduler, SchedulerError, WorkerFenceError
-from master_a_dynamic_v4.state_store import StateStore, utc_now
+from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError, utc_now
 
 
 DEFAULT_QUEUE_REPO = "Scorp96/666"
@@ -192,6 +192,9 @@ class V4BridgeGateway:
             raise SchedulerError("V4_WORKER_LIMIT_INVALID")
         return self.scheduler.claim_runnable(master_epoch=master_epoch, limit=limit, now=now)
 
+    def recover_captured_response_claims(self, *, master_epoch: int, now=None, lease_seconds: int = 900):
+        return self.scheduler.recover_captured_response_claims(master_epoch=int(master_epoch), now=now, lease_seconds=int(lease_seconds))
+
     def load_worker_claims(self, *, master_epoch: int, now=None):
         """Rehydrate active durable Worker assignments after a restart."""
         return self.scheduler.load_active_claims(master_epoch=int(master_epoch), now=now)
@@ -263,6 +266,17 @@ class V4BridgeGateway:
             or str(row["expires_at"]) <= utc_now()
         ):
             raise WorkerFenceError("WORKER_FENCED")
+        intent_id = f"worker-intent-{claim.assignment_id}"
+        try:
+            existing_intent = self.store.get_intent(intent_id)
+        except StoreInvariantError as exc:
+            if "INTENT_NOT_FOUND" not in str(exc):
+                raise
+            existing_intent = None
+        if existing_intent is not None and str(existing_intent.get("state") or "") == "RESPONSE_CAPTURED":
+            if str(existing_intent.get("actor_id") or "") != claim.worker_id or str(existing_intent.get("channel") or "") != f"worker/{claim.slot_id}":
+                raise WorkerFenceError("CAPTURED_RESPONSE_INTENT_IDENTITY_MISMATCH")
+            return existing_intent
         prompt_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
         payload: dict[str, Any] = {
             "prompt": text,
@@ -291,7 +305,7 @@ class V4BridgeGateway:
             payload["metadata"] = dict(metadata)
         return self.store.prepare_intent(
             self.project_id,
-            f"worker-intent-{claim.assignment_id}",
+            intent_id,
             actor_id=claim.worker_id,
             channel=f"worker/{claim.slot_id}",
             action_kind="CHATGPT_WORKER_SUBMIT",

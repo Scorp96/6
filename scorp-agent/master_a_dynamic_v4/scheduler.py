@@ -548,6 +548,102 @@ class Scheduler:
                     break
         return claims
 
+    def recover_captured_response_claims(
+        self, *, master_epoch: int, now: dt.datetime | None = None, lease_seconds: int = 900
+    ) -> list[AssignmentClaim]:
+        """Reissue processing authority for a captured response without new browser I/O.
+
+        Only the same fenced assignment may be revived, only after its durable
+        browser intent reached RESPONSE_CAPTURED, and only when no candidate
+        result already exists. A fresh lease token is minted under the current
+        Master epoch; the old browser intent is never prepared or submitted again.
+        """
+        current = _aware(now)
+        try:
+            ttl = int(lease_seconds)
+        except (TypeError, ValueError) as exc:
+            raise SchedulerError("LEASE_SECONDS_INVALID") from exc
+        if ttl < 1:
+            raise SchedulerError("LEASE_SECONDS_INVALID")
+        stamp = _timestamp(current)
+        expires = _timestamp(current + dt.timedelta(seconds=ttl))
+        recovered: list[AssignmentClaim] = []
+        with self.store._transaction() as conn:
+            # Rotate both sides of the cyclic lease-token FK atomically.
+            conn.execute("PRAGMA defer_foreign_keys = ON")
+            state = conn.execute(
+                "SELECT master_epoch,state_version,status FROM project_state WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if state is None:
+                raise SchedulerError("PROJECT_NOT_FOUND")
+            if int(state["master_epoch"]) != int(master_epoch):
+                raise WorkerFenceError("MASTER_EPOCH_FENCED")
+            if str(state["status"]) not in {"ACTIVE", "RUNNING"}:
+                return []
+            control = conn.execute(
+                "SELECT operator_state,operator_generation,objective_generation FROM operator_controls WHERE project_id=?",
+                (self.project_id,),
+            ).fetchone()
+            if control is None or str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+                return []
+            rows = conn.execute(
+                """
+                SELECT a.*,t.task_context_json,t.state AS task_state,l.state AS lease_state,
+                       i.intent_id,i.state AS intent_state
+                FROM assignments a
+                JOIN task_nodes t ON t.project_id=a.project_id AND t.task_id=a.task_id
+                JOIN leases l ON l.assignment_id=a.assignment_id
+                JOIN action_intents i ON i.project_id=a.project_id
+                  AND i.intent_id=('worker-intent-' || a.assignment_id)
+                WHERE a.project_id=? AND a.state='FENCED'
+                  AND l.state IN ('EXPIRED','FENCED')
+                  AND i.state='RESPONSE_CAPTURED'
+                  AND NOT EXISTS (SELECT 1 FROM candidate_results r WHERE r.assignment_id=a.assignment_id)
+                ORDER BY a.slot_id,a.assignment_id
+                """,
+                (self.project_id,),
+            ).fetchall()
+            for row in rows:
+                if str(row["task_state"]) != "QUEUED":
+                    continue
+                if int(row["base_state_version"]) != int(state["state_version"]):
+                    continue
+                if int(row["operator_generation"]) != int(control["operator_generation"]):
+                    continue
+                if int(row["objective_generation"]) != int(control["objective_generation"]):
+                    continue
+                token = secrets.token_urlsafe(32)
+                conn.execute(
+                    "UPDATE assignments SET state='ACTIVE',master_epoch=?,lease_token=?,updated_at=? WHERE assignment_id=? AND state='FENCED'",
+                    (int(master_epoch), token, stamp, row["assignment_id"]),
+                )
+                conn.execute(
+                    """UPDATE leases SET lease_token=?,master_epoch=?,state='ACTIVE',acquired_at=?,heartbeat_at=?,expires_at=?,released_at=NULL
+                       WHERE assignment_id=? AND state IN ('EXPIRED','FENCED')""",
+                    (token, int(master_epoch), stamp, stamp, expires, row["assignment_id"]),
+                )
+                conn.execute(
+                    "UPDATE task_nodes SET state='RUNNING',updated_at=? WHERE project_id=? AND task_id=? AND state='QUEUED'",
+                    (stamp, self.project_id, row["task_id"]),
+                )
+                conn.execute(
+                    "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                    (f"event-{uuid.uuid4().hex}", self.project_id, "WORKER_CAPTURED_RESPONSE_PROCESSING_LEASE_RECOVERED",
+                     canonical_json({"assignment_id": row["assignment_id"], "intent_id": row["intent_id"], "master_epoch": int(master_epoch)}), stamp),
+                )
+                recovered.append(AssignmentClaim(
+                    assignment_id=str(row["assignment_id"]), project_id=self.project_id,
+                    task_id=str(row["task_id"]), worker_id=str(row["worker_id"]), slot_id=str(row["slot_id"]),
+                    lease_token=token, master_epoch=int(master_epoch), base_state_version=int(row["base_state_version"]),
+                    objective_sha256=str(row["objective_sha256"]),
+                    resource_scope=tuple(sorted(json.loads(str(row["resource_scope_json"])))),
+                    access_mode=str(row["access_mode"]), expires_at=expires,
+                    operator_generation=int(row["operator_generation"]), objective_generation=int(row["objective_generation"]),
+                    task_context=_decode_task_context(row["task_context_json"]),
+                ))
+        return recovered
+
     def renew_worker_lease(
         self,
         claim: AssignmentClaim,
