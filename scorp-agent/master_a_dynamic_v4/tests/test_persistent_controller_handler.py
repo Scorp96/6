@@ -56,8 +56,8 @@ class PersistentControllerActionHandlerTests(unittest.TestCase):
             recover_callback=lambda: [("intent-1", "BLOCKED_AMBIGUOUS")],
         )
         result = handler(_decision("RECONCILE_AMBIGUOUS"))
-        self.assertEqual("BLOCKED", result["status"])
-        self.assertEqual("BROWSER_RECONCILIATION_REQUIRED", result["reason"])
+        self.assertEqual("WAITING", result["status"])
+        self.assertEqual("BROWSER_RECONCILIATION_PENDING", result["reason"])
         self.assertEqual(0, controller.step_calls)
 
     def test_assign_worker_runs_exactly_one_bounded_controller_step(self):

@@ -66,8 +66,8 @@ class PersistentControllerActionHandler:
                     unresolved.append(item)
             if unresolved:
                 return {
-                    "status": "BLOCKED",
-                    "reason": "BROWSER_RECONCILIATION_REQUIRED",
+                    "status": "WAITING",
+                    "reason": "BROWSER_RECONCILIATION_PENDING",
                     "recovery": items,
                 }
             return {"status": "RECOVERED", "recovery": items}
