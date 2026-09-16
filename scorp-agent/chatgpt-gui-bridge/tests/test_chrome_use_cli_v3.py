@@ -6,6 +6,58 @@ from chrome_use_cli_v3 import ChromeUseCliV3, _default_runner
 
 
 class ChromeUseCliV3Tests(unittest.TestCase):
+    def test_open_new_tab_selects_the_created_tab_before_returning(self):
+        calls = []
+
+        async def runner(argv, timeout_seconds):
+            calls.append((list(argv), timeout_seconds))
+            if len(calls) == 1:
+                return 0, '{"success":true,"data":{"tabId":"t2","url":"https://chatgpt.com/"}}', ''
+            if len(calls) == 2:
+                return 0, '{"success":true,"data":{"tabId":"t2","verified":"confirmed"}}', ''
+            return 0, '{"success":true,"data":{"url":"https://chatgpt.com/"}}', ''
+
+        cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner)
+        result = asyncio.run(cli.open_new_tab('scorp-p0-a', 'https://chatgpt.com/', timeout_seconds=4))
+
+        self.assertEqual({"success": True, "data": {"tabId": "t2", "verified": "confirmed"}}, result)
+        self.assertEqual(
+            [
+                ['--session', 'scorp-p0-a', '--json', 'tab', 'new', 'https://chatgpt.com/'],
+                ['--session', 'scorp-p0-a', '--json', 'tab', 'select', 't2'],
+                ['--session', 'scorp-p0-a', '--json', 'get', 'url'],
+            ],
+            [call[0][1:] for call in calls],
+        )
+
+    def test_open_new_tab_waits_for_selected_tab_url_after_transient_blank(self):
+        calls = []
+
+        async def runner(argv, timeout_seconds):
+            calls.append((list(argv), timeout_seconds))
+            index = len(calls)
+            if index == 1:
+                return 0, '{"success":true,"data":{"tabId":"t2","url":"https://chatgpt.com/"}}', ''
+            if index == 2:
+                return 0, '{"success":true,"data":{"tabId":"t2","verified":"confirmed"}}', ''
+            if index == 3:
+                return 0, '{"success":true,"data":{"url":"about:blank"}}', ''
+            return 0, '{"success":true,"data":{"url":"https://chatgpt.com/"}}', ''
+
+        cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner)
+        result = asyncio.run(cli.open_new_tab('scorp-p0-a', 'https://chatgpt.com/', timeout_seconds=4))
+
+        self.assertEqual({"success": True, "data": {"tabId": "t2", "verified": "confirmed"}}, result)
+        self.assertEqual(
+            ['tab', 'select', 't2'],
+            calls[1][0][4:],
+        )
+        self.assertEqual(
+            ['get', 'url'],
+            calls[2][0][4:],
+        )
+        self.assertEqual(4, len(calls))
+
     def test_prepare_interactive_surfaces_the_bound_session(self):
         calls = []
 

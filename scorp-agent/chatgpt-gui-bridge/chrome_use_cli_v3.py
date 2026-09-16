@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import tempfile
+import time
 import threading
 
 
@@ -117,11 +118,47 @@ class ChromeUseCliV3:
 
     async def open_new_tab(self, session, url, *, timeout_seconds=30):
         """Create an owned tab before starting a new ChatGPT conversation."""
-
-        return await self.run_json(
+        created = await self.run_json(
             session,
             "tab",
             "new",
             str(url),
             timeout_seconds=timeout_seconds,
         )
+        # ``tab new`` can create the requested page while leaving the relay's
+        # command target on the previous tab (often ``about:blank``).  Select
+        # the returned tab explicitly before callers read its URL or DOM;
+        # otherwise a real Worker can be sent to a new tab while the next
+        # observation still inspects the old target and falsely reports an
+        # ambiguous submission.
+        data = created.get("data") if isinstance(created, dict) else None
+        tab_id = data.get("tabId") if isinstance(data, dict) else None
+        if tab_id:
+            selected = await self.run_json(
+                session,
+                "tab",
+                "select",
+                str(tab_id),
+                timeout_seconds=timeout_seconds,
+            )
+            # A newly created tab can be selected before its renderer has
+            # promoted the requested URL.  Only read the URL while waiting;
+            # never navigate again and never infer success from the tab-new
+            # response alone.  Returning after the bounded poll preserves the
+            # caller's normal fail-closed URL check if the page remains blank.
+            deadline = time.monotonic() + float(timeout_seconds)
+            while time.monotonic() < deadline:
+                remaining = max(0.1, deadline - time.monotonic())
+                observed = await self.run_json(
+                    session,
+                    "get",
+                    "url",
+                    timeout_seconds=min(5.0, remaining),
+                )
+                observed_data = observed.get("data") if isinstance(observed, dict) else None
+                observed_url = observed_data.get("url") if isinstance(observed_data, dict) else None
+                if str(observed_url or "").strip() == str(url).strip():
+                    break
+                await asyncio.sleep(min(0.25, max(0.0, deadline - time.monotonic())))
+            return selected
+        return created
