@@ -20,7 +20,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json",
-    "file_sha256": "2fb76751b7604ac2dec4fdf4ff5f3d912393058e2f3a662f77274b5ecbbfc44a"
+    "file_sha256": "64e3a37dc463ab50bfea1a77761ed0aa17882f4e4376cf75cfab796932cd562a"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_B0BBC3A",
@@ -55,7 +55,8 @@
     "daemon-side expired lease recovery and bounded Worker renewal",
     "Git blob identity binding for candidate manifests",
     "Web GPT packet candidate identity regression",
-    "proposal-state crash failpoint regression and unique current release packet binding"
+    "proposal-state crash failpoint regression and unique current release packet binding",
+    "PowerShell-compatible case-insensitive unique Release Record keys"
   ],
   "offline_evidence": [
     {
@@ -66,7 +67,8 @@
     {
       "id": "bridge_unittest",
       "result": "PASS",
-      "observed": "520 tests, 18.385s"
+      "observed": "521 tests, 19.783s",
+      "raw_output_sha256": "1005fbb19aaaf4ce41f4309296fdb408b6b06134c36708cc5d037c2680b419aa"
     },
     {
       "id": "python_compileall",
@@ -148,7 +150,7 @@
   },
   "test_result_hashes": {
     "v4_core_unittest": "b23aba0b57696bbba3308d8edd944884bfd687288c23702de552610edd995c28",
-    "gui_bridge_unittest": "70bd01c4fe83227c59fccac7c05353cb0a4c8dcc69f45df3f8a7c995f20284f",
+    "gui_bridge_unittest": "1005fbb19aaaf4ce41f4309296fdb408b6b06134c36708cc5d037c2680b419aa",
     "python_compileall": "5e7db886ef2952521796d4d3b375295c28f625ce59dd79ae8208166836b31937",
     "v4_hardening": "fec4d46e5fcf431f21e6db951e99b50cc2e06fcb0f188bcb46dc065e9309fa8c"
   },

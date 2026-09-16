@@ -13,9 +13,9 @@
     },
     "gui_bridge_unittest": {
       "result": "PASS",
-      "tests_run": 520,
+      "tests_run": 521,
       "command": "PYTHONPATH=scorp-agent; scorp-agent/chatgpt-gui-bridge python -B -m unittest discover -s tests -p test_*.py",
-      "raw_output_sha256": "70bd01c4fe83227c59fccac7c05353cb0a4c8dcc69f45df3f8a7c995f20284f"
+      "raw_output_sha256": "1005fbb19aaaf4ce41f4309296fdb408b6b06134c36708cc5d037c2680b419aa"
     },
     "python_compileall": {
       "result": "PASS",
@@ -97,7 +97,8 @@
   "new_regression_tests": [
     "test_master_graph_admission_rolls_back_after_proposal_commit_failpoint",
     "test_packet_rejects_competing_current_release_records",
-    "test_packet_prefers_unique_current_release_record"
+    "test_packet_prefers_unique_current_release_record",
+    "test_current_release_record_has_no_case_insensitive_duplicate_keys"
   ],
   "live": {
     "LIVE_VERIFIED": false,
