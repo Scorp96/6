@@ -52,6 +52,13 @@
       "tests_run": 15,
       "raw_output_path": "C:/ScorpAgent/v4-runtime-evidence-b0bbc3a/daemon-supervisor.txt",
       "raw_output_sha256": "c2fb541db8cfe0f33fa5113103be4bc1e742f702191f4004d3ee4d22342faff5"
+    },
+    "runtime_status_process_loop": {
+      "result": "PASS",
+      "command": "runtime_cli runtime.status over bounded JSONL stdin",
+      "observed_state": "OK; daemon_epoch=1; operator_state=RUNNING; workers.active=0; capacity=2",
+      "raw_output_path": "C:/ScorpAgent/v4-runtime-evidence-b0bbc3a/runtime-status.jsonl",
+      "raw_output_sha256": "637982ce6e5d73301b3e9081779a7d2d8d281103149e7bf601281fa9219b9034"
     }
   },
   "old_failure_probes": {

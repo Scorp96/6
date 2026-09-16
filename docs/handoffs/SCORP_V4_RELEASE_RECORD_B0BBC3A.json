@@ -21,7 +21,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json",
-    "file_sha256": "533ba1458be33a04606c4c7e75dedb368b2135f76942bb1d9f3e38088bf40ad4"
+    "file_sha256": "5355ed0004358d68cb87142b8d3290e3c4d18a3643ab9697db08edd1e670fbea"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_B0BBC3A",
@@ -102,6 +102,12 @@
         "runtime_pipe_cli": "9453b0b21a95e22bec4ab2ac01bc2fa594248fe343329297f0d918c7ddec0c81",
         "daemon_supervisor": "c2fb541db8cfe0f33fa5113103be4bc1e742f702191f4004d3ee4d22342faff5"
       }
+    },
+    {
+      "id": "runtime_status_process_loop",
+      "result": "PASS",
+      "observed": "runtime.status OK with daemon lease and capacity=2",
+      "raw_output_sha256": "637982ce6e5d73301b3e9081779a7d2d8d281103149e7bf601281fa9219b9034"
     }
   ],
   "live_evidence": {
