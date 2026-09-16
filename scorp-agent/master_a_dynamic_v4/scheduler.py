@@ -36,6 +36,8 @@ class AssignmentClaim:
     resource_scope: tuple[str, ...]
     access_mode: str
     expires_at: str
+    operator_generation: int = 0
+    objective_generation: int = 0
     task_context: Mapping[str, Any] = dataclasses.field(default_factory=dict)
 
 
@@ -366,6 +368,8 @@ class Scheduler:
                         resource_scope=tuple(sorted(json.loads(str(row["resource_scope_json"]))),),
                         access_mode=str(row["access_mode"]),
                         expires_at=str(row["expires_at"]),
+                        operator_generation=int(row["operator_generation"]),
+                        objective_generation=int(row["objective_generation"]),
                         task_context=_decode_task_context(row["task_context_json"]),
                     )
                 )
@@ -406,7 +410,7 @@ class Scheduler:
             if str(state["status"]) not in {"ACTIVE", "RUNNING"}:
                 return []
             control = conn.execute(
-                "SELECT operator_state FROM operator_controls WHERE project_id=?",
+                "SELECT operator_state,operator_generation,objective_generation FROM operator_controls WHERE project_id=?",
                 (self.project_id,),
             ).fetchone()
             if control is None:
@@ -481,9 +485,9 @@ class Scheduler:
                     """
                     INSERT INTO assignments(
                         assignment_id,project_id,task_id,worker_id,slot_id,master_epoch,
-                        base_state_version,lease_token,objective_sha256,resource_scope_json,access_mode,state,
+                        base_state_version,operator_generation,objective_generation,lease_token,objective_sha256,resource_scope_json,access_mode,state,
                         created_at,updated_at
-                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,'ACTIVE',?,?)
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'ACTIVE',?,?)
                     """,
                     (
                         assignment_id,
@@ -493,6 +497,8 @@ class Scheduler:
                         slot_id,
                         int(master_epoch),
                         int(state["state_version"]),
+                        int(control["operator_generation"]),
+                        int(control["objective_generation"]),
                         lease_token,
                         task["objective_sha256"],
                         task["resource_scope_json"],
@@ -532,6 +538,8 @@ class Scheduler:
                         resource_scope=tuple(sorted(scope)),
                         access_mode=mode,
                         expires_at=expires,
+                        operator_generation=int(control["operator_generation"]),
+                        objective_generation=int(control["objective_generation"]),
                         task_context=_decode_task_context(task["task_context_json"]),
                     )
                 )
@@ -548,6 +556,8 @@ class Scheduler:
         lease_token: str | None = None,
         now: dt.datetime | None = None,
         lease_seconds: int = 900,
+        physical_health: Mapping[str, Any] | None = None,
+        health_max_age_seconds: int = 120,
     ) -> dict[str, Any]:
         """Renew one active Worker lease through the durable fencing gate."""
 
@@ -561,6 +571,12 @@ class Scheduler:
             raise SchedulerError("LEASE_SECONDS_INVALID") from exc
         if ttl < 1:
             raise SchedulerError("LEASE_SECONDS_INVALID")
+        try:
+            health_max_age = int(health_max_age_seconds)
+        except (TypeError, ValueError) as exc:
+            raise SchedulerError("HEALTH_MAX_AGE_INVALID") from exc
+        if health_max_age < 1:
+            raise SchedulerError("HEALTH_MAX_AGE_INVALID")
         current = _aware(now)
         stamp = _timestamp(current)
         expires = _timestamp(current + dt.timedelta(seconds=ttl))
@@ -578,7 +594,7 @@ class Scheduler:
             if str(state["status"]) not in {"ACTIVE", "RUNNING"}:
                 raise WorkerFenceError("WORKER_PROJECT_FENCED")
             control = conn.execute(
-                "SELECT operator_state FROM operator_controls WHERE project_id=?",
+                "SELECT operator_state,operator_generation,objective_generation FROM operator_controls WHERE project_id=?",
                 (self.project_id,),
             ).fetchone()
             if control is None or str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
@@ -598,8 +614,43 @@ class Scheduler:
                 raise WorkerFenceError("LEASE_TOKEN_FENCED")
             if int(row["master_epoch"]) != epoch or int(row["lease_epoch"]) != epoch:
                 raise WorkerFenceError("WORKER_EPOCH_FENCED")
+            if int(row["operator_generation"]) != int(control["operator_generation"]):
+                raise WorkerFenceError("WORKER_OPERATOR_GENERATION_FENCED")
+            if int(row["objective_generation"]) != int(control["objective_generation"]):
+                raise WorkerFenceError("WORKER_OBJECTIVE_GENERATION_FENCED")
             if str(row["state"]) != "ACTIVE" or str(row["lease_state"]) != "ACTIVE":
                 raise WorkerFenceError("WORKER_LEASE_NOT_ACTIVE")
+            health = dict(physical_health or {})
+            if not health:
+                observation = conn.execute(
+                    "SELECT browser_semantic_state,auth_host_blocker,last_observed_at,last_browser_success_at FROM runtime_observations WHERE project_id=?",
+                    (self.project_id,),
+                ).fetchone()
+                if observation is not None:
+                    health = {
+                        "assignment_id": claim.assignment_id,
+                        "worker_id": claim.worker_id,
+                        "session_id": f"worker/{claim.slot_id}",
+                        "status": observation["browser_semantic_state"],
+                        "observed_at": observation["last_observed_at"],
+                        "browser_success_at": observation["last_browser_success_at"],
+                    }
+            if str(health.get("assignment_id") or "") != claim.assignment_id:
+                raise WorkerFenceError("WORKER_HEALTH_ASSIGNMENT_MISMATCH")
+            if str(health.get("worker_id") or "") != claim.worker_id:
+                raise WorkerFenceError("WORKER_HEALTH_ACTOR_MISMATCH")
+            if not str(health.get("session_id") or "").strip():
+                raise WorkerFenceError("WORKER_HEALTH_SESSION_MISSING")
+            health_status = str(health.get("status") or "").strip().upper()
+            if health_status not in {"READY", "AUTHENTICATED", "HEALTHY", "OK", "GENERATING"}:
+                raise WorkerFenceError("WORKER_PHYSICAL_HEALTH_UNVERIFIED")
+            observed_text = str(health.get("observed_at") or "").strip()
+            try:
+                observed_at = dt.datetime.fromisoformat(observed_text.replace("Z", "+00:00"))
+            except (TypeError, ValueError) as exc:
+                raise WorkerFenceError("WORKER_HEALTH_TIMESTAMP_INVALID") from exc
+            if observed_at.tzinfo is None or (current - observed_at.astimezone(UTC)).total_seconds() > health_max_age:
+                raise WorkerFenceError("WORKER_PHYSICAL_HEALTH_STALE")
             if str(row["expires_at"]) <= stamp:
                 conn.execute(
                     "UPDATE leases SET state='EXPIRED',released_at=? WHERE assignment_id=? AND state='ACTIVE'",
@@ -850,6 +901,24 @@ class Scheduler:
                     )
                 except (WorkResultRejected, TypeError, ValueError) as exc:
                     raise SchedulerError(str(exc)) from exc
+            try:
+                result_status = str(payload.get("status") or "").strip().upper()
+            except AttributeError:
+                result_status = ""
+            # A model-reported COMPLETE envelope is only structure-verified
+            # until an independent verifier explicitly promotes it. Keeping
+            # the assignment and lease active also prevents a dependent task
+            # from becoming runnable on self-authored evidence.
+            if result_kind == "WORK_RESULT" and result_status == "COMPLETE" and independent_verifier is None:
+                conn.execute(
+                    "UPDATE candidate_results SET verification_state='STRUCTURE_VERIFIED',verified_result_sha256=?,verified_at=? WHERE result_id=?",
+                    (digest, stamp, result_id),
+                )
+                conn.execute(
+                    "UPDATE task_nodes SET state='EVIDENCE_PENDING',result_sha256=?,updated_at=? WHERE project_id=? AND task_id=?",
+                    (digest, stamp, self.project_id, row["task_id"]),
+                )
+                return
             conn.execute(
                 "UPDATE candidate_results SET verification_state=?,verified_result_sha256=?,verified_at=? WHERE result_id=?",
                 (verification_state, digest, stamp, result_id),

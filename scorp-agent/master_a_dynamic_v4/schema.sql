@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS assignments (
     slot_id TEXT NOT NULL,
     master_epoch INTEGER NOT NULL CHECK (master_epoch >= 0),
     base_state_version INTEGER NOT NULL DEFAULT 0 CHECK (base_state_version >= 0),
+    operator_generation INTEGER NOT NULL DEFAULT 0 CHECK (operator_generation >= 0),
+    objective_generation INTEGER NOT NULL DEFAULT 0 CHECK (objective_generation >= 0),
     lease_token TEXT NOT NULL UNIQUE,
     objective_sha256 TEXT NOT NULL,
     resource_scope_json TEXT NOT NULL,

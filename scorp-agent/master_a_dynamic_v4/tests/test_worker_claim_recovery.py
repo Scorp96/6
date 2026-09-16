@@ -24,6 +24,13 @@ class WorkerClaimRecoveryTests(unittest.TestCase):
             root_contract={"objective": "renew claims"},
             acceptance_contract={"required": ["AC-RECOVERY"]},
         )
+        store.record_runtime_observation(
+            "project-recovery",
+            progress_state="ACTIVE_GENERATING",
+            browser_semantic_state="READY",
+            observed_at="2026-09-15T12:00:00Z",
+            browser_succeeded=True,
+        )
         scheduler = Scheduler(store, "project-recovery", PathPolicy([root]), max_workers=2)
         scheduler.enqueue_graph([
             {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [worktree / "a.txt"], "dependencies": []},
@@ -42,6 +49,13 @@ class WorkerClaimRecoveryTests(unittest.TestCase):
                     master_epoch=0,
                     now=started + dt.timedelta(seconds=10),
                     lease_seconds=60,
+                    physical_health={
+                        "assignment_id": claim.assignment_id,
+                        "worker_id": claim.worker_id,
+                        "session_id": "worker/worker-slot-1",
+                        "status": "READY",
+                        "observed_at": "2026-09-15T12:00:10Z",
+                    },
                 )
                 self.assertEqual("ACTIVE", renewed["state"])
                 self.assertEqual("2026-09-15T12:00:10Z", renewed["heartbeat_at"])
@@ -77,6 +91,47 @@ class WorkerClaimRecoveryTests(unittest.TestCase):
                 with self.assertRaisesRegex(WorkerFenceError, "WORKER_LEASE_EXPIRED"):
                     scheduler.renew_worker_lease(claim, master_epoch=0, now=started + dt.timedelta(seconds=31))
                 self.assertEqual("FENCED", scheduler.get_assignment(claim.assignment_id)["state"])
+            finally:
+                store.close()
+
+    def test_worker_lease_renewal_requires_current_physical_health_and_generation(self):
+        from master_a_dynamic_v4.scheduler import WorkerFenceError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, scheduler = self._runtime(root)
+            try:
+                started = dt.datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+                claim = scheduler.claim_runnable(master_epoch=0, now=started, lease_seconds=60)[0]
+                with self.assertRaisesRegex(WorkerFenceError, "WORKER_PHYSICAL_HEALTH_UNVERIFIED"):
+                    scheduler.renew_worker_lease(
+                        claim,
+                        now=started + dt.timedelta(seconds=5),
+                        physical_health={
+                            "assignment_id": claim.assignment_id,
+                            "worker_id": claim.worker_id,
+                            "session_id": "worker/worker-slot-1",
+                            "status": "UNKNOWN",
+                            "observed_at": "2026-09-15T12:00:05Z",
+                        },
+                    )
+                with store._transaction() as conn:
+                    conn.execute(
+                        "UPDATE operator_controls SET operator_generation=operator_generation+1 WHERE project_id=?",
+                        ("project-recovery",),
+                    )
+                with self.assertRaisesRegex(WorkerFenceError, "WORKER_OPERATOR_GENERATION_FENCED"):
+                    scheduler.renew_worker_lease(
+                        claim,
+                        now=started + dt.timedelta(seconds=5),
+                        physical_health={
+                            "assignment_id": claim.assignment_id,
+                            "worker_id": claim.worker_id,
+                            "session_id": "worker/worker-slot-1",
+                            "status": "READY",
+                            "observed_at": "2026-09-15T12:00:05Z",
+                        },
+                    )
             finally:
                 store.close()
 

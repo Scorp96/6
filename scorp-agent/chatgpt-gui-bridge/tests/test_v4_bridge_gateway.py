@@ -4,6 +4,7 @@ import pathlib
 import subprocess
 import tempfile
 import unittest
+import datetime as dt
 
 sys_path = pathlib.Path(__file__).resolve().parents[2]
 import sys
@@ -452,7 +453,17 @@ class V4GatewayTests(unittest.TestCase):
                     [claim.assignment_id for claim in claims],
                     [claim.assignment_id for claim in recovered],
                 )
-                renewed = gateway.renew_worker_lease(claims[0], lease_seconds=60)
+                renewed = gateway.renew_worker_lease(
+                    claims[0],
+                    lease_seconds=60,
+                    physical_health={
+                        'assignment_id': claims[0].assignment_id,
+                        'worker_id': claims[0].worker_id,
+                        'session_id': 'worker/worker-slot-1',
+                        'status': 'READY',
+                        'observed_at': dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z'),
+                    },
+                )
                 self.assertEqual("ACTIVE", renewed["state"])
                 self.assertTrue(renewed["heartbeat_at"])
                 first = gateway.submit_worker_intent(claims[0], 'Complete T1 and return WORK_RESULT/1')

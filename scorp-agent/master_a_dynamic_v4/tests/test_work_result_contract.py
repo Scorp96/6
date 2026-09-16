@@ -138,11 +138,53 @@ class WorkResultContractTests(unittest.TestCase):
                 )
                 payload["result_sha256"] = self.result_digest({k: v for k, v in payload.items() if k != "result_sha256"})
                 result_id = scheduler.record_work_result(claim, payload=payload)
-                scheduler.verify_candidate(result_id, result_sha256=payload["result_sha256"])
+                scheduler.verify_candidate(result_id, result_sha256=payload["result_sha256"], independent_verifier="test-validator")
                 self.assertEqual("ACCEPTED", scheduler.get_task("T1")["state"])
 
                 claim2 = scheduler.claim_runnable(master_epoch=0)
                 self.assertEqual([], claim2)
+            finally:
+                store.close()
+
+    def test_complete_worker_self_report_does_not_release_dependency_without_independent_receipt(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+        from master_a_dynamic_v4.state_store import StateStore
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", allowed_roots=[root])
+            store.create_contract(
+                "project-1",
+                root_contract={"objective": "independent verification"},
+                acceptance_contract={"required": ["AC01"]},
+            )
+            scheduler = Scheduler(store, "project-1", PathPolicy([root]), max_workers=2)
+            try:
+                scheduler.enqueue_graph([
+                    {"task_id": "T1", "objective_sha256": "a" * 64, "resource_scope": [root / "a.txt"]},
+                    {"task_id": "T2", "objective_sha256": "b" * 64, "resource_scope": [root / "b.txt"], "dependencies": ["T1"]},
+                ])
+                claim = scheduler.claim_runnable(master_epoch=0)[0]
+                payload = self.valid_payload()
+                payload.update({
+                    "worker_id": claim.worker_id,
+                    "assignment_id": claim.assignment_id,
+                    "task_id": claim.task_id,
+                    "base_state_version": claim.base_state_version,
+                })
+                payload["result_sha256"] = self.result_digest({k: v for k, v in payload.items() if k != "result_sha256"})
+                result_id = scheduler.record_work_result(claim, payload=payload)
+                scheduler.verify_candidate(result_id, result_sha256=payload["result_sha256"])
+                self.assertNotEqual("ACCEPTED", scheduler.get_task("T1")["state"])
+                self.assertEqual([], scheduler.claim_runnable(master_epoch=0))
+                scheduler.verify_candidate(
+                    result_id,
+                    result_sha256=payload["result_sha256"],
+                    independent_verifier="test-validator",
+                )
+                self.assertEqual("ACCEPTED", scheduler.get_task("T1")["state"])
+                self.assertEqual(["T2"], [item.task_id for item in scheduler.claim_runnable(master_epoch=0)])
             finally:
                 store.close()
 

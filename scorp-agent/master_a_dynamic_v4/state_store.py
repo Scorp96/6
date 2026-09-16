@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 _UNSET = object()
 
 _REQUIRED_SCHEMA_TABLES = frozenset(
@@ -163,6 +163,14 @@ class StateStore:
                 conn.execute(
                     "ALTER TABLE assignments ADD COLUMN base_state_version INTEGER NOT NULL DEFAULT 0 CHECK (base_state_version >= 0)"
                 )
+            if "operator_generation" not in assignment_columns:
+                conn.execute(
+                    "ALTER TABLE assignments ADD COLUMN operator_generation INTEGER NOT NULL DEFAULT 0 CHECK (operator_generation >= 0)"
+                )
+            if "objective_generation" not in assignment_columns:
+                conn.execute(
+                    "ALTER TABLE assignments ADD COLUMN objective_generation INTEGER NOT NULL DEFAULT 0 CHECK (objective_generation >= 0)"
+                )
             task_columns = {
                 str(row[1]) for row in conn.execute("PRAGMA table_info(task_nodes)").fetchall()
             }
@@ -273,12 +281,25 @@ class StateStore:
                     conn.rollback()
                     raise
                 versions = versions + [6]
+            if versions in ([1, 2, 3, 4, 5, 6], [3, 4, 5, 6], [4, 5, 6], [5, 6], [6]) and SCHEMA_VERSION >= 7:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (7, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = versions + [7]
             valid_versions = {
                 tuple(range(1, SCHEMA_VERSION + 1)),
                 (SCHEMA_VERSION,),
-                (3, 4, 5, 6),
-                (4, 5, 6),
-                (5, 6),
+                (3, 4, 5, 6, 7),
+                (4, 5, 6, 7),
+                (5, 6, 7),
+                (6, 7),
             }
             if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")

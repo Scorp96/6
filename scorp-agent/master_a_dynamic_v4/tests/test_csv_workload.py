@@ -183,7 +183,7 @@ class CsvWorkloadTests(unittest.TestCase):
                 }
                 for claim in first:
                     result_id = scheduler.record_work_result(claim, payload=executions[claim.task_id])
-                    scheduler.verify_candidate(result_id, result_sha256=executions[claim.task_id]["result_sha256"])
+                    scheduler.verify_candidate(result_id, result_sha256=executions[claim.task_id]["result_sha256"], independent_verifier="test-validator")
 
                 dependent = scheduler.claim_runnable(master_epoch=0)
                 self.assertEqual(["T3"], [claim.task_id for claim in dependent])
@@ -198,7 +198,7 @@ class CsvWorkloadTests(unittest.TestCase):
                     acceptance=["AC05:T3"],
                 )
                 result_id = scheduler.record_work_result(t3, payload=t3_payload)
-                scheduler.verify_candidate(result_id, result_sha256=t3_payload["result_sha256"])
+                scheduler.verify_candidate(result_id, result_sha256=t3_payload["result_sha256"], independent_verifier="test-validator")
                 self.assertEqual("ACCEPTED", scheduler.get_task("T1")["state"])
                 self.assertEqual("ACCEPTED", scheduler.get_task("T2")["state"])
                 self.assertEqual("ACCEPTED", scheduler.get_task("T3")["state"])
