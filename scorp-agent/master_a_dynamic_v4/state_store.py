@@ -1020,10 +1020,26 @@ class StateStore:
                 "SELECT progress_state,auth_host_blocker,browser_semantic_state FROM runtime_observations WHERE project_id=?",
                 (project,),
             ).fetchone()
-            pending_results = int(conn.execute(
+            pending_candidate_results = int(conn.execute(
                 "SELECT COUNT(*) FROM candidate_results WHERE project_id=? AND verification_state='PENDING'",
                 (project,),
             ).fetchone()[0])
+            captured_worker_results = int(conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM action_intents i
+                JOIN assignments a
+                  ON a.project_id=i.project_id
+                 AND i.intent_id=('worker-intent-' || a.assignment_id)
+                LEFT JOIN candidate_results r ON r.assignment_id=a.assignment_id
+                WHERE i.project_id=?
+                  AND i.action_kind='CHATGPT_WORKER_SUBMIT'
+                  AND i.state='RESPONSE_CAPTURED'
+                  AND r.assignment_id IS NULL
+                """,
+                (project,),
+            ).fetchone()[0])
+            pending_results = pending_candidate_results + captured_worker_results
             free_slots = max(0, 2 - active_workers)
             progress_state = str(observation["progress_state"]) if observation is not None else ("ACTIVE_NO_VISIBLE_PROGRESS" if active_workers else "IDLE")
             return ArbiterSnapshot(

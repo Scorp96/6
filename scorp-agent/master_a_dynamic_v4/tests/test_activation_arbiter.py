@@ -225,5 +225,33 @@ class ActivationArbiterTests(unittest.TestCase):
                 store.heartbeat_daemon_lease("p", "daemon-a", daemon_epoch=1, now=start + dt.timedelta(seconds=21), ttl_seconds=10)
 
 
+    def test_captured_worker_response_is_pending_master_work_and_wakes_daemon(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            worktree = root / "worktree"
+            worktree.mkdir()
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            master = store.start_master_session("p", "master-a", ttl_seconds=300)
+            from master_a_dynamic_v4.path_policy import PathPolicy
+            from master_a_dynamic_v4.scheduler import Scheduler
+            scheduler = Scheduler(store, "p", PathPolicy([root]), max_workers=2)
+            scheduler.enqueue_graph([{"task_id":"T1","objective_sha256":"a"*64,"resource_scope":[worktree/"a.txt"],"dependencies":[]}])
+            claim = scheduler.claim_runnable(master_epoch=int(master["master_epoch"]), limit=1)[0]
+            intent_id = f"worker-intent-{claim.assignment_id}"
+            store.prepare_intent("p", intent_id, actor_id=claim.worker_id, channel=f"worker/{claim.slot_id}", action_kind="CHATGPT_WORKER_SUBMIT", payload={"prompt":"x"})
+            with store._transaction() as conn:
+                conn.execute("UPDATE action_intents SET state='BLOCKED_AMBIGUOUS' WHERE intent_id=?", (intent_id,))
+                conn.execute("UPDATE outbox SET state='BLOCKED' WHERE intent_id=?", (intent_id,))
+            store.capture_response(intent_id, response={"work_result_version":"1"}, conversation_url="https://chatgpt.com/c/test", remote_identity="remote", observation={"source":"test"})
+            store.finalize_intent(intent_id)
+            snapshot = store.activation_snapshot("p", daemon_epoch=1)
+            self.assertEqual(1, snapshot.pending_results)
+            decision = self.arbiter.decide(snapshot)
+            self.assertEqual("WAKE_MASTER", decision.action)
+            self.assertEqual("PENDING_RESULT_REQUIRES_MASTER_WAKE", decision.reason)
+            store.close()
+
+
 if __name__ == "__main__":
     unittest.main()
