@@ -5,6 +5,7 @@ import pathlib
 import threading
 import tempfile
 import unittest
+from unittest import mock
 
 from tools.v4_live_two_worker_canary import (
     MARKERS,
@@ -161,6 +162,44 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
             ["BLOCKED_AMBIGUOUS", "BLOCKED_AMBIGUOUS"],
             [result["state"] for result in results],
         )
+
+    def test_shared_auth_probe_is_serialized_for_concurrent_workers(self):
+        from tools import v4_live_two_worker_canary as module
+
+        active = 0
+        max_active = 0
+        entered = asyncio.Event()
+        release = asyncio.Event()
+
+        async def fake_probe(cli, driver, session, channel):
+            nonlocal active, max_active
+            active += 1
+            max_active = max(max_active, active)
+            entered.set()
+            await release.wait()
+            active -= 1
+            return {"status": "AUTHENTICATED", "channel": channel}
+
+        class Cli:
+            async def run_json(self, *args, **kwargs):
+                return {}
+
+        async def exercise():
+            probe = module.build_serialized_auth_probe(
+                Cli(), object(), "shared-auth-session"
+            )
+            with mock.patch.object(module, "probe_chatgpt_auth", fake_probe):
+                first = asyncio.create_task(probe("worker/worker-slot-1"))
+                await entered.wait()
+                second = asyncio.create_task(probe("worker/worker-slot-2"))
+                await asyncio.sleep(0)
+                self.assertEqual(1, max_active)
+                self.assertFalse(second.done())
+                release.set()
+                return await asyncio.gather(first, second)
+
+        results = asyncio.run(exercise())
+        self.assertEqual(["worker/worker-slot-1", "worker/worker-slot-2"], [r["channel"] for r in results])
 
     def test_send_gate_refuses_without_explicit_flag(self):
         with tempfile.TemporaryDirectory() as td:
