@@ -72,7 +72,17 @@ class ReadOnlyBrowserRebinder:
         except (KeyError, TypeError, ValueError) as exc:
             raise PhysicalRebindError("MASTER_EPOCH_MISSING") from exc
 
-        binding, url, evidence = self._verify_binding(source="READ_ONLY_PHYSICAL_REBIND")
+        binding = self.store.get_browser_binding(self.project_id, self.channel)
+        if not isinstance(binding, Mapping):
+            return {
+                "status": "LOCAL_ONLY_MASTER",
+                "master_epoch": epoch,
+                "conversation_url": None,
+                "evidence": {"source": "NO_MASTER_BROWSER_BINDING"},
+            }
+        binding, url, evidence = self._verify_binding(
+            source="READ_ONLY_PHYSICAL_REBIND", binding=binding
+        )
         evidence = {**evidence, "master_epoch": epoch}
         persisted = self.browser_adapter.rebind(
             self.project_id,
@@ -94,8 +104,18 @@ class ReadOnlyBrowserRebinder:
     def health_probe(self) -> dict[str, Any]:
         """Prove the bound physical session without changing SQLite state."""
 
+        binding = self.store.get_browser_binding(self.project_id, self.channel)
+        if not isinstance(binding, Mapping):
+            return {
+                "status": "HEALTHY",
+                "mode": "LOCAL_ONLY_MASTER",
+                "conversation_url": None,
+                "evidence": {"source": "NO_MASTER_BROWSER_BINDING"},
+            }
         try:
-            _binding, url, evidence = self._verify_binding(source="READ_ONLY_PHYSICAL_HEALTH")
+            _binding, url, evidence = self._verify_binding(
+                source="READ_ONLY_PHYSICAL_HEALTH", binding=binding
+            )
         except PhysicalRebindError as exc:
             return {
                 "status": "PHYSICAL_UNAVAILABLE",
@@ -107,8 +127,11 @@ class ReadOnlyBrowserRebinder:
             "evidence": evidence,
         }
 
-    def _verify_binding(self, *, source: str) -> tuple[Mapping[str, Any], str, dict[str, Any]]:
-        binding = self.store.get_browser_binding(self.project_id, self.channel)
+    def _verify_binding(
+        self, *, source: str, binding: Mapping[str, Any] | None = None
+    ) -> tuple[Mapping[str, Any], str, dict[str, Any]]:
+        if binding is None:
+            binding = self.store.get_browser_binding(self.project_id, self.channel)
         if not isinstance(binding, Mapping):
             raise PhysicalRebindError("MASTER_BROWSER_BINDING_MISSING")
         try:
