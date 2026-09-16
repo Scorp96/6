@@ -615,9 +615,10 @@ fresh browser evidence, and explicit authorization. Historical evidence is
 under `docs/handoffs/historical-2026-09-14/`; it describes an earlier local
 candidate and must not be presented as evidence for this GitHub copy.
 The root `docs/handoffs/SCORP_V4_VERIFICATION.json` is kept only because an
-upstream test contract reads that path; use
-`docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json` for the current repository-copy
-validation record.
+upstream test contract reads that path; use the current Release Record and
+`docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json` for the current repository-copy
+validation record. The older `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`
+file is historical compatibility evidence.
 
 ## What to report after every run
 
@@ -631,10 +632,11 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `b0bbc3afa68bacff07616c5c7667407f84e6fe34` (`fix: make candidate manifests use immutable Git blobs`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes and immutable Git-object release identity. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.
+- Current code candidate: `b0bbc3afa68bacff07616c5c7667407f84e6fe34` (`fix: close graph crash and bind web packet to release`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes, immutable Git-object release identity, graph crash rollback regression, and current Release Record packet binding. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
-- Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
+- Current validation record: `docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json`.
+- Current isolated deployment matrix: `docs/handoffs/SCORP_V4_P1_ISOLATED_MATRIX_B0BBC3A.json`.
 - Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
 - Historical harmless-canary evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` records the earlier real two-worker PASS; the current candidate's current real-code evidence is `docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`; it records T2 execution PASS, T1 BLOCKED, and T3 not run. The older F5B8240 evidence belongs to a different candidate. The older c4d6 evidence remains preserved as `BLOCKED_AMBIGUOUS` and is not replayed.
 - Current browser driver state used by the older read-only receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
