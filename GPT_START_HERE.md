@@ -107,9 +107,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_DEA5433.json `
-  --manifest-sha256 ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1
+  --candidate-commit 421ba622784a868aa55cc71d83309b32911f7803 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_421BA62.json `
+  --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -280,9 +280,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_DEA5433.json `
-  --manifest-sha256 ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1 `
+  --candidate-commit 421ba622784a868aa55cc71d83309b32911f7803 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_421BA62.json `
+  --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89 `
   --send
 ```
 
@@ -654,14 +654,14 @@ require an explicit `--send` gate and a fresh isolated state path.
 
 ## Current candidate handoff override
 
-The current candidate is `dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62` and the current status is `TEST_VERIFIED_LIVE_UNVERIFIED`. V4 core is 215/215 PASS, GUI Bridge is 527/527 PASS, and the real Chrome Use no-send fill diagnostic is PASS with `submit_actions=0`. The current two-worker canary is BLOCKED: both intents are `BLOCKED_AMBIGUOUS/CONVERSATION_URL_MISSING`, with no conversation URL, response hash, or candidate result. Do not retry or convert this evidence to LIVE PASS.
+The current release candidate is `421ba622784a868aa55cc71d83309b32911f7803` with status `TEST_VERIFIED_BROWSER_TWO_WORKER_LIVE_GATE_PASS_REMAINING_LIVE_GATES`. V4 core is 215/215 PASS and GUI Bridge is 528/528 PASS. The exact-candidate real Browser two-Worker gate captured two responses from two submits with `duplicate_submits=0`. Whole-product `LIVE_VERIFIED` and `ACCEPTED` remain false: structured `WORK_RESULT/1 -> LocalExecutionAdapter -> candidate_results`, physical rebind/restart, reboot/no-login, unattended soak, and production cutover remain separate gates.
 
-The current evidence and operator instructions are in `docs/handoffs/SCORP_V4_RELEASE_RECORD_DEA5433.json`, `docs/handoffs/SCORP_V4_VALIDATION_DEA5433.json`, `docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_DEA5433.json`, and `docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_DEA5433.md`.
+The current evidence and operator instructions are in `docs/handoffs/SCORP_V4_RELEASE_RECORD_421BA62.json`, `docs/handoffs/SCORP_V4_VALIDATION_421BA62.json`, `docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_421BA62.json`, and `docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_421BA62.md`.
 
-The current manifest hash is `ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1`; startup commands must bind it explicitly:
+The current manifest hash is `e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89`; startup commands must bind it explicitly:
 
 ```powershell
-python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py --manifest-sha256 ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1
-python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --manifest-sha256 ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1
+python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89
+python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89
 ```
 
