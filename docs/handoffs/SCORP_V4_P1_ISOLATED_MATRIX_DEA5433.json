@@ -1,0 +1,48 @@
+{
+  "format": "scorp-v4-p1-isolated-matrix/1",
+  "candidate_commit": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+  "status": "PARTIAL",
+  "scope": "isolated local runtime and current browser adapter; current two-worker send is blocked and no production cutover",
+  "evidence": {
+    "raw_output_path": "C:/ScorpAgent/v4-core-lab/gui-bridge-unittest-final-dea5433.txt",
+    "raw_output_sha256": "2d2fe73e671ff5ce3ab38f7e895fd7f78c4746eae1d8d2a979bde8897312377c",
+    "tests_run": 527
+  },
+  "items": [
+    {
+      "id": "P1_OFFLINE_REGRESSION",
+      "status": "TEST_VERIFIED",
+      "evidence": "V4 core 215; GUI Bridge 527; compileall PASS"
+    },
+    {
+      "id": "P1_TAB_PROMOTION",
+      "status": "LIVE_VERIFIED",
+      "evidence": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-dea5433/evidence.json; real Chrome Use tab select/URL settle and no-send fill"
+    },
+    {
+      "id": "P1_HOST_REGISTRATION",
+      "status": "BLOCKED",
+      "reason": "descriptor registration.status remains UNREGISTERED_HOST"
+    },
+    {
+      "id": "P1_CURRENT_CANDIDATE_BROWSER_CANARY",
+      "status": "BLOCKED",
+      "reason": "C:/ScorpAgent/v4-core-lab/canary-dea5433-20260916/evidence.json; both Worker intents BLOCKED_AMBIGUOUS/CONVERSATION_URL_MISSING; retry forbidden"
+    },
+    {
+      "id": "P1_PHYSICAL_BROWSER_REBIND",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "no successful current-candidate response capture"
+    },
+    {
+      "id": "P1_WINDOWS_REBOOT_NO_LOGIN",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "interactive-session boundary not proven"
+    },
+    {
+      "id": "P1_PRODUCTION_CUTOVER",
+      "status": "NOT_RUN",
+      "reason": "production mutation not authorized"
+    }
+  ]
+}

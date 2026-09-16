@@ -1,0 +1,123 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_DEA5433",
+  "candidate_commit": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+  "evidence_head_sha": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+  "branch": "fix/v4-p0-runtime-closure",
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 215,
+      "command": "PYTHONPATH=scorp-agent python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
+      "raw_output_sha256": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 527,
+      "command": "PYTHONPATH=scorp-agent; scorp-agent/chatgpt-gui-bridge python -B -m unittest discover -s tests -p test_*.py",
+      "raw_output_sha256": "2d2fe73e671ff5ce3ab38f7e895fd7f78c4746eae1d8d2a979bde8897312377c",
+      "raw_output_path": "C:/ScorpAgent/v4-core-lab/gui-bridge-unittest-final-dea5433.txt"
+    },
+    "python_compileall": {
+      "result": "PASS",
+      "command": "python -B -m compileall -q scorp-agent/master_a_dynamic_v4 scorp-agent/chatgpt-gui-bridge",
+      "raw_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "browser_fill_diagnostic": {
+      "result": "PASS",
+      "status": "READY_TO_SEND_NO_CLICK",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-dea5433/evidence.json",
+      "artifact_sha256": "de334f4d38ca3386cd9afc497b3f56808fa62a1f63a5438e4250e116000dc20d",
+      "submit_actions": 0,
+      "click_performed": false,
+      "candidate_commit": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62"
+    },
+    "immutable_install": {
+      "result": "PASS",
+      "receipt_path": "C:/ScorpAgent/v4-core-lab/dea5433-install/install-receipt.json",
+      "receipt_sha256": "19c21f57609d334c92879d3915a68df995c68b095441c89575b14d749c2ab7c0",
+      "manifest_sha256": "ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1"
+    },
+    "tab_creation_real_chrome_use": {
+      "result": "PASS",
+      "observed": "tab select plus URL settle; no send"
+    },
+    "live_two_worker_canary_dea5433": {
+      "result": "BLOCKED",
+      "candidate_commit": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/canary-dea5433-20260916/evidence.json",
+      "artifact_sha256": "ce06b51e252782148d878b59c7fe832bf2ee9c83c3c7561a96511043c594a289",
+      "retry_count": 0,
+      "observed": "both Worker intents BLOCKED_AMBIGUOUS with CONVERSATION_URL_MISSING; no conversation_url; no candidate result; no blind retry"
+    }
+  },
+  "old_failure_probes": {
+    "P0-A": "PASS_RECONCILE_REQUIRED_OPEN_0_SEND_0",
+    "P0-B": "PASS_STALE_INTENT_SUBMIT_0",
+    "P0-C": "PASS_SCOPE_REJECT",
+    "P0-D": "PASS_REPOSITORY_BINDING_REJECT",
+    "P0-E": "PASS_TRANSACTION_ROLLBACK_AND_POST_STATE_UPDATE_CRASH_ROLLBACK",
+    "P0-F": "PASS_SELF_REPORT_DEPENDENCY_BLOCKED",
+    "P0-G": "PASS_DAEMON_RECOVERY_BEFORE_SNAPSHOT",
+    "P0-H": "PASS_HEALTH_AND_GENERATION_FENCED_RENEWAL",
+    "P0-I": "PASS_GIT_BLOB_IDENTITY_AND_IMMUTABLE_INSTALL",
+    "P0-K": "PASS_PACKET_CURRENT_RELEASE_IDENTITY_AND_COMPETING_RECORD_REJECT",
+    "P0-J": "PASS_SINGLE_CURRENT_RELEASE_RECORD_WITH_BOUND_HASHES",
+    "BROWSER_TAB_PROMOTION": "PASS_SELECT_AND_SETTLE_BEFORE_URL_OBSERVATION"
+  },
+  "new_regression_tests": [
+    "test_open_new_tab_selects_the_created_tab_before_returning",
+    "test_open_new_tab_waits_for_selected_tab_url_after_transient_blank",
+    "test_shared_auth_probe_is_serialized_for_concurrent_workers",
+    "test_shared_authenticated_probe_is_cached_after_first_success",
+    "test_auth_preflight_blocks_before_worker_intents_are_created",
+    "test_parallel_submit_prompts_are_serialized_as_whole_browser_transactions",
+    "test_current_release_record_has_no_case_insensitive_duplicate_keys"
+  ],
+  "live": {
+    "status": "LIVE_UNVERIFIED",
+    "reason": "Current DEA5433 two-worker canary reached authenticated ChatGPT homepage/composer but both browser submissions ended BLOCKED_AMBIGUOUS because conversation_url was missing; no response capture or candidate result. A read-only browser investigation showed root URL and stale-target friction; no blind retry is authorized.",
+    "current_evidence_path": "C:/ScorpAgent/v4-core-lab/canary-dea5433-20260916/evidence.json",
+    "current_evidence_sha256": "ce06b51e252782148d878b59c7fe832bf2ee9c83c3c7561a96511043c594a289",
+    "retry_count_after_ambiguity": 0,
+    "not_run": [
+      "GPT response capture",
+      "GPT to local ExecutionAdapter",
+      "physical browser rebind",
+      "restart recovery with live browser",
+      "continuous unattended soak",
+      "production cutover"
+    ]
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "remote_feature_ref": null,
+    "install_receipt": "C:/ScorpAgent/v4-core-lab/dea5433-install/install-receipt.json",
+    "runtime_identity": "dea5433 candidate; not production"
+  },
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_DEA5433.json",
+    "manifest_sha256": "ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1",
+    "file_sha256": "0b5a01283af59b7ec896a91d2a9917f3cdbc73684960898d688d6342bee7442a"
+  },
+  "isolated_deployment": {
+    "status": "PARTIAL",
+    "browser_send": "BLOCKED_AMBIGUOUS",
+    "scope": [
+      "offline runtime and bridge regression",
+      "immutable candidate install",
+      "real Chrome Use tab selection and no-send fill diagnostic",
+      "current two-worker canary evidence capture"
+    ],
+    "open": [
+      "clear/read-only reconcile stale Chrome Use sessions and relay state",
+      "fresh canary on a new candidate and database after blocker clears",
+      "GPT response capture and local execution adapter",
+      "physical browser rebind",
+      "Windows reboot no login",
+      "production cutover"
+    ]
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "format": "scorp-v4-candidate-manifest/1",
+  "candidate_commit": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+  "source_tree": "C:\\ScorpAgent\\worktrees\\v4-fast-runtime-command-core",
+  "files": {
+    "scorp-agent/chatgpt-gui-bridge/chrome_use_actor_driver_v3.py": {
+      "sha256": "ae49291247616710d966bbb87dcb17fdcea3ae94055bd09ba96389e98a8afbf1",
+      "size": 52831,
+      "git_blob_oid": "e05aac3ee419e4d9197b937dd4d2c7245cef9391",
+      "git_blob_sha256": "ae49291247616710d966bbb87dcb17fdcea3ae94055bd09ba96389e98a8afbf1",
+      "git_blob_size": 52831
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_daemon_runtime.py": {
+      "sha256": "3dec8425f8c131dc66de39dbec2072b588894dd7033acbdfef9c2acc5293ee9e",
+      "size": 9226,
+      "git_blob_oid": "fce8a26c563234594055fc1cb393da5889cb421c",
+      "git_blob_sha256": "3dec8425f8c131dc66de39dbec2072b588894dd7033acbdfef9c2acc5293ee9e",
+      "git_blob_size": 9226
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_live_two_worker_canary.py": {
+      "sha256": "508df801b1c8ce98e979db46856bc461435294f71b42558fa391db2b3bb3caf8",
+      "size": 20132,
+      "git_blob_oid": "2b805e6113b14518a1c8696990736552fc6e9a55",
+      "git_blob_sha256": "508df801b1c8ce98e979db46856bc461435294f71b42558fa391db2b3bb3caf8",
+      "git_blob_size": 20132
+    },
+    "scorp-agent/chatgpt-gui-bridge/tools/v4_web_gpt_packet.py": {
+      "sha256": "38827f655cabc24b4b23480ed6bd2a833e2b56905a5029e8d1d994fb68837510",
+      "size": 13966,
+      "git_blob_oid": "fe8a1deb962e5d78bf701ba1ecc55566edf664e4",
+      "git_blob_sha256": "38827f655cabc24b4b23480ed6bd2a833e2b56905a5029e8d1d994fb68837510",
+      "git_blob_size": 13966
+    },
+    "scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py": {
+      "sha256": "da415ec6b54c99dc65dd161c917a273c49408cae7a52096480de003b3ccea6f6",
+      "size": 14913,
+      "git_blob_oid": "bb088b946e41bd0de263b733df1ce804692118ee",
+      "git_blob_sha256": "da415ec6b54c99dc65dd161c917a273c49408cae7a52096480de003b3ccea6f6",
+      "git_blob_size": 14913
+    },
+    "scorp-agent/master_a_dynamic_v4/acceptance.py": {
+      "sha256": "fd35bbda9b657badef64e0d0f82bafd287d3d84f5a2f257c1f09227bc30b01e0",
+      "size": 9781,
+      "git_blob_oid": "e81cd5672d20514ed66623282dd45a271704b5cc",
+      "git_blob_sha256": "fd35bbda9b657badef64e0d0f82bafd287d3d84f5a2f257c1f09227bc30b01e0",
+      "git_blob_size": 9781
+    },
+    "scorp-agent/master_a_dynamic_v4/daemon.py": {
+      "sha256": "b8c8cc7549363b1cc67e13127f504915bcd83d9dc27c10ee29a44c2c414b0fe1",
+      "size": 10625,
+      "git_blob_oid": "aa560ca21ef579bd0f2b541a3bb726099199f685",
+      "git_blob_sha256": "b8c8cc7549363b1cc67e13127f504915bcd83d9dc27c10ee29a44c2c414b0fe1",
+      "git_blob_size": 10625
+    },
+    "scorp-agent/master_a_dynamic_v4/install_manifest.py": {
+      "sha256": "6e43944b61aede2e3df4eb996fcc5afd53c065e015eedb7f41ef29467c90ec99",
+      "size": 13846,
+      "git_blob_oid": "4d3de6e9eef2a4dfaa4a9a8dadc3a39592f9a479",
+      "git_blob_sha256": "6e43944b61aede2e3df4eb996fcc5afd53c065e015eedb7f41ef29467c90ec99",
+      "git_blob_size": 13846
+    },
+    "scorp-agent/master_a_dynamic_v4/scheduler.py": {
+      "sha256": "b4afd9a0406050edac81a1e0aa90bf4378805470af75cb72b8b434b0a188728c",
+      "size": 51224,
+      "git_blob_oid": "bcb34e79d395a603bcf4a805e6ec20eab01712d8",
+      "git_blob_sha256": "b4afd9a0406050edac81a1e0aa90bf4378805470af75cb72b8b434b0a188728c",
+      "git_blob_size": 51224
+    },
+    "scorp-agent/master_a_dynamic_v4/schema.sql": {
+      "sha256": "426c48c1b858f6ea2330149a55eae2d49897875120c3a9c6d5f433ce2005fc65",
+      "size": 11383,
+      "git_blob_oid": "1c41d71b9a0cae40547c2d1ea3849731c584831d",
+      "git_blob_sha256": "426c48c1b858f6ea2330149a55eae2d49897875120c3a9c6d5f433ce2005fc65",
+      "git_blob_size": 11383
+    },
+    "scorp-agent/master_a_dynamic_v4/state_store.py": {
+      "sha256": "46770f2598a116b248ee2d4e78f46c77defbe654af639a87da49e5844b902a52",
+      "size": 118497,
+      "git_blob_oid": "5072152617ff09ab1016ce332699badb13d1c6b9",
+      "git_blob_sha256": "46770f2598a116b248ee2d4e78f46c77defbe654af639a87da49e5844b902a52",
+      "git_blob_size": 118497
+    }
+  },
+  "manifest_sha256": "ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1"
+}

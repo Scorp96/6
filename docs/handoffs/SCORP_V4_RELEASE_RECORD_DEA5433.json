@@ -1,0 +1,133 @@
+{
+  "format": "scorp-v4-release-record/2",
+  "release_id": "SCORP_V4_DEA5433",
+  "repository": "Scorp96/6",
+  "branch": "fix/v4-p0-runtime-closure",
+  "code_candidate_sha": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+  "evidence_head_sha": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+  "candidate_commit": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62",
+  "baseline_commit": "40301e5da335048bfaf8780196bb5d5d9381fcb2",
+  "status": "TEST_VERIFIED_LIVE_UNVERIFIED",
+  "TEST_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "created_at": "2026-09-16T06:30:00Z",
+  "supersedes_release_id": "SCORP_V4_BE1352A",
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_DEA5433.json",
+    "manifest_sha256": "ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1",
+    "file_sha256": "0b5a01283af59b7ec896a91d2a9917f3cdbc73684960898d688d6342bee7442a"
+  },
+  "validation_record": {
+    "path": "docs/handoffs/SCORP_V4_VALIDATION_DEA5433.json",
+    "file_sha256": "f4cf2f6d0cb89df1b77b009116428eb0f622467b56880cc58c98dc344b635b36"
+  },
+  "evidence_ids": {
+    "offline_validation": "SCORP_V4_VALIDATION_DEA5433",
+    "candidate_manifest": "SCORP_V4_CANDIDATE_MANIFEST_DEA5433",
+    "live": [
+      "SCORP_V4_LIVE_CANARY_DEA5433_BLOCKED"
+    ]
+  },
+  "authority": {
+    "sqlite": "local transactional authority",
+    "web_gpt": "planning and evidence review only",
+    "browser": "explicitly gated Windows side effect",
+    "git": "candidate and evidence transport only"
+  },
+  "p0": {
+    "P0-A": "CLOSED_OFFLINE",
+    "P0-B": "CLOSED_OFFLINE",
+    "P0-C": "CLOSED_OFFLINE",
+    "P0-D": "CLOSED_OFFLINE",
+    "P0-E": "CLOSED_OFFLINE",
+    "P0-F": "CLOSED_OFFLINE",
+    "P0-G": "CLOSED_OFFLINE",
+    "P0-H": "CLOSED_OFFLINE",
+    "P0-I": "CLOSED_OFFLINE",
+    "P0-J": "CLOSED_OFFLINE",
+    "P0-K": "CLOSED_OFFLINE"
+  },
+  "changes": [
+    "select and settle newly created Chrome Use tabs before URL observation",
+    "serialize shared Chrome Use auth probes and cache positive result",
+    "preflight authenticated browser before Worker intent creation",
+    "serialize complete Chrome Use submit transactions across Workers",
+    "bind candidate manifest to Git blob identity",
+    "record current DEA5433 canary as BLOCKED_AMBIGUOUS without retry"
+  ],
+  "offline_evidence": [
+    {
+      "id": "v4_core_unittest",
+      "result": "PASS",
+      "observed": "215 tests",
+      "raw_output_sha256": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e"
+    },
+    {
+      "id": "bridge_unittest",
+      "result": "PASS",
+      "observed": "527 tests",
+      "raw_output_sha256": "2d2fe73e671ff5ce3ab38f7e895fd7f78c4746eae1d8d2a979bde8897312377c",
+      "raw_output_path": "C:/ScorpAgent/v4-core-lab/gui-bridge-unittest-final-dea5433.txt"
+    },
+    {
+      "id": "python_compileall",
+      "result": "PASS",
+      "raw_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "browser_fill_diagnostic",
+      "result": "PASS",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-dea5433/evidence.json",
+      "artifact_sha256": "de334f4d38ca3386cd9afc497b3f56808fa62a1f63a5438e4250e116000dc20d",
+      "submit_actions": 0,
+      "click_performed": false,
+      "candidate_commit": "dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62"
+    },
+    {
+      "id": "immutable_candidate_install",
+      "result": "PASS",
+      "path": "C:/ScorpAgent/v4-core-lab/dea5433-install/install-receipt.json",
+      "receipt_sha256": "19c21f57609d334c92879d3915a68df995c68b095441c89575b14d749c2ab7c0",
+      "manifest_sha256": "ec88bcf36b42176191d01761caddeda5ff47fef622a63ba891ba4d8c41cc3fd1"
+    },
+    {
+      "id": "tab_creation_real_chrome_use",
+      "result": "PASS",
+      "observed": "tab select plus URL settle; no send"
+    }
+  ],
+  "live_evidence": {
+    "status": "LIVE_UNVERIFIED",
+    "result": "BLOCKED",
+    "current_evidence_path": "C:/ScorpAgent/v4-core-lab/canary-dea5433-20260916/evidence.json",
+    "current_evidence_sha256": "ce06b51e252782148d878b59c7fe832bf2ee9c83c3c7561a96511043c594a289",
+    "reason": "Both Worker intents ended BLOCKED_AMBIGUOUS/CONVERSATION_URL_MISSING; conversation_url and response_sha256 are null; Worker-2 did not reach browser submit completion. Read-only investigation found root ChatGPT URL and stale-target friction. No blind retry.",
+    "retry_count": 0,
+    "not_run": [
+      "GPT response capture",
+      "local ExecutionAdapter",
+      "physical browser rebind",
+      "restart recovery",
+      "unattended soak",
+      "production cutover"
+    ]
+  },
+  "test_result_hashes": {
+    "v4_core_unittest": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e",
+    "gui_bridge_unittest": "2d2fe73e671ff5ce3ab38f7e895fd7f78c4746eae1d8d2a979bde8897312377c",
+    "python_compileall": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "runtime_identity": "dea5433 candidate; not production",
+    "remote_feature_ref": null
+  },
+  "handoff": {
+    "ordinary_web_gpt": "先读 GPT_START_HERE.md、当前发布记录和 packet；保持 web_only，不能声称连接本机或创建 GPT 会话。",
+    "windows_operator": "使用同一候选清单和本地 preflight；先只读清理/核对 Chrome Use stale sessions 与 relay，再以新候选和新数据库执行一次受控 canary。",
+    "completion_rule": "只有同一候选提交同时拥有离线回归、真实浏览器响应捕获、重启恢复和验收凭据，才可改为 ACCEPTED。"
+  }
+}
