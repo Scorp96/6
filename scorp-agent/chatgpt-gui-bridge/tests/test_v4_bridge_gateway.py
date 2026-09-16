@@ -255,6 +255,7 @@ class V4GatewayTests(unittest.TestCase):
                         'objective_sha256': '1' * 64,
                         'resource_scope': [worktree],
                         'access_mode': 'write',
+                        'task_context': {'repository_root': str(repository)},
                         'dependencies': [],
                         'acceptance_criteria_ids': ['AC-GIT'],
                     }],

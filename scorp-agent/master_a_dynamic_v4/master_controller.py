@@ -535,6 +535,17 @@ class MasterAController:
             "task_id": claim.task_id,
             "master_epoch": claim.master_epoch,
             "lease_token": claim.lease_token,
+            "worker_assignment": {
+                "assignment_id": claim.assignment_id,
+                "task_id": claim.task_id,
+                "worker_id": claim.worker_id,
+                "slot_id": claim.slot_id,
+                "master_epoch": claim.master_epoch,
+                "base_state_version": claim.base_state_version,
+                "lease_token": claim.lease_token,
+                "resource_scope": list(claim.resource_scope),
+                "access_mode": claim.access_mode,
+            },
             "request": dict(request),
         }
         get_control = getattr(self.gateway.store, "get_operator_control", None)

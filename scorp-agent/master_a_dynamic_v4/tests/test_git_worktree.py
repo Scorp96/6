@@ -4,7 +4,7 @@ import pathlib
 import subprocess
 import tempfile
 import unittest
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -15,6 +15,7 @@ class Claim:
     resource_scope: tuple[str, ...]
     master_epoch: int = 1
     lease_token: str = "lease-git"
+    task_context: dict = field(default_factory=dict)
 
 
 class GitWorktreeTests(unittest.TestCase):
@@ -44,7 +45,7 @@ class GitWorktreeTests(unittest.TestCase):
             root = pathlib.Path(td)
             repo, commit = self.make_repo(root)
             target = root / "worker-worktree"
-            claim = Claim("assignment-git", "T1", "write", (str(target),))
+            claim = Claim("assignment-git", "T1", "write", (str(target),), task_context={"repository_root": str(repo)})
             receipt = GitWorktreeManager([root]).prepare(
                 claim, repository=repo, worktree=target, base_commit=commit
             )
@@ -62,7 +63,7 @@ class GitWorktreeTests(unittest.TestCase):
             repo, commit = self.make_repo(root)
             (repo / "dirty.txt").write_text("uncommitted\n", encoding="utf-8")
             target = root / "worker-worktree"
-            claim = Claim("assignment-git", "T1", "write", (str(target),))
+            claim = Claim("assignment-git", "T1", "write", (str(target),), task_context={"repository_root": str(repo)})
             with self.assertRaisesRegex(GitWorktreeRejected, "REPOSITORY_DIRTY"):
                 GitWorktreeManager([root]).prepare(
                     claim, repository=repo, worktree=target, base_commit=commit
@@ -78,16 +79,43 @@ class GitWorktreeTests(unittest.TestCase):
             target = root / "worker-worktree"
             target.mkdir()
             (target / "existing.txt").write_text("occupied\n", encoding="utf-8")
-            claim = Claim("assignment-git", "T1", "write", (str(target),))
+            claim = Claim("assignment-git", "T1", "write", (str(target),), task_context={"repository_root": str(repo)})
             with self.assertRaisesRegex(GitWorktreeRejected, "WORKTREE_TARGET_NOT_EMPTY"):
                 GitWorktreeManager([root]).prepare(
                     claim, repository=repo, worktree=target, base_commit=commit
                 )
             outside = root / "outside-worker-worktree"
-            empty_claim = Claim("assignment-git", "T1", "write", (str(root / "different"),))
+            empty_claim = Claim("assignment-git", "T1", "write", (str(root / "different"),), task_context={"repository_root": str(repo)})
             with self.assertRaisesRegex(GitWorktreeRejected, "WORKTREE_OUTSIDE_ASSIGNMENT_SCOPE"):
                 GitWorktreeManager([root]).prepare(
                     empty_claim, repository=repo, worktree=outside, base_commit=commit
+                )
+
+    def test_rejects_source_repository_different_from_assignment_binding(self):
+        from master_a_dynamic_v4.git_worktree import GitWorktreeManager, GitWorktreeRejected
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            authorized_parent = root / "authorized-root"
+            authorized_parent.mkdir()
+            authorized_repo, commit = self.make_repo(authorized_parent)
+            other_root = root / "other-root"
+            other_root.mkdir()
+            requested_repo, requested_commit = self.make_repo(other_root)
+            target = root / "worker-worktree"
+            claim = Claim(
+                "assignment-git-bound",
+                "T1",
+                "write",
+                (str(target),),
+                task_context={"repository_root": str(authorized_repo)},
+            )
+            with self.assertRaisesRegex(GitWorktreeRejected, "REPOSITORY_BINDING_MISMATCH"):
+                GitWorktreeManager([root]).prepare(
+                    claim,
+                    repository=requested_repo,
+                    worktree=target,
+                    base_commit=requested_commit,
                 )
 
 

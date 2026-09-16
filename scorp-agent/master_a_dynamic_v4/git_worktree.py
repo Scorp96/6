@@ -169,6 +169,20 @@ class GitWorktreeManager:
             self.path_policy.authorize([repo, target], "write")
         except (FileNotFoundError, PathBoundaryError) as exc:
             raise GitWorktreeRejected(str(exc)) from exc
+        task_context = getattr(claim, "task_context", {})
+        if not isinstance(task_context, Mapping):
+            raise GitWorktreeRejected("REPOSITORY_BINDING_MISSING")
+        bound_root = str(task_context.get("repository_root") or "").strip()
+        if not bound_root:
+            raise GitWorktreeRejected("REPOSITORY_BINDING_MISSING")
+        try:
+            bound_repo = pathlib.Path(bound_root).resolve(strict=True)
+        except (FileNotFoundError, OSError) as exc:
+            raise GitWorktreeRejected("REPOSITORY_BINDING_INVALID") from exc
+        if not bound_repo.is_dir() or not (bound_repo / ".git").exists():
+            raise GitWorktreeRejected("REPOSITORY_BINDING_INVALID")
+        if os.path.normcase(str(repo)) != os.path.normcase(str(bound_repo)):
+            raise GitWorktreeRejected("REPOSITORY_BINDING_MISMATCH")
         if not _inside_scope(target, scopes):
             raise GitWorktreeRejected("WORKTREE_OUTSIDE_ASSIGNMENT_SCOPE")
         if target.exists():
