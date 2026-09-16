@@ -1,0 +1,48 @@
+{
+  "format": "scorp-v4-p1-isolated-matrix/1",
+  "candidate_commit": "be1352aba48dde4391f0105a0868c87be45d3850",
+  "status": "PARTIAL",
+  "scope": "isolated local runtime and current browser adapter; no current-candidate send",
+  "evidence": {
+    "raw_output_path": "C:/ScorpAgent/v4-core-lab/gui-bridge-unittest-final-be1352a.txt",
+    "raw_output_sha256": "c0c3c02af72588227dd1001adace3526f630a9d08df1604bc2f556aad8add3dc",
+    "tests_run": 525
+  },
+  "items": [
+    {
+      "id": "P1_OFFLINE_REGRESSION",
+      "status": "TEST_VERIFIED",
+      "evidence": "V4 core 215; GUI Bridge 523; compileall PASS"
+    },
+    {
+      "id": "P1_TAB_PROMOTION",
+      "status": "LIVE_VERIFIED",
+      "evidence": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-be1352a/evidence.json; real Chrome Use tab select/URL settle, no click"
+    },
+    {
+      "id": "P1_HOST_REGISTRATION",
+      "status": "BLOCKED",
+      "reason": "descriptor registration.status remains UNREGISTERED_HOST"
+    },
+    {
+      "id": "P1_CURRENT_CANDIDATE_BROWSER_CANARY",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "not run after be1352a auth-probe cache fix"
+    },
+    {
+      "id": "P1_PHYSICAL_BROWSER_REBIND",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "no current-candidate physical browser evidence"
+    },
+    {
+      "id": "P1_WINDOWS_REBOOT_NO_LOGIN",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "interactive-session boundary not proven"
+    },
+    {
+      "id": "P1_PRODUCTION_CUTOVER",
+      "status": "NOT_RUN",
+      "reason": "production mutation not authorized"
+    }
+  ]
+}

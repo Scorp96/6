@@ -1,0 +1,144 @@
+{
+  "format": "scorp-v4-release-record/2",
+  "release_id": "SCORP_V4_D53B449",
+  "repository": "Scorp96/6",
+  "branch": "fix/v4-p0-runtime-closure",
+  "code_candidate_sha": "d53b449925ae770df587af3653f62d7ceeb109e5",
+  "evidence_head_sha": "d53b449925ae770df587af3653f62d7ceeb109e5",
+  "candidate_commit": "d53b449925ae770df587af3653f62d7ceeb109e5",
+  "baseline_commit": "40301e5da335048bfaf8780196bb5d5d9381fcb2",
+  "status": "TEST_VERIFIED_LIVE_UNVERIFIED",
+  "TEST_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "created_at": "2026-09-16T05:10:06.179317Z",
+  "supersedes_release_id": "SCORP_V4_D0AA533",
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D53B449.json",
+    "manifest_sha256": "ee4019c1c29b5839fe6a4f4407bb3eb93541b72f9f66cdaeb63ad5843b7cad7f",
+    "file_sha256": "fc1f86a17c6d33e62490a0fc578b2411a5dc47a50a7b08aabdacacb9deaace3a"
+  },
+  "validation_record": {
+    "path": "docs/handoffs/SCORP_V4_VALIDATION_D53B449.json",
+    "file_sha256": "18164963b6e43be8e83601373964159b76e3c20e6b332f9b9d927ef87eba7797"
+  },
+  "evidence_ids": {
+    "offline_validation": "SCORP_V4_VALIDATION_D53B449",
+    "candidate_manifest": "SCORP_V4_CANDIDATE_MANIFEST_D53B449",
+    "live": [
+      "SCORP_V4_LIVE_CANARY_D53B449_BLOCKED"
+    ]
+  },
+  "authority": {
+    "sqlite": "local transactional authority",
+    "web_gpt": "planning and evidence review only",
+    "browser": "explicitly gated Windows side effect",
+    "git": "candidate and evidence transport only"
+  },
+  "p0": {
+    "P0-A": "CLOSED_OFFLINE",
+    "P0-B": "CLOSED_OFFLINE",
+    "P0-C": "CLOSED_OFFLINE",
+    "P0-D": "CLOSED_OFFLINE",
+    "P0-E": "CLOSED_OFFLINE",
+    "P0-F": "CLOSED_OFFLINE",
+    "P0-G": "CLOSED_OFFLINE",
+    "P0-H": "CLOSED_OFFLINE",
+    "P0-I": "CLOSED_OFFLINE",
+    "P0-J": "CLOSED_OFFLINE",
+    "P0-K": "CLOSED_OFFLINE"
+  },
+  "changes": [
+    "fail-closed physical browser URL reconciliation",
+    "stale Worker intent and lease fencing before browser I/O",
+    "assignment working-directory, argument, and repository scope enforcement",
+    "atomic Master proposal plus task-graph materialization",
+    "independent verification event for structured Worker results",
+    "daemon-side expired lease recovery and bounded Worker renewal",
+    "Git blob identity binding for candidate manifests",
+    "Web GPT packet candidate identity regression",
+    "select and settle newly created Chrome Use tabs before URL observation",
+    "updated current-release test identity helpers after historical record archival",
+    "recorded P0-J single-current-release audit and refreshed isolated matrix evidence",
+    "serialize shared Chrome Use auth probes so concurrent Workers do not race one diagnostic session"
+  ],
+  "offline_evidence": [
+    {
+      "id": "v4_core_unittest",
+      "result": "PASS",
+      "observed": "215 tests",
+      "raw_output_sha256": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e"
+    },
+    {
+      "id": "bridge_unittest",
+      "result": "PASS",
+      "observed": "524 tests",
+      "raw_output_sha256": "118b3895ff280a966d965d8e657374da4c1107fb4946344358e938497abcecdd"
+    },
+    {
+      "id": "python_compileall",
+      "result": "PASS",
+      "raw_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "browser_fill_diagnostic",
+      "result": "PASS",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-d53b449/evidence.json",
+      "artifact_sha256": "dc339e39147abab5e1242ca270c2317caaf950e01e39dec5cc516d156b5e02b2",
+      "submit_actions": 0,
+      "click_performed": false,
+      "candidate_commit": "d53b449925ae770df587af3653f62d7ceeb109e5"
+    },
+    {
+      "id": "immutable_candidate_install",
+      "result": "PASS",
+      "path": "C:/ScorpAgent/v4-core-lab/d53b449-install/install-receipt.json",
+      "receipt_sha256": "22452c33115134cb9ae4b4aa8b1228b601d4093f8f45d91a5caaafa297f13ac56",
+      "manifest_sha256": "ee4019c1c29b5839fe6a4f4407bb3eb93541b72f9f66cdaeb63ad5843b7cad7f"
+    },
+    {
+      "id": "tab_creation_real_chrome_use",
+      "result": "PASS",
+      "observed": "tab select plus URL settle; no send"
+    },
+    {
+      "id": "live_two_worker_canary_d53",
+      "result": "BLOCKED",
+      "path": "C:/ScorpAgent/v4-core-lab/canary-d0aa533-20260916/evidence.json",
+      "artifact_sha256": "a8848a553f14fe1b50cd125a01d346482d7dfb8df2e2ff7db0ca11a43824af6d",
+      "retry_count": 0,
+      "observed": "one PREPARED, one BLOCKED_AMBIGUOUS/CONVERSATION_URL_MISSING"
+    }
+  ],
+  "live_evidence": {
+    "status": "LIVE_UNVERIFIED",
+    "reason": "Current d53 canary is bound to candidate and fail-closed; it did not produce two confirmed responses.",
+    "artifact_path": "C:/ScorpAgent/v4-core-lab/canary-d0aa533-20260916/evidence.json",
+    "artifact_sha256": "a8848a553f14fe1b50cd125a01d346482d7dfb8df2e2ff7db0ca11a43824af6d",
+    "retry_count": 0,
+    "not_run": [
+      "successful two-worker response capture",
+      "physical browser rebind",
+      "restart recovery",
+      "unattended soak",
+      "production cutover"
+    ]
+  },
+  "test_result_hashes": {
+    "v4_core_unittest": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e",
+    "gui_bridge_unittest": "118b3895ff280a966d965d8e657374da4c1107fb4946344358e938497abcecdd",
+    "python_compileall": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "runtime_identity": "d53b449 candidate; not production",
+    "remote_feature_ref": null
+  },
+  "handoff": {
+    "ordinary_web_gpt": "先读 GPT_START_HERE.md 和本记录；保持 web_only，不能声称连接本机或创建 GPT 会话。",
+    "windows_operator": "在有效 Windows 登录和 ChatGPT 登录会话中运行本候选版本的本地 preflight，再单独执行受控 canary。",
+    "completion_rule": "只有同一候选提交同时拥有离线回归、真实浏览器、重启恢复和验收凭据，才可改为 ACCEPTED。"
+  }
+}

@@ -42,8 +42,8 @@ shown, or the browser result is ambiguous.
 grant that chat local Windows, SQLite, Python, Chrome Use, or Windows MCP
 permissions. If the chat has no local connector, it is in planning/review mode
 and must report `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`. Use
-`docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_D0AA533.md` and
-`docs/handoffs/SCORP_V4_RELEASE_RECORD_D0AA533.json` for the current
+`docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_BE1352A.md` and
+`docs/handoffs/SCORP_V4_RELEASE_RECORD_BE1352A.json` for the current
 human/operator handoff, then run the read-only preflight before claiming any
 local capability.
 
@@ -107,9 +107,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit d0aa533f714b66406ca9ce78a5f81e472912dd1e `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_D0AA533.json `
-  --manifest-sha256 6ddeacb01cfc97bc450048b1da670d20cfc01ba63d388c047689496a0d967d30
+  --candidate-commit be1352aba48dde4391f0105a0868c87be45d3850 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_BE1352A.json `
+  --manifest-sha256 e57b9b2478a0c5b7d87a3b8ef928d43eece3937c3551e5d88320763104944c99
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -280,9 +280,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit d0aa533f714b66406ca9ce78a5f81e472912dd1e `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_D0AA533.json `
-  --manifest-sha256 6ddeacb01cfc97bc450048b1da670d20cfc01ba63d388c047689496a0d967d30 `
+  --candidate-commit be1352aba48dde4391f0105a0868c87be45d3850 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_BE1352A.json `
+  --manifest-sha256 e57b9b2478a0c5b7d87a3b8ef928d43eece3937c3551e5d88320763104944c99 `
   --send
 ```
 
@@ -616,7 +616,7 @@ under `docs/handoffs/historical-2026-09-14/`; it describes an earlier local
 candidate and must not be presented as evidence for this GitHub copy.
 The root `docs/handoffs/SCORP_V4_VERIFICATION.json` is kept only because an
 upstream test contract reads that path; use the current Release Record and
-`docs/handoffs/SCORP_V4_VALIDATION_D0AA533.json` for the current repository-copy
+`docs/handoffs/SCORP_V4_VALIDATION_BE1352A.json` for the current repository-copy
 validation record. The older `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`
 file is historical compatibility evidence.
 
@@ -632,18 +632,18 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `d0aa533f714b66406ca9ce78a5f81e472912dd1e` (`fix: select and settle newly created browser tabs`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes, immutable Git-object release identity, graph crash rollback regression, and current Release Record packet binding. The current candidate has a fresh no-send composer and real tab-promotion diagnostic; a new two-worker send is still unverified.
+- Current code candidate: `be1352aba48dde4391f0105a0868c87be45d3850` (`fix: cache positive shared Chrome Use auth probe`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes, immutable Git-object release identity, graph crash rollback regression, and current Release Record packet binding. The current candidate has a fresh no-send composer and real tab-promotion diagnostic; the previous d53 two-worker canary is historical BLOCKED; be1352a has not run a fresh send after the auth-probe cache fix.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
-- Current validation record: `docs/handoffs/SCORP_V4_VALIDATION_D0AA533.json`.
-- Current isolated deployment matrix: `docs/handoffs/SCORP_V4_P1_ISOLATED_MATRIX_D0AA533.json`.
+- Current validation record: `docs/handoffs/SCORP_V4_VALIDATION_BE1352A.json`.
+- Current isolated deployment matrix: `docs/handoffs/SCORP_V4_P1_ISOLATED_MATRIX_BE1352A.json`.
 - Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
 - Historical harmless-canary evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` records the earlier real two-worker PASS; the current candidate's current real-code evidence is `docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`; it records T2 execution PASS, T1 BLOCKED, and T3 not run. The older F5B8240 evidence belongs to a different candidate. The older c4d6 evidence remains preserved as `BLOCKED_AMBIGUOUS` and is not replayed.
 - Current browser driver state used by the older read-only receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
 - Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
 
 The current candidate is `TEST_VERIFIED` for the offline core and is `LIVE_UNVERIFIED` for current-candidate browser sending; its no-send composer and tab-promotion diagnostics pass. The predecessor `5bf7953` real-code workload was partially live-verified: T2 executed through the local adapter with exit 0, T1 returned BLOCKED and was not executed, and T3 remained queued. That evidence is retained as historical context and cannot be promoted automatically. Master replacement, unattended stability, and production cutover remain unverified. This is not `ACCEPTED`: release identity, current-candidate browser evidence, restart recovery, symmetric rate-limit recovery, scheduled-task cutover, and production cutover remain separate gates.
-Any predecessor browser receipt is historical and is not promoted to this candidate. The current candidate has not yet been sent a Worker prompt after the tab-promotion fix; do not claim a live browser or real-code pass until a fresh evidence record binds it to `d0aa533f714b66406ca9ce78a5f81e472912dd1e`.
+Any predecessor browser receipt is historical and is not promoted to this candidate. The current candidate was attempted once with the shared-auth-probe fix and fail-closed with a current evidence record; do not claim a live browser pass until two responses are positively captured.
 The prior b0 canary produced two `BLOCKED_AMBIGUOUS` intents with no conversation URL and is preserved as historical evidence; it must not be replayed. The d0 candidate has not yet produced a current two-worker send receipt.
 
 An ordinary web GPT cannot infer or invoke local Windows, SQLite, Python, or

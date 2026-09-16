@@ -1,0 +1,121 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_D53B449",
+  "candidate_commit": "d53b449925ae770df587af3653f62d7ceeb109e5",
+  "evidence_head_sha": "d53b449925ae770df587af3653f62d7ceeb109e5",
+  "branch": "fix/v4-p0-runtime-closure",
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 215,
+      "command": "PYTHONPATH=scorp-agent python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
+      "raw_output_sha256": "9b775083b7ef40108d6cf56a5ad34e556ecbee1e47fc545cdf76554b7186408e"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 524,
+      "command": "PYTHONPATH=scorp-agent; scorp-agent/chatgpt-gui-bridge python -B -m unittest discover -s tests -p test_*.py",
+      "raw_output_sha256": "118b3895ff280a966d965d8e657374da4c1107fb4946344358e938497abcecdd"
+    },
+    "python_compileall": {
+      "result": "PASS",
+      "command": "python -B -m compileall -q scorp-agent/master_a_dynamic_v4 scorp-agent/chatgpt-gui-bridge",
+      "raw_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "browser_fill_diagnostic": {
+      "result": "PASS",
+      "status": "READY_TO_SEND_NO_CLICK",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/fill-diagnostic-d53b449/evidence.json",
+      "artifact_sha256": "dc339e39147abab5e1242ca270c2317caaf950e01e39dec5cc516d156b5e02b2",
+      "submit_actions": 0,
+      "click_performed": false,
+      "candidate_commit": "d53b449925ae770df587af3653f62d7ceeb109e5"
+    },
+    "immutable_install": {
+      "result": "PASS",
+      "receipt_path": "C:/ScorpAgent/v4-core-lab/d53b449-install/install-receipt.json",
+      "receipt_sha256": "22452c33115134cb9ae4b4aa8b1228b601d4093f8f45d91a5caaafa297f13ac56",
+      "manifest_sha256": "ee4019c1c29b5839fe6a4f4407bb3eb93541b72f9f66cdaeb63ad5843b7cad7f"
+    },
+    "tab_creation_real_chrome_use": {
+      "result": "PASS",
+      "observed": "tab new returned t2; explicit tab select followed by get url returned https://chatgpt.com/; no prompt entered or sent"
+    },
+    "live_two_worker_canary": {
+      "result": "BLOCKED",
+      "status": "BLOCKED_AMBIGUOUS",
+      "artifact_path": "C:/ScorpAgent/v4-core-lab/canary-d0aa533-20260916/evidence.json",
+      "artifact_sha256": "a8848a553f14fe1b50cd125a01d346482d7dfb8df2e2ff7db0ca11a43824af6d",
+      "retry_count": 0,
+      "reason": "Worker-2 CONVERSATION_URL_MISSING; Worker-1 remained PREPARED; no retry"
+    }
+  },
+  "old_failure_probes": {
+    "P0-A": "PASS_RECONCILE_REQUIRED_OPEN_0_SEND_0",
+    "P0-B": "PASS_STALE_INTENT_SUBMIT_0",
+    "P0-C": "PASS_SCOPE_REJECT",
+    "P0-D": "PASS_REPOSITORY_BINDING_REJECT",
+    "P0-E": "PASS_TRANSACTION_ROLLBACK_AND_POST_STATE_UPDATE_CRASH_ROLLBACK",
+    "P0-F": "PASS_SELF_REPORT_DEPENDENCY_BLOCKED",
+    "P0-G": "PASS_DAEMON_RECOVERY_BEFORE_SNAPSHOT",
+    "P0-H": "PASS_HEALTH_AND_GENERATION_FENCED_RENEWAL",
+    "P0-I": "PASS_GIT_BLOB_IDENTITY_AND_IMMUTABLE_INSTALL",
+    "P0-K": "PASS_PACKET_CURRENT_RELEASE_IDENTITY_AND_COMPETING_RECORD_REJECT",
+    "BROWSER_TAB_PROMOTION": "PASS_SELECT_AND_SETTLE_BEFORE_URL_OBSERVATION",
+    "P0-J": "PASS_SINGLE_CURRENT_RELEASE_RECORD_WITH_BOUND_HASHES"
+  },
+  "new_regression_tests": [
+    "test_open_new_tab_selects_the_created_tab_before_returning",
+    "test_open_new_tab_waits_for_selected_tab_url_after_transient_blank",
+    "test_current_release_record_has_no_case_insensitive_duplicate_keys",
+    {
+      "name": "current release tests resolve one active release record",
+      "status": "PASS",
+      "evidence": "test_v4_web_gpt_packet.py and test_web_gpt_packet.py"
+    },
+    "test_shared_auth_probe_is_serialized_for_concurrent_workers"
+  ],
+  "live": {
+    "status": "LIVE_UNVERIFIED",
+    "reason": "Current d53 candidate canary ran once and fail-closed: one PREPARED and one BLOCKED_AMBIGUOUS; no blind retry.",
+    "evidence_path": "C:/ScorpAgent/v4-core-lab/canary-d0aa533-20260916/evidence.json",
+    "artifact_sha256": "a8848a553f14fe1b50cd125a01d346482d7dfb8df2e2ff7db0ca11a43824af6d",
+    "retry_count": 0,
+    "not_run": [
+      "successful current-candidate two-worker send",
+      "physical browser rebind",
+      "restart recovery with live browser",
+      "continuous unattended soak",
+      "production cutover"
+    ]
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "remote_feature_ref": null,
+    "install_receipt": "C:/ScorpAgent/v4-core-lab/d0aa533-install/install-receipt.json",
+    "runtime_identity": "d53b449 candidate; not production"
+  },
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D53B449.json",
+    "manifest_sha256": "ee4019c1c29b5839fe6a4f4407bb3eb93541b72f9f66cdaeb63ad5843b7cad7f",
+    "file_sha256": "fc1f86a17c6d33e62490a0fc578b2411a5dc47a50a7b08aabdacacb9deaace3a"
+  },
+  "isolated_deployment": {
+    "status": "PARTIAL",
+    "browser_send": "NOT_RUN_AFTER_TAB_FIX",
+    "scope": [
+      "new tab selection and URL-settle real Chrome Use diagnostic",
+      "offline runtime and bridge regression",
+      "immutable candidate install"
+    ],
+    "open": [
+      "host registration",
+      "fresh current-candidate two-worker canary",
+      "physical browser rebind",
+      "Windows reboot no login",
+      "production cutover"
+    ]
+  }
+}
