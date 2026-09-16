@@ -228,6 +228,15 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
         self.assertEqual("worker/worker-slot-1", first["channel"])
         self.assertEqual("worker/worker-slot-2", second["channel"])
 
+    def test_auth_preflight_blocks_before_worker_intents_are_created(self):
+        from tools import v4_live_two_worker_canary as module
+
+        async def blocked_probe(channel):
+            return {"status": "BROWSER_RATE_LIMITED", "channel": channel}
+
+        with self.assertRaisesRegex(RuntimeError, "AUTH_PRECHECK_BLOCKED:BROWSER_RATE_LIMITED"):
+            asyncio.run(module.ensure_auth_preflight(blocked_probe, timeout_seconds=1))
+
     def test_send_gate_refuses_without_explicit_flag(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
