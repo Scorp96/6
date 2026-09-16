@@ -3,6 +3,7 @@ import concurrent.futures
 import json
 import pathlib
 import tempfile
+import threading
 import time
 import unittest
 
@@ -137,6 +138,46 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             stored = json.loads(state_path.read_text(encoding='utf-8'))
             self.assertEqual(set(turns), set(stored['turns']))
             self.assertEqual(2, len(set(sessions)))
+
+    def test_parallel_submit_prompts_are_serialized_as_whole_browser_transactions(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            entered = threading.Event()
+            release = threading.Event()
+            order = []
+
+            async def fake_submit(**kwargs):
+                order.append(("enter", kwargs["turn_id"]))
+                entered.set()
+                await asyncio.to_thread(release.wait, 2)
+                order.append(("exit", kwargs["turn_id"]))
+                return "ok"
+
+            driver._submit_prompt_unlocked = fake_submit
+
+            def call(turn_id):
+                return asyncio.run(
+                    driver.submit_prompt(
+                        prompt="PROMPT",
+                        turn_id=turn_id,
+                        actor_kind="WORKER",
+                        conversation_url=None,
+                    )
+                )
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                first = pool.submit(call, "turn-one")
+                self.assertTrue(entered.wait(1))
+                second = pool.submit(call, "turn-two")
+                time.sleep(0.05)
+                self.assertFalse(second.done())
+                release.set()
+                self.assertEqual(["ok", "ok"], sorted([first.result(), second.result()]))
+
+            self.assertEqual(
+                [("enter", "turn-one"), ("exit", "turn-one"), ("enter", "turn-two"), ("exit", "turn-two")],
+                order,
+            )
 
     def test_snapshot_fails_closed_when_exact_url_cannot_be_reacquired(self):
         with tempfile.TemporaryDirectory() as td:
