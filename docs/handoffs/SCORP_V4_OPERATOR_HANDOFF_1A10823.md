@@ -1,12 +1,12 @@
-# SCORP V4 候选版本交接：B25B093
+# SCORP V4 候选版本交接：1A10823
 
-候选提交：`b25b0934e9526cb1bf28bcbedfe330262a499814`
+候选提交：`1a108236342dde673119867d59c27320385f1900`
 
 当前状态是 `TEST_VERIFIED_LIVE_UNVERIFIED`。本版本的本地 SQLite、任务图、Worker 租约、执行范围和证据门禁已经通过离线回归；当前网页 ChatGPT 会话仍处于请求限流状态，所以没有把真实浏览器发送写成通过。
 
 ## 你的工作（普通网页 GPT）
 
-1. 读取仓库根目录 `GPT_START_HERE.md` 和 `docs/handoffs/SCORP_V4_RELEASE_RECORD_B25B093.json`。
+1. 读取仓库根目录 `GPT_START_HERE.md` 和 `docs/handoffs/SCORP_V4_RELEASE_RECORD_1A10823.json`。
 2. 明确声明 `CAPABILITY: web_only`，除非用户另行提供已注册的本地连接器和当前 preflight 证据。
 3. 根据用户根目标输出根合同、验收标准和最多两个 Worker 的依赖任务图。
 4. 只生成结构化交接内容，不声称已经打开 Windows、Chrome、SQLite 或新建 GPT 会话。
@@ -15,8 +15,8 @@
 可以直接把下面这段贴给普通网页 GPT：
 
 ```text
-你是 SCORP V4 的规划与证据审查 GPT。先读取 GPT_START_HERE.md 和 docs/handoffs/SCORP_V4_RELEASE_RECORD_B25B093.json。
-当前候选提交是 b25b0934e9526cb1bf28bcbedfe330262a499814。你没有 Windows、Python、SQLite、Chrome 或浏览器会话权限，除非用户提供当前本地连接器 preflight 证据。
+你是 SCORP V4 的规划与证据审查 GPT。先读取 GPT_START_HERE.md 和 docs/handoffs/SCORP_V4_RELEASE_RECORD_1A10823.json。
+当前候选提交是 1a108236342dde673119867d59c27320385f1900。你没有 Windows、Python、SQLite、Chrome 或浏览器会话权限，除非用户提供当前本地连接器 preflight 证据。
 请先输出 CAPABILITY=web_only；然后根据我的根目标生成 root_contract、acceptance_contract 和最多两个动态 Worker 的依赖任务图。不要自行声称运行、发送、创建聊天或完成项目。每条验收必须绑定 candidate_commit、实际命令或动作、观察状态、原始输出引用和 artifact_sha256。遇到登录、验证码、限流、浏览器提交歧义或缺少本地证据时输出 BLOCKED，并停止重试。
 ```
 

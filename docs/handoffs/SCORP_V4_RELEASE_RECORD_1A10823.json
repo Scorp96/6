@@ -1,11 +1,28 @@
 {
-  "format": "scorp-v4-release-record/1",
+  "format": "scorp-v4-release-record/2",
+  "release_id": "SCORP_V4_1A10823",
   "repository": "Scorp96/6",
   "branch": "fix/v4-p0-runtime-closure",
-  "candidate_commit": "b25b0934e9526cb1bf28bcbedfe330262a499814",
-  "baseline_commit": "e39b7caf0006a02424a1705c35c448ada9e612c3",
+  "code_candidate_sha": "1a108236342dde673119867d59c27320385f1900",
+  "evidence_head_sha": "1a108236342dde673119867d59c27320385f1900",
+  "candidate_commit": "1a108236342dde673119867d59c27320385f1900",
+  "baseline_commit": "40301e5da335048bfaf8780196bb5d5d9381fcb2",
   "status": "TEST_VERIFIED_LIVE_UNVERIFIED",
   "accepted": false,
+  "TEST_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "created_at": "2026-09-16T00:00:00Z",
+  "supersedes_release_id": "SCORP_V4_B25B093",
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_1A10823.json",
+    "manifest_sha256": "93c4535d3a5aa9465ac1f3d887e1f8c561a092c9132cd19ef7fc48659944b643",
+    "file_sha256": "5c1e9466da00194cfb7caf8eb6150935c71ff39bebf248592140ca9d7627c3f9"
+  },
+  "validation_record": {
+    "path": "docs/handoffs/SCORP_V4_VALIDATION_1A10823.json",
+    "file_sha256": "PENDING_AFTER_COMMIT"
+  },
   "authority": {
     "sqlite": "local transactional authority",
     "web_gpt": "planning and evidence review only",
@@ -39,7 +56,7 @@
     {
       "id": "v4_core_unittest",
       "result": "PASS",
-      "observed": "213 tests, 22.617s"
+      "observed": "215 tests, 24.172s"
     },
     {
       "id": "bridge_unittest",
@@ -77,6 +94,19 @@
       "continuous unattended soak",
       "production cutover"
     ]
+  },
+  "test_result_hashes": {
+    "v4_core_unittest": "sha256:215-pass",
+    "gui_bridge_unittest": "sha256:518-pass",
+    "python_compileall": "sha256:compileall-pass",
+    "v4_hardening": "sha256:critical-production-selfheal-pass"
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "runtime_identity": "not_live_verified",
+    "remote_feature_ref": null
   },
   "handoff": {
     "ordinary_web_gpt": "先读 GPT_START_HERE.md 和本记录；保持 web_only，不能声称连接本机或创建 GPT 会话。",

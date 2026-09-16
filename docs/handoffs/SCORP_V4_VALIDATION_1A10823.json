@@ -1,0 +1,49 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_1A10823",
+  "candidate_commit": "1a108236342dde673119867d59c27320385f1900",
+  "evidence_head_sha": "1a108236342dde673119867d59c27320385f1900",
+  "branch": "fix/v4-p0-runtime-closure",
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 215,
+      "command": "PYTHONPATH=scorp-agent python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 518,
+      "command": "PYTHONPATH=scorp-agent;scorp-agent/chatgpt-gui-bridge python -B -m unittest discover -s tests -p test_*.py"
+    },
+    "python_compileall": {
+      "result": "PASS",
+      "command": "python -B -m compileall -q scorp-agent"
+    },
+    "v4_critical_hardening": {"result": "PASS", "marker": "V4_CRITICAL_HARDENING_PASS"},
+    "v4_production_hardening": {"result": "PASS", "marker": "V4_PRODUCTION_HARDENING_PASS"},
+    "v4_selfheal_hardening": {"result": "PASS", "marker": "V4_SELFHEAL_HARDENING_PASS"}
+  },
+  "old_failure_probes": {
+    "P0-A": "PASS_RECONCILE_REQUIRED_OPEN_0_SEND_0",
+    "P0-B": "PASS_STALE_INTENT_SUBMIT_0",
+    "P0-C": "PASS_SCOPE_REJECT",
+    "P0-D": "PASS_REPOSITORY_BINDING_REJECT",
+    "P0-E": "PASS_TRANSACTION_ROLLBACK",
+    "P0-F": "PASS_SELF_REPORT_DEPENDENCY_BLOCKED",
+    "P0-G": "PASS_DAEMON_RECOVERY_BEFORE_SNAPSHOT",
+    "P0-H": "PASS_HEALTH_AND_GENERATION_FENCED_RENEWAL",
+    "P0-I": "PASS_GIT_BLOB_IDENTITY",
+    "P0-K": "PASS_PACKET_CANDIDATE_IDENTITY"
+  },
+  "live": {
+    "LIVE_VERIFIED": false,
+    "status": "BLOCKED_EXTERNAL_PRECONDITION",
+    "reason": "当前 ChatGPT 浏览器会话处于请求限流状态，未执行真实发送。"
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "remote_feature_ref": null
+  }
+}

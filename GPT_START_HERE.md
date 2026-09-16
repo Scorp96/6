@@ -42,8 +42,8 @@ shown, or the browser result is ambiguous.
 grant that chat local Windows, SQLite, Python, Chrome Use, or Windows MCP
 permissions. If the chat has no local connector, it is in planning/review mode
 and must report `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`. Use
-`docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_B25B093.md` and
-`docs/handoffs/SCORP_V4_RELEASE_RECORD_B25B093.json` for the current
+`docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_1A10823.md` and
+`docs/handoffs/SCORP_V4_RELEASE_RECORD_1A10823.json` for the current
 human/operator handoff, then run the read-only preflight before claiming any
 local capability.
 
@@ -107,9 +107,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit b25b0934e9526cb1bf28bcbedfe330262a499814 `
-  --candidate-manifest C:\ScorpAgent\v4-runtime\candidate-manifest-b25b093.json `
-  --manifest-sha256 <MANIFEST_SHA256_FOR_B25B093>
+  --candidate-commit 1a108236342dde673119867d59c27320385f1900 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_1A10823.json `
+  --manifest-sha256 93c4535d3a5aa9465ac1f3d887e1f8c561a092c9132cd19ef7fc48659944b643
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -280,9 +280,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit b25b0934e9526cb1bf28bcbedfe330262a499814 `
-  --candidate-manifest C:\ScorpAgent\v4-runtime\candidate-manifest-b25b093.json `
-  --manifest-sha256 <MANIFEST_SHA256_FOR_B25B093> `
+  --candidate-commit 1a108236342dde673119867d59c27320385f1900 `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_1A10823.json `
+  --manifest-sha256 93c4535d3a5aa9465ac1f3d887e1f8c561a092c9132cd19ef7fc48659944b643 `
   --send
 ```
 
@@ -631,7 +631,7 @@ browser status, production status, blockers, and unverified items. Keep
 
 Use these paths when an ordinary GPT or operator takes over this repository:
 
-- Current code candidate: `b25b0934e9526cb1bf28bcbedfe330262a499814` (`fix: require independent verification in completion gate`) on `fix/v4-p0-runtime-closure`; it binds final completion to an independent Worker-result verification event and includes the P0 runtime closure fixes. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.
+- Current code candidate: `1a108236342dde673119867d59c27320385f1900` (`fix: make candidate manifests use immutable Git blobs`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes and immutable Git-object release identity. The current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
 - Current validation record: `docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`.
@@ -641,7 +641,7 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
 
 The current candidate is `TEST_VERIFIED` for the offline core and is `BLOCKED` for current-candidate live browser evidence. The predecessor `5bf7953` real-code workload was partially live-verified: T2 executed through the local adapter with exit 0, T1 returned BLOCKED and was not executed, and T3 remained queued. That evidence is retained as historical context and cannot be promoted automatically. Master replacement, unattended stability, and production cutover remain unverified. This is not `ACCEPTED`: release identity, current-candidate browser evidence, restart recovery, symmetric rate-limit recovery, scheduled-task cutover, and production cutover remain separate gates.
-Any predecessor browser receipt is historical and is not promoted to this candidate. The current live blocker is the active ChatGPT rate-limit state; do not claim a current-candidate browser or real-code pass until a fresh evidence record binds it to `b25b0934e9526cb1bf28bcbedfe330262a499814`.
+Any predecessor browser receipt is historical and is not promoted to this candidate. The current live blocker is the active ChatGPT rate-limit state; do not claim a current-candidate browser or real-code pass until a fresh evidence record binds it to `1a108236342dde673119867d59c27320385f1900`.
 The latest live check found the same “请求过于频繁” dialog in an existing authenticated tab. The single acknowledgement click timed out and the dialog remained; the system did not refresh or resend. Evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_FAILURE_20260915.json`. Keep this state `BLOCKED_EXTERNAL_PRECONDITION` until the same physical actor can be reconciled.
 The subsequent read-only recheck of that same tab still showed the dialog and no composer; evidence: `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json`. Do not create a new session or resend while this physical actor remains unresolved.
 
