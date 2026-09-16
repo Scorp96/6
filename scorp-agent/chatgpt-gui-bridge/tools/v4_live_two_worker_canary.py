@@ -40,6 +40,25 @@ MARKERS = {
 }
 
 
+def build_serialized_auth_probe(cli, driver, session: str):
+    """Serialize read-only auth probes that share one Chrome Use session.
+
+    Worker submissions remain concurrent, but a shared diagnostic session must
+    not receive overlapping ``open``/``read`` commands. Chrome Use treats a
+    session as a single actor, so concurrent probes can otherwise leave one
+    intent before its browser turn is even bound.
+    """
+
+    probe_lock = asyncio.Lock()
+
+    async def auth_probe(channel: str):
+        async with probe_lock:
+            await cli.run_json(session, "open", "https://chatgpt.com/", timeout_seconds=30)
+            return await probe_chatgpt_auth(cli, driver, session, channel)
+
+    return auth_probe
+
+
 def failure_evidence(*, project_id: str, error: Exception, intents: list[Mapping[str, object]]) -> dict[str, object]:
     """Build a fail-closed receipt after a live canary exception.
 
@@ -298,9 +317,7 @@ async def run_canary(args: argparse.Namespace) -> int:
     prepared_intent_ids: list[str] = []
     driver.register_session(auth_session, role="DIAGNOSTIC")
 
-    async def auth_probe(channel: str):
-        await cli.run_json(auth_session, "open", "https://chatgpt.com/", timeout_seconds=30)
-        return await probe_chatgpt_auth(cli, driver, auth_session, channel)
+    auth_probe = build_serialized_auth_probe(cli, driver, auth_session)
 
     engine = build_v4_browser_engine(
         driver,
