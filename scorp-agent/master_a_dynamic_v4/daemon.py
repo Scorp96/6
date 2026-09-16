@@ -12,6 +12,7 @@ from typing import Any
 
 from .activation_arbiter import ActivationArbiter, ActivationDecision, ArbiterSnapshot
 from .state_store import StateStore
+from .persistent_controller_handler import PersistentControllerActionHandler
 
 UTC = dt.timezone.utc
 
