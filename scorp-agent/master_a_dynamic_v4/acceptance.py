@@ -124,6 +124,30 @@ class AcceptanceValidator:
             for task in required_tasks:
                 if str(task["state"]) not in {"VERIFIED", "ACCEPTED"}:
                     blockers.add(f"REQUIRED_TASK_NOT_VERIFIED:{task['task_id']}")
+            verified_results = conn.execute(
+                """
+                SELECT r.result_id,a.task_id
+                FROM candidate_results r
+                JOIN assignments a ON a.assignment_id=r.assignment_id
+                WHERE r.project_id=? AND r.result_kind='WORK_RESULT'
+                  AND r.verification_state='VERIFIED'
+                """,
+                (project_id,),
+            ).fetchall()
+            independent_events = {}
+            for event in conn.execute(
+                "SELECT payload_json FROM events WHERE project_id=? AND kind='WORK_RESULT_INDEPENDENTLY_VERIFIED'",
+                (project_id,),
+            ).fetchall():
+                try:
+                    payload = json.loads(str(event["payload_json"]))
+                except (TypeError, ValueError):
+                    payload = {}
+                if isinstance(payload, dict) and payload.get("result_id"):
+                    independent_events[str(payload["result_id"])] = payload
+            for result in verified_results:
+                if str(result["result_id"]) not in independent_events:
+                    blockers.add(f"WORK_RESULT_NOT_INDEPENDENTLY_VERIFIED:{result['task_id']}")
             legacy_or_unstructured = conn.execute(
                 """
                 SELECT t.task_id

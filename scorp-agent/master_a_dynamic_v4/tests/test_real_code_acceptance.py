@@ -84,7 +84,7 @@ class RealCodeAcceptanceTests(unittest.TestCase):
                 }
                 for claim in claims:
                     result_id = scheduler.record_work_result(claim, payload=outputs[claim.task_id])
-                    scheduler.verify_candidate(result_id, result_sha256=outputs[claim.task_id]["result_sha256"])
+                    scheduler.verify_candidate(result_id, result_sha256=outputs[claim.task_id]["result_sha256"], independent_verifier="test-independent-validator")
 
                 t3 = scheduler.claim_runnable(master_epoch=0)[0]
                 report.write_text(stable_report(source), encoding="utf-8", newline="")
@@ -95,7 +95,7 @@ class RealCodeAcceptanceTests(unittest.TestCase):
                     evidence=[{"report": json.loads(report.read_text(encoding="utf-8"))}],
                 )
                 result_id = scheduler.record_work_result(t3, payload=t3_payload)
-                scheduler.verify_candidate(result_id, result_sha256=t3_payload["result_sha256"])
+                scheduler.verify_candidate(result_id, result_sha256=t3_payload["result_sha256"], independent_verifier="test-independent-validator")
 
                 artifact_hash = file_hash(report)
                 store.record_release_candidate(
