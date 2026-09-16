@@ -141,6 +141,95 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
         self.assertEqual("RESPONSE_CAPTURED", results[1]["state"])
         self.assertEqual({"intent-1", "intent-2"}, set(gateway.adapter.calls))
 
+    def test_reconcile_recovers_unpromoted_turn_before_url_based_reconcile(self):
+        class Store:
+            def __init__(self):
+                self.confirmed = []
+
+            def get_intent(self, intent_id):
+                return {
+                    "intent_id": intent_id,
+                    "state": "BLOCKED_AMBIGUOUS",
+                    "conversation_url": None,
+                }
+
+            def confirm_submitted(self, intent_id, **kwargs):
+                self.confirmed.append((intent_id, kwargs))
+
+        class Adapter:
+            def __init__(self, store):
+                self.store = store
+                self.calls = []
+
+            def reconcile(self, intent_id):
+                self.calls.append(intent_id)
+                if not self.store.confirmed:
+                    return {
+                        "state": "BLOCKED_AMBIGUOUS",
+                        "ambiguity_reason": "CONVERSATION_URL_MISSING",
+                    }
+                return {
+                    "state": "RESPONSE_CAPTURED",
+                    "conversation_url": "https://chatgpt.com/c/recovered-worker",
+                    "response_sha256": "2" * 64,
+                }
+
+        class Gateway:
+            def __init__(self):
+                self.store = Store()
+                self.adapter = Adapter(self.store)
+
+        class Driver:
+            def __init__(self):
+                self.binding = {
+                    "session": "scorp-p0-turn-recovered",
+                    "conversation_url": None,
+                }
+                self.recovery_calls = []
+
+            def turn_binding(self, intent_id):
+                return dict(self.binding)
+
+            async def recover_unpromoted_turn_snapshot(
+                self, intent_id, expected_marker, timeout_seconds=None
+            ):
+                self.recovery_calls.append(
+                    (intent_id, expected_marker, timeout_seconds)
+                )
+                self.binding["conversation_url"] = (
+                    "https://chatgpt.com/c/recovered-worker"
+                )
+                return (
+                    "Focused Window: Chrome\n"
+                    "https://chatgpt.com/c/recovered-worker\n"
+                    "#### ChatGPT said:\nSCORPV4CANARYACK1\n"
+                )
+
+        gateway = Gateway()
+        driver = Driver()
+        result = asyncio.run(
+            reconcile_intent_until_terminal(
+                gateway,
+                driver,
+                {"intent_id": "intent-1"},
+                {"state": "BLOCKED_AMBIGUOUS"},
+                expected_marker="SCORPV4CANARYACK1",
+                recovery_timeout_seconds=5,
+                max_attempts=2,
+                sleep_seconds=0,
+            )
+        )
+
+        self.assertEqual("RESPONSE_CAPTURED", result["state"])
+        self.assertEqual(
+            [("intent-1", "SCORPV4CANARYACK1", 5)],
+            driver.recovery_calls,
+        )
+        self.assertEqual(1, len(gateway.store.confirmed))
+        self.assertEqual(
+            "https://chatgpt.com/c/recovered-worker",
+            gateway.store.confirmed[0][1]["conversation_url"],
+        )
     def test_worker_intents_are_submitted_concurrently(self):
         barrier = threading.Barrier(2)
 

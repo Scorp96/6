@@ -132,6 +132,8 @@ async def reconcile_intent_until_terminal(
     intent: Mapping[str, object],
     initial_result,
     *,
+    expected_marker: str | None = None,
+    recovery_timeout_seconds: int = 5,
     max_attempts: int = 8,
     sleep_seconds: float = 4.0,
 ):
@@ -152,6 +154,22 @@ async def reconcile_intent_until_terminal(
             and not current.get("conversation_url")
         ):
             bound_url = _driver_bound_url(driver, intent_id)
+            if not bound_url and expected_marker:
+                recover_unpromoted = getattr(
+                    driver, "recover_unpromoted_turn_snapshot", None
+                )
+                if callable(recover_unpromoted):
+                    try:
+                        await recover_unpromoted(
+                            intent_id,
+                            expected_marker,
+                            timeout_seconds=max(1, int(recovery_timeout_seconds)),
+                        )
+                    except (TimeoutError, ValueError):
+                        # Read-only recovery is best-effort. Missing URL or
+                        # marker stays ambiguous and must never resubmit.
+                        pass
+                    bound_url = _driver_bound_url(driver, intent_id)
             if bound_url:
                 remote = hashlib.sha256(
                     f"{intent_id}|{bound_url}".encode("utf-8")
@@ -399,6 +417,7 @@ async def run_canary(args: argparse.Namespace) -> int:
                     driver,
                     intent,
                     submitted_result,
+                    expected_marker=marker,
                 )
                 if not isinstance(submitted_result, Exception)
                 else asyncio.sleep(0, result=submitted_result)
