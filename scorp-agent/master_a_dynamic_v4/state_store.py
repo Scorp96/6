@@ -2033,6 +2033,60 @@ class StateStore:
                 conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone()
             )
 
+    def fence_ambiguous_intent(
+        self, intent_id: str, *, reason: str, observation: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        why = str(reason or "").strip()
+        if not why or not isinstance(observation, Mapping):
+            raise StoreInvariantError("INTENT_FENCE_EVIDENCE_INVALID")
+        with self._transaction() as conn:
+            row = conn.execute(
+                "SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("INTENT_NOT_FOUND")
+            if row["state"] not in {
+                IntentState.MAY_HAVE_SUBMITTED.value,
+                IntentState.BLOCKED_AMBIGUOUS.value,
+            }:
+                raise StoreInvariantError("INTENT_FENCE_STATE_INVALID")
+            prior_observation = {}
+            raw_observation = row["observation_json"]
+            if raw_observation:
+                try:
+                    loaded = json.loads(str(raw_observation))
+                    if isinstance(loaded, Mapping):
+                        prior_observation = dict(loaded)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    prior_observation = {"unparsed_prior_observation": str(raw_observation)}
+            now = utc_now()
+            fence_observation = {
+                "prior_observation": prior_observation,
+                "terminal_fence": dict(observation),
+                "terminal_fence_reason": why,
+            }
+            conn.execute(
+                """
+                UPDATE action_intents
+                SET state=?,ambiguity_reason=?,observation_json=?,updated_at=?
+                WHERE intent_id=?
+                """,
+                (
+                    IntentState.FENCED_AMBIGUOUS.value,
+                    why,
+                    canonical_json(fence_observation),
+                    now,
+                    intent_id,
+                ),
+            )
+            conn.execute(
+                "UPDATE outbox SET state='COMPLETED',completed_at=? WHERE intent_id=?",
+                (now, intent_id),
+            )
+            return dict(
+                conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone()
+            )
+
     def confirm_submitted(
         self,
         intent_id: str,

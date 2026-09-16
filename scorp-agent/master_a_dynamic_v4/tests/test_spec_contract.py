@@ -43,6 +43,7 @@ class SpecContractTests(unittest.TestCase):
                 "RESPONSE_CAPTURED",
                 "VERIFIED_NOT_SUBMITTED",
                 "BLOCKED_AMBIGUOUS",
+                "FENCED_AMBIGUOUS",
             },
             {value.value for value in IntentState},
         )

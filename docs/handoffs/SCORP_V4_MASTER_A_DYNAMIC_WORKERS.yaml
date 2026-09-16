@@ -127,7 +127,8 @@
       "CONFIRMED_SUBMITTED",
       "RESPONSE_CAPTURED",
       "VERIFIED_NOT_SUBMITTED",
-      "BLOCKED_AMBIGUOUS"
+      "BLOCKED_AMBIGUOUS",
+      "FENCED_AMBIGUOUS"
     ],
     "persist_before_possible_submit": "MAY_HAVE_SUBMITTED",
     "timeout_means_not_submitted": false,
@@ -159,6 +160,7 @@
       "ACTIVE_WORKER",
       "PENDING_MAY_HAVE_SUBMITTED",
       "BLOCKED_AMBIGUOUS",
+      "FENCED_AMBIGUOUS",
       "STALE_CANDIDATE_RECEIPT"
     ]
   },

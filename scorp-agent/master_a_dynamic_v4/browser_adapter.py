@@ -52,6 +52,8 @@ class BrowserAdapter:
             raise ReconcileRequired(intent_id)
         if current["state"] == IntentState.BLOCKED_AMBIGUOUS.value:
             raise ReconcileRequired(intent_id)
+        if current["state"] == IntentState.FENCED_AMBIGUOUS.value:
+            raise BrowserAdapterError("INTENT_FENCED_AMBIGUOUS")
         if current["state"] not in {
             IntentState.PREPARED.value,
             IntentState.VERIFIED_NOT_SUBMITTED.value,
@@ -160,6 +162,8 @@ class BrowserAdapter:
 
     def reconcile(self, intent_id: str) -> dict[str, Any]:
         current = self.store.get_intent(intent_id)
+        if current["state"] == IntentState.FENCED_AMBIGUOUS.value:
+            return current
         if current["state"] == IntentState.RESPONSE_CAPTURED.value:
             self.store.finalize_intent(intent_id)
             return self.store.get_intent(intent_id)
