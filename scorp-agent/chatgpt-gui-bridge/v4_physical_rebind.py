@@ -73,7 +73,7 @@ class ReadOnlyBrowserRebinder:
             raise PhysicalRebindError("MASTER_EPOCH_MISSING") from exc
 
         binding = self.store.get_browser_binding(self.project_id, self.channel)
-        if not isinstance(binding, Mapping):
+        if binding is None:
             return {
                 "status": "LOCAL_ONLY_MASTER",
                 "master_epoch": epoch,
@@ -105,7 +105,7 @@ class ReadOnlyBrowserRebinder:
         """Prove the bound physical session without changing SQLite state."""
 
         binding = self.store.get_browser_binding(self.project_id, self.channel)
-        if not isinstance(binding, Mapping):
+        if binding is None:
             return {
                 "status": "HEALTHY",
                 "mode": "LOCAL_ONLY_MASTER",
