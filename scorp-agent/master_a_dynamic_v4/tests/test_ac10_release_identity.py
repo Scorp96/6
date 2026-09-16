@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -108,6 +109,24 @@ class ReleaseIdentityTests(unittest.TestCase):
         self.assertIn(r"C:\ScorpAgent\v4-core-lab", text)
         self.assertNotIn("Register-ScheduledTask", text)
         self.assertNotIn("Set-Service", text)
+
+    def test_manifest_binds_files_to_candidate_git_objects(self):
+        from master_a_dynamic_v4.install_manifest import InstallIdentityError, build_candidate_manifest
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            source = root / "source"
+            source.mkdir()
+            (source / "tool.py").write_text("VALUE = 1\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q"], cwd=source, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=source, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=source, check=True)
+            subprocess.run(["git", "add", "tool.py"], cwd=source, check=True)
+            subprocess.run(["git", "commit", "-qm", "fixture"], cwd=source, check=True)
+            commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
+            (source / "tool.py").write_text("VALUE = 2\n", encoding="utf-8")
+            with self.assertRaisesRegex(InstallIdentityError, "SOURCE_FILE_NOT_AT_CANDIDATE"):
+                build_candidate_manifest(source, commit, ["tool.py"])
 
 
 if __name__ == "__main__":

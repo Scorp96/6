@@ -64,6 +64,16 @@ class V4WebGptPacketTests(unittest.TestCase):
             self.assertIn("WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE", result["prompt"])
             self.assertIn("preflight", result)
 
+    def test_packet_prompt_candidate_identity_matches_packet_candidate(self):
+        packet = load_packet()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            database = self._fixture(root)
+            result = packet.build_packet(root, database_path=database, allowed_root=root)
+            candidate = result["candidate_commit"]
+            self.assertIn(f"candidate commit {candidate}", result["prompt"])
+            self.assertNotRegex(result["prompt"].replace(candidate, ""), r"[0-9a-f]{40}")
+
     def test_packet_blocks_when_handoff_and_validation_candidates_differ(self):
         packet = load_packet()
         with tempfile.TemporaryDirectory() as td:

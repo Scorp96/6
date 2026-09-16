@@ -48,6 +48,31 @@ def _file_sha256(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def _git_object_metadata(root: pathlib.Path, commit: str, relative: str) -> dict[str, Any] | None:
+    """Return immutable Git blob identity when the source is a real checkout."""
+    spec = f"{commit}:{relative}"
+    oid = subprocess.run(
+        ["git", "rev-parse", spec], cwd=root, check=False,
+        capture_output=True, text=True, encoding="utf-8",
+    )
+    if oid.returncode != 0:
+        return None
+    blob_oid = oid.stdout.strip().lower()
+    if len(blob_oid) != 40:
+        return None
+    content = subprocess.run(
+        ["git", "cat-file", "blob", blob_oid], cwd=root, check=False,
+        capture_output=True,
+    )
+    if content.returncode != 0:
+        raise InstallIdentityError("SOURCE_GIT_BLOB_UNAVAILABLE")
+    return {
+        "git_blob_oid": blob_oid,
+        "git_blob_sha256": hashlib.sha256(content.stdout).hexdigest(),
+        "git_blob_size": len(content.stdout),
+    }
+
+
 def _validated_relative(root: pathlib.Path, raw: str | pathlib.Path) -> tuple[str, pathlib.Path]:
     relative = pathlib.Path(raw)
     if relative.is_absolute() or not relative.parts:
@@ -82,7 +107,13 @@ def build_candidate_manifest(
         if relative in files:
             raise InstallIdentityError("SOURCE_PATH_DUPLICATE")
         stat = source.stat()
-        files[relative] = {"sha256": _file_sha256(source), "size": stat.st_size}
+        metadata: dict[str, Any] = {"sha256": _file_sha256(source), "size": stat.st_size}
+        git_metadata = _git_object_metadata(root, candidate, relative)
+        if git_metadata is not None:
+            if metadata["sha256"] != git_metadata["git_blob_sha256"] or metadata["size"] != git_metadata["git_blob_size"]:
+                raise InstallIdentityError(f"SOURCE_FILE_NOT_AT_CANDIDATE:{relative}")
+            metadata.update(git_metadata)
+        files[relative] = metadata
     if not files:
         raise InstallIdentityError("CANDIDATE_FILESET_EMPTY")
     core = {
@@ -118,8 +149,16 @@ def verify_candidate_manifest(
         _, source = _validated_relative(root, str(raw))
         if not isinstance(metadata, Mapping):
             raise InstallIdentityError("SOURCE_FILE_METADATA_INVALID")
-        if _file_sha256(source) != str(metadata.get("sha256")) or source.stat().st_size != int(metadata.get("size", -1)):
+        current_hash = _file_sha256(source)
+        if current_hash != str(metadata.get("sha256")) or source.stat().st_size != int(metadata.get("size", -1)):
             raise InstallIdentityError(f"SOURCE_FILE_HASH_MISMATCH:{raw}")
+        git_oid = str(metadata.get("git_blob_oid") or "").strip().lower()
+        if git_oid:
+            git_metadata = _git_object_metadata(root, candidate, str(raw))
+            if git_metadata is None or git_metadata["git_blob_oid"] != git_oid:
+                raise InstallIdentityError(f"SOURCE_GIT_OBJECT_MISMATCH:{raw}")
+            if current_hash != git_metadata["git_blob_sha256"]:
+                raise InstallIdentityError(f"SOURCE_FILE_NOT_AT_CANDIDATE:{raw}")
 
 
 def snapshot_paths(paths: Iterable[str | pathlib.Path]) -> dict[str, Any]:
