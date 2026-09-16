@@ -59,6 +59,16 @@
       "observed_state": "OK; daemon_epoch=1; operator_state=RUNNING; workers.active=0; capacity=2",
       "raw_output_path": "C:/ScorpAgent/v4-runtime-evidence-b0bbc3a/runtime-status.jsonl",
       "raw_output_sha256": "637982ce6e5d73301b3e9081779a7d2d8d281103149e7bf601281fa9219b9034"
+    },
+    "master_supervisor_process_loop": {
+      "result": "PASS",
+      "active_status": "MASTER_ACTIVE",
+      "fail_closed_status": "RESUME_REQUIRED",
+      "browser_send": "FORBIDDEN",
+      "raw_output_sha256": {
+        "active": "df1a6ffa9e41c91312d4b773ee80b029c2939ac815bca4d11cebae29184f1537",
+        "missing_physical_rebind": "dd345d8d28c683493df2c57d2896bda1287ab2a6be5eecc5b1502fbb7dda713b"
+      }
     }
   },
   "old_failure_probes": {
