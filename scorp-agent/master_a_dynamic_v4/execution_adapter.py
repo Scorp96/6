@@ -24,6 +24,7 @@ from .path_policy import PathBoundaryError, PathPolicy
 
 UTC = dt.timezone.utc
 DEFAULT_ALLOWED_MODULES = frozenset({"master_a_dynamic_v4.csv_workload.cli"})
+_CSV_OPERATION_VALUES = frozenset({"validate", "aggregate", "report"})
 
 
 class ExecutionAdapterRejected(ValueError):
@@ -65,6 +66,15 @@ def _sha256_file(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
+def _inside(path: pathlib.Path, root: pathlib.Path) -> bool:
+    try:
+        return os.path.commonpath(
+            [os.path.normcase(str(path)), os.path.normcase(str(root))]
+        ) == os.path.normcase(str(root))
+    except ValueError:
+        return False
+
+
 def _tail(value: str, limit: int) -> str:
     text = str(value or "")
     return text if len(text) <= limit else text[-limit:]
@@ -89,6 +99,26 @@ def _inside_assignment_scope(path: pathlib.Path, scopes: Iterable[str | pathlib.
             except ValueError:
                 continue
         elif os.path.normcase(str(candidate)) == os.path.normcase(str(scope)):
+            return True
+    return False
+
+
+def _working_directory_in_assignment_scope(
+    path: pathlib.Path, scopes: Iterable[str | pathlib.Path]
+) -> bool:
+    """Allow a task's effective cwd, including the parent of a file scope."""
+
+    candidate = path.resolve(strict=False)
+    for raw_scope in scopes:
+        scope = pathlib.Path(raw_scope).resolve(strict=False)
+        if scope.exists() and scope.is_dir():
+            if _inside_assignment_scope(candidate, (scope,)):
+                return True
+            continue
+        # A file scope authorizes the directory in which that exact file is
+        # executed.  It does not authorize a sibling directory or the global
+        # allowed root containing several assignments.
+        if candidate == scope.parent or _inside(candidate, scope.parent):
             return True
     return False
 
@@ -161,15 +191,40 @@ class LocalExecutionAdapter:
             authorized = self.path_policy.authorize([cwd, *scoped], access_mode)
         except (FileNotFoundError, PathBoundaryError) as exc:
             raise ExecutionAdapterRejected(str(exc)) from exc
+        if not _working_directory_in_assignment_scope(cwd, claim_scopes):
+            raise ExecutionAdapterRejected("WORKING_DIRECTORY_OUTSIDE_ASSIGNMENT_SCOPE")
         if any(not _inside_assignment_scope(pathlib.Path(value), claim_scopes) for value in authorized[1:]):
             raise ExecutionAdapterRejected("RESOURCE_OUTSIDE_ASSIGNMENT_SCOPE")
         authorized_keys = {os.path.normcase(str(pathlib.Path(value).resolve(strict=False))) for value in authorized}
         normalized_args: list[str] = []
-        for raw in args:
-            value = str(raw)
-            candidate = pathlib.Path(value)
-            if candidate.is_absolute():
-                resolved = candidate.resolve(strict=False)
+        raw_args = [str(raw) for raw in args]
+        index = 0
+        while index < len(raw_args):
+            value = raw_args[index]
+            path_value = None
+            if value == "--output":
+                if index + 1 >= len(raw_args):
+                    raise ExecutionAdapterRejected("MODULE_ARGUMENT_INVALID")
+                path_value = raw_args[index + 1]
+                normalized_args.append(value)
+                index += 1
+            elif value == "--operation":
+                if index + 1 >= len(raw_args) or raw_args[index + 1] not in _CSV_OPERATION_VALUES:
+                    raise ExecutionAdapterRejected("MODULE_ARGUMENT_INVALID")
+                normalized_args.extend((value, raw_args[index + 1]))
+                index += 2
+                continue
+            elif value.startswith("--"):
+                raise ExecutionAdapterRejected("MODULE_ARGUMENT_INVALID")
+            else:
+                # The CSV workload's first positional argument is a path.  A
+                # bare name is still a path when interpreted by the child;
+                # never classify it as an inert scalar merely because it has
+                # no slash.
+                path_value = value
+            if path_value is not None:
+                candidate = pathlib.Path(path_value)
+                resolved = (cwd / candidate if not candidate.is_absolute() else candidate).resolve(strict=False)
                 try:
                     self.path_policy.authorize([resolved], access_mode)
                 except PathBoundaryError as exc:
@@ -177,13 +232,12 @@ class LocalExecutionAdapter:
                 if not _inside_assignment_scope(resolved, claim_scopes):
                     raise ExecutionAdapterRejected("ARGUMENT_OUTSIDE_ASSIGNMENT_SCOPE")
                 if os.path.normcase(str(resolved)) not in authorized_keys and not any(
-                    os.path.commonpath([os.path.normcase(str(resolved)), root]) == root
-                    for root in (os.path.normcase(str(pathlib.Path(item).resolve(strict=False))) for item in authorized)
+                    _inside(resolved, pathlib.Path(item).resolve(strict=False))
+                    for item in authorized
                 ):
                     raise ExecutionAdapterRejected("ARGUMENT_PATH_OUTSIDE_SCOPE")
-            elif "\\" in value or "/" in value:
-                raise ExecutionAdapterRejected("RELATIVE_PATH_ARGUMENT_UNVERIFIED")
-            normalized_args.append(value)
+                normalized_args.append(path_value)
+                index += 1
         command = (str(self.python_executable), "-B", "-m", module_name, *normalized_args)
         env = os.environ.copy()
         if self.pythonpath is not None:

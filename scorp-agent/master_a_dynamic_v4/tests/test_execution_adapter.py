@@ -117,6 +117,74 @@ class ExecutionAdapterTests(unittest.TestCase):
                     access_mode="read",
                 )
 
+    def test_rejects_working_directory_outside_assignment_scope(self):
+        from master_a_dynamic_v4.execution_adapter import ExecutionAdapterRejected, LocalExecutionAdapter
+        from master_a_dynamic_v4.scheduler import AssignmentClaim
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            assigned = root / "assigned"
+            other = root / "other"
+            assigned.mkdir()
+            other.mkdir()
+            claim = AssignmentClaim(
+                assignment_id="assignment-scope",
+                project_id="execution-project",
+                task_id="T1",
+                worker_id="worker-scope",
+                slot_id="worker-slot-1",
+                lease_token="lease-scope",
+                master_epoch=0,
+                base_state_version=0,
+                objective_sha256="a" * 64,
+                resource_scope=(str(assigned / "assigned.csv"),),
+                access_mode="read",
+                expires_at="2099-01-01T00:00:00Z",
+            )
+            adapter = LocalExecutionAdapter([root], python_executable=sys.executable)
+            with self.assertRaisesRegex(ExecutionAdapterRejected, "WORKING_DIRECTORY_OUTSIDE_ASSIGNMENT_SCOPE"):
+                adapter.execute(
+                    claim,
+                    module="master_a_dynamic_v4.csv_workload.cli",
+                    args=["secret.csv"],
+                    working_directory=other,
+                    resource_paths=[assigned / "assigned.csv"],
+                    access_mode="read",
+                )
+
+    def test_rejects_relative_path_argument_even_without_directory_separator(self):
+        from master_a_dynamic_v4.execution_adapter import ExecutionAdapterRejected, LocalExecutionAdapter
+        from master_a_dynamic_v4.scheduler import AssignmentClaim
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            assigned = root / "assigned"
+            assigned.mkdir()
+            claim = AssignmentClaim(
+                assignment_id="assignment-relative",
+                project_id="execution-project",
+                task_id="T1",
+                worker_id="worker-relative",
+                slot_id="worker-slot-1",
+                lease_token="lease-relative",
+                master_epoch=0,
+                base_state_version=0,
+                objective_sha256="a" * 64,
+                resource_scope=(str(assigned / "assigned.csv"),),
+                access_mode="read",
+                expires_at="2099-01-01T00:00:00Z",
+            )
+            adapter = LocalExecutionAdapter([root], python_executable=sys.executable)
+            with self.assertRaisesRegex(ExecutionAdapterRejected, "ARGUMENT_OUTSIDE_ASSIGNMENT_SCOPE"):
+                adapter.execute(
+                    claim,
+                    module="master_a_dynamic_v4.csv_workload.cli",
+                    args=["secret.csv"],
+                    working_directory=assigned,
+                    resource_paths=[assigned / "assigned.csv"],
+                    access_mode="read",
+                )
+
     def test_rejects_access_mode_downgrade_or_upgrade(self):
         from master_a_dynamic_v4.execution_adapter import ExecutionAdapterRejected, LocalExecutionAdapter
 
