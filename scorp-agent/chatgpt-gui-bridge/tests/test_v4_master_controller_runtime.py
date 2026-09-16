@@ -154,5 +154,28 @@ class MasterControllerRuntimeTests(unittest.TestCase):
             self.assertEqual(manifest["manifest_sha256"], binding["manifest_sha256"])
 
 
+    def test_worker_prompt_normalizes_execution_template_windows_paths_for_json_copy(self):
+        runtime = load_runtime()
+        original_template = {
+            "module": "master_a_dynamic_v4.csv_workload.cli",
+            "args": ["input.csv", "--operation", "validate"],
+            "working_directory": r"C:\ScorpAgent\lab\t1",
+            "resource_paths": [r"C:\ScorpAgent\lab\t1\input.csv"],
+            "access_mode": "read",
+            "timeout_seconds": 60,
+        }
+        claim = types.SimpleNamespace(
+            project_id="p1", assignment_id="a1", task_id="T1", worker_id="w1",
+            slot_id="worker-slot-1", master_epoch=0, base_state_version=1,
+            objective_sha256="a" * 64, resource_scope=(r"C:\ScorpAgent\lab\t1",),
+            access_mode="read", task_context={"candidate_commit": "b" * 40, "execution_request_template": original_template},
+        )
+        payload = json.loads(runtime._worker_prompt(claim))
+        template = payload["task_context"]["execution_request_template"]
+        self.assertEqual("C:/ScorpAgent/lab/t1", template["working_directory"])
+        self.assertEqual(["C:/ScorpAgent/lab/t1/input.csv"], template["resource_paths"])
+        self.assertEqual(r"C:\ScorpAgent\lab\t1", original_template["working_directory"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -181,6 +181,25 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _prompt_task_context(value: Mapping[str, Any]) -> dict[str, Any]:
+    context = dict(value or {})
+    template = context.get("execution_request_template")
+    if isinstance(template, Mapping):
+        normalized = dict(template)
+        backslash = chr(92)
+        working_directory = normalized.get("working_directory")
+        if isinstance(working_directory, str):
+            normalized["working_directory"] = working_directory.replace(backslash, "/")
+        resource_paths = normalized.get("resource_paths")
+        if isinstance(resource_paths, (list, tuple)):
+            normalized["resource_paths"] = [
+                item.replace(backslash, "/") if isinstance(item, str) else item
+                for item in resource_paths
+            ]
+        context["execution_request_template"] = normalized
+    return context
+
+
 def _worker_prompt(claim) -> str:
     assignment = {
         "project_id": claim.project_id,
@@ -199,7 +218,7 @@ def _worker_prompt(claim) -> str:
             "protocol": "SCORP V4 WORK_RESULT/1",
             "role": "dynamic Worker",
             "assignment": assignment,
-            "task_context": dict(getattr(claim, "task_context", {}) or {}),
+            "task_context": _prompt_task_context(getattr(claim, "task_context", {}) or {}),
             "instructions": [
                 "Only work inside the assignment resource_scope.",
                 "If local execution is required, include an execution_request using only approved fields.",
