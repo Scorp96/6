@@ -50,11 +50,20 @@ def build_serialized_auth_probe(cli, driver, session: str):
     """
 
     probe_lock = asyncio.Lock()
+    authenticated_cache: dict[str, object] | None = None
 
     async def auth_probe(channel: str):
+        nonlocal authenticated_cache
         async with probe_lock:
+            if authenticated_cache is not None:
+                cached = dict(authenticated_cache)
+                cached["channel"] = channel
+                return cached
             await cli.run_json(session, "open", "https://chatgpt.com/", timeout_seconds=30)
-            return await probe_chatgpt_auth(cli, driver, session, channel)
+            result = await probe_chatgpt_auth(cli, driver, session, channel)
+            if isinstance(result, Mapping) and result.get("status") == "AUTHENTICATED":
+                authenticated_cache = dict(result)
+            return result
 
     return auth_probe
 
