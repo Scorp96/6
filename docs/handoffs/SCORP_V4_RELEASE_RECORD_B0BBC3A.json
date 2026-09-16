@@ -21,7 +21,7 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_B0BBC3A.json",
-    "file_sha256": "01fdffaeb8d099545253979ea1ce4a664f75eb2a578743e058e155ee5075fab3"
+    "file_sha256": "2fb76751b7604ac2dec4fdf4ff5f3d912393058e2f3a662f77274b5ecbbfc44a"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_B0BBC3A",
@@ -126,6 +126,13 @@
         "stale": "acdfe0aadac0e7085e253b04c081254bfd0540bd143580836a5f7e5a78d8b9ae",
         "reacquired": "b4f533ff6bbf3c6ab81ad07eec31d2e1d67d6425c9a1b1f0ecd3d92d9d5e3b6e"
       }
+    },
+    {
+      "id": "p1_isolated_matrix",
+      "result": "PARTIAL",
+      "tests_run": 34,
+      "matrix_path": "docs/handoffs/SCORP_V4_P1_ISOLATED_MATRIX_B0BBC3A.json",
+      "raw_output_sha256": "baa49cbe323a9b8fe45c955f21c4f934e2cf6a1f58a9a543ad9d09662892d236"
     }
   ],
   "live_evidence": {

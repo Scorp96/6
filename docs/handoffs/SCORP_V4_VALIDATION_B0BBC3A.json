@@ -123,6 +123,8 @@
       "restart and lease recovery",
       "Master supervisor liveness and physical rebind blocker",
       "authenticated Windows Named Pipe one-shot exchange"
-    ]
+    ],
+    "matrix_path": "docs/handoffs/SCORP_V4_P1_ISOLATED_MATRIX_B0BBC3A.json",
+    "matrix_sha256": "f6209ca8e24ccbac68ab91379b371237676aae58bb95b9c73497d81896b93a9f"
   }
 }

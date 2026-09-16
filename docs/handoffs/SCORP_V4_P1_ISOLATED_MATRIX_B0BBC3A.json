@@ -1,0 +1,88 @@
+{
+  "format": "scorp-v4-p1-isolated-matrix/1",
+  "candidate_commit": "b0bbc3afa68bacff07616c5c7667407f84e6fe34",
+  "status": "PARTIAL",
+  "scope": "isolated local runtime only; no browser send",
+  "evidence": {
+    "raw_output_path": "C:/ScorpAgent/v4-runtime-evidence-b0bbc3a/p1-matrix.txt",
+    "raw_output_sha256": "baa49cbe323a9b8fe45c955f21c4f934e2cf6a1f58a9a543ad9d09662892d236",
+    "tests_run": 34
+  },
+  "items": [
+    {
+      "id": "P1_DAEMON_SINGLETON",
+      "status": "TEST_VERIFIED",
+      "evidence": "test_daemon_supervision.py; test_v4_daemon_runtime.py"
+    },
+    {
+      "id": "P1_DAEMON_EPOCH_ROLLOVER",
+      "status": "TEST_VERIFIED",
+      "evidence": "test_v4_daemon_runtime.py; test_master_watchdog.py"
+    },
+    {
+      "id": "P1_RESTART_BACKOFF",
+      "status": "TEST_VERIFIED",
+      "evidence": "test_daemon_supervision.py::test_supervision_state_is_durable_and_failure_backoff_is_bounded"
+    },
+    {
+      "id": "P1_WORKER_RECLAIM",
+      "status": "TEST_VERIFIED",
+      "evidence": "test_worker_claim_recovery.py; daemon recovery before snapshot"
+    },
+    {
+      "id": "P1_WORKER_RENEWAL",
+      "status": "TEST_VERIFIED",
+      "evidence": "test_worker_claim_recovery.py health/generation fencing"
+    },
+    {
+      "id": "P1_MASTER_REPLACEMENT",
+      "status": "TEST_VERIFIED",
+      "evidence": "test_master_watchdog.py; supervisor RESUME_REQUIRED path"
+    },
+    {
+      "id": "P1_OPERATOR_CONTROLS",
+      "status": "TEST_VERIFIED",
+      "evidence": "runtime.status process loop and pause/resume receipt evidence"
+    },
+    {
+      "id": "P1_RUNTIME_PIPE",
+      "status": "TEST_VERIFIED",
+      "evidence": "runtime_pipe.py and runtime_connector_cli.py Windows process tests"
+    },
+    {
+      "id": "P1_RECONCILIATION",
+      "status": "TEST_VERIFIED",
+      "evidence": "test_ac03_crash_recovery.py and test_ac07_browser_rebind.py"
+    },
+    {
+      "id": "P1_EVIDENCE_RECEIPTS",
+      "status": "TEST_VERIFIED",
+      "evidence": "runtime command receipts and operator process loop"
+    },
+    {
+      "id": "P1_HOST_REGISTRATION",
+      "status": "BLOCKED",
+      "reason": "descriptor registration.status remains UNREGISTERED_HOST; no approved host registration evidence"
+    },
+    {
+      "id": "P1_CURRENT_CANDIDATE_BROWSER_CANARY",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "current authenticated browser remains externally rate-limited; CUA read-only preflight also failed to load browser policy"
+    },
+    {
+      "id": "P1_PHYSICAL_BROWSER_REBIND",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "no current-candidate physical browser evidence"
+    },
+    {
+      "id": "P1_WINDOWS_REBOOT_NO_LOGIN",
+      "status": "LIVE_UNVERIFIED",
+      "reason": "interactive-session boundary has not been proven"
+    },
+    {
+      "id": "P1_PRODUCTION_CUTOVER",
+      "status": "NOT_RUN",
+      "reason": "production mutation is not authorized"
+    }
+  ]
+}
