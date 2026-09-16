@@ -2,8 +2,8 @@
   "format": "scorp-v4-release-record/1",
   "repository": "Scorp96/6",
   "branch": "fix/v4-p0-runtime-closure",
-  "candidate_commit": "e39b7caf0006a02424a1705c35c448ada9e612c3",
-  "baseline_commit": "40301e5da335048bfaf8780196bb5d5d9381fcb2",
+  "candidate_commit": "b25b0934e9526cb1bf28bcbedfe330262a499814",
+  "baseline_commit": "e39b7caf0006a02424a1705c35c448ada9e612c3",
   "status": "TEST_VERIFIED_LIVE_UNVERIFIED",
   "accepted": false,
   "authority": {
@@ -63,7 +63,7 @@
     {
       "id": "git_bundle_backup",
       "result": "PASS",
-      "path": "C:/ScorpAgent/backups/scorp-v4-p0-runtime-closure-e39b7ca.bundle"
+      "path": "C:/ScorpAgent/backups/scorp-v4-p0-runtime-closure-b25b093.bundle"
     }
   ],
   "live_evidence": {
