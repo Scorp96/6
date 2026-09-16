@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import datetime as dt
 from pathlib import Path
 
 from master_a_dynamic_v4.browser_adapter import BrowserAdapter
@@ -90,6 +91,54 @@ class GenerationFenceTests(unittest.TestCase):
         with self.assertRaisesRegex(StoreInvariantError, "OPERATOR_GENERATION_FENCED"):
             self.store.begin_possible_submit("intent-2")
         self.assertEqual("PREPARED", self.store.get_intent("intent-2")["state"])
+
+    def test_fenced_worker_assignment_blocks_browser_before_submit(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+
+        work = self.root / "work"
+        work.mkdir()
+        scheduler = Scheduler(self.store, "p1", PathPolicy([self.root]), max_workers=2)
+        scheduler.enqueue_graph([
+            {
+                "task_id": "T1",
+                "objective_sha256": "a" * 64,
+                "resource_scope": [work / "assigned.csv"],
+                "dependencies": [],
+            }
+        ])
+        started = dt.datetime(2026, 9, 16, 12, 0, tzinfo=dt.timezone.utc)
+        claim = scheduler.claim_runnable(master_epoch=0, now=started, lease_seconds=30)[0]
+        control = self.store.get_operator_control("p1")
+        self.store.prepare_intent(
+            "p1",
+            "worker-intent-fenced",
+            actor_id=claim.worker_id,
+            channel=f"worker/{claim.slot_id}",
+            action_kind="CHATGPT_WORKER_SUBMIT",
+            payload={
+                "prompt": "hello",
+                "operator_generation": control["operator_generation"],
+                "objective_generation": control["objective_generation"],
+                "worker_assignment": {
+                    "assignment_id": claim.assignment_id,
+                    "task_id": claim.task_id,
+                    "worker_id": claim.worker_id,
+                    "slot_id": claim.slot_id,
+                    "master_epoch": claim.master_epoch,
+                    "base_state_version": claim.base_state_version,
+                    "lease_token": claim.lease_token,
+                    "resource_scope": list(claim.resource_scope),
+                    "access_mode": claim.access_mode,
+                },
+            },
+        )
+        scheduler.recover_expired_leases(now=started + dt.timedelta(seconds=31))
+        engine = _Engine()
+        result = BrowserAdapter(self.store, engine).submit_once("worker-intent-fenced")
+        self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
+        self.assertIn("WORKER", result["ambiguity_reason"])
+        self.assertEqual(0, engine.submit_calls)
 
     def test_paused_generation_blocks_local_execution_adapter(self):
         from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController

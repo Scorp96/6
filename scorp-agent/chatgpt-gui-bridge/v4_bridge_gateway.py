@@ -249,6 +249,8 @@ class V4BridgeGateway:
                 "slot_id": claim.slot_id,
                 "master_epoch": claim.master_epoch,
                 "base_state_version": claim.base_state_version,
+                "lease_token": claim.lease_token,
+                "expires_at": claim.expires_at,
                 "objective_sha256": claim.objective_sha256,
                 "resource_scope": list(claim.resource_scope),
                 "access_mode": claim.access_mode,

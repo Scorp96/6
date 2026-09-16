@@ -1757,6 +1757,100 @@ class StateStore:
         ):
             raise StoreInvariantError("OPERATOR_GENERATION_FENCED")
 
+    @classmethod
+    def _check_intent_authority_row(cls, conn: sqlite3.Connection, row: Mapping[str, Any]) -> None:
+        """Fence assignment-bound intents immediately before external I/O.
+
+        Operator generations alone do not prove that a Worker still owns its
+        assignment.  When an intent carries a ``worker_assignment`` contract,
+        every durable authority binding is checked in the same SQLite read:
+        project state, master epoch, assignment state, lease token/expiry,
+        actor/slot identity, and the resource contract.
+        """
+
+        cls._check_intent_generation_row(conn, row)
+        try:
+            payload = json.loads(str(row["payload_json"]))
+        except (TypeError, ValueError) as exc:
+            raise StoreInvariantError("INTENT_PAYLOAD_INVALID") from exc
+        if not isinstance(payload, Mapping):
+            raise StoreInvariantError("INTENT_PAYLOAD_INVALID")
+        assignment = payload.get("worker_assignment")
+        if assignment is None:
+            return
+        if not isinstance(assignment, Mapping):
+            raise StoreInvariantError("WORKER_AUTHORITY_BINDING_INVALID")
+        required = (
+            "assignment_id",
+            "task_id",
+            "worker_id",
+            "slot_id",
+            "master_epoch",
+            "base_state_version",
+            "lease_token",
+            "resource_scope",
+            "access_mode",
+        )
+        if any(key not in assignment for key in required):
+            raise StoreInvariantError("WORKER_AUTHORITY_BINDING_INVALID")
+        project = str(row["project_id"])
+        assignment_id = str(assignment.get("assignment_id") or "").strip()
+        if not assignment_id:
+            raise StoreInvariantError("WORKER_AUTHORITY_BINDING_INVALID")
+        current = conn.execute(
+            """
+            SELECT a.*, l.lease_token AS durable_lease_token, l.state AS lease_state,
+                   l.expires_at, l.master_epoch AS lease_epoch,
+                   p.master_epoch AS project_epoch, p.status AS project_status,
+                   o.operator_state
+            FROM assignments a
+            JOIN leases l ON l.assignment_id=a.assignment_id
+            JOIN project_state p ON p.project_id=a.project_id
+            JOIN operator_controls o ON o.project_id=a.project_id
+            WHERE a.project_id=? AND a.assignment_id=?
+            """,
+            (project, assignment_id),
+        ).fetchone()
+        if current is None:
+            raise StoreInvariantError("WORKER_ASSIGNMENT_NOT_FOUND")
+        if (
+            str(current["assignment_id"]) != assignment_id
+            or str(current["task_id"]) != str(assignment.get("task_id") or "")
+            or str(current["worker_id"]) != str(assignment.get("worker_id") or "")
+            or str(current["worker_id"]) != str(row["actor_id"])
+            or str(current["slot_id"]) != str(assignment.get("slot_id") or "")
+            or str(current["state"]) != "ACTIVE"
+            or str(current["lease_state"]) != "ACTIVE"
+            or str(current["lease_token"]) != str(assignment.get("lease_token") or "")
+            or str(current["durable_lease_token"]) != str(assignment.get("lease_token") or "")
+        ):
+            raise StoreInvariantError("WORKER_AUTHORITY_FENCED")
+        try:
+            expected_epoch = int(assignment["master_epoch"])
+            expected_base_version = int(assignment["base_state_version"])
+        except (TypeError, ValueError) as exc:
+            raise StoreInvariantError("WORKER_AUTHORITY_BINDING_INVALID") from exc
+        if (
+            expected_epoch != int(current["master_epoch"])
+            or expected_epoch != int(current["lease_epoch"])
+            or expected_epoch != int(current["project_epoch"])
+            or expected_base_version != int(current["base_state_version"])
+        ):
+            raise StoreInvariantError("WORKER_AUTHORITY_FENCED")
+        if str(current["project_status"]) not in {"ACTIVE", "RUNNING"}:
+            raise StoreInvariantError("WORKER_PROJECT_FENCED")
+        if str(current["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+            raise StoreInvariantError("WORKER_OPERATOR_FENCED")
+        if str(current["expires_at"]) <= utc_now():
+            raise StoreInvariantError("WORKER_LEASE_EXPIRED")
+        try:
+            declared_scope = tuple(sorted(str(value) for value in assignment["resource_scope"]))
+            durable_scope = tuple(sorted(str(value) for value in json.loads(str(current["resource_scope_json"]))))
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise StoreInvariantError("WORKER_AUTHORITY_BINDING_INVALID") from exc
+        if declared_scope != durable_scope or str(assignment["access_mode"]) != str(current["access_mode"]):
+            raise StoreInvariantError("WORKER_AUTHORITY_FENCED")
+
     def assert_intent_generation(self, intent_id: str) -> None:
         with self._connection() as conn:
             row = conn.execute(
@@ -1764,7 +1858,7 @@ class StateStore:
             ).fetchone()
             if row is None:
                 raise StoreInvariantError("INTENT_NOT_FOUND")
-            self._check_intent_generation_row(conn, row)
+            self._check_intent_authority_row(conn, row)
 
     def begin_possible_submit(self, intent_id: str) -> dict[str, Any]:
         with self._transaction() as conn:
@@ -1778,7 +1872,7 @@ class StateStore:
                 IntentState.VERIFIED_NOT_SUBMITTED.value,
             }:
                 raise StoreInvariantError(f"INTENT_NOT_SUBMITTABLE state={row['state']}")
-            self._check_intent_generation_row(conn, row)
+            self._check_intent_authority_row(conn, row)
             attempt = int(row["attempt"])
             if row["state"] == IntentState.VERIFIED_NOT_SUBMITTED.value:
                 attempt += 1
