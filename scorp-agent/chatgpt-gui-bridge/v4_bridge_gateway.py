@@ -308,7 +308,15 @@ class V4BridgeGateway:
         return self.submit_intent(str(intent["intent_id"]))
 
     def verify_worker_result(self, result_id: str, *, result_sha256: str, now=None) -> None:
-        self.scheduler.verify_candidate(result_id, result_sha256=result_sha256, now=now)
+        # The model's envelope is not its own acceptance authority.  This
+        # gateway call is the independent schema/identity verification point;
+        # the scheduler records the verifier event before promoting the result.
+        self.scheduler.verify_candidate(
+            result_id,
+            result_sha256=result_sha256,
+            now=now,
+            independent_verifier="deterministic-acceptance-validator",
+        )
 
     def prepare_browser_intent(
         self,

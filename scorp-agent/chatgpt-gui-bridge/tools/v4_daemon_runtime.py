@@ -23,6 +23,8 @@ if str(BRIDGE_ROOT) not in sys.path:
 from master_a_dynamic_v4.daemon import LocalDaemon, MasterSupervisorActionHandler  # noqa: E402
 from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
 from master_a_dynamic_v4.master_supervisor import MasterSupervisor  # noqa: E402
+from master_a_dynamic_v4.path_policy import PathPolicy  # noqa: E402
+from master_a_dynamic_v4.scheduler import Scheduler, WorkerFenceError  # noqa: E402
 from master_a_dynamic_v4.state_store import StateStore  # noqa: E402
 from v4_bridge_gateway import V4BridgeGateway  # noqa: E402
 
@@ -82,6 +84,7 @@ def run_runtime(args: argparse.Namespace) -> int:
     health_path = pathlib.Path(args.health_path).resolve() if args.health_path else database_path.with_suffix(".daemon-health.json")
 
     store = StateStore(database_path, [allowed_root])
+    scheduler = Scheduler(store, str(args.project_id), PathPolicy([allowed_root]), max_workers=2)
     supervisor_gateway = None
     lease = None
     graceful_exit = False
@@ -134,6 +137,11 @@ def run_runtime(args: argparse.Namespace) -> int:
                 daemon_epoch=daemon_epoch,
                 ttl_seconds=int(args.daemon_ttl_seconds),
             ),
+            worker_lease_recovery=lambda: scheduler.recover_expired_leases(),
+            worker_lease_renewal=lambda: _renew_active_workers(
+                store, scheduler, str(args.project_id),
+                lease_seconds=max(30, int(args.daemon_ttl_seconds) * 3),
+            ),
             action_handlers=action_handlers,
             health_path=health_path,
             actor_id=str(args.actor_id),
@@ -176,6 +184,23 @@ def run_runtime(args: argparse.Namespace) -> int:
         if supervisor_gateway is not None:
             supervisor_gateway.close()
         store.close()
+
+
+def _renew_active_workers(store, scheduler, project_id: str, *, lease_seconds: int) -> None:
+    """Renew only currently fenced claims; expired claims are left for recovery."""
+    state = store.get_project_state(project_id)
+    claims = scheduler.load_active_claims(master_epoch=int(state["master_epoch"]))
+    for claim in claims:
+        try:
+            scheduler.renew_worker_lease(
+                claim,
+                master_epoch=int(state["master_epoch"]),
+                lease_seconds=int(lease_seconds),
+            )
+        except WorkerFenceError:
+            # Recovery on the next observation will reclaim a concurrently
+            # expired claim.  Do not renew with a stale token or epoch.
+            continue
 
 
 def main(argv: list[str] | None = None) -> int:

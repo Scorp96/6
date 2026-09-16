@@ -761,7 +761,12 @@ class Scheduler:
             return result_id
 
     def verify_candidate(
-        self, result_id: str, *, result_sha256: str, now: dt.datetime | None = None
+        self,
+        result_id: str,
+        *,
+        result_sha256: str,
+        now: dt.datetime | None = None,
+        independent_verifier: str | None = None,
     ) -> None:
         digest = str(result_sha256 or "").strip().lower()
         if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
@@ -805,6 +810,24 @@ class Scheduler:
             if digest != declared:
                 raise SchedulerError("RESULT_SHA256_MISMATCH")
             result_kind = str(row["result_kind"])
+            if result_kind == "WORK_RESULT" and independent_verifier is not None:
+                verifier = str(independent_verifier or "").strip()
+                if not verifier or verifier == str(payload.get("worker_id") or "").strip():
+                    raise WorkerFenceError("INDEPENDENT_VERIFIER_INVALID")
+                conn.execute(
+                    "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                    (
+                        f"event-{uuid.uuid4().hex}",
+                        self.project_id,
+                        "WORK_RESULT_INDEPENDENTLY_VERIFIED",
+                        canonical_json({
+                            "result_id": str(result_id),
+                            "result_sha256": digest,
+                            "verifier": verifier,
+                        }),
+                        stamp,
+                    ),
+                )
             verification_state = "VERIFIED" if result_kind == "WORK_RESULT" else "VERIFIED_LEGACY"
             if result_kind == "WORK_RESULT":
                 state = conn.execute(

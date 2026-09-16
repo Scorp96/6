@@ -63,6 +63,8 @@ class LocalDaemon:
         snapshot_provider: Callable[[], ArbiterSnapshot | Mapping[str, object]],
         action_handlers: Mapping[str, Callable[[ActivationDecision], Any]] | None = None,
         lease_heartbeat: Callable[[], Any] | None = None,
+        worker_lease_recovery: Callable[[], Any] | None = None,
+        worker_lease_renewal: Callable[[], Any] | None = None,
         health_path: str | pathlib.Path,
         actor_id: str = "scorp-daemon",
     ) -> None:
@@ -78,6 +80,8 @@ class LocalDaemon:
         self.snapshot_provider = snapshot_provider
         self.action_handlers = dict(action_handlers or {})
         self.lease_heartbeat = lease_heartbeat
+        self.worker_lease_recovery = worker_lease_recovery
+        self.worker_lease_renewal = worker_lease_renewal
         self.health_path = pathlib.Path(health_path).resolve()
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
         self.arbiter = ActivationArbiter(actor_id=actor_id)
@@ -86,6 +90,13 @@ class LocalDaemon:
         self._last_run_status: str | None = None
 
     def run_once(self) -> ActivationDecision:
+        # Reconcile worker leases before taking the snapshot used by the
+        # arbiter.  Otherwise an expired lease can be mistaken for a healthy
+        # idle state and remain stranded until a later scheduler pass.
+        if self.worker_lease_recovery is not None:
+            self.worker_lease_recovery()
+        if self.worker_lease_renewal is not None:
+            self.worker_lease_renewal()
         snapshot_raw = self.snapshot_provider()
         snapshot = snapshot_raw if isinstance(snapshot_raw, ArbiterSnapshot) else ArbiterSnapshot(**dict(snapshot_raw))
         if snapshot.project_id != self.project_id or snapshot.daemon_epoch != self.daemon_epoch:

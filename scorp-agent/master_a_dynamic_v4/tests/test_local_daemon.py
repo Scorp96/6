@@ -63,6 +63,24 @@ class LocalDaemonTests(unittest.TestCase):
             self.assertEqual("ASSIGN_WORKER", health["last_decision"]["action"])
             self.assertTrue(health["heartbeat_at"])
 
+    def test_worker_recovery_and_renewal_run_before_snapshot(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            order = []
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                worker_lease_recovery=lambda: order.append("recover"),
+                worker_lease_renewal=lambda: order.append("renew"),
+                snapshot_provider=lambda: (order.append("snapshot") or ArbiterSnapshot("p", "ACTIVE", 0, 3, False, 0, 1, 0, 0)),
+                health_path=root / "health.json",
+            )
+            daemon.run_once()
+            self.assertEqual(["recover", "renew", "snapshot"], order)
+
     def test_failed_daemon_heartbeat_blocks_before_activation(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

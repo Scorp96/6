@@ -157,6 +157,12 @@ class V4GatewayTests(unittest.TestCase):
                 self.assertEqual({'T1', 'T2'}, {item['task_id'] for item in history[0].outcomes})
                 self.assertEqual(['T3'], [item['task_id'] for item in history[1].outcomes])
                 self.assertEqual({'ACCEPTED'}, {gateway.scheduler.get_task(task)['state'] for task in ('T1', 'T2', 'T3')})
+                with gateway.store._connection() as conn:
+                    verified = conn.execute(
+                        "SELECT COUNT(*) FROM events WHERE project_id=? AND kind='WORK_RESULT_INDEPENDENTLY_VERIFIED'",
+                        ('project-controller',),
+                    ).fetchone()[0]
+                self.assertEqual(3, verified)
             finally:
                 gateway.close()
 
