@@ -268,6 +268,11 @@ class ChromeUseActorDriverV3:
         # the read/modify/write transitions across driver instances in the
         # same host process; a fixed temp path without a lock loses bindings.
         self._state_mutex = _state_lock(self.state_path)
+        # Chrome Use exposes one relay/foreground target even when logical
+        # sessions have distinct tabs. Serialize each complete submit
+        # transaction so tab selection, fill, click, and URL promotion cannot
+        # be interleaved by another Worker.
+        self._submission_mutex = threading.Lock()
 
     def _load(self):
         with self._state_mutex:
@@ -1056,6 +1061,24 @@ class ChromeUseActorDriverV3:
         return snapshot
 
     async def submit_prompt(self, *, prompt, turn_id, actor_kind, conversation_url):
+        acquired = await asyncio.to_thread(
+            self._submission_mutex.acquire,
+            True,
+            max(1.0, float(self.timeout_seconds)),
+        )
+        if not acquired:
+            raise TimeoutError("CHROME_USE_SUBMISSION_BUSY")
+        try:
+            return await self._submit_prompt_unlocked(
+                prompt=prompt,
+                turn_id=turn_id,
+                actor_kind=actor_kind,
+                conversation_url=conversation_url,
+            )
+        finally:
+            self._submission_mutex.release()
+
+    async def _submit_prompt_unlocked(self, *, prompt, turn_id, actor_kind, conversation_url):
         prompt = str(prompt or "").strip()
         if not prompt:
             raise ValueError("ACTOR_GUI_PROMPT_MISSING")
