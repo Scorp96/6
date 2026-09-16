@@ -69,7 +69,6 @@ def _validation_record(
             raise RuntimeError("VALIDATION_RECORD_MISSING")
         return path, _read_json(path)
     candidates = (
-        root / "docs" / "handoffs" / "SCORP_V4_VALIDATION_1A10823.json",
         root / "docs" / "handoffs" / "SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
         root / "docs" / "handoffs" / "SCORP_V4_GIT6_VALIDATION.json",
     )

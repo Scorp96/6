@@ -130,7 +130,7 @@ class V4WebGptPacketTests(unittest.TestCase):
 
     def test_repository_startup_commands_use_current_candidate_manifest_hash(self):
         repo_root = pathlib.Path(__file__).resolve().parents[3]
-        manifest_path = repo_root / "docs" / "handoffs" / "SCORP_V4_CANDIDATE_MANIFEST_1A10823.json"
+        manifest_path = repo_root / "docs" / "handoffs" / "SCORP_V4_CANDIDATE_MANIFEST_B0BBC3A.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         expected = manifest["manifest_sha256"]
         startup = (repo_root / "GPT_START_HERE.md").read_text(encoding="utf-8")

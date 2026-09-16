@@ -1,0 +1,72 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_B0BBC3A",
+  "candidate_commit": "b0bbc3afa68bacff07616c5c7667407f84e6fe34",
+  "evidence_head_sha": "b0bbc3afa68bacff07616c5c7667407f84e6fe34",
+  "branch": "fix/v4-p0-runtime-closure",
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 215,
+      "command": "PYTHONPATH=scorp-agent python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p test_*.py",
+      "raw_output_sha256": "b23aba0b57696bbba3308d8edd944884bfd687288c23702de552610edd995c28"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 520,
+      "command": "PYTHONPATH=scorp-agent; scorp-agent/chatgpt-gui-bridge python -B -m unittest discover -s tests -p test_*.py",
+      "raw_output_sha256": "70bd01c4fe83227c59fccac7c05353cb0a4c8dcc69f45df3f8a7c995f20284f"
+    },
+    "python_compileall": {
+      "result": "PASS",
+      "command": "python -B -m compileall -q scorp-agent",
+      "raw_output_sha256": "5e7db886ef2952521796d4d3b375295c28f625ce59dd79ae8208166836b31937"
+    },
+    "v4_critical_hardening": {
+      "result": "PASS",
+      "marker": "V4_CRITICAL_HARDENING_PASS"
+    },
+    "v4_production_hardening": {
+      "result": "PASS",
+      "marker": "V4_PRODUCTION_HARDENING_PASS"
+    },
+    "v4_selfheal_hardening": {
+      "result": "PASS",
+      "marker": "V4_SELFHEAL_HARDENING_PASS"
+    },
+    "hardening_combined_output_sha256": "fec4d46e5fcf431f21e6db951e99b50cc2e06fcb0f188bcb46dc065e9309fa8c"
+  },
+  "old_failure_probes": {
+    "P0-A": "PASS_RECONCILE_REQUIRED_OPEN_0_SEND_0",
+    "P0-B": "PASS_STALE_INTENT_SUBMIT_0",
+    "P0-C": "PASS_SCOPE_REJECT",
+    "P0-D": "PASS_REPOSITORY_BINDING_REJECT",
+    "P0-E": "PASS_TRANSACTION_ROLLBACK_AND_POST_STATE_UPDATE_CRASH_ROLLBACK",
+    "P0-F": "PASS_SELF_REPORT_DEPENDENCY_BLOCKED",
+    "P0-G": "PASS_DAEMON_RECOVERY_BEFORE_SNAPSHOT",
+    "P0-H": "PASS_HEALTH_AND_GENERATION_FENCED_RENEWAL",
+    "P0-I": "PASS_GIT_BLOB_IDENTITY",
+    "P0-K": "PASS_PACKET_CURRENT_RELEASE_IDENTITY_AND_COMPETING_RECORD_REJECT"
+  },
+  "new_regression_tests": [
+    "test_master_graph_admission_rolls_back_after_proposal_commit_failpoint",
+    "test_packet_rejects_competing_current_release_records",
+    "test_packet_prefers_unique_current_release_record"
+  ],
+  "live": {
+    "LIVE_VERIFIED": false,
+    "status": "BLOCKED_EXTERNAL_PRECONDITION",
+    "reason": "当前 ChatGPT 浏览器会话处于请求限流状态，未执行真实发送。"
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-fast-runtime-command-core",
+    "remote_feature_ref": null
+  },
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_B0BBC3A.json",
+    "manifest_sha256": "9b6efa2f0cbb778155b49a6e233d1adf852fbf4decc753cd8cd92404b844f059",
+    "file_sha256": "8c40bb4be76f4c617f666184470fe97f80275765ce1d9bf47e662fa8264ba8a3"
+  }
+}
