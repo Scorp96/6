@@ -64,6 +64,9 @@ class StateStore:
             raise StoreInvariantError("ALLOWED_ROOTS_EMPTY")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._closed = False
+        # Test-only crash injection seam.  It is inert unless an isolated
+        # regression test explicitly sets a named failpoint.
+        self.failpoint: str | None = None
         self._reject_unmarked_existing_database()
         self._migrate()
 
@@ -1525,6 +1528,8 @@ class StateStore:
             # Graph materialization is part of the same transaction as the
             # proposal transition.  Any failure rolls back both state and
             # graph, preventing a committed plan with no runnable tasks.
+            if normalized_graph and self.failpoint == "after_plan_state_update":
+                raise StoreInvariantError("INJECTED_PLAN_GRAPH_CRASH")
             ensure_graph(conn)
             conn.execute(
                 """

@@ -16,33 +16,40 @@ def load_tool():
 
 
 class WebGptPacketTests(unittest.TestCase):
-    def test_packet_prefers_fast_runtime_validation_record(self):
-        validation_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json'
+    def test_packet_prefers_unique_current_release_record(self):
+        release_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_RELEASE_RECORD_1A10823.json'
+        release = json.loads(release_path.read_text(encoding='utf-8'))
+        validation_path = ROOT / release['validation_record']['path']
         validation = json.loads(validation_path.read_text(encoding='utf-8'))
         packet = load_tool().build_packet(ROOT)
-        self.assertEqual(validation['implementation_commit'], packet['candidate_commit'])
+        self.assertEqual(release['code_candidate_sha'], packet['candidate_commit'])
         self.assertEqual(
-            'docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json',
+            release['validation_record']['path'],
             packet['evidence_binding']['validation_record'],
+        )
+        self.assertEqual(
+            release['candidate_manifest']['path'],
+            packet['evidence_binding']['candidate_manifest'],
         )
 
     def test_packet_carries_current_live_gate_from_validation_record(self):
-        validation_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json'
+        release_path = ROOT / 'docs' / 'handoffs' / 'SCORP_V4_RELEASE_RECORD_1A10823.json'
+        release = json.loads(release_path.read_text(encoding='utf-8'))
+        validation_path = ROOT / release['validation_record']['path']
         validation = json.loads(validation_path.read_text(encoding='utf-8'))
-        live = validation['verification']['live_verified']
+        live = validation['live']
         status = {
             'PASS': 'PASS',
             'BLOCKED': 'BLOCKED_EXTERNAL_PRECONDITION',
             'FAIL': 'FAIL',
-        }.get(str(live.get('result') or 'NOT_RECORDED').upper(), str(live.get('result') or 'NOT_RECORDED').upper())
+        }.get(str(live.get('status') or 'NOT_RECORDED').upper(), str(live.get('status') or 'NOT_RECORDED').upper())
         expected_gate = {
-            'candidate_code_commit': validation['implementation_commit'],
+            'candidate_code_commit': validation['candidate_commit'],
             'status': status,
             'reason': live['reason'],
-            'evidence_path': live['evidence_path'],
+            'evidence_path': live.get('evidence_path'),
             'retry_count_after_ambiguity': 0,
             'rule': 'Do not retry until read-only browser evidence shows the blocker cleared.',
-            'rate_limit_recovery_preflight': live['rate_limit_recovery_preflight'],
         }
         packet = load_tool().build_packet(ROOT)
         gate = packet.get('current_live_gate')

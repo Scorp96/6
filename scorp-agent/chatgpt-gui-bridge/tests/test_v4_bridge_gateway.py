@@ -409,6 +409,35 @@ class V4GatewayTests(unittest.TestCase):
             finally:
                 gateway.close()
 
+    def test_master_graph_admission_rolls_back_after_proposal_commit_failpoint(self):
+        """A crash immediately after the state update cannot leave a graph half-state."""
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / 'worktree'; worktree.mkdir()
+            gateway = V4BridgeGateway(root / 'state.sqlite3', 'project-atomic-crash', [worktree], FakeEngine())
+            try:
+                gateway.ensure_contract({'objective': 'atomic crash'}, {'required': ['AC-GRAPH-CRASH']})
+                before = gateway.store.get_project_state('project-atomic-crash')
+                gateway.store.failpoint = 'after_plan_state_update'
+                proposal = {
+                    'project_id': 'project-atomic-crash', 'master_identity': 'A',
+                    'kind': 'TASK_GRAPH', 'task_ids': ['T1'], 'plan_sha256': '3' * 64,
+                }
+                with self.assertRaisesRegex(Exception, 'INJECTED_PLAN_GRAPH_CRASH'):
+                    gateway.commit_master_proposal_and_enqueue(
+                        'transition-atomic-crash', proposal, [{
+                            'task_id': 'T1', 'objective_sha256': '3' * 64,
+                            'resource_scope': [worktree / 'a.txt'], 'dependencies': [],
+                        }], expected_version=before['state_version'], master_epoch=before['master_epoch']
+                    )
+                after = gateway.store.get_project_state('project-atomic-crash')
+                snapshot = gateway.store.runtime_snapshot('project-atomic-crash', daemon_epoch=0)
+                self.assertEqual(before['state_version'], after['state_version'])
+                self.assertEqual(0, gateway.store.count_committed_transitions('project-atomic-crash'))
+                self.assertEqual({'queued': 0, 'running': 0}, snapshot['tasks'])
+            finally:
+                gateway.close()
+
     def test_master_session_watchdog_is_exposed_through_gateway(self):
         import datetime as dt
 

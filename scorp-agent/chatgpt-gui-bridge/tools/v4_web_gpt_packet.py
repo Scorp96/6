@@ -46,7 +46,9 @@ def _read_json(path: pathlib.Path) -> dict[str, Any]:
     return value
 
 
-def _validation_record(root: pathlib.Path) -> tuple[pathlib.Path, dict[str, Any]]:
+def _validation_record(
+    root: pathlib.Path, reference: str | pathlib.Path | None = None
+) -> tuple[pathlib.Path, dict[str, Any]]:
     """Load the newest local validation record, with legacy compatibility.
 
     The Fast Runtime command-core record is the authoritative candidate record
@@ -54,7 +56,20 @@ def _validation_record(root: pathlib.Path) -> tuple[pathlib.Path, dict[str, Any]
     source for repositories that have not migrated yet.
     """
 
+    if reference:
+        path = pathlib.Path(str(reference))
+        if not path.is_absolute():
+            path = root / path
+        path = path.resolve()
+        try:
+            path.relative_to(root)
+        except ValueError as exc:
+            raise RuntimeError("VALIDATION_RECORD_PATH_ESCAPE") from exc
+        if not path.is_file():
+            raise RuntimeError("VALIDATION_RECORD_MISSING")
+        return path, _read_json(path)
     candidates = (
+        root / "docs" / "handoffs" / "SCORP_V4_VALIDATION_1A10823.json",
         root / "docs" / "handoffs" / "SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
         root / "docs" / "handoffs" / "SCORP_V4_GIT6_VALIDATION.json",
     )
@@ -68,7 +83,9 @@ def _validated_commit(validation: dict[str, Any]) -> str:
     """Return the candidate identity used by either validation schema."""
 
     return str(
-        validation.get("validated_commit")
+        validation.get("code_candidate_sha")
+        or validation.get("candidate_commit")
+        or validation.get("validated_commit")
         or validation.get("implementation_commit")
         or validation.get("code_candidate_commit")
         or ""
@@ -81,6 +98,23 @@ def _current_live_gate(validation: dict[str, Any], candidate: str) -> dict[str, 
     legacy = validation.get("current_candidate_live_gate")
     if isinstance(legacy, dict):
         return legacy
+    current = validation.get("live")
+    if isinstance(current, dict):
+        raw_status = str(current.get("status") or "NOT_RECORDED").strip().upper()
+        status = {
+            "PASS": "PASS",
+            "BLOCKED": "BLOCKED_EXTERNAL_PRECONDITION",
+            "BLOCKED_EXTERNAL_PRECONDITION": "BLOCKED_EXTERNAL_PRECONDITION",
+            "FAIL": "FAIL",
+        }.get(raw_status, raw_status)
+        return {
+            "candidate_code_commit": candidate,
+            "status": status,
+            "reason": current.get("reason"),
+            "evidence_path": current.get("evidence_path"),
+            "retry_count_after_ambiguity": 0,
+            "rule": "Do not retry until read-only browser evidence shows the blocker cleared.",
+        }
     verification = validation.get("verification")
     if not isinstance(verification, dict):
         return {"candidate_code_commit": candidate, "status": "NOT_RECORDED"}
@@ -181,15 +215,36 @@ def build_packet(
 ) -> dict[str, Any]:
     root = pathlib.Path(repo_root).resolve()
     handoff_path = root / "docs" / "handoffs" / "SCORP_V4_WEB_GPT_HANDOFF.json"
-    validation_path, validation = _validation_record(root)
     handoff = _read_json(handoff_path)
+    release_paths = sorted((root / "docs" / "handoffs").glob("SCORP_V4_RELEASE_RECORD_*.json"))
+    if len(release_paths) > 1:
+        raise RuntimeError("MULTIPLE_CURRENT_RELEASE_RECORDS")
+    release_path = release_paths[0] if release_paths else None
+    release = _read_json(release_path) if release_path is not None else None
+    release_validation = None
+    if isinstance(release, dict):
+        release_validation = (release.get("validation_record") or {}).get("path")
+    validation_path, validation = _validation_record(root, release_validation)
+    if isinstance(release, dict):
+        declared = str(
+            release.get("code_candidate_sha")
+            or release.get("candidate_commit")
+            or ""
+        ).strip().lower()
+    else:
+        declared = str(handoff.get("candidate_commit", ""))
     validated = _validated_commit(validation)
-    declared = str(handoff.get("candidate_commit", ""))
-    evidence_binding = handoff.get("evidence_binding")
+    evidence_binding = (
+        {
+            "candidate_manifest": (release.get("candidate_manifest") or {}).get("path"),
+        }
+        if isinstance(release, dict)
+        else handoff.get("evidence_binding")
+    )
     if not isinstance(evidence_binding, dict):
         evidence_binding = {}
     blockers: list[dict[str, Any]] = []
-    if not validated or declared != validated:
+    if not validated or (declared and declared != validated):
         blockers.append(
             {
                 "code": "CANDIDATE_VERSION_MISMATCH",
@@ -217,16 +272,31 @@ def build_packet(
     status = "READY" if not blockers else "BLOCKED"
     current_live_gate = _current_live_gate(validation, validated or declared)
     validation_record = validation_path.relative_to(root).as_posix()
+    handoff_record = (
+        release_path.relative_to(root).as_posix()
+        if release_path is not None
+        else "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json"
+    )
+    authority = (
+        release.get("authority", {})
+        if isinstance(release, dict)
+        else handoff.get("authority", {})
+    )
+    target_repository = (
+        (release or {}).get("repository")
+        if isinstance(release, dict)
+        else None
+    ) or handoff.get("target_repository", "Scorp96/6")
     return {
         "format": FORMAT,
         "generated_at": _now(),
-        "target_repository": handoff.get("target_repository", "Scorp96/6"),
+        "target_repository": target_repository,
         "candidate_commit": validated or declared,
         "status": status,
-        "authority": handoff.get("authority", {}),
+        "authority": authority,
         "evidence_binding": {
             "validation_record": validation_record,
-            "handoff_record": "docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json",
+            "handoff_record": handoff_record,
             "candidate_manifest": evidence_binding.get("candidate_manifest"),
         },
         # Keep the transient browser gate in the single-file packet so an

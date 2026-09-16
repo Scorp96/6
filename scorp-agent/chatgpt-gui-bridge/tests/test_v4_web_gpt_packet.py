@@ -112,6 +112,22 @@ class V4WebGptPacketTests(unittest.TestCase):
             self.assertEqual("BLOCKED", result["status"])
             self.assertEqual("CANDIDATE_MANIFEST_MISMATCH", result["blockers"][0]["code"])
 
+    def test_packet_rejects_competing_current_release_records(self):
+        packet = load_packet()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            database = self._fixture(root)
+            release = {
+                "code_candidate_sha": "a" * 40,
+                "validation_record": {"path": "docs/handoffs/SCORP_V4_GIT6_VALIDATION.json"},
+                "candidate_manifest": {"path": None},
+            }
+            handoffs = root / "docs" / "handoffs"
+            (handoffs / "SCORP_V4_RELEASE_RECORD_A.json").write_text(json.dumps(release), encoding="utf-8")
+            (handoffs / "SCORP_V4_RELEASE_RECORD_B.json").write_text(json.dumps(release), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "MULTIPLE_CURRENT_RELEASE_RECORDS"):
+                packet.build_packet(root, database_path=database, allowed_root=root)
+
     def test_repository_startup_commands_use_current_candidate_manifest_hash(self):
         repo_root = pathlib.Path(__file__).resolve().parents[3]
         manifest_path = repo_root / "docs" / "handoffs" / "SCORP_V4_CANDIDATE_MANIFEST_1A10823.json"
