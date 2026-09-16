@@ -244,15 +244,28 @@ class MasterAController:
             "task_ids": [task["task_id"] for task in normalized["tasks"]],
             "plan_sha256": sha256_json(normalized),
         }
-        result = self.gateway.commit_master_proposal(
-            transition_id,
-            proposal,
-            expected_version=expected_version,
-            master_epoch=epoch,
-        )
+        atomic_admit = getattr(self.gateway, "commit_master_proposal_and_enqueue", None)
+        if callable(atomic_admit):
+            result = atomic_admit(
+                transition_id,
+                proposal,
+                normalized["tasks"],
+                expected_version=expected_version,
+                master_epoch=epoch,
+            )
+        else:
+            # Compatibility fakes/older adapters retain the old two-step API;
+            # the production V4 gateway always takes the atomic path above.
+            result = self.gateway.commit_master_proposal(
+                transition_id,
+                proposal,
+                expected_version=expected_version,
+                master_epoch=epoch,
+            )
+            if result in {CommitResult.COMMITTED, CommitResult.ALREADY_COMMITTED}:
+                self.gateway.enqueue_graph(normalized["tasks"])
         if result not in {CommitResult.COMMITTED, CommitResult.ALREADY_COMMITTED}:
             raise ControllerRejected(f"MASTER_PLAN_COMMIT_{str(result)}")
-        self.gateway.enqueue_graph(normalized["tasks"])
         self.plan_hash = sha256_json(normalized)
         return {
             "project_id": self.project_id,

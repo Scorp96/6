@@ -149,6 +149,30 @@ class V4BridgeGateway:
             evidence_refs,
         )
 
+    def commit_master_proposal_and_enqueue(
+        self,
+        transition_id: str,
+        proposal: Mapping[str, Any],
+        tasks: Sequence[Mapping[str, Any]],
+        *,
+        evidence_refs: Sequence[str] = (),
+        expected_version: int | None = None,
+        master_epoch: int | None = None,
+    ) -> CommitResult:
+        """Atomically admit a Master proposal and materialize its task graph."""
+        normalized_graph = self.scheduler.prepare_graph(tasks)
+        state = self.store.get_project_state(self.project_id)
+        version = int(state["state_version"]) if expected_version is None else int(expected_version)
+        epoch = int(state["master_epoch"]) if master_epoch is None else int(master_epoch)
+        return self.store.commit(
+            version,
+            epoch,
+            transition_id,
+            proposal,
+            evidence_refs,
+            graph_rows=normalized_graph,
+        )
+
     def evaluate_completion(
         self,
         *,

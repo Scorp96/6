@@ -196,6 +196,65 @@ class Scheduler:
                         (self.project_id, task["task_id"], dependency),
                     )
 
+    def prepare_graph(self, tasks: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+        """Validate and normalize a graph for inclusion in another transaction."""
+        if not isinstance(tasks, Sequence) or isinstance(tasks, (str, bytes)) or not tasks:
+            raise SchedulerError("TASK_GRAPH_EMPTY")
+        normalized: list[dict[str, Any]] = []
+        ids: set[str] = set()
+        for raw in tasks:
+            if not isinstance(raw, Mapping):
+                raise SchedulerError("TASK_NOT_MAPPING")
+            task_id = str(raw.get("task_id") or "").strip()
+            objective = str(raw.get("objective_sha256") or "").strip().lower()
+            access_mode = str(raw.get("access_mode") or "write").strip().lower()
+            dependencies = [str(value).strip() for value in raw.get("dependencies", [])]
+            task_context = raw.get("task_context", {})
+            if not isinstance(task_context, Mapping):
+                raise SchedulerError("TASK_CONTEXT_INVALID")
+            try:
+                task_context_json = canonical_json(dict(task_context))
+            except (TypeError, ValueError) as exc:
+                raise SchedulerError("TASK_CONTEXT_INVALID") from exc
+            if len(task_context_json.encode("utf-8")) > 64 * 1024:
+                raise SchedulerError("TASK_CONTEXT_TOO_LARGE")
+            if not task_id or task_id in ids:
+                raise SchedulerError("TASK_ID_INVALID_OR_DUPLICATE")
+            if len(objective) != 64 or any(ch not in "0123456789abcdef" for ch in objective):
+                raise SchedulerError("TASK_OBJECTIVE_SHA256_INVALID")
+            if task_id in dependencies or len(dependencies) != len(set(dependencies)):
+                raise SchedulerError("TASK_DEPENDENCIES_INVALID")
+            scope = self.path_policy.authorize(raw.get("resource_scope", []), access_mode)
+            ids.add(task_id)
+            normalized.append({
+                "task_id": task_id,
+                "objective_sha256": objective,
+                "resource_scope_json": canonical_json(list(scope)),
+                "task_context_json": task_context_json,
+                "access_mode": access_mode,
+                "dependencies": dependencies,
+                "required": 1 if raw.get("required", True) else 0,
+            })
+        for task in normalized:
+            if any(dependency not in ids for dependency in task["dependencies"]):
+                raise SchedulerError("TASK_DEPENDENCY_NOT_IN_GRAPH")
+        graph = {task["task_id"]: set(task["dependencies"]) for task in normalized}
+        visiting: set[str] = set()
+        visited: set[str] = set()
+        def visit(task_id: str) -> None:
+            if task_id in visiting:
+                raise SchedulerError("TASK_DEPENDENCY_CYCLE")
+            if task_id in visited:
+                return
+            visiting.add(task_id)
+            for dependency in graph[task_id]:
+                visit(dependency)
+            visiting.remove(task_id)
+            visited.add(task_id)
+        for task_id in graph:
+            visit(task_id)
+        return normalized
+
     @staticmethod
     def _scopes_conflict(
         first_scope: set[str], first_mode: str, second_scope: set[str], second_mode: str

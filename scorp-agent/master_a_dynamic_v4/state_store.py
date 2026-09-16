@@ -1369,6 +1369,7 @@ class StateStore:
         transition_id: str,
         proposal: Mapping[str, Any],
         evidence_refs: Sequence[str],
+        graph_rows: Sequence[Mapping[str, Any]] | None = None,
     ) -> CommitResult:
         transition = str(transition_id or "").strip()
         if not transition or isinstance(evidence_refs, (str, bytes)):
@@ -1398,6 +1399,71 @@ class StateStore:
             }
         )
 
+        normalized_graph = [dict(row) for row in (graph_rows or ())]
+
+        def ensure_graph(conn: sqlite3.Connection) -> None:
+            if not normalized_graph:
+                return
+            control = conn.execute(
+                "SELECT operator_state FROM operator_controls WHERE project_id=?",
+                (project_id,),
+            ).fetchone()
+            if control is None or str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}:
+                raise StoreInvariantError("OPERATOR_STATE_FENCED")
+            now = utc_now()
+            task_ids = {str(row.get("task_id") or "") for row in normalized_graph}
+            if any(not task_id for task_id in task_ids):
+                raise StoreInvariantError("TASK_ID_INVALID")
+            for row in normalized_graph:
+                task_id = str(row["task_id"])
+                identity = {
+                    "objective_sha256": str(row["objective_sha256"]),
+                    "resource_scope_json": str(row["resource_scope_json"]),
+                    "task_context_json": str(row.get("task_context_json", "{}")),
+                    "access_mode": str(row["access_mode"]),
+                    "required": int(row.get("required", 1)),
+                }
+                existing_task = conn.execute(
+                    "SELECT * FROM task_nodes WHERE project_id=? AND task_id=?",
+                    (project_id, task_id),
+                ).fetchone()
+                if existing_task is not None:
+                    actual = {key: existing_task[key] for key in identity}
+                    if actual != identity:
+                        raise StoreInvariantError("TASK_IDENTITY_CONFLICT")
+                    continue
+                conn.execute(
+                    """
+                    INSERT INTO task_nodes(
+                        project_id,task_id,objective_sha256,resource_scope_json,
+                        task_context_json,access_mode,required,state,created_at,updated_at
+                    ) VALUES(?,?,?,?,?,?,?,'QUEUED',?,?)
+                    """,
+                    (
+                        project_id,
+                        task_id,
+                        identity["objective_sha256"],
+                        identity["resource_scope_json"],
+                        identity["task_context_json"],
+                        identity["access_mode"],
+                        identity["required"],
+                        now,
+                        now,
+                    ),
+                )
+            for row in normalized_graph:
+                for dependency in row.get("dependencies", ()):
+                    dependency_id = str(dependency)
+                    if dependency_id not in task_ids and conn.execute(
+                        "SELECT 1 FROM task_nodes WHERE project_id=? AND task_id=?",
+                        (project_id, dependency_id),
+                    ).fetchone() is None:
+                        raise StoreInvariantError("TASK_DEPENDENCY_NOT_IN_GRAPH")
+                    conn.execute(
+                        "INSERT OR IGNORE INTO task_dependencies(project_id,task_id,depends_on_task_id) VALUES(?,?,?)",
+                        (project_id, str(row["task_id"]), dependency_id),
+                    )
+
         with self._transaction() as conn:
             existing = conn.execute(
                 "SELECT content_sha256,result FROM transitions WHERE transition_id=?",
@@ -1405,6 +1471,7 @@ class StateStore:
             ).fetchone()
             if existing is not None:
                 if str(existing["content_sha256"]) == content_hash:
+                    ensure_graph(conn)
                     return CommitResult.ALREADY_COMMITTED
                 return CommitResult.REJECTED
 
@@ -1434,6 +1501,10 @@ class StateStore:
             ).rowcount
             if changed != 1:
                 return CommitResult.VERSION_CONFLICT
+            # Graph materialization is part of the same transaction as the
+            # proposal transition.  Any failure rolls back both state and
+            # graph, preventing a committed plan with no runnable tasks.
+            ensure_graph(conn)
             conn.execute(
                 """
                 INSERT INTO transitions(
