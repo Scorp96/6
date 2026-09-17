@@ -39,6 +39,17 @@ _WORK_RESULT_LIST_FIELDS = (
     "contradictions",
     "followup_proposals",
 )
+_OPTIONAL_WORK_RESULT_LIST_FIELDS = frozenset(
+    {
+        "scope_not_completed",
+        "deliverables",
+        "facts",
+        "inferences",
+        "unknowns",
+        "contradictions",
+        "followup_proposals",
+    }
+)
 
 
 def normalize_worker_result_envelope(value: Mapping[str, Any]) -> dict[str, Any]:
@@ -68,7 +79,9 @@ def normalize_worker_result_envelope(value: Mapping[str, Any]) -> dict[str, Any]
         result["status"] = str(result["status"]).strip().upper()
     for key in _WORK_RESULT_LIST_FIELDS:
         current = result.get(key)
-        if isinstance(current, Sequence) and not isinstance(current, (str, bytes)):
+        if current is None and key in _OPTIONAL_WORK_RESULT_LIST_FIELDS:
+            result[key] = []
+        elif isinstance(current, Sequence) and not isinstance(current, (str, bytes)):
             result[key] = list(current)
     return result
 

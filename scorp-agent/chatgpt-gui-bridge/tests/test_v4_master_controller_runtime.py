@@ -177,5 +177,38 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertEqual(r"C:\ScorpAgent\lab\t1", original_template["working_directory"])
 
 
+    def test_worker_result_normalization_defaults_only_optional_list_fields(self):
+        from master_a_dynamic_v4.master_controller import normalize_worker_result_envelope
+        captured = {
+            "work_result_version": 1,
+            "project_id": "p",
+            "assignment_id": "a",
+            "task_id": "T1",
+            "worker_id": "w",
+            "objective_sha256": "a" * 64,
+            "base_state_version": 1,
+            "candidate_commit": "b" * 40,
+            "status": "COMPLETE",
+            "scope_completed": ["input.csv"],
+            "evidence": ["execution requested"],
+            "acceptance_coverage": ["AC1"],
+            "scope_not_completed": None,
+        }
+        normalized = normalize_worker_result_envelope(captured)
+        self.assertEqual([], normalized["scope_not_completed"])
+        for field in ("deliverables", "facts", "inferences", "unknowns", "contradictions", "followup_proposals"):
+            self.assertEqual([], normalized[field])
+        self.assertEqual(["input.csv"], normalized["scope_completed"])
+        self.assertEqual(["execution requested"], normalized["evidence"])
+        self.assertEqual(["AC1"], normalized["acceptance_coverage"])
+
+    def test_worker_result_normalization_does_not_invent_required_complete_lists(self):
+        from master_a_dynamic_v4.master_controller import normalize_worker_result_envelope
+        normalized = normalize_worker_result_envelope({"status": "COMPLETE"})
+        self.assertNotIn("scope_completed", normalized)
+        self.assertNotIn("evidence", normalized)
+        self.assertNotIn("acceptance_coverage", normalized)
+
+
 if __name__ == "__main__":
     unittest.main()
