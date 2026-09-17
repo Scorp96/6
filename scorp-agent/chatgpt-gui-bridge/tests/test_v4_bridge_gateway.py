@@ -467,7 +467,7 @@ class V4GatewayTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
             worktree = root / 'worktree'; worktree.mkdir()
-            engine = FakeEngine()
+            engine = StructuredWorkerEngine()
             gateway = V4BridgeGateway(root / 'state.sqlite3', 'project-workers', [worktree], engine)
             try:
                 gateway.ensure_contract({'objective': 'two workers'}, {'required': ['AC-WORKERS']})

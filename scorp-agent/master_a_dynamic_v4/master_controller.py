@@ -479,6 +479,7 @@ class MasterAController:
         payload = normalize_worker_result_envelope(payload)
         if str(payload.get("work_result_version") or "") != "1":
             raise ControllerRejected("WORK_RESULT_VERSION_UNSUPPORTED")
+        self._validate_preexecution_worker_authority(claim, payload)
         execution_request = payload.get("execution_request")
         # A Worker result that is BLOCKED/PARTIAL/INVALID is evidence of a
         # non-complete attempt, not permission to run a request it happened to
@@ -521,6 +522,57 @@ class MasterAController:
             "intent_state": state,
             "result_id": result_id,
         }
+
+    @staticmethod
+    def _validate_preexecution_worker_authority(
+        claim: AssignmentClaim, payload: Mapping[str, Any]
+    ) -> None:
+        """Bind a model claim to the active assignment before any local side effect.
+
+        This gate is intentionally pure: it neither records nor verifies a result,
+        and therefore cannot retire an assignment or release its lease before the
+        requested action runs.  Final content-hash verification remains after the
+        execution receipt is attached.
+        """
+
+        exact = (
+            ("PROJECT_ID_MISMATCH", payload.get("project_id"), claim.project_id),
+            ("ASSIGNMENT_ID_MISMATCH", payload.get("assignment_id"), claim.assignment_id),
+            ("TASK_ID_MISMATCH", payload.get("task_id"), claim.task_id),
+            ("WORKER_ID_MISMATCH", payload.get("worker_id"), claim.worker_id),
+        )
+        for error, actual, expected in exact:
+            if str(actual or "").strip() != str(expected or "").strip():
+                raise ControllerRejected(error)
+
+        objective = str(payload.get("objective_sha256") or "").strip().lower()
+        if objective != str(claim.objective_sha256 or "").strip().lower():
+            raise ControllerRejected("OBJECTIVE_HASH_MISMATCH")
+
+        observed_version = payload.get("base_state_version")
+        if isinstance(observed_version, bool):
+            raise ControllerRejected("BASE_STATE_VERSION_INVALID")
+        try:
+            observed_version = int(observed_version)
+        except (TypeError, ValueError) as exc:
+            raise ControllerRejected("BASE_STATE_VERSION_INVALID") from exc
+        if observed_version != int(claim.base_state_version):
+            raise ControllerRejected("BASE_STATE_VERSION_MISMATCH")
+
+        if "slot_id" in payload:
+            if str(payload.get("slot_id") or "").strip() != str(claim.slot_id or "").strip():
+                raise ControllerRejected("SLOT_ID_MISMATCH")
+
+        context = getattr(claim, "task_context", {}) or {}
+        expected_candidate = (
+            str(context.get("candidate_commit") or "").strip().lower()
+            if isinstance(context, Mapping)
+            else ""
+        )
+        if expected_candidate:
+            actual_candidate = str(payload.get("candidate_commit") or "").strip().lower()
+            if actual_candidate != expected_candidate:
+                raise ControllerRejected("CANDIDATE_COMMIT_MISMATCH")
 
     def _execute_request(self, claim: AssignmentClaim, request: Any) -> dict[str, Any]:
         """Run one Worker-proposed local action through the bounded adapter."""

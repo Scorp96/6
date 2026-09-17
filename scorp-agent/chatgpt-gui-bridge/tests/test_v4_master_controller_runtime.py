@@ -32,6 +32,31 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertIsNone(runtime.parse_structured_response("#### ChatGPT said:\nfinished", "intent-1"))
         self.assertIsNone(runtime.parse_structured_response("#### ChatGPT said:\n{} trailing", "intent-1"))
 
+    def test_parser_rejects_work_result_bound_to_a_different_assignment(self):
+        runtime = load_runtime()
+        foreign = {
+            "work_result_version": "1",
+            "project_id": "foreign-project",
+            "assignment_id": "assignment-foreign",
+            "task_id": "T9",
+            "status": "COMPLETE",
+        }
+        snapshot = "#### ChatGPT said:\n```json\n" + json.dumps(foreign) + "\n```"
+        self.assertIsNone(
+            runtime.parse_structured_response(
+                snapshot, "worker-intent-assignment-current"
+            )
+        )
+        current = dict(foreign)
+        current["assignment_id"] = "assignment-current"
+        current_snapshot = "#### ChatGPT said:\n```json\n" + json.dumps(current) + "\n```"
+        self.assertEqual(
+            current,
+            runtime.parse_structured_response(
+                current_snapshot, "worker-intent-assignment-current"
+            ),
+        )
+
     def test_parser_accepts_mojibake_assistant_marker_from_windows_bridge(self):
         runtime = load_runtime()
         value = {

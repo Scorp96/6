@@ -37,6 +37,55 @@ class BrowserAdapter:
             raise InjectedCrash(point)
 
     @staticmethod
+    def _worker_response_binding_error(
+        intent: Mapping[str, Any], response: Mapping[str, Any]
+    ) -> str | None:
+        """Return a stable mismatch code before a Worker response is captured.
+
+        This is a capture-boundary identity check only.  It deliberately does
+        not verify result hashes, acceptance evidence, candidate admission, or
+        master_epoch so a response captured under an older epoch can still be
+        recovered through the scheduler's fenced lease-recovery path.
+        """
+
+        if str(intent.get("action_kind") or "") != "CHATGPT_WORKER_SUBMIT":
+            return None
+        if str(response.get("work_result_version") or "") != "1":
+            return "WORK_RESULT_VERSION_MISMATCH"
+        try:
+            payload = json.loads(str(intent.get("payload_json") or "{}"))
+        except (TypeError, ValueError):
+            return "BINDING_INVALID"
+        if not isinstance(payload, Mapping):
+            return "BINDING_INVALID"
+        assignment = payload.get("worker_assignment")
+        if not isinstance(assignment, Mapping):
+            return "BINDING_INVALID"
+        checks = (
+            ("PROJECT_ID", response.get("project_id"), intent.get("project_id")),
+            ("ASSIGNMENT_ID", response.get("assignment_id"), assignment.get("assignment_id")),
+            ("TASK_ID", response.get("task_id"), assignment.get("task_id")),
+            ("WORKER_ID", response.get("worker_id"), assignment.get("worker_id")),
+        )
+        for name, actual, expected in checks:
+            if str(actual or "").strip() != str(expected or "").strip():
+                return name + "_MISMATCH"
+        actual_objective = str(response.get("objective_sha256") or "").strip().lower()
+        expected_objective = str(assignment.get("objective_sha256") or "").strip().lower()
+        if not expected_objective or actual_objective != expected_objective:
+            return "OBJECTIVE_HASH_MISMATCH"
+        observed_version = response.get("base_state_version")
+        expected_version = assignment.get("base_state_version")
+        if isinstance(observed_version, bool) or isinstance(expected_version, bool):
+            return "BASE_STATE_VERSION_MISMATCH"
+        try:
+            if int(observed_version) != int(expected_version):
+                return "BASE_STATE_VERSION_MISMATCH"
+        except (TypeError, ValueError):
+            return "BASE_STATE_VERSION_MISMATCH"
+        return None
+
+    @staticmethod
     def _engine_intent(row: Mapping[str, Any]) -> dict[str, Any]:
         value = dict(row)
         value["payload"] = json.loads(value["payload_json"])
@@ -138,6 +187,18 @@ class BrowserAdapter:
                     reason="RESPONSE_CAPTURE_IDENTITY_AMBIGUOUS",
                     observation=dict(observation),
                 )
+            binding_error = self._worker_response_binding_error(current, response)
+            if binding_error is not None:
+                return self.store.block_intent(
+                    intent_id,
+                    reason=f"WORKER_RESPONSE_IDENTITY_MISMATCH:{binding_error}",
+                    observation={
+                        "status": status,
+                        "conversation_url": url,
+                        "remote_identity": remote,
+                        "binding_error": binding_error,
+                    },
+                )
             captured = self.store.capture_response(
                 intent_id,
                 response=dict(response),
@@ -210,6 +271,18 @@ class BrowserAdapter:
                     intent_id,
                     reason="RESPONSE_CAPTURE_AMBIGUOUS",
                     observation=dict(observation),
+                )
+            binding_error = self._worker_response_binding_error(current, response)
+            if binding_error is not None:
+                return self.store.block_intent(
+                    intent_id,
+                    reason=f"WORKER_RESPONSE_IDENTITY_MISMATCH:{binding_error}",
+                    observation={
+                        "status": status,
+                        "conversation_url": url,
+                        "remote_identity": remote,
+                        "binding_error": binding_error,
+                    },
                 )
             captured = self.store.capture_response(
                 intent_id,

@@ -118,6 +118,126 @@ class CrashRecoveryTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_worker_capture_identity_mismatch_is_blocked_before_durable_capture(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+
+        expected = {
+            "assignment_id": "assignment-current",
+            "task_id": "T1",
+            "worker_id": "worker-current",
+            "objective_sha256": "a" * 64,
+            "base_state_version": 3,
+        }
+        foreign = {
+            "work_result_version": "1",
+            "project_id": "foreign-project",
+            "assignment_id": "assignment-foreign",
+            "task_id": "T9",
+            "worker_id": "worker-foreign",
+            "objective_sha256": "b" * 64,
+            "base_state_version": 9,
+            "status": "COMPLETE",
+        }
+
+        class Store:
+            def __init__(self, state):
+                self.row = {
+                    "intent_id": "worker-intent-assignment-current",
+                    "project_id": "project-current",
+                    "actor_id": expected["worker_id"],
+                    "channel": "worker/worker-slot-1",
+                    "action_kind": "CHATGPT_WORKER_SUBMIT",
+                    "state": state,
+                    "payload_json": __import__("json").dumps({"worker_assignment": expected}),
+                    "conversation_url": "https://chatgpt.com/c/current",
+                    "remote_identity": "remote-current",
+                }
+                self.captures = []
+            def get_intent(self, _intent_id):
+                return dict(self.row)
+            def capture_response(self, intent_id, **kwargs):
+                self.captures.append((intent_id, kwargs))
+                self.row["state"] = "RESPONSE_CAPTURED"
+                return dict(self.row)
+            def finalize_intent(self, _intent_id):
+                return None
+            def block_intent(self, _intent_id, *, reason, observation):
+                self.row["state"] = "BLOCKED_AMBIGUOUS"
+                self.row["ambiguity_reason"] = reason
+                self.row["observation_json"] = __import__("json").dumps(observation)
+                return dict(self.row)
+            def assert_intent_generation(self, _intent_id):
+                return None
+            def begin_possible_submit(self, _intent_id):
+                self.row["state"] = "MAY_HAVE_SUBMITTED"
+                return dict(self.row)
+
+        class Engine:
+            def auth_state(self, channel):
+                return {"status": "AUTHENTICATED", "channel": channel}
+            def submit(self, _intent):
+                return {"status": "RESPONSE_CAPTURED", "conversation_url": "https://chatgpt.com/c/current", "remote_identity": "remote-current", "response": dict(foreign)}
+            def reconcile(self, _intent):
+                return {"status": "RESPONSE_CAPTURED", "conversation_url": "https://chatgpt.com/c/current", "remote_identity": "remote-current", "response": dict(foreign)}
+
+        for path, initial in (("submit", "PREPARED"), ("reconcile", "BLOCKED_AMBIGUOUS")):
+            with self.subTest(path=path):
+                store = Store(initial)
+                adapter = BrowserAdapter(store, Engine())
+                result = adapter.submit_once(store.row["intent_id"]) if path == "submit" else adapter.reconcile(store.row["intent_id"])
+                self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
+                self.assertEqual([], store.captures)
+                self.assertTrue(str(result.get("ambiguity_reason") or "").startswith("WORKER_RESPONSE_IDENTITY_MISMATCH"))
+
+    def test_worker_capture_wrong_protocol_version_is_blocked_before_durable_capture(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        import json
+
+        assignment = {
+            "assignment_id": "assignment-current",
+            "task_id": "T1",
+            "worker_id": "worker-current",
+            "objective_sha256": "a" * 64,
+            "base_state_version": 3,
+        }
+        response = {
+            "work_result_version": "2",
+            "project_id": "project-current",
+            **assignment,
+            "status": "COMPLETE",
+        }
+
+        class Store:
+            def __init__(self):
+                self.row = {
+                    "intent_id": "worker-intent-assignment-current",
+                    "project_id": "project-current",
+                    "actor_id": assignment["worker_id"],
+                    "channel": "worker/worker-slot-1",
+                    "action_kind": "CHATGPT_WORKER_SUBMIT",
+                    "state": "BLOCKED_AMBIGUOUS",
+                    "payload_json": json.dumps({"worker_assignment": assignment}),
+                    "conversation_url": "https://chatgpt.com/c/current",
+                    "remote_identity": "remote-current",
+                }
+                self.captures = []
+            def get_intent(self, _): return dict(self.row)
+            def capture_response(self, intent_id, **kwargs):
+                self.captures.append((intent_id, kwargs)); self.row["state"] = "RESPONSE_CAPTURED"; return dict(self.row)
+            def finalize_intent(self, _): return None
+            def block_intent(self, _, *, reason, observation):
+                self.row["state"] = "BLOCKED_AMBIGUOUS"; self.row["ambiguity_reason"] = reason; return dict(self.row)
+
+        class Engine:
+            def reconcile(self, _):
+                return {"status": "RESPONSE_CAPTURED", "conversation_url": "https://chatgpt.com/c/current", "remote_identity": "remote-current", "response": dict(response)}
+
+        store = Store()
+        result = BrowserAdapter(store, Engine()).reconcile(store.row["intent_id"])
+        self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
+        self.assertEqual([], store.captures)
+        self.assertIn("WORK_RESULT_VERSION_MISMATCH", str(result.get("ambiguity_reason") or ""))
+
     def test_transport_exception_after_intent_fence_is_explicitly_blocked_ambiguous(self):
         from master_a_dynamic_v4.browser_adapter import BrowserAdapter
 

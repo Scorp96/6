@@ -214,6 +214,115 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual("master_a_dynamic_v4.csv_workload.cli", adapter.calls[0]["module"])
         self.assertEqual(1, len(worktree_manager.calls))
 
+    def test_foreign_complete_result_is_rejected_before_local_execution(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        adapter = _FakeExecutionAdapter()
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            execution_adapter=adapter,
+            git_worktree_manager=_FakeGitWorktreeManager(),
+        )
+        controller.start({"objective": "authority before side effect"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        def decode(row):
+            result = _result_for(row)
+            result["project_id"] = "foreign-project"
+            result["execution_request"] = {
+                "module": "master_a_dynamic_v4.csv_workload.cli",
+                "args": [],
+                "working_directory": "C:/lab",
+                "resource_paths": ["C:/lab/T1.txt"],
+                "access_mode": "write",
+                "timeout_seconds": 5,
+                "repository": "C:/lab/repository",
+                "worktree": "C:/lab/T1-worktree",
+                "base_commit": "a" * 40,
+            }
+            return result
+
+        step = controller.step(lambda claim: "run bounded task", decode)
+
+        self.assertEqual("BLOCKED", step.status)
+        self.assertEqual([], adapter.calls)
+        self.assertEqual([], gateway.verified)
+        self.assertTrue(any("PROJECT_ID_MISMATCH" in blocker for blocker in step.blockers))
+
+    def test_preexecution_authority_gate_rejects_each_assignment_identity_mismatch(self):
+        from types import SimpleNamespace
+        from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
+
+        candidate = "c" * 40
+        claim = SimpleNamespace(
+            project_id="controller-project",
+            assignment_id="assignment-T1",
+            task_id="T1",
+            worker_id="worker-T1",
+            slot_id="worker-slot-1",
+            master_epoch=7,
+            base_state_version=3,
+            objective_sha256="a" * 64,
+            task_context={"candidate_commit": candidate},
+        )
+        base = {
+            "work_result_version": "1",
+            "project_id": claim.project_id,
+            "assignment_id": claim.assignment_id,
+            "task_id": claim.task_id,
+            "worker_id": claim.worker_id,
+            "slot_id": claim.slot_id,
+            "master_epoch": 2,
+            "base_state_version": claim.base_state_version,
+            "objective_sha256": claim.objective_sha256,
+            "candidate_commit": candidate,
+            "status": "COMPLETE",
+        }
+        cases = (
+            ("project_id", "foreign-project", "PROJECT_ID_MISMATCH"),
+            ("assignment_id", "assignment-other", "ASSIGNMENT_ID_MISMATCH"),
+            ("task_id", "T9", "TASK_ID_MISMATCH"),
+            ("worker_id", "worker-other", "WORKER_ID_MISMATCH"),
+            ("slot_id", "worker-slot-2", "SLOT_ID_MISMATCH"),
+            ("objective_sha256", "b" * 64, "OBJECTIVE_HASH_MISMATCH"),
+            ("base_state_version", 4, "BASE_STATE_VERSION_MISMATCH"),
+            ("candidate_commit", "d" * 40, "CANDIDATE_COMMIT_MISMATCH"),
+        )
+        for field, bad_value, error in cases:
+            with self.subTest(field=field):
+                payload = dict(base)
+                payload[field] = bad_value
+                with self.assertRaisesRegex(ControllerRejected, error):
+                    MasterAController._validate_preexecution_worker_authority(claim, payload)
+
+    def test_preexecution_authority_gate_allows_prior_master_epoch_capture(self):
+        from types import SimpleNamespace
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        candidate = "c" * 40
+        claim = SimpleNamespace(
+            project_id="controller-project", assignment_id="assignment-T1", task_id="T1",
+            worker_id="worker-T1", slot_id="worker-slot-1", master_epoch=7, base_state_version=3,
+            objective_sha256="a" * 64, task_context={"candidate_commit": candidate},
+        )
+        payload = {
+            "work_result_version": "1", "project_id": claim.project_id,
+            "assignment_id": claim.assignment_id, "task_id": claim.task_id,
+            "worker_id": claim.worker_id, "slot_id": claim.slot_id,
+            "master_epoch": 2, "base_state_version": claim.base_state_version,
+            "objective_sha256": claim.objective_sha256, "candidate_commit": candidate,
+            "status": "COMPLETE",
+        }
+        MasterAController._validate_preexecution_worker_authority(claim, payload)
+
     def test_blocked_worker_result_never_executes_its_request(self):
         from master_a_dynamic_v4.master_controller import MasterAController
         from master_a_dynamic_v4.work_result import result_content_sha256

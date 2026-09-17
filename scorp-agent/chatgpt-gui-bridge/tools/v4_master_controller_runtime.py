@@ -52,10 +52,22 @@ def _assistant_text(snapshot: str) -> str:
     return text[start + len(marker) :].strip()
 
 
-def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] | None:
-    """Extract exactly one fenced or standalone ``WORK_RESULT/1`` object."""
+def _response_matches_intent_assignment(value: Mapping[str, Any], intent_id: str) -> bool:
+    """Require Worker responses to belong to the assignment encoded by the intent."""
 
-    _ = intent_id  # retained for the parser callback signature and audit logs
+    intent = str(intent_id or "").strip()
+    prefix = "worker-intent-"
+    if not intent.startswith(prefix):
+        return True
+    expected_assignment = intent[len(prefix) :].strip()
+    if not expected_assignment:
+        return False
+    return str(value.get("assignment_id") or "").strip() == expected_assignment
+
+
+def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] | None:
+    """Extract one assignment-bound ``WORK_RESULT/1`` object."""
+
     text = _assistant_text(snapshot)
     if text.startswith("```") and text.endswith("```"):
         lines = text.splitlines()
@@ -68,7 +80,11 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
             value = json.loads(text)
         except (TypeError, ValueError):
             value = None
-    if isinstance(value, Mapping) and str(value.get("work_result_version") or "") == "1":
+    if (
+        isinstance(value, Mapping)
+        and str(value.get("work_result_version") or "") == "1"
+        and _response_matches_intent_assignment(value, intent_id)
+    ):
         return dict(value)
 
     # The Windows Chrome Use read path can preserve the assistant response but
@@ -90,7 +106,11 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
             candidate, _ = decoder.raw_decode(tail[match.start() :])
         except (TypeError, ValueError):
             continue
-        if isinstance(candidate, Mapping) and str(candidate.get("work_result_version") or "") == "1":
+        if (
+            isinstance(candidate, Mapping)
+            and str(candidate.get("work_result_version") or "") == "1"
+            and _response_matches_intent_assignment(candidate, intent_id)
+        ):
             return dict(candidate)
     return None
 
