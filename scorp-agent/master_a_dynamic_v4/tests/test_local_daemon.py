@@ -61,6 +61,8 @@ class LocalDaemonTests(unittest.TestCase):
             self.assertEqual("HEALTHY", health["status"])
             self.assertEqual("IDLE", health["liveness"]["state"])
             self.assertEqual("ASSIGN_WORKER", health["last_decision"]["action"])
+            self.assertEqual("scorp-daemon", health["actor_id"])
+            self.assertEqual(__import__("os").getpid(), health["process_id"])
             self.assertTrue(health["heartbeat_at"])
 
     def test_worker_recovery_and_renewal_run_before_snapshot(self):

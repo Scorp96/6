@@ -80,6 +80,9 @@ class LocalDaemon:
         self.store = store
         self.project_id = str(project_id).strip()
         self.daemon_epoch = int(daemon_epoch)
+        self.actor_id = str(actor_id or "").strip()
+        if not self.actor_id:
+            raise ValueError("DAEMON_ACTOR_ID_REQUIRED")
         self.snapshot_provider = snapshot_provider
         self.action_handlers = dict(action_handlers or {})
         self.lease_heartbeat = lease_heartbeat
@@ -90,7 +93,7 @@ class LocalDaemon:
         self._recovery_recorded = False
         self.health_path = pathlib.Path(health_path).resolve()
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
-        self.arbiter = ActivationArbiter(actor_id=actor_id)
+        self.arbiter = ActivationArbiter(actor_id=self.actor_id)
         self._last_progress_at: str | None = None
         self._last_observation: dict[str, Any] = {}
         self._last_run_status: str | None = None
@@ -234,6 +237,8 @@ class LocalDaemon:
             "status": status,
             "project_id": self.project_id,
             "daemon_epoch": self.daemon_epoch,
+            "actor_id": self.actor_id,
+            "process_id": os.getpid(),
             "heartbeat_at": _now(),
             "liveness": {
                 "state": snapshot.progress_state,

@@ -9,6 +9,8 @@ param(
     [string]$Python = 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe',
     [string]$TaskName = 'SCORP_V4_DAEMON',
     [string]$HealthPath,
+    [ValidateRange(15, 3600)][int]$WatchdogMaxHealthAgeSeconds = 90,
+    [ValidateRange(5, 600)][int]$WatchdogStartupGraceSeconds = 60,
     [switch]$Start
 )
 
@@ -111,7 +113,10 @@ try {
         '-ProjectId', ('"{0}"' -f $ProjectId),
         '-ReleaseRuntimeScript', ('"{0}"' -f $daemonScript),
         '-PythonExecutable', ('"{0}"' -f [IO.Path]::GetFullPath($Python)),
-        '-HealthPath', ('"{0}"' -f [IO.Path]::GetFullPath($HealthPath))
+        '-DatabasePath', ('"{0}"' -f $database),
+        '-HealthPath', ('"{0}"' -f [IO.Path]::GetFullPath($HealthPath)),
+        '-MaxHealthAgeSeconds', [string]$WatchdogMaxHealthAgeSeconds,
+        '-StartupGraceSeconds', [string]$WatchdogStartupGraceSeconds
     ) -join ' '
     $watchdogAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $watchdogArguments -WorkingDirectory $PSScriptRoot
     $watchdogPeriodic = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
@@ -132,7 +137,7 @@ try {
     $installSucceeded = $true
     $epochValue = if ($DaemonEpoch -ge 0) { $DaemonEpoch } else { $null }
     $epochMode = if ($DaemonEpoch -ge 0) { 'EXPECTED' } else { 'ACQUIRE_CURRENT' }
-    [pscustomobject]@{ task_name=$resolvedTaskName; watchdog_task_name=$watchdogTaskName; database=$database; project_id=$ProjectId; driver_state_path=$driverState; master_session_id=$MasterSessionId; active_controller=$true; supervise_master=$true; daemon_epoch=$epochValue; epoch_mode=$epochMode; started=[bool]$Start; script=$daemonScript; watchdog_script=$watchdogScript }
+    [pscustomobject]@{ task_name=$resolvedTaskName; watchdog_task_name=$watchdogTaskName; database=$database; project_id=$ProjectId; driver_state_path=$driverState; master_session_id=$MasterSessionId; active_controller=$true; supervise_master=$true; daemon_epoch=$epochValue; epoch_mode=$epochMode; started=[bool]$Start; script=$daemonScript; watchdog_script=$watchdogScript; watchdog_max_health_age_seconds=$WatchdogMaxHealthAgeSeconds; watchdog_startup_grace_seconds=$WatchdogStartupGraceSeconds }
 }
 finally {
     if (-not $installSucceeded) {
