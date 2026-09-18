@@ -104,6 +104,7 @@ try {
     $watchdogArguments = @(
         '-NoProfile',
         '-NonInteractive',
+        '-WindowStyle', 'Hidden',
         '-ExecutionPolicy', 'Bypass',
         '-File', ('"{0}"' -f $watchdogScript),
         '-MainTaskName', ('"{0}"' -f $resolvedTaskName),

@@ -52,11 +52,18 @@ class V4DaemonInstallerTests(unittest.TestCase):
             "New-ScheduledTaskTrigger -Once",
             "RepetitionInterval (New-TimeSpan -Minutes 1)",
             "'-PythonExecutable'",
+            "'-WindowStyle', 'Hidden'",
             "Start-ScheduledTask -TaskName $watchdogTaskName",
             "Unregister-ScheduledTask -TaskName $watchdogTaskName",
             "$priorWatchdogXml",
         ):
             self.assertIn(token, text)
+
+    def test_watchdog_task_defaults_to_hidden_window(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("'-WindowStyle', 'Hidden'", text)
+        self.assertIn("-NonInteractive", text)
 
     def test_watchdog_only_demand_starts_absent_runtime_and_never_mutates_sqlite(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "watch-v4-daemon.ps1"
