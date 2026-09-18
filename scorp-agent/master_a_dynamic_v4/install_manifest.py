@@ -149,6 +149,7 @@ def v4_runtime_release_paths(source_root: str | pathlib.Path) -> tuple[str, ...]
         "scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py",
         "scorp-agent/chatgpt-gui-bridge/chrome_use_actor_driver_v3.py",
         "scorp-agent/chatgpt-gui-bridge/install-v4-daemon.ps1",
+        "scorp-agent/chatgpt-gui-bridge/watch-v4-daemon.ps1",
     }
     missing = sorted(required - files)
     if missing:

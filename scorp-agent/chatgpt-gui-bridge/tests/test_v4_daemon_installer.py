@@ -20,6 +20,11 @@ class V4DaemonInstallerTests(unittest.TestCase):
             "v4_release_runtime.py",
             "daemon_epoch",
             "SCORP_V4_DAEMON",
+            "watch-v4-daemon.ps1",
+            "V4_WATCHDOG_SCRIPT_MISSING",
+            "watchdogTaskName",
+            "RepetitionInterval",
+            "Register-ScheduledTask -TaskName $watchdogTaskName",
         ):
             self.assertIn(token, text)
         self.assertNotIn(
@@ -39,6 +44,35 @@ class V4DaemonInstallerTests(unittest.TestCase):
             "--master-session-id",
         ):
             self.assertIn(token, text)
+    def test_installer_registers_independent_crash_watchdog_and_rolls_it_back(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
+        text = path.read_text(encoding="utf-8")
+        for token in (
+            '$watchdogTaskName = "$resolvedTaskName-Watchdog"',
+            "New-ScheduledTaskTrigger -Once",
+            "RepetitionInterval (New-TimeSpan -Minutes 1)",
+            "Start-ScheduledTask -TaskName $watchdogTaskName",
+            "Unregister-ScheduledTask -TaskName $watchdogTaskName",
+            "$priorWatchdogXml",
+        ):
+            self.assertIn(token, text)
+
+    def test_watchdog_only_demand_starts_absent_runtime_and_never_mutates_sqlite(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "watch-v4-daemon.ps1"
+        self.assertTrue(path.is_file())
+        text = path.read_text(encoding="utf-8")
+        for token in (
+            "Get-ScheduledTask",
+            "Get-CimInstance Win32_Process",
+            "Start-ScheduledTask -TaskName $MainTaskName",
+            "RECOVERY_START_REQUESTED",
+            "HEALTHY_RUNNING",
+        ):
+            self.assertIn(token, text)
+        self.assertNotIn("sqlite3", text.lower())
+        self.assertNotIn("taskkill", text.lower())
+        self.assertNotIn("Stop-Process", text)
+
     def test_installer_refuses_missing_database_and_has_rollback_boundary(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
         text = path.read_text(encoding="utf-8")
