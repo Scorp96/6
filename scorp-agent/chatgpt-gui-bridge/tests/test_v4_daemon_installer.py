@@ -17,11 +17,15 @@ class V4DaemonInstallerTests(unittest.TestCase):
             "MultipleInstances IgnoreNew",
             "StartWhenAvailable",
             "Interactive",
-            "v4_daemon_runtime.py",
+            "v4_release_runtime.py",
             "daemon_epoch",
             "SCORP_V4_DAEMON",
         ):
             self.assertIn(token, text)
+        self.assertNotIn(
+            "Join-Path $PSScriptRoot 'tools\\v4_daemon_runtime.py'",
+            text,
+        )
 
     def test_installer_registers_persistent_active_controller_startup(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"

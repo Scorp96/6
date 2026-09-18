@@ -41,8 +41,8 @@ try {
     if (-not (Test-Path -LiteralPath $allowed -PathType Container)) { throw 'ALLOWED_ROOT_MISSING' }
     if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { throw 'PYTHON_RUNTIME_MISSING' }
 
-    $daemonScript = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'tools\v4_daemon_runtime.py'))
-    if (-not (Test-Path -LiteralPath $daemonScript -PathType Leaf)) { throw 'V4_DAEMON_SCRIPT_MISSING' }
+    $daemonScript = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'tools\v4_release_runtime.py'))
+    if (-not (Test-Path -LiteralPath $daemonScript -PathType Leaf)) { throw 'V4_RELEASE_RUNTIME_SCRIPT_MISSING' }
     if (-not $HealthPath) { $HealthPath = [IO.Path]::ChangeExtension($database, '.daemon-health.json') }
     Assert-NoQuote $HealthPath 'HealthPath'
 

@@ -140,8 +140,10 @@ def v4_runtime_release_paths(source_root: str | pathlib.Path) -> tuple[str, ...]
         "scorp-agent/master_a_dynamic_v4/runtime_commands.py",
         "scorp-agent/master_a_dynamic_v4/operator_control.py",
         "scorp-agent/master_a_dynamic_v4/runtime_pipe.py",
+        "scorp-agent/master_a_dynamic_v4/production_bootstrap.py",
         "scorp-agent/master_a_dynamic_v4/schema.sql",
         "scorp-agent/chatgpt-gui-bridge/tools/v4_daemon_runtime.py",
+        "scorp-agent/chatgpt-gui-bridge/tools/v4_release_runtime.py",
         "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py",
         "scorp-agent/chatgpt-gui-bridge/v4_browser_engine.py",
         "scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py",
@@ -248,6 +250,106 @@ def verify_candidate_manifest(
         else:
             if _file_sha256(source) != str(metadata.get("sha256")) or source.stat().st_size != int(metadata.get("size", -1)):
                 raise InstallIdentityError(f"SOURCE_FILE_HASH_MISMATCH:{raw}")
+
+
+def install_runtime_release(
+    source_root: str | pathlib.Path,
+    release_root: str | pathlib.Path,
+    manifest: Mapping[str, Any],
+    *,
+    protected_roots: Iterable[str | pathlib.Path] = (),
+    observed_commit: str | None = None,
+) -> dict[str, Any]:
+    """Install one immutable runtime code release without creating project state."""
+
+    source = pathlib.Path(source_root).resolve(strict=True)
+    target = pathlib.Path(release_root).resolve(strict=False)
+    protected = tuple(pathlib.Path(value).resolve(strict=False) for value in protected_roots)
+    if any(_inside(target, root) or _inside(root, target) for root in protected):
+        raise InstallIdentityError("RELEASE_TARGET_PROTECTED")
+    if _inside(source, target) or _inside(target, source):
+        raise InstallIdentityError("RELEASE_SOURCE_OVERLAP")
+    verify_candidate_manifest(
+        source,
+        manifest,
+        expected_commit=str(manifest.get("candidate_commit") or ""),
+        observed_commit=observed_commit,
+    )
+    if target.exists() and any(target.iterdir()):
+        raise InstallIdentityError("RELEASE_TARGET_NOT_EMPTY")
+    before = snapshot_paths(protected)
+    target.mkdir(parents=True, exist_ok=True)
+    for relative in sorted(manifest["files"]):
+        _, source_file = _validated_relative(source, relative)
+        destination = (target / pathlib.PurePosixPath(relative)).resolve(strict=False)
+        if not _inside(destination, target):
+            raise InstallIdentityError("INSTALL_DESTINATION_ESCAPE")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        metadata = manifest["files"][relative]
+        if metadata.get("git_blob_oid"):
+            destination.write_bytes(
+                _git_blob_content(source, str(manifest["candidate_commit"]), relative)
+            )
+        else:
+            shutil.copy2(source_file, destination)
+        if _file_sha256(destination) != str(metadata["sha256"]):
+            raise InstallIdentityError(f"INSTALLED_FILE_HASH_MISMATCH:{relative}")
+    manifest_path = target / "candidate-manifest.json"
+    manifest_path.write_text(canonical_json(dict(manifest)) + "\n", encoding="utf-8", newline="\n")
+    after = snapshot_paths(protected)
+    if before != after:
+        raise InstallIdentityError("PROTECTED_PATH_MUTATION")
+    receipt = {
+        "format": "scorp-v4-runtime-release-install/1",
+        "candidate_commit": str(manifest["candidate_commit"]),
+        "manifest_sha256": str(manifest["manifest_sha256"]),
+        "source_tree": str(source),
+        "release_root": str(target),
+        "file_count": len(manifest["files"]),
+        "protected_before_sha256": sha256_json(before),
+        "protected_after_sha256": sha256_json(after),
+        "installed_at": utc_now(),
+    }
+    (target / "release-receipt.json").write_text(
+        canonical_json(receipt) + "\n", encoding="utf-8", newline="\n"
+    )
+    verify_runtime_release(target, receipt, manifest)
+    return receipt
+
+
+def verify_runtime_release(
+    release_root: str | pathlib.Path,
+    receipt: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+) -> None:
+    """Verify the installed bytes used by a persistent runtime before startup."""
+
+    target = pathlib.Path(release_root).resolve(strict=True)
+    if str(receipt.get("format") or "") != "scorp-v4-runtime-release-install/1":
+        raise InstallIdentityError("RELEASE_RECEIPT_FORMAT_INVALID")
+    if str(receipt.get("release_root") or "") != str(target):
+        raise InstallIdentityError("RELEASE_ROOT_MISMATCH")
+    if str(receipt.get("candidate_commit") or "") != str(manifest.get("candidate_commit") or ""):
+        raise InstallIdentityError("RELEASE_CANDIDATE_MISMATCH")
+    if str(receipt.get("manifest_sha256") or "") != str(manifest.get("manifest_sha256") or ""):
+        raise InstallIdentityError("RELEASE_MANIFEST_MISMATCH")
+    files = manifest.get("files")
+    if not isinstance(files, Mapping) or not files:
+        raise InstallIdentityError("CANDIDATE_FILESET_EMPTY")
+    if int(receipt.get("file_count", -1)) != len(files):
+        raise InstallIdentityError("RELEASE_FILE_COUNT_MISMATCH")
+    for relative, metadata in files.items():
+        destination = (target / pathlib.PurePosixPath(str(relative))).resolve(strict=True)
+        if not _inside(destination, target):
+            raise InstallIdentityError("INSTALL_DESTINATION_ESCAPE")
+        if not isinstance(metadata, Mapping) or _file_sha256(destination) != str(metadata.get("sha256") or ""):
+            raise InstallIdentityError(f"INSTALLED_FILE_HASH_MISMATCH:{relative}")
+    stored_manifest = json.loads((target / "candidate-manifest.json").read_text(encoding="utf-8"))
+    if dict(stored_manifest) != dict(manifest):
+        raise InstallIdentityError("INSTALLED_MANIFEST_MISMATCH")
+    stored_receipt = json.loads((target / "release-receipt.json").read_text(encoding="utf-8"))
+    if dict(stored_receipt) != dict(receipt):
+        raise InstallIdentityError("RELEASE_RECEIPT_MISMATCH")
 
 
 def snapshot_paths(paths: Iterable[str | pathlib.Path]) -> dict[str, Any]:
