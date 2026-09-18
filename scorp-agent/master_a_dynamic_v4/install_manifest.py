@@ -104,6 +104,72 @@ def _validated_relative(root: pathlib.Path, raw: str | pathlib.Path) -> tuple[st
     return normalized, resolved
 
 
+V4_RUNTIME_SOURCE_DIRS = (
+    "scorp-agent/master_a_dynamic_v4",
+    "scorp-agent/chatgpt-gui-bridge",
+)
+V4_RUNTIME_EXCLUDED_PARTS = frozenset({"tests", "__pycache__", ".pytest_cache"})
+
+
+def v4_runtime_release_paths(source_root: str | pathlib.Path) -> tuple[str, ...]:
+    """Return the complete source package boundary for one V4 runtime bundle.
+
+    Runtime packaging is intentionally package-based rather than inferred from
+    a small import seed. Dynamic imports and public local command surfaces must
+    remain installable even when the current daemon entrypoint does not import
+    them on a particular path. Tests and generated caches are excluded.
+    """
+    root = pathlib.Path(source_root).resolve(strict=True)
+    files: set[str] = set()
+    for relative_root in V4_RUNTIME_SOURCE_DIRS:
+        base = (root / pathlib.PurePosixPath(relative_root)).resolve(strict=True)
+        if not _inside(base, root) or not base.is_dir():
+            raise InstallIdentityError(f"V4_RUNTIME_SOURCE_DIR_MISSING:{relative_root}")
+        for item in base.rglob("*"):
+            if not item.is_file() or item.is_symlink():
+                continue
+            rel = item.relative_to(root)
+            if any(part in V4_RUNTIME_EXCLUDED_PARTS for part in rel.parts):
+                continue
+            if item.suffix.lower() in {".pyc", ".pyo"}:
+                continue
+            files.add(rel.as_posix())
+    required = {
+        "scorp-agent/master_a_dynamic_v4/__init__.py",
+        "scorp-agent/master_a_dynamic_v4/runtime_protocol.py",
+        "scorp-agent/master_a_dynamic_v4/runtime_commands.py",
+        "scorp-agent/master_a_dynamic_v4/operator_control.py",
+        "scorp-agent/master_a_dynamic_v4/runtime_pipe.py",
+        "scorp-agent/master_a_dynamic_v4/schema.sql",
+        "scorp-agent/chatgpt-gui-bridge/tools/v4_daemon_runtime.py",
+        "scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py",
+        "scorp-agent/chatgpt-gui-bridge/v4_browser_engine.py",
+        "scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py",
+        "scorp-agent/chatgpt-gui-bridge/chrome_use_actor_driver_v3.py",
+        "scorp-agent/chatgpt-gui-bridge/install-v4-daemon.ps1",
+    }
+    missing = sorted(required - files)
+    if missing:
+        raise InstallIdentityError("V4_RUNTIME_REQUIRED_FILE_MISSING:" + ",".join(missing))
+    if not files:
+        raise InstallIdentityError("V4_RUNTIME_FILESET_EMPTY")
+    return tuple(sorted(files))
+
+
+def build_v4_runtime_manifest(
+    source_root: str | pathlib.Path,
+    candidate_commit: str,
+    *,
+    observed_commit: str | None = None,
+) -> dict[str, Any]:
+    return build_candidate_manifest(
+        source_root,
+        candidate_commit,
+        v4_runtime_release_paths(source_root),
+        observed_commit=observed_commit,
+    )
+
+
 def build_candidate_manifest(
     source_root: str | pathlib.Path,
     candidate_commit: str,
