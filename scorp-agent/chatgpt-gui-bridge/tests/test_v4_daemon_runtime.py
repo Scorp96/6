@@ -39,6 +39,55 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             self.assertEqual("BLOCKED", summary["status"])
             self.assertTrue((root / "health.json").is_file())
 
+    def test_default_daemon_owner_is_unique_per_runtime_invocation(self):
+        from tools import v4_daemon_runtime as runtime
+
+        parser = runtime.build_parser()
+        args = parser.parse_args(
+            [
+                "--database-path", "state.sqlite3",
+                "--allowed-root", ".",
+                "--project-id", "p",
+            ]
+        )
+        self.assertIsNone(args.actor_id)
+        first = runtime._resolve_daemon_actor_id(args.actor_id)
+        second = runtime._resolve_daemon_actor_id(args.actor_id)
+        self.assertNotEqual(first, second)
+        self.assertTrue(first.startswith("scorp-daemon-"))
+        self.assertEqual("explicit-owner", runtime._resolve_daemon_actor_id("explicit-owner"))
+
+    def test_unique_default_owner_cannot_reuse_a_live_daemon_epoch(self):
+        import unittest.mock as mock
+
+        from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.close()
+            args = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db), "--allowed-root", str(root),
+                    "--project-id", "p", "--daemon-ttl-seconds", "60",
+                    "--health-path", str(root / "health.json"), "--max-iterations", "1",
+                ]
+            )
+            owners = iter(["physical-a", "physical-b"])
+            with mock.patch.object(runtime, "_resolve_daemon_actor_id", side_effect=lambda _raw: next(owners)):
+                with mock.patch.object(runtime.LocalDaemon, "run_loop", side_effect=RuntimeError("CRASH_AFTER_LEASE")):
+                    with self.assertRaisesRegex(RuntimeError, "CRASH_AFTER_LEASE"):
+                        runtime.run_runtime(args)
+                with self.assertRaisesRegex(StoreInvariantError, "DAEMON_LEASE_ACTIVE"):
+                    runtime.run_runtime(args)
+            with StateStore(db, [root]) as reopened:
+                lease = reopened.runtime_snapshot("p", daemon_epoch=1)["daemon"]
+                self.assertEqual(1, lease["daemon_epoch"])
+                self.assertEqual("physical-a", lease["owner_id"])
+
     def test_runtime_acquires_one_sqlite_daemon_lease_and_fences_second_owner(self):
         from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError
         from tools import v4_daemon_runtime as runtime

@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import pathlib
+import uuid
 import sys
 
 BRIDGE_ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -75,7 +77,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="Optional expected epoch; omit to acquire the current SQLite epoch.",
     )
-    parser.add_argument("--actor-id", default="scorp-daemon")
+    parser.add_argument(
+        "--actor-id",
+        default=None,
+        help="Explicit durable owner id. Omit for a unique physical-process owner.",
+    )
     parser.add_argument("--daemon-ttl-seconds", type=int, default=30)
     parser.add_argument("--health-path", type=pathlib.Path)
     parser.add_argument("--interval-seconds", type=float, default=5.0)
@@ -90,6 +96,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--driver-state-path", type=pathlib.Path)
     return parser
+
+
+def _resolve_daemon_actor_id(raw: object | None) -> str:
+    explicit = str(raw or "").strip()
+    if explicit:
+        return explicit
+    # A daemon lease fences a physical runtime process, not merely a logical
+    # Scheduled Task name.  Reusing a fixed owner across process restarts can
+    # renew a still-live lease and illegally reuse its daemon epoch.
+    return f"scorp-daemon-{os.getpid()}-{uuid.uuid4().hex}"
 
 
 def _validate_active_controller_options(args: argparse.Namespace) -> None:
@@ -197,6 +213,7 @@ def run_runtime(args: argparse.Namespace) -> int:
     if not args.forever and int(args.max_iterations) <= 0:
         raise RuntimeError("DAEMON_ITERATION_BOUND_INVALID")
     _validate_active_controller_options(args)
+    actor_id = _resolve_daemon_actor_id(getattr(args, "actor_id", None))
     health_path = pathlib.Path(args.health_path).resolve() if args.health_path else database_path.with_suffix(".daemon-health.json")
 
     store = StateStore(database_path, [allowed_root])
@@ -213,7 +230,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             )
         lease = store.acquire_daemon_lease(
             str(args.project_id),
-            str(args.actor_id),
+            actor_id,
             ttl_seconds=int(args.daemon_ttl_seconds),
         )
         if args.daemon_epoch is not None and int(lease["daemon_epoch"]) != int(args.daemon_epoch):
@@ -279,7 +296,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             ),
             lease_heartbeat=lambda: store.heartbeat_daemon_lease(
                 str(args.project_id),
-                str(args.actor_id),
+                actor_id,
                 daemon_epoch=daemon_epoch,
                 ttl_seconds=int(args.daemon_ttl_seconds),
             ),
@@ -296,7 +313,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             ),
             action_handlers=action_handlers,
             health_path=health_path,
-            actor_id=str(args.actor_id),
+            actor_id=actor_id,
         )
         run_loop_started = True
         decisions = daemon.run_loop(
@@ -329,7 +346,7 @@ def run_runtime(args: argparse.Namespace) -> int:
         if lease is not None and (graceful_exit or not run_loop_started):
             store.release_daemon_lease(
                 str(args.project_id),
-                str(args.actor_id),
+                actor_id,
                 daemon_epoch=int(lease["daemon_epoch"]),
             )
         if controller_gateway is not None:
