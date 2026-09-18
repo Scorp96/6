@@ -4,6 +4,7 @@ import json
 import pathlib
 import tempfile
 import threading
+import time
 import unittest
 import datetime as dt
 from dataclasses import dataclass
@@ -150,6 +151,45 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual("DISPATCHED", step.status)
         self.assertEqual(2, gateway.submit_calls)
         self.assertTrue(gateway.both_submits_entered)
+
+    def test_controller_heartbeats_master_while_slow_dispatch_is_in_flight(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _HeartbeatSlowGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start({"objective": "keep master lease live"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        step = controller.step(lambda claim: f"complete {claim.task_id}", lambda row: _result_for(row))
+
+        self.assertEqual("DISPATCHED", step.status)
+        self.assertGreaterEqual(gateway.heartbeat_calls, 1)
+
+    def test_lost_master_heartbeat_fences_slow_dispatch_before_result_admission(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FailingHeartbeatSlowGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start({"objective": "fence stale master"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        step = controller.step(lambda claim: f"complete {claim.task_id}", lambda row: _result_for(row))
+
+        self.assertEqual("BLOCKED", step.status)
+        self.assertEqual([], gateway.verified)
+        self.assertTrue(any("MASTER_HEARTBEAT_FAILED" in item for item in step.blockers))
 
     def test_worker_transport_exception_becomes_blocked_outcome(self):
         from master_a_dynamic_v4.master_controller import MasterAController
@@ -605,6 +645,29 @@ class _ConcurrentFakeGateway(_FakeGateway):
         if not self._submit_entered.wait(timeout=1.0):
             raise RuntimeError("DISPATCH_DID_NOT_OVERLAP")
         return super().submit_intent(intent_id)
+
+
+class _HeartbeatSlowGateway(_FakeGateway):
+    def __init__(self, project_id):
+        super().__init__(project_id)
+        self.heartbeat_calls = 0
+
+    def master_heartbeat_interval_seconds(self):
+        return 0.01
+
+    def heartbeat_master_session(self, session_id, *, master_epoch):
+        self.heartbeat_calls += 1
+        return {"session_id": session_id, "master_epoch": master_epoch, "state": "ACTIVE"}
+
+    def submit_intent(self, intent_id):
+        time.sleep(0.05)
+        return super().submit_intent(intent_id)
+
+
+class _FailingHeartbeatSlowGateway(_HeartbeatSlowGateway):
+    def heartbeat_master_session(self, session_id, *, master_epoch):
+        self.heartbeat_calls += 1
+        raise RuntimeError("simulated master lease loss")
 
 
 class _FailingSubmitGateway(_FakeGateway):

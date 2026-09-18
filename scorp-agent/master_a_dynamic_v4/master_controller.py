@@ -12,6 +12,7 @@ import dataclasses
 import concurrent.futures
 import hashlib
 import json
+import threading
 import uuid
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
@@ -170,6 +171,22 @@ class MasterAController:
             self.session_id, master_epoch=epoch
         )
 
+    def _master_heartbeat_interval_seconds(self) -> float:
+        configured = getattr(self.gateway, "master_heartbeat_interval_seconds", None)
+        try:
+            value = configured() if callable(configured) else configured
+            interval = float(value)
+        except (TypeError, ValueError):
+            interval = 15.0
+        if interval <= 0:
+            interval = 15.0
+        return max(0.01, min(interval, 30.0))
+
+    @staticmethod
+    def _assert_step_authority(authority_lost: Any | None) -> None:
+        if authority_lost is not None and bool(authority_lost.is_set()):
+            raise ControllerRejected("MASTER_HEARTBEAT_FAILED")
+
     def attach_existing_session(self) -> dict[str, Any]:
         """Adopt an already-live Master lease after a monitor restart.
 
@@ -316,51 +333,77 @@ class MasterAController:
         claims = active + (list(self.gateway.claim_workers(master_epoch=epoch, limit=free)) if free else [])
         outcomes: list[dict[str, Any]] = []
         blockers: list[str] = []
-        # Browser I/O is the slow boundary.  Dispatch the two independent
-        # claims concurrently so a stalled Worker-1 cannot prevent Worker-2
-        # from receiving its own persisted intent.  Results are consumed in
-        # claim order to keep the controller's observable output deterministic.
-        if len(claims) > 1:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=min(2, len(claims)),
-                thread_name_prefix="scorp-v4-worker-dispatch",
-            ) as pool:
-                futures = [
-                    pool.submit(self._dispatch_claim, claim, worker_prompt_factory, worker_response_decoder)
-                    for claim in claims
-                ]
-                dispatch_results = zip(claims, futures)
-                for claim, future in dispatch_results:
+        authority_lost = threading.Event()
+        heartbeat_stop = threading.Event()
+        heartbeat_errors: list[BaseException] = []
+
+        def keep_master_live() -> None:
+            interval = self._master_heartbeat_interval_seconds()
+            while not heartbeat_stop.wait(interval):
+                try:
+                    self.heartbeat()
+                except BaseException as exc:
+                    heartbeat_errors.append(exc)
+                    authority_lost.set()
+                    return
+
+        heartbeat_thread = threading.Thread(
+            target=keep_master_live,
+            name="scorp-v4-master-heartbeat",
+            daemon=True,
+        )
+        heartbeat_thread.start()
+        try:
+            # Browser I/O is the slow boundary. Dispatch independent claims
+            # concurrently while the Master lease keeper proves this physical
+            # controller is still alive. A lost heartbeat fences all later
+            # result/local-execution admission but never resubmits an intent.
+            if len(claims) > 1:
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=min(2, len(claims)),
+                    thread_name_prefix="scorp-v4-worker-dispatch",
+                ) as pool:
+                    futures = [
+                        pool.submit(
+                            self._dispatch_claim, claim, worker_prompt_factory,
+                            worker_response_decoder, authority_lost=authority_lost
+                        )
+                        for claim in claims
+                    ]
+                    dispatch_results = zip(claims, futures)
+                    for claim, future in dispatch_results:
+                        try:
+                            outcome = future.result()
+                        except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
+                            blockers.append(f"{claim.task_id}:{str(exc)}")
+                            continue
+                        except Exception as exc:
+                            blockers.append(f"{claim.task_id}:DISPATCH_EXCEPTION:{type(exc).__name__}")
+                            continue
+                        if outcome.get("status") == "BLOCKED":
+                            blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
+                        outcomes.append(outcome)
+            else:
+                for claim in claims:
                     try:
-                        outcome = future.result()
+                        outcome = self._dispatch_claim(
+                            claim, worker_prompt_factory, worker_response_decoder,
+                            authority_lost=authority_lost,
+                        )
                     except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
                         blockers.append(f"{claim.task_id}:{str(exc)}")
                         continue
                     except Exception as exc:
-                        # Browser/transport adapters are external boundaries.
-                        # Convert an unexpected worker-side failure into an
-                        # auditable blocker so one Worker cannot crash Master
-                        # or cause a retry outside the durable intent fence.
                         blockers.append(f"{claim.task_id}:DISPATCH_EXCEPTION:{type(exc).__name__}")
                         continue
                     if outcome.get("status") == "BLOCKED":
                         blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
                     outcomes.append(outcome)
-        else:
-            for claim in claims:
-                try:
-                    outcome = self._dispatch_claim(claim, worker_prompt_factory, worker_response_decoder)
-                except (ControllerRejected, SchedulerError, WorkerFenceError) as exc:
-                    blockers.append(f"{claim.task_id}:{str(exc)}")
-                    continue
-                except Exception as exc:
-                    # Keep serial and concurrent dispatch fail-closed with the
-                    # same bounded, machine-readable outcome.
-                    blockers.append(f"{claim.task_id}:DISPATCH_EXCEPTION:{type(exc).__name__}")
-                    continue
-                if outcome.get("status") == "BLOCKED":
-                    blockers.append(f"{claim.task_id}:{outcome.get('reason', 'BLOCKED')}")
-                outcomes.append(outcome)
+        finally:
+            heartbeat_stop.set()
+            heartbeat_thread.join(timeout=max(0.05, self._master_heartbeat_interval_seconds() * 2.0))
+        if heartbeat_errors and not any("MASTER_HEARTBEAT_FAILED" in item for item in blockers):
+            blockers.append(f"MASTER_HEARTBEAT_FAILED:{type(heartbeat_errors[0]).__name__}")
         if blockers:
             status = "BLOCKED"
         elif outcomes:
@@ -422,7 +465,10 @@ class MasterAController:
         claim: AssignmentClaim,
         worker_prompt_factory: Callable[[AssignmentClaim], str],
         worker_response_decoder: Callable[[Mapping[str, Any]], Mapping[str, Any]],
+        *,
+        authority_lost: Any | None = None,
     ) -> dict[str, Any]:
+        self._assert_step_authority(authority_lost)
         prompt = str(worker_prompt_factory(claim) or "").strip()
         if not prompt:
             raise ControllerRejected("WORKER_PROMPT_EMPTY")
@@ -439,7 +485,9 @@ class MasterAController:
         elif persisted_state == "RESPONSE_CAPTURED":
             current = persisted
         else:
+            self._assert_step_authority(authority_lost)
             current = self.gateway.submit_intent(intent_id)
+        self._assert_step_authority(authority_lost)
         state = str(current.get("state") or "")
         if state in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS", "CONFIRMED_SUBMITTED"}:
             return {
@@ -479,6 +527,7 @@ class MasterAController:
         payload = normalize_worker_result_envelope(payload)
         if str(payload.get("work_result_version") or "") != "1":
             raise ControllerRejected("WORK_RESULT_VERSION_UNSUPPORTED")
+        self._assert_step_authority(authority_lost)
         self._validate_preexecution_worker_authority(claim, payload)
         execution_request = payload.get("execution_request")
         # A Worker result that is BLOCKED/PARTIAL/INVALID is evidence of a
@@ -490,6 +539,7 @@ class MasterAController:
         if execution_request is not None and worker_status == "COMPLETE":
             if self.execution_adapter is None:
                 raise ControllerRejected("EXECUTION_ADAPTER_UNAVAILABLE")
+            self._assert_step_authority(authority_lost)
             receipt = self._execute_request(claim, execution_request)
             payload["execution_receipt"] = receipt
             payload["result_sha256"] = result_content_sha256(payload)
@@ -499,7 +549,9 @@ class MasterAController:
             # audit, but normalize the stored envelope without ever executing
             # the request or trusting the placeholder hash.
             payload["result_sha256"] = result_content_sha256(payload)
+        self._assert_step_authority(authority_lost)
         result_id = self.gateway.record_structured_worker_result(claim, payload=payload)
+        self._assert_step_authority(authority_lost)
         self.gateway.verify_worker_result(
             result_id,
             result_sha256=str(payload.get("result_sha256") or ""),

@@ -102,6 +102,10 @@ class V4BridgeGateway:
         """Start or resume one physical Master A session under a durable lease."""
         return self.master_watchdog.start(session_id, now=now)
 
+    def master_heartbeat_interval_seconds(self) -> float:
+        """Bound heartbeat cadence well below the durable Master TTL."""
+        return max(1.0, min(30.0, float(self.master_watchdog.ttl_seconds) / 3.0))
+
     def heartbeat_master_session(
         self, session_id: str, *, master_epoch: int, now=None
     ) -> dict[str, Any]:
