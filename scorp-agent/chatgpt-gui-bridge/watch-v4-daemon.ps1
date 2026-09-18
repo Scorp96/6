@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory=$true)][string]$MainTaskName,
     [Parameter(Mandatory=$true)][string]$ProjectId,
     [Parameter(Mandatory=$true)][string]$ReleaseRuntimeScript,
+    [Parameter(Mandatory=$true)][string]$PythonExecutable,
     [string]$HealthPath
 )
 
@@ -17,10 +18,22 @@ $task = Get-ScheduledTask -TaskName $MainTaskName -ErrorAction Stop
 if ($task.State -eq 'Disabled') { throw 'MAIN_RUNTIME_TASK_DISABLED' }
 
 $release = [IO.Path]::GetFullPath($ReleaseRuntimeScript)
+$python = [IO.Path]::GetFullPath($PythonExecutable)
 $live = @(
     Get-CimInstance Win32_Process |
     Where-Object {
+        $executable = [string]$_.ExecutablePath
+        $exactPython = $false
+        if ($executable) {
+            try {
+                $exactPython = ([IO.Path]::GetFullPath($executable) -ieq $python)
+            } catch {
+                $exactPython = $false
+            }
+        }
+        $exactPython -and
         (Has-Text ([string]$_.CommandLine) $release) -and
+        (Has-Text ([string]$_.CommandLine) '--database-path') -and
         (Has-Text ([string]$_.CommandLine) '--project-id') -and
         (Has-Text ([string]$_.CommandLine) $ProjectId)
     }

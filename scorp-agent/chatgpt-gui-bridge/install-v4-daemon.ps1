@@ -109,6 +109,7 @@ try {
         '-MainTaskName', ('"{0}"' -f $resolvedTaskName),
         '-ProjectId', ('"{0}"' -f $ProjectId),
         '-ReleaseRuntimeScript', ('"{0}"' -f $daemonScript),
+        '-PythonExecutable', ('"{0}"' -f [IO.Path]::GetFullPath($Python)),
         '-HealthPath', ('"{0}"' -f [IO.Path]::GetFullPath($HealthPath))
     ) -join ' '
     $watchdogAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $watchdogArguments -WorkingDirectory $PSScriptRoot

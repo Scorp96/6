@@ -51,6 +51,7 @@ class V4DaemonInstallerTests(unittest.TestCase):
             '$watchdogTaskName = "$resolvedTaskName-Watchdog"',
             "New-ScheduledTaskTrigger -Once",
             "RepetitionInterval (New-TimeSpan -Minutes 1)",
+            "'-PythonExecutable'",
             "Start-ScheduledTask -TaskName $watchdogTaskName",
             "Unregister-ScheduledTask -TaskName $watchdogTaskName",
             "$priorWatchdogXml",
@@ -65,6 +66,9 @@ class V4DaemonInstallerTests(unittest.TestCase):
             "Get-ScheduledTask",
             "Get-CimInstance Win32_Process",
             "Start-ScheduledTask -TaskName $MainTaskName",
+            "[Parameter(Mandatory=$true)][string]$PythonExecutable",
+            "$exactPython",
+            "'--database-path'",
             "RECOVERY_START_REQUESTED",
             "HEALTHY_RUNNING",
         ):
