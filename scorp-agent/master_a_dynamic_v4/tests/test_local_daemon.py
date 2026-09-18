@@ -202,6 +202,43 @@ class LocalDaemonTests(unittest.TestCase):
             self.assertEqual(1, len(decisions))
             self.assertEqual([], sleeps)
 
+    def test_forever_style_loop_records_recovery_once_after_first_healthy_iteration(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            recoveries = []
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 2, 0, 0),
+                recovery_callback=lambda: recoveries.append("recovered"),
+                health_path=root / "health.json",
+            )
+            decisions = daemon.run_loop(interval_seconds=0, max_iterations=3, sleep=lambda _value: None)
+            self.assertEqual(3, len(decisions))
+            self.assertEqual(["recovered"], recoveries)
+            self.assertEqual("HEALTHY", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
+
+    def test_blocked_iteration_does_not_record_recovery(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            recoveries = []
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 1, 1, 0),
+                recovery_callback=lambda: recoveries.append("recovered"),
+                health_path=root / "health.json",
+            )
+            daemon.run_loop(interval_seconds=0, max_iterations=3, sleep=lambda _value: None)
+            self.assertEqual([], recoveries)
+            self.assertEqual("BLOCKED", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
+
     def test_idle_updates_observation_but_not_progress_timestamp(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

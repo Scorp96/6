@@ -67,6 +67,7 @@ class LocalDaemon:
         worker_lease_recovery: Callable[[], Any] | None = None,
         worker_lease_renewal: Callable[[], Any] | None = None,
         project_completion: Callable[[], Any] | None = None,
+        recovery_callback: Callable[[], Any] | None = None,
         health_path: str | pathlib.Path,
         actor_id: str = "scorp-daemon",
     ) -> None:
@@ -85,6 +86,8 @@ class LocalDaemon:
         self.worker_lease_recovery = worker_lease_recovery
         self.worker_lease_renewal = worker_lease_renewal
         self.project_completion = project_completion
+        self.recovery_callback = recovery_callback
+        self._recovery_recorded = False
         self.health_path = pathlib.Path(health_path).resolve()
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
         self.arbiter = ActivationArbiter(actor_id=actor_id)
@@ -179,6 +182,17 @@ class LocalDaemon:
                 status = "BLOCKED"
                 error = f"ACTION_FAILED:{type(exc).__name__}"
         self._write_health(status=status, snapshot=snapshot, decision=decision, error=error)
+        if (
+            status in {"HEALTHY", "TERMINAL"}
+            and self.recovery_callback is not None
+            and not self._recovery_recorded
+        ):
+            # Production daemons normally run forever, so waiting for
+            # run_loop() to return would never clear a recovered crash
+            # sequence.  A single healthy iteration is the durable proof that
+            # this process successfully recovered; record it exactly once.
+            self.recovery_callback()
+            self._recovery_recorded = True
         self._last_run_status = status
         return decision
 

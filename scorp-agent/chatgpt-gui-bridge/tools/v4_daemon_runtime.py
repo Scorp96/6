@@ -291,6 +291,9 @@ def run_runtime(args: argparse.Namespace) -> int:
             project_completion=lambda: _finalize_project_if_accepted(
                 store, str(args.project_id)
             ),
+            recovery_callback=lambda: store.record_daemon_recovery(
+                str(args.project_id)
+            ),
             action_handlers=action_handlers,
             health_path=health_path,
             actor_id=str(args.actor_id),
@@ -301,8 +304,6 @@ def run_runtime(args: argparse.Namespace) -> int:
             max_iterations=None if args.forever else int(args.max_iterations),
         )
         health = json.loads(health_path.read_text(encoding="utf-8"))
-        if health["status"] in {"HEALTHY", "TERMINAL"}:
-            store.record_daemon_recovery(str(args.project_id))
         summary = {
             "format": "scorp-v4-daemon-run/1",
             "status": health["status"],

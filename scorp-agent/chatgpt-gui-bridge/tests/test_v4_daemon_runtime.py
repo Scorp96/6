@@ -173,6 +173,52 @@ class V4DaemonRuntimeTests(unittest.TestCase):
                 self.assertEqual(2, runtime.run_runtime(second))
             self.assertEqual(2, json.loads(output.getvalue())["daemon_epoch"])
 
+    def test_successful_runtime_iteration_resets_prior_crash_sequence_before_exit(self):
+        import datetime as dt
+
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            store = StateStore(db, [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.start_master_session("p", "master-a", ttl_seconds=60)
+            store.record_daemon_failure(
+                "p",
+                reason="OLD_CRASH",
+                now=dt.datetime(2020, 1, 1, tzinfo=dt.timezone.utc),
+                restart_budget=3,
+            )
+            before = store.get_daemon_supervision("p")
+            self.assertEqual(1, before["restart_count"])
+            store.close()
+            args = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db), "--allowed-root", str(root),
+                    "--project-id", "p", "--actor-id", "daemon-a",
+                    "--health-path", str(root / "health.json"), "--max-iterations", "2",
+                    "--supervise-master", "--master-session-id", "master-a",
+                    "--interval-seconds", "0",
+                ]
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(0, runtime.run_runtime(args))
+            with StateStore(db, [root]) as reopened:
+                after = reopened.get_daemon_supervision("p")
+                self.assertEqual(0, after["restart_count"])
+                self.assertEqual(0, after["consecutive_failures"])
+                self.assertEqual("CLOSED", after["circuit_state"])
+                self.assertEqual(1, after["recovery_count"])
+                with reopened._connection() as conn:
+                    events = conn.execute(
+                        "SELECT COUNT(*) FROM events WHERE project_id=? AND kind='DAEMON_RECOVERY'",
+                        ("p",),
+                    ).fetchone()[0]
+                self.assertEqual(1, events)
+
     def test_runtime_can_attach_the_existing_master_supervisor_without_enabling_browser_send(self):
         from master_a_dynamic_v4.state_store import StateStore
         from tools import v4_daemon_runtime as runtime
