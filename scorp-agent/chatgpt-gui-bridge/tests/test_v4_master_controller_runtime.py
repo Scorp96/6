@@ -114,6 +114,35 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertIn("candidate_commit", payload["instructions"][-1])
         self.assertIn("result_sha256", payload["instructions"][-1])
 
+    def test_worker_prompt_requires_json_safe_structured_evidence(self):
+        runtime = load_runtime()
+        claim = types.SimpleNamespace(
+            project_id="p1", assignment_id="a1", task_id="T2", worker_id="w2",
+            slot_id="worker-slot-2", master_epoch=1, base_state_version=1,
+            objective_sha256="a" * 64, resource_scope=("C:/lab/t2/input.csv",),
+            access_mode="read", task_context={
+                "candidate_commit": "b" * 40,
+                "execution_request_template": {
+                    "module": "master_a_dynamic_v4.csv_workload.cli",
+                    "args": ["input.csv", "--operation", "aggregate"],
+                    "working_directory": "C:/lab/t2",
+                    "resource_paths": ["C:/lab/t2/input.csv"],
+                    "access_mode": "read", "timeout_seconds": 60,
+                },
+            },
+        )
+        payload = json.loads(runtime._worker_prompt(claim))
+        safety = payload["result_requirements"]["json_safety"]
+        self.assertEqual("object", safety["evidence_item_type"])
+        self.assertEqual(["kind", "claim"], safety["evidence_required_keys"])
+        self.assertTrue(safety["forbid_execution_request_restatement_in_strings"])
+        self.assertTrue(safety["forbid_json_syntax_inside_free_text_strings"])
+        example = safety["evidence_example"]
+        self.assertEqual({"kind": "execution_request", "claim": "assigned request supplied"}, example)
+        joined = " ".join(payload["instructions"])
+        self.assertIn("evidence must be an array of JSON objects", joined)
+        self.assertIn("Do not restate execution_request.args", joined)
+
     def test_runtime_requires_explicit_send_gate_before_opening_browser(self):
         runtime = load_runtime()
         with tempfile.TemporaryDirectory() as td:
