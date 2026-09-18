@@ -205,6 +205,15 @@ class MasterAController:
             self.master_epoch = int(observed["master_epoch"])
         except (KeyError, TypeError, ValueError) as exc:
             raise ControllerRejected("MASTER_EPOCH_MISSING") from exc
+        observed_session_id = str(observed.get("session_id") or "").strip()
+        if not observed_session_id:
+            raise ControllerRejected("MASTER_SESSION_ID_MISSING")
+        # A daemon process restart is not a logical Master restart.  The
+        # durable watchdog may point at a resumed physical session id that is
+        # different from the install-time logical prefix.  Adopt both durable
+        # identity fields before any heartbeat so the restarted monitor renews
+        # the existing lease instead of heartbeating the stale configured id.
+        self.session_id = observed_session_id
         return dict(observed)
 
     def resume(self) -> dict[str, Any]:

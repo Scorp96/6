@@ -76,15 +76,88 @@ class MissingControllerTests(unittest.TestCase):
             )
             self.assertEqual("MASTER_ACTIVE", active["status"])
 
-    def test_attach_existing_active_session_adopts_current_epoch(self):
+    def test_attach_existing_active_session_adopts_current_epoch_and_session_id(self):
         from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        gateway.watchdog_once = lambda: {
+            "status": "MASTER_ACTIVE",
+            "master_epoch": 7,
+            "session_id": "master-session::resume-durable",
+        }
+        controller = MasterAController(gateway, "master-session")
+        attached = controller.attach_existing_session()
+        self.assertEqual(7, controller.master_epoch)
+        self.assertEqual("master-session::resume-durable", controller.session_id)
+        self.assertEqual("MASTER_ACTIVE", attached["status"])
+
+    def test_attach_existing_real_sqlite_resumed_session_heartbeats_without_new_epoch(self):
+        import datetime as dt
+        import pathlib
+        import tempfile
+
+        from master_a_dynamic_v4.master_controller import MasterAController
+        from master_a_dynamic_v4.master_watchdog import MasterWatchdog
+        from master_a_dynamic_v4.state_store import StateStore
+
+        class Gateway:
+            project_id = "controller-project"
+
+            def __init__(self, store):
+                self.watchdog = MasterWatchdog(store, self.project_id, ttl_seconds=60)
+
+            def watchdog_once(self):
+                return self.watchdog.run_once(
+                    now=dt.datetime(2026, 1, 1, 0, 0, 10, tzinfo=dt.timezone.utc)
+                )
+
+            def heartbeat_master_session(self, session_id, *, master_epoch):
+                return self.watchdog.heartbeat(
+                    session_id,
+                    master_epoch=master_epoch,
+                    now=dt.datetime(2026, 1, 1, 0, 0, 10, tzinfo=dt.timezone.utc),
+                )
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            try:
+                store.create_contract(
+                    "controller-project",
+                    root_contract={"objective": "restart attach"},
+                    acceptance_contract={"ids": []},
+                )
+                started = store.start_master_session(
+                    "controller-project",
+                    "master-a-production::resume-existing",
+                    now=dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
+                    ttl_seconds=60,
+                )
+                controller = MasterAController(Gateway(store), "master-a-production")
+                attached = controller.attach_existing_session()
+                self.assertEqual("MASTER_ACTIVE", attached["status"])
+                self.assertEqual(started["master_epoch"], controller.master_epoch)
+                self.assertEqual(
+                    "master-a-production::resume-existing", controller.session_id
+                )
+                heartbeat = controller.heartbeat()
+                self.assertEqual(
+                    "master-a-production::resume-existing", heartbeat["session_id"]
+                )
+                self.assertEqual(started["master_epoch"], heartbeat["master_epoch"])
+                state = store.get_project_state("controller-project")
+                self.assertEqual(started["master_epoch"], state["master_epoch"])
+            finally:
+                store.close()
+
+    def test_attach_existing_active_session_without_durable_session_id_fails_closed(self):
+        from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
 
         gateway = _FakeGateway("controller-project")
         gateway.watchdog_once = lambda: {"status": "MASTER_ACTIVE", "master_epoch": 7}
         controller = MasterAController(gateway, "master-session")
-        attached = controller.attach_existing_session()
-        self.assertEqual(7, controller.master_epoch)
-        self.assertEqual("MASTER_ACTIVE", attached["status"])
+        with self.assertRaisesRegex(ControllerRejected, "MASTER_SESSION_ID_MISSING"):
+            controller.attach_existing_session()
 
     def test_master_identity_is_validated_before_gateway_calls(self):
         from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
