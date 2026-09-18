@@ -506,6 +506,134 @@ class MissingControllerTests(unittest.TestCase):
         self.assertTrue(any("BROWSER_RECONCILIATION_REQUIRED" in item for item in step.blockers))
         self.assertEqual([], gateway.verified)
 
+    def test_captured_local_execution_receipt_finishes_outbox_without_reexecution(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
+        from master_a_dynamic_v4.state_store import StateStore
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract(
+                "controller-project",
+                root_contract={"objective": "local execution cleanup"},
+                acceptance_contract={"ids": []},
+            )
+
+            class Gateway:
+                project_id = "controller-project"
+
+                def __init__(self, state_store):
+                    self.store = state_store
+
+            from master_a_dynamic_v4.path_policy import PathPolicy
+            from master_a_dynamic_v4.scheduler import Scheduler
+
+            scheduler = Scheduler(store, "controller-project", PathPolicy([root]), max_workers=2)
+            scheduler.enqueue_graph([{
+                "task_id": "T1",
+                "objective_sha256": "a" * 64,
+                "resource_scope": [str(root)],
+                "access_mode": "read",
+                "dependencies": [],
+            }])
+            claim = scheduler.claim_runnable(master_epoch=0, limit=1)[0]
+            adapter = _FakeExecutionAdapter()
+            controller = MasterAController(Gateway(store), "master-local-cleanup", execution_adapter=adapter)
+            request = {
+                "module": "master_a_dynamic_v4.csv_workload.cli",
+                "args": ["input.csv", "--operation", "validate"],
+                "working_directory": str(root),
+                "resource_paths": [str(root / "input.csv")],
+                "access_mode": "read",
+                "timeout_seconds": 60,
+            }
+            try:
+                # Simulate a process crash/failure after durable receipt capture
+                # but before outbox cleanup.
+                with patch.object(store, "finalize_intent", side_effect=RuntimeError("CRASH_AFTER_CAPTURE")):
+                    with self.assertRaisesRegex(ControllerRejected, "LOCAL_EXECUTION_CAPTURE_FAILED"):
+                        controller._execute_request(claim, request)
+                self.assertEqual(1, len(adapter.calls))
+                intent_id = f"execution-intent-{claim.assignment_id}"
+                self.assertEqual("RESPONSE_CAPTURED", store.get_intent(intent_id)["state"])
+                self.assertEqual("PENDING_CLEANUP", store.get_outbox_for_intent(intent_id)["state"])
+
+                # Restart/retry consumes the captured receipt and only finishes
+                # cleanup.  It must not invoke the adapter a second time.
+                receipt = controller._execute_request(claim, request)
+                self.assertEqual(0, receipt["exit_code"])
+                self.assertEqual(1, len(adapter.calls))
+                self.assertEqual("COMPLETED", store.get_outbox_for_intent(intent_id)["state"])
+            finally:
+                store.close()
+
+    def test_ambiguous_local_execution_is_never_executed_twice(self):
+        from types import SimpleNamespace
+
+        from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
+        from master_a_dynamic_v4.state_store import StateStore
+
+        class FailingAdapter:
+            def __init__(self):
+                self.calls = 0
+
+            def execute(self, _claim, **_request):
+                self.calls += 1
+                raise RuntimeError("MAY_HAVE_EXECUTED")
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract(
+                "controller-project",
+                root_contract={"objective": "local execution no retry"},
+                acceptance_contract={"ids": []},
+            )
+
+            class Gateway:
+                project_id = "controller-project"
+
+                def __init__(self, state_store):
+                    self.store = state_store
+
+            from master_a_dynamic_v4.path_policy import PathPolicy
+            from master_a_dynamic_v4.scheduler import Scheduler
+
+            scheduler = Scheduler(store, "controller-project", PathPolicy([root]), max_workers=2)
+            scheduler.enqueue_graph([{
+                "task_id": "T1",
+                "objective_sha256": "b" * 64,
+                "resource_scope": [str(root)],
+                "access_mode": "read",
+                "dependencies": [],
+            }])
+            claim = scheduler.claim_runnable(master_epoch=0, limit=1)[0]
+            adapter = FailingAdapter()
+            controller = MasterAController(Gateway(store), "master-local-ambiguous", execution_adapter=adapter)
+            request = {
+                "module": "master_a_dynamic_v4.csv_workload.cli",
+                "args": ["input.csv", "--operation", "validate"],
+                "working_directory": str(root),
+                "resource_paths": [str(root / "input.csv")],
+                "access_mode": "read",
+                "timeout_seconds": 60,
+            }
+            try:
+                with self.assertRaisesRegex(ControllerRejected, "LOCAL_EXECUTION_EXCEPTION"):
+                    controller._execute_request(claim, request)
+                self.assertEqual(1, adapter.calls)
+                intent_id = f"execution-intent-{claim.assignment_id}"
+                self.assertEqual("BLOCKED_AMBIGUOUS", store.get_intent(intent_id)["state"])
+
+                with self.assertRaisesRegex(ControllerRejected, "LOCAL_EXECUTION_RECONCILIATION_REQUIRED"):
+                    controller._execute_request(claim, request)
+                self.assertEqual(1, adapter.calls)
+            finally:
+                store.close()
+
     def test_restart_does_not_resubmit_an_existing_ambiguous_intent(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 

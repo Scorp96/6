@@ -724,6 +724,15 @@ class MasterAController:
                     raise ControllerRejected(f"LOCAL_EXECUTION_FAILED:{receipt.get('exit_code')}")
             except (TypeError, ValueError) as exc:
                 raise ControllerRejected("EXECUTION_RECEIPT_EXIT_CODE_INVALID") from exc
+            # A process may crash after the execution receipt is durably
+            # captured but before the outbox cleanup is finalized.  Reusing
+            # the captured receipt is the only safe recovery: never execute
+            # the local action twice.  Complete the durable cleanup before
+            # returning the already-captured receipt.
+            try:
+                self.gateway.store.finalize_intent(intent_id)
+            except Exception as exc:
+                raise ControllerRejected("LOCAL_EXECUTION_CLEANUP_FAILED") from exc
             return dict(receipt)
         if intent_state in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS", "CONFIRMED_SUBMITTED"}:
             raise ControllerRejected("LOCAL_EXECUTION_RECONCILIATION_REQUIRED")
