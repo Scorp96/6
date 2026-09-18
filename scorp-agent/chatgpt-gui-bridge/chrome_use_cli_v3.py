@@ -80,13 +80,20 @@ class ChromeUseCliV3:
         # or ``daemon may be busy`` response. This is transport serialization,
         # not a duplicate-submit retry; the durable browser intent remains the
         # side-effect fence.
-        acquired = await asyncio.to_thread(
-            self._daemon_mutex.acquire,
-            True,
-            timeout_seconds,
-        )
-        if not acquired:
-            raise RuntimeError("CHROME_USE_DAEMON_BUSY_LOCAL_LOCK")
+        deadline = time.monotonic() + timeout_seconds
+        acquired = False
+        while not acquired:
+            acquired = self._daemon_mutex.acquire(blocking=False)
+            if acquired:
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError("CHROME_USE_DAEMON_BUSY_LOCAL_LOCK")
+            # Never delegate lock acquisition to asyncio.to_thread. Cancellation
+            # cannot stop a running thread, so a cancelled waiter could acquire
+            # the mutex later and leak it forever because the coroutine no
+            # longer reaches the release() finally block.
+            await asyncio.sleep(min(0.05, remaining))
         try:
             returncode, stdout, stderr = await self.runner(argv, timeout_seconds)
         finally:

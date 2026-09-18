@@ -133,6 +133,41 @@ class ChromeUseCliV3Tests(unittest.TestCase):
         self.assertEqual([{"ok": True}, {"ok": True}], asyncio.run(exercise()))
         self.assertEqual(1, maximum)
 
+    def test_cancelled_mutex_wait_cannot_acquire_late_or_leak_lock(self):
+        import threading
+        import time
+
+        async def runner(argv, timeout_seconds):
+            return 0, '{"ok":true}', ''
+
+        cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner)
+        self.assertTrue(cli._daemon_mutex.acquire(blocking=False))
+        released = threading.Event()
+
+        def release_original_holder():
+            time.sleep(0.05)
+            cli._daemon_mutex.release()
+            released.set()
+
+        thread = threading.Thread(target=release_original_holder)
+        thread.start()
+
+        async def exercise():
+            with self.assertRaises(asyncio.TimeoutError):
+                await asyncio.wait_for(
+                    cli.run_json('worker-cancelled', 'read', timeout_seconds=0.5),
+                    timeout=0.01,
+                )
+
+        started = time.monotonic()
+        asyncio.run(exercise())
+        elapsed = time.monotonic() - started
+        thread.join(timeout=1.0)
+        self.assertTrue(released.is_set())
+        self.assertLess(elapsed, 0.25)
+        self.assertTrue(cli._daemon_mutex.acquire(blocking=False))
+        cli._daemon_mutex.release()
+
     def test_default_runner_timeout_returns_even_when_child_keeps_pipes_open(self):
         class FakeProcess:
             def __init__(self):
