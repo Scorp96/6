@@ -15,6 +15,7 @@ class FakeDriver:
         self.snapshot = snapshot
         self.submits = []
         self.reconciles = []
+        self.unpromoted = []
 
     async def submit_prompt(self, **kwargs):
         self.submits.append(kwargs)
@@ -22,6 +23,10 @@ class FakeDriver:
 
     async def snapshot_conversation(self, conversation_url):
         self.reconciles.append(conversation_url)
+        return self.snapshot
+
+    async def recover_unpromoted_turn_snapshot(self, turn_id, *, expected_marker, timeout_seconds=None):
+        self.unpromoted.append((turn_id, expected_marker, timeout_seconds))
         return self.snapshot
 
 
@@ -71,6 +76,43 @@ class V4BrowserEngineTests(unittest.TestCase):
         })
         self.assertEqual("RESPONSE_CAPTURED", reconciled["status"])
         self.assertEqual(["https://chatgpt.com/c/engine-test"], driver.reconciles)
+
+    def test_reconcile_recovers_unpromoted_worker_turn_without_resubmit(self):
+        assignment_id = "assignment-unpromoted"
+        driver = FakeDriver(
+            "Focused Window: Chrome\nhttps://chatgpt.com/c/recovered\n"
+            + assignment_id
+            + "\nSCORP_RESULT"
+        )
+
+        def parser(snapshot, intent_id):
+            if "SCORP_RESULT" not in snapshot:
+                return None
+            return {"kind": "HANDOFF", "assignment_id": assignment_id, "intent_id": intent_id}
+
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=parser,
+            timeout_seconds=30,
+        )
+        intent = {
+            **self.intent(),
+            "intent_id": "worker-intent-" + assignment_id,
+            "action_kind": "CHATGPT_WORKER_SUBMIT",
+            "payload_json": json.dumps({
+                "prompt": "bounded task",
+                "worker_assignment": {"assignment_id": assignment_id},
+            }),
+        }
+        result = engine.reconcile(intent)
+        self.assertEqual("RESPONSE_CAPTURED", result["status"])
+        self.assertEqual("https://chatgpt.com/c/recovered", result["conversation_url"])
+        self.assertEqual(
+            [("worker-intent-" + assignment_id, assignment_id, 30.0)],
+            driver.unpromoted,
+        )
+        self.assertEqual([], driver.reconciles)
 
     def test_reconcile_mismatched_conversation_is_ambiguous(self):
         driver = FakeDriver("https://chatgpt.com/c/other-conversation\nSCORP_RESULT")

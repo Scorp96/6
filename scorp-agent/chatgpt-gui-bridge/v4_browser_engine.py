@@ -67,15 +67,41 @@ def build_v4_browser_engine(
 
     async def reconcile_probe(intent: Mapping[str, Any]):
         url = str(intent.get("conversation_url") or "").strip()
-        if not url:
-            return {"status": "AMBIGUOUS", "reason": "CONVERSATION_URL_MISSING"}
-        snapshot = await asyncio.wait_for(
-            driver.snapshot_conversation(url), timeout=float(timeout_seconds)
-        )
-        text = str(snapshot or "")
         intent_id = str(intent.get("intent_id") or "")
+        if not url:
+            marker = ""
+            if str(intent.get("action_kind") or "") == "CHATGPT_WORKER_SUBMIT":
+                try:
+                    payload = json.loads(str(intent.get("payload_json") or "{}"))
+                except (TypeError, ValueError):
+                    payload = {}
+                assignment = payload.get("worker_assignment") if isinstance(payload, Mapping) else None
+                if isinstance(assignment, Mapping):
+                    marker = str(assignment.get("assignment_id") or "").strip()
+            recover_unpromoted = getattr(driver, "recover_unpromoted_turn_snapshot", None)
+            if not marker or not callable(recover_unpromoted):
+                return {"status": "AMBIGUOUS", "reason": "CONVERSATION_URL_MISSING"}
+            try:
+                snapshot = await asyncio.wait_for(
+                    recover_unpromoted(
+                        intent_id,
+                        expected_marker=marker,
+                        timeout_seconds=float(timeout_seconds),
+                    ),
+                    timeout=float(timeout_seconds),
+                )
+            except (TimeoutError, RuntimeError, ValueError) as exc:
+                return {
+                    "status": "AMBIGUOUS",
+                    "reason": str(exc) or type(exc).__name__,
+                }
+        else:
+            snapshot = await asyncio.wait_for(
+                driver.snapshot_conversation(url), timeout=float(timeout_seconds)
+            )
+        text = str(snapshot or "")
         observed_url = extract_conversation_url(text)
-        if observed_url and observed_url != url:
+        if url and observed_url and observed_url != url:
             return {
                 "status": "AMBIGUOUS",
                 "reason": "CONVERSATION_URL_MISMATCH",
