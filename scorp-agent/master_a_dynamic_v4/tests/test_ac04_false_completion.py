@@ -54,6 +54,59 @@ class FalseCompletionTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_acceptance_finalize_atomically_completes_project_and_ends_master(self):
+        from master_a_dynamic_v4.acceptance import AcceptanceValidator
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, contract = self.make_store(root)
+            try:
+                self.record_valid_evidence(store, contract)
+                master = store.start_master_session("project-ac04", "master-a", ttl_seconds=300)
+                decision = AcceptanceValidator(store).finalize("project-ac04", CANDIDATE, {})
+                self.assertEqual("PASS", decision.status.value)
+                state = store.get_project_state("project-ac04")
+                self.assertEqual("COMPLETE", state["status"])
+                self.assertEqual("COMPLETE", state["phase"])
+                with store._connection() as conn:
+                    session = conn.execute(
+                        "select state,end_reason,lease_until from master_sessions where project_id=? and session_id=?",
+                        ("project-ac04", "master-a"),
+                    ).fetchone()
+                    events = [r[0] for r in conn.execute(
+                        "select kind from events where project_id=? order by kind",
+                        ("project-ac04",),
+                    ).fetchall()]
+                self.assertEqual("ENDED", session["state"])
+                self.assertEqual("PROJECT_COMPLETE", session["end_reason"])
+                self.assertIn("PROJECT_COMPLETED", events)
+                snapshot = store.activation_snapshot("project-ac04", daemon_epoch=1)
+                self.assertEqual("COMPLETE", snapshot.project_status)
+                second = AcceptanceValidator(store).finalize("project-ac04", CANDIDATE, {})
+                self.assertEqual("PASS", second.status.value)
+            finally:
+                store.close()
+
+    def test_acceptance_finalize_is_fail_closed_when_acceptance_is_blocked(self):
+        from master_a_dynamic_v4.acceptance import AcceptanceValidator
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, _contract = self.make_store(root)
+            try:
+                store.start_master_session("project-ac04", "master-a", ttl_seconds=300)
+                decision = AcceptanceValidator(store).finalize("project-ac04", CANDIDATE, {})
+                self.assertEqual("BLOCKED", decision.status.value)
+                self.assertEqual("ACTIVE", store.get_project_state("project-ac04")["status"])
+                with store._connection() as conn:
+                    state = conn.execute(
+                        "select state from master_sessions where project_id=? and session_id=?",
+                        ("project-ac04", "master-a"),
+                    ).fetchone()[0]
+                self.assertEqual("ACTIVE", state)
+            finally:
+                store.close()
+
     def test_missing_empty_fake_or_stale_evidence_is_rejected(self):
         variants = ("missing", "fake", "stale")
         for variant in variants:

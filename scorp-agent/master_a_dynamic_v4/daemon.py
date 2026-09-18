@@ -66,6 +66,7 @@ class LocalDaemon:
         lease_heartbeat: Callable[[], Any] | None = None,
         worker_lease_recovery: Callable[[], Any] | None = None,
         worker_lease_renewal: Callable[[], Any] | None = None,
+        project_completion: Callable[[], Any] | None = None,
         health_path: str | pathlib.Path,
         actor_id: str = "scorp-daemon",
     ) -> None:
@@ -83,6 +84,7 @@ class LocalDaemon:
         self.lease_heartbeat = lease_heartbeat
         self.worker_lease_recovery = worker_lease_recovery
         self.worker_lease_renewal = worker_lease_renewal
+        self.project_completion = project_completion
         self.health_path = pathlib.Path(health_path).resolve()
         self.health_path.parent.mkdir(parents=True, exist_ok=True)
         self.arbiter = ActivationArbiter(actor_id=actor_id)
@@ -98,6 +100,11 @@ class LocalDaemon:
             self.worker_lease_recovery()
         if self.worker_lease_renewal is not None:
             self.worker_lease_renewal()
+        # Completion is an explicit durable transition, not an inference from
+        # an idle snapshot. The callback must be fail-closed and may only mark
+        # COMPLETE after a fresh machine-grounded acceptance PASS.
+        if self.project_completion is not None:
+            self.project_completion()
         snapshot_raw = self.snapshot_provider()
         snapshot = snapshot_raw if isinstance(snapshot_raw, ArbiterSnapshot) else ArbiterSnapshot(**dict(snapshot_raw))
         if snapshot.project_id != self.project_id or snapshot.daemon_epoch != self.daemon_epoch:

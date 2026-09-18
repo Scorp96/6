@@ -32,6 +32,30 @@ class ActivationArbiterTests(unittest.TestCase):
         self.assertEqual("daemon-test", decision.actor_id)
         self.assertTrue(decision.decision_id)
 
+    def test_local_daemon_runs_completion_before_terminal_snapshot(self):
+        from master_a_dynamic_v4.daemon import LocalDaemon
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            order = []
+            def complete():
+                order.append("complete")
+                with store._transaction() as conn:
+                    conn.execute("update project_state set status='COMPLETE',phase='COMPLETE' where project_id='p'")
+            def snapshot():
+                order.append("snapshot")
+                return store.activation_snapshot("p", daemon_epoch=1)
+            daemon = LocalDaemon(
+                store, project_id="p", daemon_epoch=1, snapshot_provider=snapshot,
+                project_completion=complete, health_path=root / "health.json",
+            )
+            decision = daemon.run_once()
+            self.assertEqual(["complete", "snapshot"], order)
+            self.assertEqual("TERMINAL", decision.action)
+            store.close()
+
     def test_ambiguous_browser_effect_precedes_master_resume(self):
         decision = self.arbiter.decide(
             ArbiterSnapshot(

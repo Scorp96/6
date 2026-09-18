@@ -23,6 +23,7 @@ if str(BRIDGE_ROOT) not in sys.path:
 
 from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3  # noqa: E402
 from chrome_use_cli_v3 import ChromeUseCliV3  # noqa: E402
+from master_a_dynamic_v4.acceptance import AcceptanceValidator  # noqa: E402
 from master_a_dynamic_v4.execution_adapter import LocalExecutionAdapter  # noqa: E402
 from master_a_dynamic_v4.git_worktree import GitWorktreeManager  # noqa: E402
 from master_a_dynamic_v4.daemon import (  # noqa: E402
@@ -287,6 +288,9 @@ def run_runtime(args: argparse.Namespace) -> int:
                 store, scheduler, str(args.project_id),
                 lease_seconds=max(30, int(args.daemon_ttl_seconds) * 3),
             ),
+            project_completion=lambda: _finalize_project_if_accepted(
+                store, str(args.project_id)
+            ),
             action_handlers=action_handlers,
             health_path=health_path,
             actor_id=str(args.actor_id),
@@ -330,6 +334,18 @@ def run_runtime(args: argparse.Namespace) -> int:
         if controller_gateway is not None:
             controller_gateway.close()
         store.close()
+
+
+def _finalize_project_if_accepted(store, project_id: str) -> dict[str, object]:
+    """Terminalize only a release candidate that passes current acceptance."""
+    state = store.get_project_state(project_id)
+    if str(state.get("status") or "") in {"COMPLETE", "HARD_BLOCKED"}:
+        return {"status": "TERMINAL", "project_status": str(state.get("status"))}
+    candidate = str(state.get("completion_candidate_commit") or "").strip().lower()
+    if not candidate:
+        return {"status": "NOT_READY", "reason": "RELEASE_CANDIDATE_MISSING"}
+    decision = AcceptanceValidator(store).finalize(project_id, candidate, {})
+    return {"status": decision.status.value, "blockers": list(decision.blockers)}
 
 
 def _renew_active_workers(store, scheduler, project_id: str, *, lease_seconds: int) -> None:

@@ -204,3 +204,80 @@ class AcceptanceValidator:
         if ordered:
             return AcceptanceDecision(AcceptanceStatus.BLOCKED, ordered)
         return AcceptanceDecision(AcceptanceStatus.PASS, ())
+
+    def finalize(
+        self,
+        project_id: str,
+        candidate_commit: str,
+        artifact_hashes: Mapping[str, str],
+    ) -> AcceptanceDecision:
+        """Atomically terminalize a project only after a fresh PASS decision.
+
+        The write transaction is acquired before re-evaluating acceptance.
+        SQLite's IMMEDIATE transaction prevents a concurrent writer from
+        introducing late blocking state between the PASS decision and the
+        durable COMPLETE transition. Evaluation itself remains independently
+        callable and read-only.
+        """
+        candidate = str(candidate_commit or "").strip().lower()
+        with self.store._transaction() as conn:
+            decision = self.evaluate(project_id, candidate, artifact_hashes)
+            if decision.status is not AcceptanceStatus.PASS:
+                return decision
+            state = conn.execute(
+                "SELECT * FROM project_state WHERE project_id=?", (project_id,)
+            ).fetchone()
+            if state is None:
+                return AcceptanceDecision(AcceptanceStatus.BLOCKED, ("PROJECT_OR_CONTRACT_MISSING",))
+            current = str(state["status"])
+            if str(state["completion_candidate_commit"] or "") != candidate:
+                return AcceptanceDecision(AcceptanceStatus.BLOCKED, ("PROJECT_CANDIDATE_MISMATCH",))
+            if current == "COMPLETE":
+                return decision
+            if current not in {"ACTIVE", "RUNNING"}:
+                return AcceptanceDecision(
+                    AcceptanceStatus.BLOCKED,
+                    (f"PROJECT_STATE_NOT_COMPLETABLE:{current}",),
+                )
+            from .state_store import utc_now
+            from .models import canonical_json
+            stamp = utc_now()
+            conn.execute(
+                "UPDATE project_state SET status='COMPLETE',phase='COMPLETE',updated_at=? "
+                "WHERE project_id=? AND status IN ('ACTIVE','RUNNING')",
+                (stamp, project_id),
+            )
+            active_sessions = conn.execute(
+                "SELECT session_id,master_epoch FROM master_sessions "
+                "WHERE project_id=? AND state='ACTIVE'",
+                (project_id,),
+            ).fetchall()
+            for session in active_sessions:
+                sid = str(session["session_id"])
+                epoch = int(session["master_epoch"])
+                conn.execute(
+                    "UPDATE master_sessions SET state='ENDED',ended_at=?,end_reason='PROJECT_COMPLETE',lease_until=? "
+                    "WHERE project_id=? AND session_id=? AND state='ACTIVE'",
+                    (stamp, stamp, project_id, sid),
+                )
+                conn.execute(
+                    "INSERT OR IGNORE INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                    (
+                        f"master-session-end-{project_id}-{sid}",
+                        project_id,
+                        "MASTER_SESSION_ENDED",
+                        canonical_json({"session_id": sid, "master_epoch": epoch, "reason": "PROJECT_COMPLETE"}),
+                        stamp,
+                    ),
+                )
+            conn.execute(
+                "INSERT OR IGNORE INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"project-complete-{project_id}-{candidate[:16]}",
+                    project_id,
+                    "PROJECT_COMPLETED",
+                    canonical_json({"candidate_commit": candidate}),
+                    stamp,
+                ),
+            )
+            return decision
