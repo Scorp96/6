@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 import tempfile
 import datetime as dt
+import time
 from pathlib import Path
 
 from master_a_dynamic_v4.activation_arbiter import ActivationArbiter, ArbiterSnapshot
@@ -274,6 +275,51 @@ class ActivationArbiterTests(unittest.TestCase):
             decision = self.arbiter.decide(snapshot)
             self.assertEqual("WAKE_MASTER", decision.action)
             self.assertEqual("PENDING_RESULT_REQUIRES_MASTER_WAKE", decision.reason)
+            store.close()
+
+    def test_daemon_keeps_lease_alive_during_long_action(self):
+        from master_a_dynamic_v4.daemon import LocalDaemon
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract(
+                "p",
+                root_contract={"objective": "x"},
+                acceptance_contract={"required": []},
+            )
+            heartbeats = []
+
+            def beat():
+                heartbeats.append(time.monotonic())
+
+            def handle(_decision):
+                time.sleep(0.06)
+                return {"status": "IDLE"}
+
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=1,
+                snapshot_provider=lambda: ArbiterSnapshot(
+                    project_id="p",
+                    project_status="ACTIVE",
+                    master_epoch=0,
+                    daemon_epoch=1,
+                    master_active=True,
+                    active_workers=0,
+                    free_slots=1,
+                    ready_tasks=1,
+                    ambiguous_intents=0,
+                ),
+                action_handlers={"ASSIGN_WORKER": handle},
+                lease_heartbeat=beat,
+                action_heartbeat_interval_seconds=0.01,
+                health_path=root / "health.json",
+            )
+            decision = daemon.run_once()
+            self.assertEqual("ASSIGN_WORKER", decision.action)
+            self.assertGreaterEqual(len(heartbeats), 3)
             store.close()
 
     def test_idle_durable_change_can_activate_master_reasoning(self):
