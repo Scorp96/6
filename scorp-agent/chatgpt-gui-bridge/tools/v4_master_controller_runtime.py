@@ -245,21 +245,40 @@ def _worker_prompt(claim) -> str:
         "resource_scope": list(claim.resource_scope),
         "access_mode": claim.access_mode,
     }
+    task_context = _prompt_task_context(getattr(claim, "task_context", {}) or {})
+    execution_template = (
+        task_context.get("execution_request_template")
+        if isinstance(task_context, Mapping)
+        else None
+    )
+    execution_required = isinstance(execution_template, Mapping) and bool(execution_template)
+    execution_instruction = (
+        "For COMPLETE, copy execution_request exactly from "
+        "task_context.execution_request_template; do not invent or broaden it."
+        if execution_required
+        else "This assignment does not authorize LocalExecution. Omit execution_request "
+        "entirely; analysis/audit evidence is the deliverable."
+    )
+    evidence_example = (
+        {"kind": "execution_request", "claim": "assigned request supplied"}
+        if execution_required
+        else {"kind": "source_audit", "claim": "bounded evidence supports the finding"}
+    )
     return json.dumps(
         {
             "protocol": "SCORP V4 WORK_RESULT/1",
             "role": "dynamic Worker",
             "assignment": assignment,
-            "task_context": _prompt_task_context(getattr(claim, "task_context", {}) or {}),
+            "task_context": task_context,
             "instructions": [
                 "Only work inside the assignment resource_scope.",
-                "If local execution is required, include an execution_request using only approved fields.",
+                execution_instruction,
                 "Return exactly one JSON object with work_result_version=1 and no explanatory prose.",
                 "Use valid JSON string escaping; prefer forward-slash paths when a path is needed.",
                 "For COMPLETE results, evidence must be an array of JSON objects with exactly kind and claim keys; do not use prose evidence strings.",
                 "Do not restate execution_request.args, execution_request.resource_paths, arrays, objects, or other JSON syntax inside any free-text string field.",
-                "Set status=COMPLETE only after supplying execution_request and non-empty scope_completed, evidence, and acceptance_coverage.",
-                "Copy candidate_commit exactly from task_context into the result; include result_sha256 as a 64-hex value (the runtime recomputes it after execution_request).",
+                "Set status=COMPLETE only after non-empty scope_completed, evidence, and acceptance_coverage are supplied.",
+                "Copy candidate_commit exactly from task_context into the result; include any 64-hex result_sha256 placeholder. The runtime recomputes result_sha256 from the captured normalized result and any authorized execution receipt.",
             ],
             "result_requirements": {
                 "complete_requires_nonempty": [
@@ -267,14 +286,15 @@ def _worker_prompt(claim) -> str:
                     "evidence",
                     "acceptance_coverage",
                 ],
-                "execution_request_required_for_complete": True,
+                "execution_request_required_for_complete": execution_required,
+                "execution_request_forbidden_without_template": not execution_required,
                 "candidate_commit_required": True,
                 "result_sha256_required": True,
-                "result_sha256": "64-hex; the runtime recomputes it after execution_request",
+                "result_sha256": "64-hex placeholder accepted; runtime recomputes canonical content hash",
                 "json_safety": {
                     "evidence_item_type": "object",
                     "evidence_required_keys": ["kind", "claim"],
-                    "evidence_example": {"kind": "execution_request", "claim": "assigned request supplied"},
+                    "evidence_example": evidence_example,
                     "forbid_execution_request_restatement_in_strings": True,
                     "forbid_json_syntax_inside_free_text_strings": True,
                 },
@@ -284,7 +304,6 @@ def _worker_prompt(claim) -> str:
         sort_keys=True,
         separators=(",", ":"),
     )
-
 
 def run_runtime(args: argparse.Namespace) -> int:
     if not args.send:
