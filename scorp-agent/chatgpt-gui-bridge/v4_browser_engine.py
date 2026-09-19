@@ -70,7 +70,8 @@ def build_v4_browser_engine(
         intent_id = str(intent.get("intent_id") or "")
         if not url:
             marker = ""
-            if str(intent.get("action_kind") or "") == "CHATGPT_WORKER_SUBMIT":
+            action_kind = str(intent.get("action_kind") or "")
+            if action_kind == "CHATGPT_WORKER_SUBMIT":
                 try:
                     payload = json.loads(str(intent.get("payload_json") or "{}"))
                 except (TypeError, ValueError):
@@ -78,6 +79,11 @@ def build_v4_browser_engine(
                 assignment = payload.get("worker_assignment") if isinstance(payload, Mapping) else None
                 if isinstance(assignment, Mapping):
                     marker = str(assignment.get("assignment_id") or "").strip()
+            elif action_kind == "MASTER_REASONING":
+                # The reasoning prompt carries its deterministic intent id.
+                # This lets recovery locate an unpromoted Master turn without
+                # ever resubmitting an ambiguous external side effect.
+                marker = intent_id
             recover_unpromoted = getattr(driver, "recover_unpromoted_turn_snapshot", None)
             if not marker or not callable(recover_unpromoted):
                 return {"status": "AMBIGUOUS", "reason": "CONVERSATION_URL_MISSING"}
