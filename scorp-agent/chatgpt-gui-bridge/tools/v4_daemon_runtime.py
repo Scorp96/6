@@ -9,6 +9,7 @@ may attach the existing Master A controller in later runtime construction.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import hashlib
 import json
 import os
@@ -35,6 +36,7 @@ from master_a_dynamic_v4.daemon import (  # noqa: E402
 )
 from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
 from master_a_dynamic_v4.master_supervisor import MasterSupervisor  # noqa: E402
+from master_a_dynamic_v4.master_reasoning import MasterReasoningCoordinator  # noqa: E402
 from master_a_dynamic_v4.path_policy import PathPolicy  # noqa: E402
 from master_a_dynamic_v4.scheduler import Scheduler, WorkerFenceError  # noqa: E402
 from master_a_dynamic_v4.state_store import StateStore  # noqa: E402
@@ -121,12 +123,19 @@ def _build_persistent_action_handlers(
     gateway,
     *,
     worker_prompt_factory,
+    reasoning_coordinator=None,
 ):
-    """Map only safe arbiter actions to the existing fenced controller seams."""
+    """Map daemon actions to fenced deterministic and reasoning seams."""
+    reasoning_callback = (
+        reasoning_coordinator.run_once
+        if reasoning_coordinator is not None
+        else None
+    )
     handler = PersistentControllerActionHandler(
         controller,
         worker_prompt_factory=worker_prompt_factory,
         recover_callback=gateway.recover,
+        reasoning_callback=reasoning_callback,
     )
     return {
         "RECONCILE_AMBIGUOUS": handler,
@@ -134,6 +143,7 @@ def _build_persistent_action_handlers(
         "WAKE_MASTER": handler,
         "RESUME_WORKER": handler,
         "RECOVER_STALLED": handler,
+        "REASON_MASTER": handler,
     }
 
 
@@ -242,6 +252,7 @@ def run_runtime(args: argparse.Namespace) -> int:
         master_supervision = False
         controller = None
         rebind_callback = None
+        reasoning_coordinator = None
         if args.active_controller:
             controller_gateway, controller, rebind_callback = _build_active_controller_runtime(
                 database_path,
@@ -250,11 +261,16 @@ def run_runtime(args: argparse.Namespace) -> int:
                 pathlib.Path(args.driver_state_path),
                 str(args.master_session_id),
             )
+            reasoning_coordinator = MasterReasoningCoordinator(
+                controller_gateway,
+                controller,
+            )
             action_handlers.update(
                 _build_persistent_action_handlers(
                     controller,
                     controller_gateway,
                     worker_prompt_factory=_worker_prompt,
+                    reasoning_coordinator=reasoning_coordinator,
                 )
             )
         if args.supervise_master:
@@ -291,8 +307,14 @@ def run_runtime(args: argparse.Namespace) -> int:
             store,
             project_id=str(args.project_id),
             daemon_epoch=daemon_epoch,
-            snapshot_provider=lambda: store.activation_snapshot(
-                str(args.project_id), daemon_epoch=daemon_epoch
+            snapshot_provider=lambda: dataclasses.replace(
+                store.activation_snapshot(
+                    str(args.project_id), daemon_epoch=daemon_epoch
+                ),
+                reasoning_required=bool(
+                    reasoning_coordinator is not None
+                    and reasoning_coordinator.reasoning_required()
+                ),
             ),
             lease_heartbeat=lambda: store.heartbeat_daemon_lease(
                 str(args.project_id),
@@ -332,6 +354,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             "browser_send": "FORBIDDEN",
             "master_supervision": master_supervision,
             "active_controller": bool(args.active_controller),
+            "persistent_master_reasoning": bool(reasoning_coordinator is not None),
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         graceful_exit = True
