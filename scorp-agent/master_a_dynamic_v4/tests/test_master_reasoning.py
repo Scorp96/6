@@ -133,6 +133,23 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(1, count)
 
+    def test_daemon_recovery_state_wakes_reasoning_after_quiescence(self):
+        self.coordinator.run_once()
+        self.assertFalse(self.coordinator.reasoning_required())
+        self.store.acquire_daemon_lease("p", "daemon-a", ttl_seconds=30)
+        self.assertTrue(self.coordinator.reasoning_required())
+
+    def test_durable_failure_event_wakes_reasoning_after_quiescence(self):
+        self.coordinator.run_once()
+        self.assertFalse(self.coordinator.reasoning_required())
+        with self.store._transaction() as conn:
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) "
+                "VALUES('failure-1','p','ACTION_FAILED','{\"reason\":\"boom\"}',"
+                "'2026-09-19T00:00:00Z')"
+            )
+        self.assertTrue(self.coordinator.reasoning_required())
+
     def test_ambiguous_submit_reconciles_same_intent_without_resend(self):
         self.gateway.block_first_submit = True
         first = self.coordinator.run_once()
