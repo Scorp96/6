@@ -153,6 +153,36 @@ class MasterReasoningCoordinator:
                    FROM release_candidates WHERE project_id=?""",
                 (self.project_id,),
             ).fetchone()
+            daemon = conn.execute(
+                """SELECT daemon_epoch,lease_status
+                   FROM daemon_leases WHERE project_id=?
+                   ORDER BY daemon_epoch DESC LIMIT 1""",
+                (self.project_id,),
+            ).fetchone()
+            supervision = conn.execute(
+                """SELECT restart_count,recovery_count,consecutive_failures,
+                          restart_budget,circuit_state,block_reason
+                   FROM daemon_supervision WHERE project_id=?""",
+                (self.project_id,),
+            ).fetchone()
+            event_rows = [dict(row) for row in conn.execute(
+                """SELECT event_id,kind,payload_json
+                   FROM events
+                   WHERE project_id=?
+                     AND kind NOT IN (
+                       'ACTIVATION_DECISION',
+                       'MASTER_DECISION_APPLIED',
+                       'MASTER_DECISION_STALE'
+                     )
+                   ORDER BY created_at DESC,event_id DESC LIMIT 32""",
+                (self.project_id,),
+            )]
+            durable_events = []
+            for row in reversed(event_rows):
+                row["payload"] = decode_object(
+                    row.pop("payload_json"), field="EVENT_PAYLOAD"
+                )
+                durable_events.append(row)
         return {
             "contract": {
                 "root": decode_object(
@@ -172,6 +202,9 @@ class MasterReasoningCoordinator:
             "external_intents": intents,
             "evidence": evidence,
             "release": dict(release) if release is not None else None,
+            "daemon": dict(daemon) if daemon is not None else None,
+            "supervision": dict(supervision) if supervision is not None else None,
+            "durable_events": durable_events,
         }
 
     def semantic_snapshot_sha256(self) -> str:
