@@ -36,6 +36,7 @@ class ArbiterSnapshot:
     progress_made: bool = False
     browser_succeeded: bool = False
     browser_error: bool = False
+    reasoning_required: bool = False
 
     def as_dict(self) -> dict[str, object]:
         return dataclasses.asdict(self)
@@ -113,6 +114,8 @@ class ActivationArbiter:
         elif value.ready_tasks and value.free_slots:
             action, reason = "ASSIGN_WORKER", "READY_TASKS_AND_FREE_SLOT"
             capacity = min(value.ready_tasks, value.free_slots)
+        elif value.reasoning_required and value.active_workers == 0:
+            action, reason = "REASON_MASTER", "DURABLE_STATE_REQUIRES_MASTER_REASONING"
 
         decision_material = {
             "project_id": value.project_id,
