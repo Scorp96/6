@@ -114,6 +114,43 @@ class V4BrowserEngineTests(unittest.TestCase):
         )
         self.assertEqual([], driver.reconciles)
 
+    def test_reconcile_recovers_unpromoted_master_reasoning_without_resubmit(self):
+        intent_id = "master-reasoning-" + "a" * 32
+        driver = FakeDriver(
+            "Focused Window: Chrome\nhttps://chatgpt.com/c/master-recovered\n"
+            + intent_id
+            + "\nMASTER_DECISION"
+        )
+
+        def parser(snapshot, observed_intent_id):
+            if "MASTER_DECISION" not in snapshot:
+                return None
+            return {
+                "master_decision_version": 1,
+                "intent_id": observed_intent_id,
+                "action": "WAIT",
+            }
+
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=parser,
+            timeout_seconds=30,
+        )
+        intent = {
+            "intent_id": intent_id,
+            "channel": "master",
+            "actor_id": "A",
+            "action_kind": "MASTER_REASONING",
+            "conversation_url": None,
+            "payload_json": json.dumps({"prompt": "reason about durable state"}),
+        }
+        result = engine.reconcile(intent)
+        self.assertEqual("RESPONSE_CAPTURED", result["status"])
+        self.assertEqual("https://chatgpt.com/c/master-recovered", result["conversation_url"])
+        self.assertEqual([(intent_id, intent_id, 30.0)], driver.unpromoted)
+        self.assertEqual([], driver.submits)
+
     def test_reconcile_mismatched_conversation_is_ambiguous(self):
         driver = FakeDriver("https://chatgpt.com/c/other-conversation\nSCORP_RESULT")
         engine = build_v4_browser_engine(
