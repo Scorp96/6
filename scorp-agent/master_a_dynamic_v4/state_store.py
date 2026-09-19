@@ -1888,6 +1888,56 @@ class StateStore:
             raise StoreInvariantError("INTENT_PAYLOAD_INVALID") from exc
         if not isinstance(payload, Mapping):
             raise StoreInvariantError("INTENT_PAYLOAD_INVALID")
+        if str(row["action_kind"]) == "MASTER_REASONING":
+            binding = payload.get("reasoning_binding")
+            if not isinstance(binding, Mapping):
+                raise StoreInvariantError("MASTER_REASONING_AUTHORITY_BINDING_INVALID")
+            required = (
+                "project_id",
+                "intent_id",
+                "master_epoch",
+                "base_state_version",
+                "operator_generation",
+                "objective_generation",
+                "input_snapshot_sha256",
+            )
+            if any(key not in binding for key in required):
+                raise StoreInvariantError("MASTER_REASONING_AUTHORITY_BINDING_INVALID")
+            if (
+                str(binding.get("project_id") or "") != str(row["project_id"])
+                or str(binding.get("intent_id") or "") != str(row["intent_id"])
+                or str(row["actor_id"]) != "A"
+                or str(row["channel"]) != "master"
+            ):
+                raise StoreInvariantError("MASTER_REASONING_AUTHORITY_FENCED")
+            authority = conn.execute(
+                """SELECT p.state_version,p.master_epoch,p.status,
+                          o.operator_state,o.operator_generation,o.objective_generation
+                   FROM project_state p
+                   JOIN operator_controls o ON o.project_id=p.project_id
+                   WHERE p.project_id=?""",
+                (str(row["project_id"]),),
+            ).fetchone()
+            if authority is None:
+                raise StoreInvariantError("MASTER_REASONING_AUTHORITY_MISSING")
+            try:
+                expected_epoch = int(binding["master_epoch"])
+                expected_version = int(binding["base_state_version"])
+                expected_operator = int(binding["operator_generation"])
+                expected_objective = int(binding["objective_generation"])
+            except (TypeError, ValueError) as exc:
+                raise StoreInvariantError("MASTER_REASONING_AUTHORITY_BINDING_INVALID") from exc
+            if (
+                expected_epoch != int(authority["master_epoch"])
+                or expected_version != int(authority["state_version"])
+                or expected_operator != int(authority["operator_generation"])
+                or expected_objective != int(authority["objective_generation"])
+                or str(authority["status"]) not in {"ACTIVE", "RUNNING"}
+                or str(authority["operator_state"]) not in {"ACTIVE", "RUNNING"}
+            ):
+                raise StoreInvariantError("MASTER_REASONING_AUTHORITY_FENCED")
+            return
+
         assignment = payload.get("worker_assignment")
         if assignment is None:
             return
