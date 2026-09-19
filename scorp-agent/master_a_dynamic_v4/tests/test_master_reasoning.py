@@ -6,6 +6,8 @@ import unittest
 from pathlib import Path
 
 from master_a_dynamic_v4.master_reasoning import MasterReasoningCoordinator
+from master_a_dynamic_v4.path_policy import PathPolicy
+from master_a_dynamic_v4.scheduler import Scheduler
 from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError
 
 
@@ -37,6 +39,12 @@ class _Gateway:
         self.block_first_submit = False
         self.mutate_after_capture = False
         self.next_action = "WAIT"
+        self.scheduler = Scheduler(
+            store,
+            project_id,
+            PathPolicy(store.allowed_roots),
+            max_workers=2,
+        )
         self.adapter = _Adapter(self)
 
     def _decision(self, intent):
@@ -48,6 +56,8 @@ class _Gateway:
             "action": self.next_action,
             "reason": "test decision",
         }
+        if self.next_action == "REQUEUE_TASK":
+            value["task_id"] = "T1"
         if self.next_action == "APPLY_PLAN":
             value["plan"] = {
                 "project_id": self.project_id,
@@ -203,6 +213,31 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.assertEqual("APPLIED", result["status"])
         self.assertEqual(1, len(self.controller.plans))
         self.assertEqual("p", self.controller.plans[0]["project_id"])
+
+    def test_requeue_blocked_task_is_version_and_epoch_fenced(self):
+        self.gateway.scheduler.enqueue_graph(
+            [
+                {
+                    "task_id": "T1",
+                    "objective_sha256": "a" * 64,
+                    "resource_scope": [self.root / "a.txt"],
+                    "task_context": {"instruction": "retry the bounded task"},
+                    "dependencies": [],
+                }
+            ]
+        )
+        with self.store._transaction() as conn:
+            conn.execute(
+                "UPDATE task_nodes SET state='BLOCKED' WHERE project_id='p' AND task_id='T1'"
+            )
+        before = self.store.get_project_state("p")["state_version"]
+        self.gateway.next_action = "REQUEUE_TASK"
+        result = self.coordinator.run_once()
+        self.assertEqual("APPLIED", result["status"])
+        task = self.gateway.scheduler.get_task("T1")
+        self.assertEqual("QUEUED", task["state"])
+        self.assertNotEqual("a" * 64, task["objective_sha256"])
+        self.assertEqual(int(before) + 1, int(self.store.get_project_state("p")["state_version"]))
 
     def test_pre_io_authority_fences_stale_reasoning_intent(self):
         intent = self.coordinator._prepare()
