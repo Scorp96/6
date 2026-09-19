@@ -39,6 +39,7 @@ class PersistentControllerActionHandler:
         *,
         worker_prompt_factory: Callable[[Any], str],
         recover_callback: Callable[[], Any],
+        reasoning_callback: Callable[[], Any] | None = None,
     ) -> None:
         if controller is None or not callable(getattr(controller, "step", None)):
             raise ValueError("PERSISTENT_CONTROLLER_REQUIRED")
@@ -48,7 +49,10 @@ class PersistentControllerActionHandler:
             raise ValueError("BROWSER_RECOVERY_CALLBACK_REQUIRED")
         self.controller = controller
         self.worker_prompt_factory = worker_prompt_factory
+        if reasoning_callback is not None and not callable(reasoning_callback):
+            raise ValueError("MASTER_REASONING_CALLBACK_INVALID")
         self.recover_callback = recover_callback
+        self.reasoning_callback = reasoning_callback
 
     def __call__(self, decision: ActivationDecision) -> dict[str, Any]:
         action = str(getattr(decision, "action", "") or "").strip()
@@ -71,6 +75,24 @@ class PersistentControllerActionHandler:
                     "recovery": items,
                 }
             return {"status": "RECOVERED", "recovery": items}
+
+        if action == "REASON_MASTER":
+            if self.reasoning_callback is None:
+                return {
+                    "status": "BLOCKED",
+                    "reason": "MASTER_REASONING_CALLBACK_REQUIRED",
+                }
+            value = self.reasoning_callback()
+            if isinstance(value, Mapping):
+                result = dict(value)
+            else:
+                result = {"status": str(getattr(value, "status", "") or "").strip().upper()}
+            if not str(result.get("status") or "").strip():
+                return {
+                    "status": "BLOCKED",
+                    "reason": "MASTER_REASONING_STATUS_MISSING",
+                }
+            return result
 
         if action in self._STEP_ACTIONS:
             step = self.controller.step(self.worker_prompt_factory)
