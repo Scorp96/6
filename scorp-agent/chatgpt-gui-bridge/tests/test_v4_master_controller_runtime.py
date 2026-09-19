@@ -32,6 +32,28 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertIsNone(runtime.parse_structured_response("#### ChatGPT said:\nfinished", "intent-1"))
         self.assertIsNone(runtime.parse_structured_response("#### ChatGPT said:\n{} trailing", "intent-1"))
 
+    def test_parser_accepts_identity_bound_master_decision(self):
+        runtime = load_runtime()
+        intent_id = "master-reasoning-" + "a" * 32
+        value = {
+            "master_decision_version": 1,
+            "project_id": "p1",
+            "intent_id": intent_id,
+            "master_epoch": 1,
+            "base_state_version": 2,
+            "operator_generation": 0,
+            "objective_generation": 0,
+            "input_snapshot_sha256": "b" * 64,
+            "action": "WAIT",
+            "reason": "existing work is still active",
+        }
+        snapshot = "#### ChatGPT said:\n```json\n" + json.dumps(value) + "\n```"
+        self.assertEqual(value, runtime.parse_structured_response(snapshot, intent_id))
+        foreign = dict(value)
+        foreign["intent_id"] = "master-reasoning-" + "c" * 32
+        foreign_snapshot = "#### ChatGPT said:\n" + json.dumps(foreign)
+        self.assertIsNone(runtime.parse_structured_response(foreign_snapshot, intent_id))
+
     def test_parser_rejects_work_result_bound_to_a_different_assignment(self):
         runtime = load_runtime()
         foreign = {
