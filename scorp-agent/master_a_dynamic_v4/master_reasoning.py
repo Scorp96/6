@@ -28,7 +28,9 @@ class MasterReasoningCoordinator:
         "PREPARED", "VERIFIED_NOT_SUBMITTED", "MAY_HAVE_SUBMITTED",
         "BLOCKED_AMBIGUOUS", "CONFIRMED_SUBMITTED", "RESPONSE_CAPTURED",
     })
-    _ALLOWED_ACTIONS = frozenset({"APPLY_PLAN", "WAIT", "HUMAN_REQUIRED"})
+    _ALLOWED_ACTIONS = frozenset(
+        {"APPLY_PLAN", "REQUEUE_TASK", "WAIT", "HUMAN_REQUIRED"}
+    )
 
     def __init__(self, gateway: Any, controller: Any) -> None:
         if gateway is None or not hasattr(gateway, "store") or not callable(
@@ -299,10 +301,11 @@ class MasterReasoningCoordinator:
                 "instructions": [
                     "Return exactly one JSON object and no prose.",
                     "Set master_decision_version=1 and copy every reasoning_binding field exactly.",
-                    "Choose action from APPLY_PLAN, WAIT, HUMAN_REQUIRED.",
+                    "Choose action from APPLY_PLAN, REQUEUE_TASK, WAIT, HUMAN_REQUIRED.",
                     "Never declare PROJECT_COMPLETE from model judgment; deterministic acceptance owns completion.",
                     "Use APPLY_PLAN only when durable state requires a new or revised task graph.",
                     "For APPLY_PLAN include plan with project_id, master_identity='A', tasks, and optional transition_id.",
+                    "Use REQUEUE_TASK only for an existing BLOCKED task after its blocking condition has changed; include task_id and reason.",
                     "Use WAIT only when existing durable work should continue without a new plan.",
                     "Use HUMAN_REQUIRED only for genuine approval, irreducible ambiguity, safety, or budget decisions.",
                 ],
@@ -383,6 +386,8 @@ class MasterReasoningCoordinator:
             raise MasterReasoningRejected("MASTER_DECISION_REASON_REQUIRED")
         if action == "APPLY_PLAN" and not isinstance(decision.get("plan"), Mapping):
             raise MasterReasoningRejected("MASTER_DECISION_PLAN_REQUIRED")
+        if action == "REQUEUE_TASK" and not str(decision.get("task_id") or "").strip():
+            raise MasterReasoningRejected("MASTER_DECISION_TASK_ID_REQUIRED")
         return decision
 
     def _record_terminal(
@@ -535,6 +540,28 @@ class MasterReasoningCoordinator:
         if action == "APPLY_PLAN":
             applied = self.controller.apply_plan(dict(decision["plan"]))
             result = dict(applied) if isinstance(applied, Mapping) else {"value": str(applied)}
+            status = "APPLIED"
+        elif action == "REQUEUE_TASK":
+            task_id = str(decision["task_id"]).strip()
+            task = self.gateway.scheduler.get_task(task_id)
+            retry_identity = {
+                "task_id": task_id,
+                "previous_objective_sha256": str(task["objective_sha256"]),
+                "input_snapshot_sha256": str(binding["input_snapshot_sha256"]),
+                "reason": str(decision["reason"]),
+            }
+            next_version = self.gateway.scheduler.requeue_blocked_task(
+                task_id,
+                expected_state_version=int(binding["base_state_version"]),
+                master_epoch=int(binding["master_epoch"]),
+                new_objective_sha256=sha256_json(retry_identity),
+                reason=str(decision["reason"]),
+            )
+            result = {
+                "task_id": task_id,
+                "state_version": int(next_version),
+                "new_objective_sha256": sha256_json(retry_identity),
+            }
             status = "APPLIED"
         elif action == "WAIT":
             result = {"status": "WAIT"}
