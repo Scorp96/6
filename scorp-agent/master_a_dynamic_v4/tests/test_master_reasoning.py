@@ -114,6 +114,11 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.store.close()
         self.temp.cleanup()
 
+    def test_snapshot_carries_human_objective_and_acceptance_contract(self):
+        snapshot = self.coordinator.semantic_snapshot()
+        self.assertEqual("demo", snapshot["contract"]["root"]["objective"])
+        self.assertEqual([], snapshot["contract"]["acceptance"]["required"])
+
     def test_wait_is_exactly_once_and_quiesces_unchanged_state(self):
         self.assertTrue(self.coordinator.reasoning_required())
         first = self.coordinator.run_once()
