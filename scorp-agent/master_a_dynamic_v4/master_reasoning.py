@@ -405,6 +405,50 @@ class MasterReasoningCoordinator:
             and self.semantic_snapshot_sha256() == str(binding["input_snapshot_sha256"])
         )
 
+    @staticmethod
+    def _definitely_not_submitted(intent: Mapping[str, Any]) -> bool:
+        if str(intent.get("state") or "") != "BLOCKED_AMBIGUOUS":
+            return False
+        reason = str(intent.get("ambiguity_reason") or "")
+        if not reason.startswith("OPERATOR_GENERATION_FENCED:"):
+            return False
+        try:
+            observation = json.loads(str(intent.get("observation_json") or "{}"))
+        except (TypeError, ValueError):
+            return False
+        return (
+            isinstance(observation, Mapping)
+            and str(observation.get("side_effect") or "") == "NOT_ATTEMPTED"
+        )
+
+    def _retire_pre_io_stale_intent(self, intent: Mapping[str, Any]) -> dict[str, Any]:
+        intent_id = str(intent["intent_id"])
+        binding = self._load_binding(intent)
+        self.store.fence_ambiguous_intent(
+            intent_id,
+            reason="MASTER_REASONING_PRE_IO_AUTHORITY_FENCED",
+            observation={
+                "side_effect": "NOT_ATTEMPTED",
+                "source_reason": str(intent.get("ambiguity_reason") or ""),
+            },
+        )
+        current_sha = self.semantic_snapshot_sha256()
+        self._record_terminal(
+            intent_id=intent_id,
+            kind="MASTER_DECISION_STALE",
+            status="STALE",
+            input_snapshot_sha256=str(binding["input_snapshot_sha256"]),
+            output_snapshot_sha256=current_sha,
+            decision=None,
+            result={},
+            reason="MASTER_REASONING_PRE_IO_AUTHORITY_FENCED",
+        )
+        return {
+            "status": "STALE",
+            "reason": "MASTER_REASONING_PRE_IO_AUTHORITY_FENCED",
+            "intent_id": intent_id,
+        }
+
     def run_once(self) -> dict[str, Any]:
         latest = self._latest_reasoning_intent()
         if latest is not None and self._terminal_event(str(latest["intent_id"])) is not None:
@@ -412,6 +456,9 @@ class MasterReasoningCoordinator:
         intent = latest if latest is not None else self._prepare()
         intent_id = str(intent["intent_id"])
         state = str(intent.get("state") or "")
+
+        if self._definitely_not_submitted(intent):
+            return self._retire_pre_io_stale_intent(intent)
 
         if state in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS", "CONFIRMED_SUBMITTED"}:
             intent = self.gateway.adapter.reconcile(intent_id)
