@@ -54,6 +54,40 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         foreign_snapshot = "#### ChatGPT said:\n" + json.dumps(foreign)
         self.assertIsNone(runtime.parse_structured_response(foreign_snapshot, intent_id))
 
+    def test_parser_normalizes_nested_master_reasoning_binding_without_guessing(self):
+        runtime = load_runtime()
+        intent_id = "master-reasoning-" + "d" * 32
+        binding = {
+            "project_id": "p1",
+            "intent_id": intent_id,
+            "master_epoch": 1,
+            "base_state_version": 2,
+            "operator_generation": 0,
+            "objective_generation": 0,
+            "input_snapshot_sha256": "e" * 64,
+        }
+        value = {
+            "master_decision_version": 1,
+            "reasoning_binding": dict(binding),
+            "action": "WAIT",
+            "reason": "independent projector still pending",
+        }
+        snapshot = "#### ChatGPT said:" + chr(10) + json.dumps(value) + chr(10) + "provider footer"
+        parsed = runtime.parse_structured_response(snapshot, intent_id)
+        self.assertIsNotNone(parsed)
+        for key, expected in binding.items():
+            self.assertEqual(expected, parsed[key])
+        self.assertEqual(value["reasoning_binding"], parsed["reasoning_binding"])
+
+        conflicting = dict(value)
+        conflicting["intent_id"] = intent_id
+        conflicting["reasoning_binding"] = {
+            **binding,
+            "intent_id": "master-reasoning-" + "f" * 32,
+        }
+        conflict_snapshot = "#### ChatGPT said:" + chr(10) + json.dumps(conflicting)
+        self.assertIsNone(runtime.parse_structured_response(conflict_snapshot, intent_id))
+
     def test_parser_rejects_work_result_bound_to_a_different_assignment(self):
         runtime = load_runtime()
         foreign = {

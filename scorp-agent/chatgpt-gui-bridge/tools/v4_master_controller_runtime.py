@@ -78,6 +78,61 @@ def _response_matches_protocol(value: Mapping[str, Any], intent_id: str) -> bool
     )
 
 
+_MASTER_REASONING_BINDING_FIELDS = (
+    "project_id",
+    "intent_id",
+    "master_epoch",
+    "base_state_version",
+    "operator_generation",
+    "objective_generation",
+    "input_snapshot_sha256",
+)
+_MASTER_REASONING_NUMERIC_BINDING_FIELDS = frozenset(
+    {"master_epoch", "base_state_version", "operator_generation", "objective_generation"}
+)
+
+
+def _normalize_master_reasoning_response(
+    value: Mapping[str, Any], intent_id: str
+) -> dict[str, Any] | None:
+    """Flatten a nested model binding without weakening durable validation.
+
+    The live ChatGPT UI can return the supplied reasoning_binding object
+    verbatim even though MASTER_DECISION/1 requires those identity fields at
+    top level. Flatten only exact, non-conflicting fields. The coordinator
+    still checks every field against SQLite before applying the action.
+    """
+
+    normalized = dict(value)
+    intent = str(intent_id or "").strip()
+    if not intent.startswith("master-reasoning-"):
+        return normalized
+    nested = normalized.get("reasoning_binding")
+    if nested is None:
+        return normalized
+    if not isinstance(nested, Mapping):
+        return None
+    for key in _MASTER_REASONING_BINDING_FIELDS:
+        if key not in nested:
+            continue
+        if key in normalized:
+            actual = normalized[key]
+            expected = nested[key]
+            try:
+                matched = (
+                    int(actual) == int(expected)
+                    if key in _MASTER_REASONING_NUMERIC_BINDING_FIELDS
+                    else str(actual) == str(expected)
+                )
+            except (TypeError, ValueError):
+                matched = False
+            if not matched:
+                return None
+        else:
+            normalized[key] = nested[key]
+    return normalized
+
+
 def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] | None:
     """Extract an intent-bound WORK_RESULT/1 or MASTER_DECISION/1 object."""
 
@@ -93,8 +148,10 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
             value = json.loads(text)
         except (TypeError, ValueError):
             value = None
-    if isinstance(value, Mapping) and _response_matches_protocol(value, intent_id):
-        return dict(value)
+    if isinstance(value, Mapping):
+        normalized = _normalize_master_reasoning_response(value, intent_id)
+        if normalized is not None and _response_matches_protocol(normalized, intent_id):
+            return normalized
 
     # The Windows Chrome Use read path can preserve the assistant response but
     # decode the localized ``#### ChatGPT 说：`` marker as mojibake and append
@@ -120,10 +177,12 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
             candidate, _ = decoder.raw_decode(tail[match.start() :])
         except (TypeError, ValueError):
             continue
-        if isinstance(candidate, Mapping) and _response_matches_protocol(
-            candidate, intent_id
-        ):
-            return dict(candidate)
+        if isinstance(candidate, Mapping):
+            normalized = _normalize_master_reasoning_response(candidate, intent_id)
+            if normalized is not None and _response_matches_protocol(
+                normalized, intent_id
+            ):
+                return normalized
     return None
 
 

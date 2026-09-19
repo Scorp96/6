@@ -129,6 +129,20 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.assertEqual("demo", snapshot["contract"]["root"]["objective"])
         self.assertEqual([], snapshot["contract"]["acceptance"]["required"])
 
+    def test_prompt_requires_top_level_binding_fields_and_reason(self):
+        binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
+        payload = json.loads(prompt)
+        contract = payload["response_contract"]
+        self.assertEqual("TOP_LEVEL", contract["binding_field_location"])
+        self.assertTrue(contract["forbid_nested_reasoning_binding"])
+        required = set(contract["required_top_level_fields"])
+        self.assertTrue(set(binding).issubset(required))
+        self.assertIn("reason", required)
+        joined = " ".join(payload["instructions"])
+        self.assertIn("RESPONSE TOP LEVEL", joined)
+        self.assertIn("do not return a nested reasoning_binding object", joined)
+        self.assertIn("non-empty top-level reason", joined)
+
     def test_wait_is_exactly_once_and_quiesces_unchanged_state(self):
         self.assertTrue(self.coordinator.reasoning_required())
         first = self.coordinator.run_once()
