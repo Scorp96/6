@@ -119,19 +119,56 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual('CLEANUP_BLOCKED', driver.lifecycle_snapshot()['diag-timeout']['cleanup_status'])
             self.assertEqual(1, len(cli.calls))
 
-    def test_not_submitted_proof_requires_existing_state_and_absent_turn_binding(self):
+    def test_not_submitted_proof_tracks_durable_pre_io_boundary(self):
         with tempfile.TemporaryDirectory() as td:
             driver = self._driver(td, FakeCli())
             self.assertIsNone(driver.prove_turn_not_submitted("turn-never-bound"))
             driver.bind_turn("turn-existing", None, actor_kind="MASTER")
-            proof = driver.prove_turn_not_submitted("turn-never-bound")
-            self.assertIsInstance(proof, dict)
+
+            missing = driver.prove_turn_not_submitted("turn-never-bound")
+            self.assertIsInstance(missing, dict)
             self.assertEqual(
                 "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
+                missing["proof"],
+            )
+            self.assertEqual(1, missing["known_turn_count"])
+
+            bound = driver.prove_turn_not_submitted("turn-existing")
+            self.assertIsInstance(bound, dict)
+            self.assertEqual(
+                "PERSISTED_TURN_BINDING_BROWSER_IO_NOT_STARTED",
+                bound["proof"],
+            )
+            driver._mark_turn_browser_io_started("turn-existing")
+            self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
+
+    def test_submit_lock_timeout_persists_positive_pre_io_proof_without_browser_call(self):
+        class RejectingLock:
+            def acquire(self, *args, **kwargs):
+                return False
+            def release(self):
+                raise AssertionError("release must not run when acquire failed")
+
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            driver = self._driver(td, cli)
+            driver._submission_mutex = RejectingLock()
+            with self.assertRaisesRegex(TimeoutError, "CHROME_USE_SUBMISSION_BUSY"):
+                asyncio.run(driver.submit_prompt(
+                    prompt="PROMPT",
+                    turn_id="turn-lock-busy",
+                    actor_kind="MASTER",
+                    conversation_url=None,
+                ))
+            self.assertEqual([], cli.calls)
+            binding = driver.turn_binding("turn-lock-busy")
+            self.assertIsInstance(binding, dict)
+            self.assertFalse(binding["browser_io_started"])
+            proof = driver.prove_turn_not_submitted("turn-lock-busy")
+            self.assertEqual(
+                "PERSISTED_TURN_BINDING_BROWSER_IO_NOT_STARTED",
                 proof["proof"],
             )
-            self.assertEqual(1, proof["known_turn_count"])
-            self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
 
     def test_parallel_turn_bindings_preserve_both_sessions_in_shared_state(self):
         with tempfile.TemporaryDirectory() as td:

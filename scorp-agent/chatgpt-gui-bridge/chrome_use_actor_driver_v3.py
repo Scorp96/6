@@ -372,6 +372,7 @@ class ChromeUseActorDriverV3:
                     "conversation_url": None,
                     "role": role,
                     "status": "ACTIVE",
+                    "browser_io_started": False,
                 }
                 self._touch_session(state, session, role=role, turn_id=turn_id)
                 self._save(state)
@@ -382,11 +383,17 @@ class ChromeUseActorDriverV3:
             if not session:
                 session = self._conversation_session(url)
                 state["conversations"][url] = {"session": session}
+            prior_io = (
+                old.get("browser_io_started")
+                if isinstance(old, dict) and "browser_io_started" in old
+                else False
+            )
             state["turns"][turn_id] = {
                 "session": session,
                 "conversation_url": url,
                 "role": role,
                 "status": "ACTIVE",
+                "browser_io_started": prior_io,
             }
             self._touch_session(state, session, role=role, turn_id=turn_id, conversation_url=url)
             self._save(state)
@@ -522,6 +529,23 @@ class ChromeUseActorDriverV3:
             row = self._load()["turns"].get(str(turn_id or "").strip())
         return dict(row) if isinstance(row, dict) else None
 
+    def _mark_turn_browser_io_started(self, turn_id):
+        """Persist the exact transition immediately before first browser I/O."""
+
+        turn = str(turn_id or "").strip()
+        if not turn:
+            raise ValueError("ACTOR_GUI_TURN_ID_MISSING")
+        with self._state_mutex:
+            state = self._load()
+            row = state["turns"].get(turn)
+            if not isinstance(row, dict) or not row.get("session"):
+                raise ValueError("ACTOR_GUI_TURN_BINDING_MISSING")
+            row["browser_io_started"] = True
+            row["browser_io_started_at"] = self._now()
+            state["turns"][turn] = row
+            self._save(state)
+        return dict(row)
+
     def prove_turn_not_submitted(self, turn_id):
         """Return positive pre-I/O proof only from an existing durable driver state.
 
@@ -538,7 +562,15 @@ class ChromeUseActorDriverV3:
             if not self.state_path.is_file():
                 return None
             state = self._load()
-            if turn in state["turns"]:
+            row = state["turns"].get(turn)
+            if isinstance(row, dict):
+                if row.get("browser_io_started") is False:
+                    return {
+                        "proof": "PERSISTED_TURN_BINDING_BROWSER_IO_NOT_STARTED",
+                        "protocol_version": str(state.get("protocol_version") or ""),
+                        "known_turn_count": len(state["turns"]),
+                        "session": str(row.get("session") or ""),
+                    }
                 return None
             return {
                 "proof": "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
@@ -1085,6 +1117,19 @@ class ChromeUseActorDriverV3:
         return snapshot
 
     async def submit_prompt(self, *, prompt, turn_id, actor_kind, conversation_url):
+        # Persist the logical turn before waiting on the process-local submit
+        # mutex.  A timeout here is therefore recoverable with positive
+        # evidence that this turn never crossed the browser-I/O boundary.
+        prompt = str(prompt or "").strip()
+        if not prompt:
+            raise ValueError("ACTOR_GUI_PROMPT_MISSING")
+        turn_id = str(turn_id or "").strip()
+        if not turn_id:
+            raise ValueError("ACTOR_GUI_TURN_ID_MISSING")
+        actor_kind = str(actor_kind or "").strip().upper()
+        if actor_kind not in _ALLOWED_ACTORS:
+            raise ValueError("ACTOR_GUI_ACTOR_KIND_INVALID")
+        self.bind_turn(turn_id, conversation_url, actor_kind=actor_kind)
         acquired = await asyncio.to_thread(
             self._submission_mutex.acquire,
             True,
@@ -1113,6 +1158,9 @@ class ChromeUseActorDriverV3:
         if actor_kind not in _ALLOWED_ACTORS:
             raise ValueError("ACTOR_GUI_ACTOR_KIND_INVALID")
         session = self.bind_turn(turn_id, conversation_url, actor_kind=actor_kind)
+        # This durable edge is the exact point after which transport failure is
+        # ambiguous.  Nothing above it performs browser/navigation I/O.
+        self._mark_turn_browser_io_started(turn_id)
         target = _canonical_url(conversation_url) if conversation_url is not None else _ROOT_URL
         if conversation_url is None:
             open_new_tab = getattr(self.cli, "open_new_tab", None)
