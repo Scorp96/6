@@ -169,6 +169,30 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         with self.assertRaises(StoreInvariantError):
             self.store.assert_intent_generation(intent["intent_id"])
 
+    def test_known_not_submitted_authority_fence_retires_without_reconcile(self):
+        intent = self.coordinator._prepare()
+        with self.store._transaction() as conn:
+            conn.execute(
+                "UPDATE project_state SET state_version=state_version+1 WHERE project_id='p'"
+            )
+        blocked = self.store.block_intent(
+            intent["intent_id"],
+            reason="OPERATOR_GENERATION_FENCED:MASTER_REASONING_AUTHORITY_FENCED",
+            observation={
+                "side_effect": "NOT_ATTEMPTED",
+                "reason": "MASTER_REASONING_AUTHORITY_FENCED",
+            },
+        )
+        self.assertEqual("BLOCKED_AMBIGUOUS", blocked["state"])
+        result = self.coordinator.run_once()
+        self.assertEqual("STALE", result["status"])
+        self.assertEqual(0, self.gateway.adapter.reconcile_calls)
+        self.assertEqual(
+            "FENCED_AMBIGUOUS",
+            self.store.get_intent(intent["intent_id"])["state"],
+        )
+        self.assertTrue(self.coordinator.reasoning_required())
+
 
 if __name__ == "__main__":
     unittest.main()
