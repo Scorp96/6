@@ -276,6 +276,37 @@ class ActivationArbiterTests(unittest.TestCase):
             self.assertEqual("PENDING_RESULT_REQUIRES_MASTER_WAKE", decision.reason)
             store.close()
 
+    def test_idle_durable_change_can_activate_master_reasoning(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p", project_status="ACTIVE", master_epoch=1, daemon_epoch=2,
+                master_active=True, active_workers=0, free_slots=2, ready_tasks=0,
+                ambiguous_intents=0, reasoning_required=True,
+            )
+        )
+        self.assertEqual("REASON_MASTER", decision.action)
+        self.assertEqual("DURABLE_STATE_REQUIRES_MASTER_REASONING", decision.reason)
+
+    def test_ready_worker_work_precedes_master_reasoning(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p", project_status="ACTIVE", master_epoch=1, daemon_epoch=2,
+                master_active=True, active_workers=0, free_slots=2, ready_tasks=1,
+                ambiguous_intents=0, reasoning_required=True,
+            )
+        )
+        self.assertEqual("ASSIGN_WORKER", decision.action)
+
+    def test_active_worker_suppresses_new_master_reasoning(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p", project_status="ACTIVE", master_epoch=1, daemon_epoch=2,
+                master_active=True, active_workers=1, free_slots=1, ready_tasks=0,
+                ambiguous_intents=0, reasoning_required=True,
+            )
+        )
+        self.assertEqual("HEARTBEAT_IDLE", decision.action)
+
 
 if __name__ == "__main__":
     unittest.main()
