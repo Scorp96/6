@@ -336,6 +336,10 @@ def run_runtime(args: argparse.Namespace) -> int:
             action_handlers=action_handlers,
             health_path=health_path,
             actor_id=actor_id,
+            action_heartbeat_interval_seconds=max(
+                0.5,
+                min(5.0, float(args.daemon_ttl_seconds) / 3.0),
+            ),
         )
         run_loop_started = True
         decisions = daemon.run_loop(
@@ -351,7 +355,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             "decision_count": len(decisions),
             "decisions": [decision.as_dict() for decision in decisions],
             "health_path": str(health_path),
-            "browser_send": "FORBIDDEN",
+            "browser_send": "ENABLED_FENCED" if args.active_controller else "FORBIDDEN",
             "master_supervision": master_supervision,
             "active_controller": bool(args.active_controller),
             "persistent_master_reasoning": bool(reasoning_coordinator is not None),
