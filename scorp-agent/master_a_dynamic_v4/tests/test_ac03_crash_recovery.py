@@ -254,6 +254,20 @@ class CrashRecoveryTests(unittest.TestCase):
                 self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
                 self.assertEqual("SUBMIT_EXCEPTION_AMBIGUOUS", result["ambiguity_reason"])
                 self.assertEqual("RuntimeError", __import__("json").loads(result["observation_json"])["error_type"])
+                with store._connection() as conn:
+                    event = conn.execute(
+                        "SELECT kind,payload_json FROM events WHERE event_id=?",
+                        ("browser-submit-exception-intent-ac03-attempt-1",),
+                    ).fetchone()
+                self.assertIsNotNone(event)
+                self.assertEqual("BROWSER_SUBMIT_EXCEPTION", event["kind"])
+                payload = __import__("json").loads(event["payload_json"])
+                self.assertEqual("RuntimeError", payload["error_type"])
+                self.assertEqual("intent-ac03", payload["intent_id"])
+                self.assertEqual(1, payload["attempt"])
+                self.assertNotIn("CHROME_USE_EOF_DAEMON_BUSY", event["payload_json"])
+                self.assertTrue(payload["error_message_sha256"])
+                self.assertTrue(payload["traceback"])
             finally:
                 store.close()
 

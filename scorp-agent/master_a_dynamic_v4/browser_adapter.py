@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import hashlib
 import sqlite3
+import traceback
 from collections.abc import Mapping
 from typing import Any
 
-from .models import IntentState
+from .models import IntentState, canonical_json
 from .state_store import StateStore, StoreInvariantError
 
 
@@ -35,6 +36,69 @@ class BrowserAdapter:
     def _crash(self, point: str) -> None:
         if self.failpoint == point:
             raise InjectedCrash(point)
+
+    def _record_submit_exception_event(self, intent: Mapping[str, Any], exc: Exception) -> None:
+        """Append immutable, prompt-free evidence for the first submit failure.
+
+        The mutable intent observation can be overwritten by later reconcile
+        probes. This event keeps only exception type, message hash, attempt,
+        and source locations; it never stores the prompt or browser snapshot.
+        """
+
+        intent_id = str(intent.get("intent_id") or "").strip()
+        project_id = str(intent.get("project_id") or "").strip()
+        if not intent_id or not project_id:
+            return
+        try:
+            attempt = int(intent.get("attempt") or 1)
+        except (TypeError, ValueError):
+            attempt = 1
+        frames = [
+            {
+                "file": __import__("pathlib").Path(frame.filename).name,
+                "function": str(frame.name),
+                "line": int(frame.lineno),
+            }
+            for frame in traceback.extract_tb(exc.__traceback__)[-12:]
+        ]
+        message = str(exc)
+        payload = {
+            "intent_id": intent_id,
+            "action_kind": str(intent.get("action_kind") or ""),
+            "attempt": attempt,
+            "error_type": type(exc).__name__,
+            "error_message_sha256": hashlib.sha256(message.encode("utf-8")).hexdigest(),
+            "traceback": frames,
+        }
+        event_id = f"browser-submit-exception-{intent_id}-attempt-{attempt}"
+        payload_json = canonical_json(payload)
+        with self.store._transaction() as conn:
+            existing = conn.execute(
+                "SELECT kind,payload_json FROM events WHERE event_id=?",
+                (event_id,),
+            ).fetchone()
+            if existing is not None:
+                if (
+                    str(existing["kind"]) != "BROWSER_SUBMIT_EXCEPTION"
+                    or str(existing["payload_json"]) != payload_json
+                ):
+                    raise BrowserAdapterError("BROWSER_SUBMIT_EXCEPTION_EVENT_CONFLICT")
+                return
+            conn.execute(
+                """
+                INSERT INTO events(event_id,project_id,kind,payload_json,processed,created_at)
+                VALUES(?,?,?,?,0,?)
+                """,
+                (
+                    event_id,
+                    project_id,
+                    "BROWSER_SUBMIT_EXCEPTION",
+                    payload_json,
+                    __import__("datetime").datetime.now(
+                        __import__("datetime").timezone.utc
+                    ).isoformat().replace("+00:00", "Z"),
+                ),
+            )
 
     @staticmethod
     def _worker_response_binding_error(
@@ -160,8 +224,9 @@ class BrowserAdapter:
         except Exception as exc:
             # Once MAY_HAVE_SUBMITTED is durable, a transport exception is
             # ambiguous even when the client reports an EOF before returning a
-            # response. Preserve the side-effect fence and make the blocker
-            # explicit; callers must reconcile read-only before any retry.
+            # response. Preserve immutable diagnostics before reconciliation
+            # can overwrite the mutable intent observation.
+            self._record_submit_exception_event(persisted, exc)
             message = str(exc)
             return self.store.block_intent(
                 intent_id,
