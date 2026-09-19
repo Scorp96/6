@@ -119,6 +119,20 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual('CLEANUP_BLOCKED', driver.lifecycle_snapshot()['diag-timeout']['cleanup_status'])
             self.assertEqual(1, len(cli.calls))
 
+    def test_not_submitted_proof_requires_existing_state_and_absent_turn_binding(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            self.assertIsNone(driver.prove_turn_not_submitted("turn-never-bound"))
+            driver.bind_turn("turn-existing", None, actor_kind="MASTER")
+            proof = driver.prove_turn_not_submitted("turn-never-bound")
+            self.assertIsInstance(proof, dict)
+            self.assertEqual(
+                "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
+                proof["proof"],
+            )
+            self.assertEqual(1, proof["known_turn_count"])
+            self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
+
     def test_parallel_turn_bindings_preserve_both_sessions_in_shared_state(self):
         with tempfile.TemporaryDirectory() as td:
             state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'

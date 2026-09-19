@@ -522,6 +522,30 @@ class ChromeUseActorDriverV3:
             row = self._load()["turns"].get(str(turn_id or "").strip())
         return dict(row) if isinstance(row, dict) else None
 
+    def prove_turn_not_submitted(self, turn_id):
+        """Return positive pre-I/O proof only from an existing durable driver state.
+
+        bind_turn persists the turn before the first browser/navigation call.
+        Therefore an existing, valid driver state that lacks this turn proves
+        that this driver never crossed the browser-I/O boundary for it. A
+        missing state file is not proof and deliberately remains ambiguous.
+        """
+
+        turn = str(turn_id or "").strip()
+        if not turn:
+            raise ValueError("ACTOR_GUI_TURN_ID_MISSING")
+        with self._state_mutex:
+            if not self.state_path.is_file():
+                return None
+            state = self._load()
+            if turn in state["turns"]:
+                return None
+            return {
+                "proof": "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
+                "protocol_version": str(state.get("protocol_version") or ""),
+                "known_turn_count": len(state["turns"]),
+            }
+
     def _session_for_url(self, url):
         with self._state_mutex:
             state = self._load()

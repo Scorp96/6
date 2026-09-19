@@ -16,6 +16,13 @@ class FakeDriver:
         self.submits = []
         self.reconciles = []
         self.unpromoted = []
+        self.not_submitted_proof = None
+
+    def prove_turn_not_submitted(self, turn_id):
+        value = self.not_submitted_proof
+        if isinstance(value, dict):
+            return dict(value)
+        return value
 
     async def submit_prompt(self, **kwargs):
         self.submits.append(kwargs)
@@ -113,6 +120,36 @@ class V4BrowserEngineTests(unittest.TestCase):
             driver.unpromoted,
         )
         self.assertEqual([], driver.reconciles)
+
+    def test_reconcile_missing_persisted_turn_binding_is_verified_not_submitted(self):
+        intent_id = "master-reasoning-" + "9" * 32
+        driver = FakeDriver("")
+        driver.not_submitted_proof = {
+            "proof": "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
+            "protocol_version": "scorp.chrome-use-driver/v1",
+            "known_turn_count": 4,
+        }
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=lambda snapshot, observed_intent_id: None,
+            timeout_seconds=30,
+        )
+        result = engine.reconcile({
+            "intent_id": intent_id,
+            "channel": "master",
+            "actor_id": "A",
+            "action_kind": "MASTER_REASONING",
+            "conversation_url": None,
+            "payload_json": json.dumps({"prompt": "reason about durable state"}),
+        })
+        self.assertEqual("VERIFIED_NOT_SUBMITTED", result["status"])
+        self.assertEqual(
+            "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
+            result["proof"],
+        )
+        self.assertEqual([], driver.unpromoted)
+        self.assertEqual([], driver.submits)
 
     def test_reconcile_recovers_unpromoted_master_reasoning_without_resubmit(self):
         intent_id = "master-reasoning-" + "a" * 32

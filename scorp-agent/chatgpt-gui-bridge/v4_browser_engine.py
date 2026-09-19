@@ -87,6 +87,18 @@ def build_v4_browser_engine(
             recover_unpromoted = getattr(driver, "recover_unpromoted_turn_snapshot", None)
             if not marker or not callable(recover_unpromoted):
                 return {"status": "AMBIGUOUS", "reason": "CONVERSATION_URL_MISSING"}
+            prove_not_submitted = getattr(driver, "prove_turn_not_submitted", None)
+            if callable(prove_not_submitted):
+                try:
+                    proof = prove_not_submitted(intent_id)
+                except (OSError, RuntimeError, ValueError):
+                    proof = None
+                if isinstance(proof, Mapping) and str(proof.get("proof") or "").strip():
+                    return {
+                        "status": "VERIFIED_NOT_SUBMITTED",
+                        "proof": str(proof["proof"]),
+                        "observation": dict(proof),
+                    }
             try:
                 snapshot = await asyncio.wait_for(
                     recover_unpromoted(
