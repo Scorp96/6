@@ -65,8 +65,21 @@ def _response_matches_intent_assignment(value: Mapping[str, Any], intent_id: str
     return str(value.get("assignment_id") or "").strip() == expected_assignment
 
 
+def _response_matches_protocol(value: Mapping[str, Any], intent_id: str) -> bool:
+    intent = str(intent_id or "").strip()
+    if intent.startswith("master-reasoning-"):
+        return (
+            str(value.get("master_decision_version") or "") == "1"
+            and str(value.get("intent_id") or "").strip() == intent
+        )
+    return (
+        str(value.get("work_result_version") or "") == "1"
+        and _response_matches_intent_assignment(value, intent)
+    )
+
+
 def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] | None:
-    """Extract one assignment-bound ``WORK_RESULT/1`` object."""
+    """Extract an intent-bound WORK_RESULT/1 or MASTER_DECISION/1 object."""
 
     text = _assistant_text(snapshot)
     if text.startswith("```") and text.endswith("```"):
@@ -80,11 +93,7 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
             value = json.loads(text)
         except (TypeError, ValueError):
             value = None
-    if (
-        isinstance(value, Mapping)
-        and str(value.get("work_result_version") or "") == "1"
-        and _response_matches_intent_assignment(value, intent_id)
-    ):
+    if isinstance(value, Mapping) and _response_matches_protocol(value, intent_id):
         return dict(value)
 
     # The Windows Chrome Use read path can preserve the assistant response but
@@ -100,16 +109,19 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
         return None
     tail = str(snapshot or "")[marker_position:]
     decoder = json.JSONDecoder()
-    starts = list(re.finditer(r'\{\s*"work_result_version"\s*:', tail))
+    starts = list(
+        re.finditer(
+            r'\{\s*"(?:work_result_version|master_decision_version)"\s*:',
+            tail,
+        )
+    )
     for match in reversed(starts):
         try:
             candidate, _ = decoder.raw_decode(tail[match.start() :])
         except (TypeError, ValueError):
             continue
-        if (
-            isinstance(candidate, Mapping)
-            and str(candidate.get("work_result_version") or "") == "1"
-            and _response_matches_intent_assignment(candidate, intent_id)
+        if isinstance(candidate, Mapping) and _response_matches_protocol(
+            candidate, intent_id
         ):
             return dict(candidate)
     return None
