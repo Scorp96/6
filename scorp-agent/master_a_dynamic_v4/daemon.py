@@ -6,6 +6,7 @@ import datetime as dt
 import json
 import os
 import pathlib
+import threading
 import time
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -70,6 +71,7 @@ class LocalDaemon:
         recovery_callback: Callable[[], Any] | None = None,
         health_path: str | pathlib.Path,
         actor_id: str = "scorp-daemon",
+        action_heartbeat_interval_seconds: float = 5.0,
     ) -> None:
         if store is None or not str(project_id).strip():
             raise ValueError("DAEMON_STORE_AND_PROJECT_REQUIRED")
@@ -77,6 +79,8 @@ class LocalDaemon:
             raise ValueError("DAEMON_EPOCH_INVALID")
         if not callable(snapshot_provider):
             raise ValueError("DAEMON_SNAPSHOT_PROVIDER_REQUIRED")
+        if float(action_heartbeat_interval_seconds) <= 0:
+            raise ValueError("DAEMON_ACTION_HEARTBEAT_INTERVAL_INVALID")
         self.store = store
         self.project_id = str(project_id).strip()
         self.daemon_epoch = int(daemon_epoch)
@@ -86,6 +90,7 @@ class LocalDaemon:
         self.snapshot_provider = snapshot_provider
         self.action_handlers = dict(action_handlers or {})
         self.lease_heartbeat = lease_heartbeat
+        self.action_heartbeat_interval_seconds = float(action_heartbeat_interval_seconds)
         self.worker_lease_recovery = worker_lease_recovery
         self.worker_lease_renewal = worker_lease_renewal
         self.project_completion = project_completion
@@ -173,9 +178,34 @@ class LocalDaemon:
             status = "BLOCKED"
             error = f"ACTION_HANDLER_REQUIRED:{decision.action}"
         elif handler is not None:
+            heartbeat_stop = threading.Event()
+            heartbeat_errors: list[BaseException] = []
+            heartbeat_thread: threading.Thread | None = None
+
+            def keep_daemon_lease_live() -> None:
+                if self.lease_heartbeat is None:
+                    return
+                while not heartbeat_stop.wait(self.action_heartbeat_interval_seconds):
+                    try:
+                        self.lease_heartbeat()
+                    except BaseException as exc:
+                        heartbeat_errors.append(exc)
+                        heartbeat_stop.set()
+                        return
+
+            if self.lease_heartbeat is not None:
+                heartbeat_thread = threading.Thread(
+                    target=keep_daemon_lease_live,
+                    name="scorp-daemon-action-heartbeat",
+                    daemon=True,
+                )
+                heartbeat_thread.start()
             try:
                 result = handler(decision)
-                if isinstance(result, Mapping):
+                if heartbeat_errors:
+                    status = "BLOCKED"
+                    error = "DAEMON_LEASE_HEARTBEAT_FAILED_DURING_ACTION"
+                elif isinstance(result, Mapping):
                     result_status = str(result.get("status") or "").strip().upper()
                     if result_status in {"BLOCKED", "FAIL", "FAILED", "ERROR", "REJECTED"}:
                         status = "BLOCKED"
@@ -184,6 +214,12 @@ class LocalDaemon:
             except Exception as exc:  # fail closed but leave the decision durable
                 status = "BLOCKED"
                 error = f"ACTION_FAILED:{type(exc).__name__}"
+            finally:
+                heartbeat_stop.set()
+                if heartbeat_thread is not None:
+                    heartbeat_thread.join(
+                        timeout=max(1.0, self.action_heartbeat_interval_seconds * 2.0)
+                    )
         self._write_health(status=status, snapshot=snapshot, decision=decision, error=error)
         if (
             status in {"HEALTHY", "TERMINAL"}
