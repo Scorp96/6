@@ -163,6 +163,33 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.assertEqual(1, self.gateway.adapter.reconcile_calls)
         self.assertEqual(1, self.store.get_intent(first["intent_id"])["attempt"])
 
+    def test_crash_after_capture_before_outbox_cleanup_is_recovered(self):
+        intent = self.coordinator._prepare()
+        self.store.begin_possible_submit(intent["intent_id"])
+        captured = self.store.capture_response(
+            intent["intent_id"],
+            response=self.gateway._decision(intent),
+            conversation_url="https://chatgpt.com/c/master-crash-window",
+            remote_identity="master-crash-window",
+            observation={"source": "unit-test"},
+        )
+        self.assertEqual("RESPONSE_CAPTURED", captured["state"])
+        with self.store._connection() as conn:
+            before = conn.execute(
+                "SELECT state FROM outbox WHERE intent_id=?",
+                (intent["intent_id"],),
+            ).fetchone()[0]
+        self.assertEqual("PENDING_CLEANUP", before)
+        result = self.coordinator.run_once()
+        self.assertEqual("IDLE", result["status"])
+        with self.store._connection() as conn:
+            after = conn.execute(
+                "SELECT state FROM outbox WHERE intent_id=?",
+                (intent["intent_id"],),
+            ).fetchone()[0]
+        self.assertEqual("COMPLETED", after)
+        self.assertEqual(0, self.gateway.submit_calls)
+
     def test_state_change_after_capture_fences_stale_decision(self):
         self.gateway.mutate_after_capture = True
         result = self.coordinator.run_once()
