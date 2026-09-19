@@ -536,6 +536,10 @@ class MasterAController:
         payload = normalize_worker_result_envelope(payload)
         if str(payload.get("work_result_version") or "") != "1":
             raise ControllerRejected("WORK_RESULT_VERSION_UNSUPPORTED")
+        # The model does not self-authorize the identity digest.  Canonicalize
+        # the captured envelope before validation; if authorized LocalExecution
+        # later adds a receipt, recompute once more over the final payload.
+        payload["result_sha256"] = result_content_sha256(payload)
         self._assert_step_authority(authority_lost)
         self._validate_preexecution_worker_authority(claim, payload)
         execution_request = payload.get("execution_request")
