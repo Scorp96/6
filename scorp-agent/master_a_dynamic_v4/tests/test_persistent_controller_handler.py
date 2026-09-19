@@ -83,6 +83,32 @@ class PersistentControllerActionHandlerTests(unittest.TestCase):
         result = handler(_decision("WAKE_MASTER"))
         self.assertEqual("BLOCKED", result["status"])
 
+    def test_reason_master_uses_reasoning_callback_not_controller_step(self):
+        controller = _Controller()
+        calls = []
+        handler = PersistentControllerActionHandler(
+            controller,
+            worker_prompt_factory=lambda claim: "prompt",
+            recover_callback=lambda: [],
+            reasoning_callback=lambda: calls.append(True) or {"status": "APPLIED"},
+        )
+        result = handler(_decision("REASON_MASTER"))
+        self.assertEqual("APPLIED", result["status"])
+        self.assertEqual([True], calls)
+        self.assertEqual(0, controller.step_calls)
+
+    def test_reason_master_without_callback_fails_closed(self):
+        controller = _Controller()
+        handler = PersistentControllerActionHandler(
+            controller,
+            worker_prompt_factory=lambda claim: "prompt",
+            recover_callback=lambda: [],
+        )
+        result = handler(_decision("REASON_MASTER"))
+        self.assertEqual("BLOCKED", result["status"])
+        self.assertEqual("MASTER_REASONING_CALLBACK_REQUIRED", result["reason"])
+        self.assertEqual(0, controller.step_calls)
+
     def test_unsupported_action_is_rejected(self):
         handler = PersistentControllerActionHandler(
             _Controller(),
