@@ -27,6 +27,15 @@ class _Gateway:
         return list(self.recovery)
 
 
+class _Reasoning:
+    def __init__(self):
+        self.calls = 0
+
+    def run_once(self):
+        self.calls += 1
+        return {"status": "APPLIED", "action": "WAIT"}
+
+
 def _decision(action: str):
     return ActivationDecision(
         decision_id="d1",
@@ -79,10 +88,12 @@ class V4DaemonActiveControllerTests(unittest.TestCase):
         controller = _Controller()
         gateway = _Gateway([("intent-1", "RESPONSE_CAPTURED")])
         prompts = []
+        reasoning = _Reasoning()
         handlers = runtime._build_persistent_action_handlers(
             controller,
             gateway,
             worker_prompt_factory=lambda claim: prompts.append(claim.task_id) or "prompt",
+            reasoning_coordinator=reasoning,
         )
         self.assertEqual(
             {
@@ -91,6 +102,7 @@ class V4DaemonActiveControllerTests(unittest.TestCase):
                 "WAKE_MASTER",
                 "RESUME_WORKER",
                 "RECOVER_STALLED",
+                "REASON_MASTER",
             },
             set(handlers),
         )
@@ -101,6 +113,10 @@ class V4DaemonActiveControllerTests(unittest.TestCase):
         handlers["ASSIGN_WORKER"](_decision("ASSIGN_WORKER"))
         self.assertEqual(1, controller.step_calls)
         self.assertEqual(["T1"], prompts)
+        reasoned = handlers["REASON_MASTER"](_decision("REASON_MASTER"))
+        self.assertEqual("APPLIED", reasoned["status"])
+        self.assertEqual(1, reasoning.calls)
+        self.assertEqual(1, controller.step_calls)
 
     def test_action_map_never_steps_when_recovery_remains_ambiguous(self):
         controller = _Controller()
