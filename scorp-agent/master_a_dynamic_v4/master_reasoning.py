@@ -510,6 +510,11 @@ class MasterReasoningCoordinator:
                 "intent_state": state,
             }
 
+        # A crash can occur after response capture but before outbox cleanup.
+        # Finalization is idempotent and must precede decision application so
+        # recovery cannot leave a durable PENDING_CLEANUP blocker behind.
+        self.store.finalize_intent(intent_id)
+        intent = self.store.get_intent(intent_id)
         decision = self._decision(intent)
         binding = self._load_binding(intent)
         if not self._current_binding_matches(binding):
