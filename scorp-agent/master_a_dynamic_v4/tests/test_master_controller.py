@@ -284,6 +284,35 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual((), step.outcomes)
         self.assertEqual(("T1:DISPATCH_EXCEPTION:RuntimeError",), step.blockers)
 
+    def test_audit_only_complete_result_recomputes_hash_without_local_execution(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+        from master_a_dynamic_v4.work_result import result_content_sha256
+
+        gateway = _FakeGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start({"objective": "audit only"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        def decode(row):
+            result = _result_for(row)
+            result["result_sha256"] = "0" * 64
+            result.pop("execution_request", None)
+            return result
+
+        step = controller.step(lambda claim: "audit bounded evidence", decode)
+        self.assertEqual("DISPATCHED", step.status)
+        self.assertEqual(1, len(gateway.verified))
+        stored = gateway.verified[0][1]
+        self.assertNotEqual("0" * 64, stored["result_sha256"])
+        self.assertEqual(result_content_sha256(stored), stored["result_sha256"])
+        self.assertNotIn("execution_request", stored)
+
     def test_controller_routes_structured_execution_request_through_adapter(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 
