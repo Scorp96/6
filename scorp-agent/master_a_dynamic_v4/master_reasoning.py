@@ -46,6 +46,19 @@ class MasterReasoningCoordinator:
 
     def semantic_snapshot(self) -> dict[str, Any]:
         """Stable semantic state; heartbeat-only timestamps are excluded."""
+        def decode_object(raw: object, *, field: str) -> dict[str, Any]:
+            try:
+                value = json.loads(str(raw or "{}"))
+            except (TypeError, ValueError) as exc:
+                raise MasterReasoningRejected(
+                    "MASTER_REASONING_" + field + "_INVALID"
+                ) from exc
+            if not isinstance(value, Mapping):
+                raise MasterReasoningRejected(
+                    "MASTER_REASONING_" + field + "_INVALID"
+                )
+            return dict(value)
+
         with self.store._connection() as conn:
             state = conn.execute(
                 """SELECT project_id,state_version,master_epoch,status,phase,
@@ -59,13 +72,26 @@ class MasterReasoningCoordinator:
                    FROM operator_controls WHERE project_id=?""",
                 (self.project_id,),
             ).fetchone()
-            if state is None or control is None:
+            contract = conn.execute(
+                """SELECT root_contract_json,acceptance_contract_json,contract_sha256
+                   FROM contracts WHERE project_id=?""",
+                (self.project_id,),
+            ).fetchone()
+            if state is None or control is None or contract is None:
                 raise MasterReasoningRejected("MASTER_REASONING_STATE_MISSING")
-            tasks = [dict(row) for row in conn.execute(
-                """SELECT task_id,objective_sha256,access_mode,required,state,result_sha256
+            task_rows = [dict(row) for row in conn.execute(
+                """SELECT task_id,objective_sha256,resource_scope_json,task_context_json,
+                          access_mode,required,state,result_sha256
                    FROM task_nodes WHERE project_id=? ORDER BY task_id""",
                 (self.project_id,),
             )]
+            tasks = []
+            for row in task_rows:
+                row["resource_scope"] = json.loads(str(row.pop("resource_scope_json")))
+                row["task_context"] = decode_object(
+                    row.pop("task_context_json"), field="TASK_CONTEXT"
+                )
+                tasks.append(row)
             assignments = [dict(row) for row in conn.execute(
                 """SELECT assignment_id,task_id,worker_id,slot_id,master_epoch,
                           base_state_version,operator_generation,objective_generation,state
@@ -78,28 +104,49 @@ class MasterReasoningCoordinator:
                    FROM leases WHERE project_id=? ORDER BY assignment_id""",
                 (self.project_id,),
             )]
-            results = [dict(row) for row in conn.execute(
-                """SELECT result_id,assignment_id,master_epoch,result_kind,
-                          payload_sha256,verification_state,verified_result_sha256
+            result_rows = [dict(row) for row in conn.execute(
+                """SELECT result_id,assignment_id,master_epoch,result_kind,payload_json,
+                          payload_sha256,verification_state,verified_result_sha256,created_at
                    FROM candidate_results WHERE project_id=?
-                   ORDER BY assignment_id""",
+                   ORDER BY created_at DESC,result_id DESC LIMIT 32""",
                 (self.project_id,),
             )]
-            intents = [dict(row) for row in conn.execute(
+            results = []
+            for row in reversed(result_rows):
+                row["payload"] = decode_object(
+                    row.pop("payload_json"), field="RESULT_PAYLOAD"
+                )
+                results.append(row)
+            intent_rows = [dict(row) for row in conn.execute(
                 """SELECT i.intent_id,i.action_kind,i.state,i.attempt,
-                          i.response_sha256,i.ambiguity_reason,o.state AS outbox_state
+                          i.response_json,i.response_sha256,i.ambiguity_reason,
+                          o.state AS outbox_state,i.created_at
                    FROM action_intents i JOIN outbox o ON o.intent_id=i.intent_id
                    WHERE i.project_id=? AND i.action_kind<>'MASTER_REASONING'
-                   ORDER BY i.created_at,i.intent_id""",
+                   ORDER BY i.created_at DESC,i.intent_id DESC LIMIT 32""",
                 (self.project_id,),
             )]
+            intents = []
+            for row in reversed(intent_rows):
+                raw_response = row.pop("response_json")
+                row["response"] = (
+                    decode_object(raw_response, field="INTENT_RESPONSE")
+                    if raw_response
+                    else None
+                )
+                intents.append(row)
             evidence = [dict(row) for row in conn.execute(
                 """SELECT evidence_ref,acceptance_id,result,candidate_commit,
-                          contract_sha256,artifact_sha256
+                          contract_sha256,artifact_sha256,observed_state_json,
+                          raw_output_reference,finished_at
                    FROM evidence_receipts WHERE project_id=?
-                   ORDER BY acceptance_id,evidence_ref""",
+                   ORDER BY finished_at DESC,evidence_ref DESC LIMIT 32""",
                 (self.project_id,),
             )]
+            for row in evidence:
+                row["observed_state"] = decode_object(
+                    row.pop("observed_state_json"), field="EVIDENCE_STATE"
+                )
             release = conn.execute(
                 """SELECT candidate_commit,manifest_sha256,installed_commit,
                           installed_manifest_sha256,verified_at
@@ -107,6 +154,15 @@ class MasterReasoningCoordinator:
                 (self.project_id,),
             ).fetchone()
         return {
+            "contract": {
+                "root": decode_object(
+                    contract["root_contract_json"], field="ROOT_CONTRACT"
+                ),
+                "acceptance": decode_object(
+                    contract["acceptance_contract_json"], field="ACCEPTANCE_CONTRACT"
+                ),
+                "contract_sha256": str(contract["contract_sha256"]),
+            },
             "project": dict(state),
             "operator": dict(control),
             "tasks": tasks,
