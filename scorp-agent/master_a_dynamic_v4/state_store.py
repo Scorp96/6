@@ -2196,6 +2196,47 @@ class StateStore:
                 conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone()
             )
 
+    def mark_pre_io_verified_not_submitted(
+        self, intent_id: str, *, proof: str, observation: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        positive_proof = str(proof or "").strip()
+        if not positive_proof or not isinstance(observation, Mapping):
+            raise StoreInvariantError("PRE_IO_NOT_SUBMITTED_PROOF_INVALID")
+        if str(observation.get("side_effect") or "") != "NOT_ATTEMPTED":
+            raise StoreInvariantError("PRE_IO_NOT_SUBMITTED_SIDE_EFFECT_INVALID")
+        with self._transaction() as conn:
+            row = conn.execute(
+                "SELECT state FROM action_intents WHERE intent_id=?", (intent_id,)
+            ).fetchone()
+            if row is None or row["state"] not in {
+                IntentState.PREPARED.value,
+                IntentState.VERIFIED_NOT_SUBMITTED.value,
+            }:
+                raise StoreInvariantError("PRE_IO_NOT_SUBMITTED_STATE_INVALID")
+            now = utc_now()
+            conn.execute(
+                """
+                UPDATE action_intents
+                SET state=?,ambiguity_reason=NULL,observation_json=?,updated_at=?
+                WHERE intent_id=?
+                """,
+                (
+                    IntentState.VERIFIED_NOT_SUBMITTED.value,
+                    canonical_json({**dict(observation), "proof": positive_proof}),
+                    now,
+                    intent_id,
+                ),
+            )
+            conn.execute(
+                "UPDATE outbox SET state='RETRYABLE',completed_at=NULL WHERE intent_id=?",
+                (intent_id,),
+            )
+            return dict(
+                conn.execute(
+                    "SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)
+                ).fetchone()
+            )
+
     def mark_verified_not_submitted(
         self, intent_id: str, *, proof: str, observation: Mapping[str, Any]
     ) -> dict[str, Any]:

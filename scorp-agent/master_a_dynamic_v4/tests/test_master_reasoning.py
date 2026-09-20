@@ -174,6 +174,20 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
             )
         self.assertTrue(self.coordinator.reasoning_required())
 
+    def test_pre_io_verified_not_submitted_retries_same_reasoning_intent(self):
+        intent = self.coordinator._prepare()
+        deferred = self.store.mark_pre_io_verified_not_submitted(
+            intent["intent_id"],
+            proof="PRE_BROWSER_AUTH_AUTH_PROBE_FAILED",
+            observation={"side_effect": "NOT_ATTEMPTED", "status": "AUTH_PROBE_FAILED"},
+        )
+        self.assertEqual("VERIFIED_NOT_SUBMITTED", deferred["state"])
+        result = self.coordinator.run_once()
+        self.assertEqual("IDLE", result["status"])
+        self.assertEqual(intent["intent_id"], result["intent_id"])
+        self.assertEqual(1, self.gateway.submit_calls)
+        self.assertEqual(2, int(self.store.get_intent(intent["intent_id"])["attempt"]))
+
     def test_ambiguous_submit_reconciles_same_intent_without_resend(self):
         self.gateway.block_first_submit = True
         first = self.coordinator.run_once()

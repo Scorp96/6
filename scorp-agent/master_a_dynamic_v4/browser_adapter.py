@@ -185,6 +185,15 @@ class BrowserAdapter:
         auth = self.engine.auth_state(current["channel"])
         auth_status = str((auth or {}).get("status") or "UNKNOWN_AUTH_STATE")
         if auth_status != "AUTHENTICATED":
+            if auth_status in {"AUTH_PROBE_FAILED", "AUTH_PROBE_UNCERTAIN"}:
+                return self.store.mark_pre_io_verified_not_submitted(
+                    intent_id,
+                    proof=f"PRE_BROWSER_AUTH_{auth_status}",
+                    observation={
+                        **dict(auth or {"status": "UNKNOWN_AUTH_STATE"}),
+                        "side_effect": "NOT_ATTEMPTED",
+                    },
+                )
             return self.store.block_intent(
                 intent_id,
                 reason=f"AUTH_BLOCKED:{auth_status}",

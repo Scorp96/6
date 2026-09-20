@@ -238,6 +238,45 @@ class CrashRecoveryTests(unittest.TestCase):
         self.assertEqual([], store.captures)
         self.assertIn("WORK_RESULT_VERSION_MISMATCH", str(result.get("ambiguity_reason") or ""))
 
+    def test_transient_auth_probe_failure_is_retryable_without_ambiguous_side_effect(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, engine, _ = self.make_runtime(root)
+            try:
+                engine.auth = "AUTH_PROBE_FAILED"
+                first = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("VERIFIED_NOT_SUBMITTED", first["state"])
+                self.assertEqual(0, engine.submit_count)
+                observed = __import__("json").loads(first["observation_json"])
+                self.assertEqual("PRE_BROWSER_AUTH_AUTH_PROBE_FAILED", observed["proof"])
+                self.assertEqual("NOT_ATTEMPTED", observed["side_effect"])
+                engine.auth = "AUTHENTICATED"
+                second = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("CONFIRMED_SUBMITTED", second["state"])
+                self.assertEqual(1, engine.submit_count)
+                self.assertEqual(2, int(second["attempt"]))
+            finally:
+                store.close()
+
+    def test_pre_io_retry_transition_rejects_post_fence_states(self):
+        from master_a_dynamic_v4.state_store import StoreInvariantError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, engine, _ = self.make_runtime(root)
+            try:
+                store.begin_possible_submit("intent-ac03")
+                with self.assertRaisesRegex(StoreInvariantError, "PRE_IO_NOT_SUBMITTED_STATE_INVALID"):
+                    store.mark_pre_io_verified_not_submitted(
+                        "intent-ac03",
+                        proof="invalid-after-fence",
+                        observation={"side_effect": "NOT_ATTEMPTED"},
+                    )
+            finally:
+                store.close()
+
     def test_transport_exception_after_intent_fence_is_explicitly_blocked_ambiguous(self):
         from master_a_dynamic_v4.browser_adapter import BrowserAdapter
 
