@@ -1,0 +1,85 @@
+{
+  "format": "scorp-v4-release-record/2",
+  "release_id": "SCORP_V4_D814CB0",
+  "repository": "Scorp96/6",
+  "branch": "fix/persistent-master-p0-fix-20260921",
+  "code_candidate_sha": "d814cb0384616520e89932e032e70a22d00abe3f",
+  "evidence_head_sha": "d814cb0384616520e89932e032e70a22d00abe3f",
+  "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
+  "baseline_commit": "4dd0bd7b5cb1c1420f9bb91835aec692daca1431",
+  "status": "TEST_VERIFIED_P0_REPAIRS_LIVE_BROWSER_CANARY_PASS_NOT_ACCEPTED",
+  "TEST_VERIFIED": true,
+  "LIVE_BROWSER_CANARY_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "DEPLOYED": false,
+  "PRODUCTION_CHANGED": false,
+  "created_at": "2026-09-21T02:38:26Z",
+  "supersedes_release_id": "SCORP_V4_1AA021A",
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D814CB0.json",
+    "manifest_sha256": "b53e358602698a1e89c6d6becd8fbd4cf65f4b2be3ba64ada7f5977d6a2d2502",
+    "file_sha256": "3a071672650e797a1420f4ff2cee41b5bf6d7770f0d618374679cf5e4b11b153"
+  },
+  "validation_record": {
+    "path": "docs/handoffs/SCORP_V4_VALIDATION_D814CB0.json",
+    "file_sha256": "9cb2c812afa4c48a0168e4e7b32d11f65175347ad29382fc7e48f3faef1043f5"
+  },
+  "evidence_ids": {
+    "offline_validation": "SCORP_V4_VALIDATION_D814CB0",
+    "candidate_manifest": "SCORP_V4_CANDIDATE_MANIFEST_D814CB0",
+    "live": [
+      "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
+      "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json"
+    ]
+  },
+  "authority": {
+    "sqlite": "local transactional authority",
+    "web_gpt": "planning and evidence review only unless a separate local connector provides current evidence",
+    "browser": "explicitly gated Windows side effect",
+    "git": "candidate and evidence transport only"
+  },
+  "p0": {
+    "MULTILINE_BROWSER_PROMPT_REPAIR": "CLOSED_LIVE_CANARY",
+    "BROWSER_RESPONSE_JSON_FOOTER_ISOLATION": "CLOSED_LIVE_CANARY",
+    "CURRENT_CANDIDATE_BROWSER_E2E": "PASS_BROWSER_CANARY_SCOPE",
+    "WHOLE_PRODUCT_LIVE_ACCEPTANCE": "OPEN"
+  },
+  "changes": [
+    "verify composer before send and fail closed on a clearly wrong prompt",
+    "use newline-safe paste for multiline prompts",
+    "retry transient read-only editor snapshots without repeating side effects",
+    "recover structured JSON when CLI encodes or appends a footer",
+    "bound a one-worker live gate before two-worker canary"
+  ],
+  "live_evidence": {
+    "status": "PASS_BROWSER_CANARY_SCOPE",
+    "single_worker": {
+      "path": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
+      "artifact_sha256": "6f55c5cb403082d53c29c73ff68cc229bd0ce15ee5f310cb22d2a5651eef18e6",
+      "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
+      "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"
+    },
+    "two_workers": {
+      "path": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json",
+      "artifact_sha256": "331bcf59d9c1717b01154b1fd9df5e2376d3f6fe389b9e164a40f08a375b59f0",
+      "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
+      "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"
+    },
+    "retry_count_of_ambiguous_intents": 0,
+    "browser_side_effect_policy": "ambiguous results remain BLOCKED; no blind retry"
+  },
+  "remaining_gates": [
+    "structured WORK_RESULT/1 -> LocalExecutionAdapter -> candidate_results using a real repository workload",
+    "physical browser rebind after session replacement",
+    "daemon restart/recovery with live state",
+    "Windows no-login or login-expiry boundary",
+    "unattended soak",
+    "production install and cutover"
+  ],
+  "handoff": {
+    "ordinary_web_gpt": "Read GPT_START_HERE.md, this release record, the validation record, and the packet; Git does not grant local Windows or browser control.",
+    "windows_operator": "Run the exact candidate-bound runtime only after reviewing harmless prompts; keep ambiguous browser results blocked.",
+    "completion_rule": "Do not set LIVE_VERIFIED or ACCEPTED until real code workload, local execution adapter, restart/rebind and other listed gates have bound evidence."
+  }
+}

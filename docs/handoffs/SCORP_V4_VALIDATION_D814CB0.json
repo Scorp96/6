@@ -1,0 +1,108 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_D814CB0",
+  "repository": "Scorp96/6",
+  "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
+  "evidence_parent_sha": "d814cb0384616520e89932e032e70a22d00abe3f",
+  "branch": "fix/persistent-master-p0-fix-20260921",
+  "observed_at_utc": "2026-09-21T02:38:26Z",
+  "TEST_VERIFIED": true,
+  "LIVE_BROWSER_CANARY_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "DEPLOYED": false,
+  "PRODUCTION_CHANGED": false,
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 270,
+      "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p 'test_*.py'"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 576,
+      "command": "python -B -m unittest discover -s tests -p 'test_*.py'",
+      "working_directory": "scorp-agent/chatgpt-gui-bridge"
+    },
+    "privileged_broker_unittest": {
+      "result": "PASS",
+      "total_tests": 29,
+      "tests_run_by_file": {
+        "test_broker_core.py": 8,
+        "test_broker_client.py": 7,
+        "test_broker_ops.py": 7,
+        "test_install_contract.py": 7
+      }
+    },
+    "candidate_validation_script": {
+      "result": "PASS",
+      "core_tests": 270,
+      "bridge_tests": 576,
+      "broker_tests": 29,
+      "compileall": "PASS",
+      "command": "scripts/run-candidate-validation.ps1"
+    },
+    "git_diff_check": {
+      "result": "PASS",
+      "command": "git diff --check"
+    },
+    "candidate_manifest": {
+      "result": "PASS",
+      "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D814CB0.json",
+      "manifest_sha256": "b53e358602698a1e89c6d6becd8fbd4cf65f4b2be3ba64ada7f5977d6a2d2502",
+      "raw_file_sha256": "3a071672650e797a1420f4ff2cee41b5bf6d7770f0d618374679cf5e4b11b153",
+      "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f"
+    }
+  },
+  "live": {
+    "status": "PASS_FOR_BROWSER_CANARY_SCOPE",
+    "reason": "Current candidate single-worker and two-worker browser canaries passed; whole-product LIVE_VERIFIED remains false because real code workload, local execution closure, restart/rebind and production gates are not run.",
+    "single_worker": {
+      "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
+      "evidence_path": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
+      "artifact_sha256": "6f55c5cb403082d53c29c73ff68cc229bd0ce15ee5f310cb22d2a5651eef18e6",
+      "worker_count": 1,
+      "submit_actions": 1,
+      "response_messages": 1,
+      "duplicate_submits": 0,
+      "states": [
+        "RESPONSE_CAPTURED"
+      ]
+    },
+    "two_workers": {
+      "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
+      "evidence_path": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json",
+      "artifact_sha256": "331bcf59d9c1717b01154b1fd9df5e2376d3f6fe389b9e164a40f08a375b59f0",
+      "worker_count": 2,
+      "submit_actions": 2,
+      "response_messages": 2,
+      "duplicate_submits": 0,
+      "states": [
+        "RESPONSE_CAPTURED",
+        "RESPONSE_CAPTURED"
+      ]
+    },
+    "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
+    "scope": "真实 Windows + 已登录 Chrome + SQLite；无害固定标记提示；提交、响应捕获和意图收尾",
+    "whole_product_live_verified": false,
+    "browser_side_effect_policy": "ambiguous browser results remain BLOCKED; no blind retry"
+  },
+  "not_run": [
+    "structured WORK_RESULT/1 -> LocalExecutionAdapter -> candidate_results using a real repository workload",
+    "physical browser rebind after session replacement",
+    "daemon restart/recovery with live state",
+    "Windows no-login or login-expiry boundary",
+    "unattended soak",
+    "production install and cutover"
+  ],
+  "limitations": [
+    "Live canary proves browser submission/reconciliation only; prompts do not modify the repository.",
+    "Web GPT has no direct local Windows, SQLite, Git or Chrome authority.",
+    "Do not promote LIVE_BROWSER_CANARY_VERIFIED to whole-product LIVE_VERIFIED or ACCEPTED."
+  ],
+  "deployment": {
+    "isolated_worktree": "C:\\ScorpAgent\\worktrees\\v4-persistent-master-p0-fix-20260921",
+    "remote_feature_ref": "origin/fix/persistent-master-p0-fix-20260921",
+    "runtime_identity": "d814cb0384616520e89932e032e70a22d00abe3f candidate; not production"
+  }
+}

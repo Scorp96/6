@@ -1,14 +1,16 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "1aa021aebc6643668f40182f49da0978c099230d",
+  "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
   "evidence_binding": {
-    "validated_commit": "1aa021aebc6643668f40182f49da0978c099230d",
-    "validation_record": "docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json",
+    "validated_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
+    "validation_record": "docs/handoffs/SCORP_V4_VALIDATION_D814CB0.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D814CB0.json",
     "preflight_receipt": null,
-    "binding_note": "This handoff describes the 1aa021a code candidate. Offline P0 repair regressions pass; fresh current-candidate browser evidence is not run. The prior 4dd0bd7 Master reasoning ambiguity is preserved as an old failure probe and must not be replayed.",
-    "manifest_sha256": "589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b",
-    "live_rate_limit_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json"
+    "binding_note": "Current candidate d814cb0 has fresh real single-worker and two-worker ChromeUse canary PASS. This proves browser submit/reconciliation only; whole-product LIVE_VERIFIED and ACCEPTED remain false.",
+    "manifest_sha256": "b53e358602698a1e89c6d6becd8fbd4cf65f4b2be3ba64ada7f5977d6a2d2502",
+    "live_rate_limit_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json",
+    "live_single_worker_evidence": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
+    "live_two_worker_evidence": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json"
   },
   "target_repository": "Scorp96/6",
   "reasoning_model": "GPT-5.6 Sol",
@@ -62,7 +64,12 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "current_candidate_browser_canary_not_run_after_master-recovery-and-daemon-lease-fix; prior 4dd0bd7 ambiguous Master intent not replayed; restart/rebind/structured-workload/soak/production gates remain unverified"
+      "current_candidate_evidence": "PASS_BROWSER_CANARY_SCOPE; single and two-worker evidence are bound to d814cb0; whole-product live acceptance, real code workload, restart/rebind and soak remain unverified",
+      "live_evidence": {
+        "single_worker": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
+        "two_workers": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json",
+        "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"
+      }
     },
     "connector_contract": {
       "descriptor": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json",
@@ -117,10 +124,9 @@
   "forbidden_claims": [
     "A GitHub repository alone grants the web GPT local computer access",
     "A simulated or injected browser run proves a live ChatGPT run",
-    "A historical canary proves the current candidate",
+    "The browser canary proves the real repository workload or whole-product acceptance",
     "BLOCKED or NOT_RUN is completion",
-    "The web GPT may request or store API keys, cookies, or login data in the repository",
-    "The 1aa021a offline regression suite proves a live current-candidate browser run"
+    "The web GPT may request or store API keys, cookies, or login data in the repository"
   ],
   "evidence_rule": "Every execution claim must name candidate_commit, command_or_action, observed_state_or_exit_code, raw_output_reference, and artifact hash."
 }

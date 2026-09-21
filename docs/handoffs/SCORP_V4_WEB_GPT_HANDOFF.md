@@ -1,138 +1,22 @@
 # SCORP V4：给普通网页版 GPT 的交接说明
 
-这份说明解决一个常见误会：**普通网页版 GPT 读到 Git 仓库，不等于它已经接入了本地 Windows。** Git 只能让它看到代码、计划和证据；本地 SQLite、Python、Chrome Use、Windows MCP 和浏览器登录状态仍然属于本机。没有本地宿主或连接器时，网页版 GPT 必须停在 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`。
+Git 传递代码、计划和证据，SQLite 是本地权威状态，Windows 宿主才可以运行命令，ChromeUse 适配器才可以在显式门禁下提交浏览器动作。普通网页版 GPT 读到仓库并不会自动获得本机权限。
 
-Current candidate 1aa021aebc6643668f40182f49da0978c099230d is the GPT-5.6 Sol compatibility path. Offline P0 repair regressions pass (270 core and 567 bridge tests); fresh current-candidate browser evidence is not run. The prior 4dd0bd7 Master reasoning ambiguity is preserved as an old failure probe and must not be replayed.
+当前候选是 `d814cb0384616520e89932e032e70a22d00abe3f`（GPT-5.6 Sol 兼容路径）。它通过离线验证，并完成真实浏览器单 Worker 与双 Worker canary；这只证明浏览器提交、响应捕获和 SQLite 意图收尾，不等于真实代码任务、重启恢复、无人值守或生产验收。
 
-## 先判断你现在是哪一种模式
+## 当前证据
 
-| 模式 | 网页 GPT 能做什么 | 不能做什么 |
-|---|---|---|
-| 只有网页聊天 | 读 Git、分析目标、生成结构化计划、审查证据 | 读本地 SQLite、运行 Windows 命令、打开 Chrome、创建 GPT 会话 |
-| 有 Windows 操作员 | 操作员把预检 JSON 和运行证据交回网页 GPT | 网页 GPT 仍不能假设自己直接控制本机 |
-| 有本地 SQLite 监控 | 监控已有 Master 租约并写决策日志 | 监控入口不发送浏览器提示词，也不绕过登录 |
-| 已配置浏览器适配器 | 在显式门禁下运行 Master A 和 Worker | 登录失效、验证码、提交结果不明确时必须暂停 |
+- 离线：V4 核心 `270/270 PASS`，GUI Bridge `576/576 PASS`，broker `29/29 PASS`，candidate validation `PASS`。
+- 真实单 Worker：`C:\ScorpAgent\v4-live-d814cb0\single-evidence.json`，原始文件 SHA-256 `6f55c5cb403082d53c29c73ff68cc229bd0ce15ee5f310cb22d2a5651eef18e6`。
+- 真实双 Worker：`C:\ScorpAgent\v4-live-d814cb0\double-evidence.json`，两个 Worker 都 `RESPONSE_CAPTURED`，原始文件 SHA-256 `331bcf59d9c1717b01154b1fd9df5e2376d3f6fe389b9e164a40f08a375b59f0`。
+- 候选清单：`docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D814CB0.json`，规范 SHA-256 `b53e358602698a1e89c6d6becd8fbd4cf65f4b2be3ba64ada7f5977d6a2d2502`。
+- 机器记录：`docs/handoffs/SCORP_V4_VALIDATION_D814CB0.json`、`docs/handoffs/SCORP_V4_RELEASE_RECORD_D814CB0.json`。
+- `TEST_VERIFIED=true`；`LIVE_BROWSER_CANARY_VERIFIED=true`；整体 `LIVE_VERIFIED=false`；`ACCEPTED=false`。
 
-## Windows 操作员从零开始
+## 网页 GPT 开场指令
 
-在 Git 仓库根目录打开 PowerShell，先执行只读预检：
+你是 SCORP V4 的规划与验收端，不是本地 Windows 执行进程。先读取 `GPT_START_HERE.md`、本交接 JSON/Markdown 和当前 validation/release record。当前候选是 `d814cb0384616520e89932e032e70a22d00abe3f`，模型路径是 GPT-5.6 Sol；不要把仓库名 6 解释为 GPT-6。没有本地预检和当前运行证据时只能输出计划或 BLOCKED。收到 Windows 回执后区分 PASS、FAIL、BLOCKED、NOT_RUN；遇到 MAY_HAVE_SUBMITTED、无 URL、无响应哈希或任何不明确副作用，fail closed，不得盲目重发。
 
-```powershell
-$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
-python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_local_preflight.py `
-  --repo-root $PWD `
-  --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
-  --allowed-root C:\ScorpAgent\workspaces\project
-```
+## 下一阶段
 
-预检会分别报告：
-
-- `offline_validation=READY`：仓库和 Python 可以做离线验证；
-- `sqlite_master_monitor=READY`：指定 SQLite 和允许目录已经存在；
-- `browser_rebind=READY_TO_REBIND`：已提供 Chrome Use 可执行文件和驱动状态；
-- `web_gpt_direct_local_control=UNAVAILABLE`：这是正常的边界，不是程序故障；
-- `browser_submission=EXPLICIT_OPERATOR_GATE`：预检本身永远不发送消息。
-
-如果接手者完全不知道怎样读取这些边界，先生成一个可以直接上传到普通网页版 GPT 的交接包。它只读取仓库、候选证据和本地配置；除写入你指定的 JSON 文件外，不启动浏览器、不发送消息、不执行项目任务：
-
-```powershell
-$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
-python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_web_gpt_packet.py `
-  --repo-root $PWD `
-  --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
-  --allowed-root C:\ScorpAgent\workspaces\project `
-  --output .\docs\handoffs\SCORP_V4_WEB_GPT_PACKET.json
-```
-
-把 `SCORP_V4_WEB_GPT_PACKET.json` 上传给普通网页版 GPT，并把 JSON 中的 `prompt` 字段作为开场指令。退出码 `0` 表示交接包内部一致且预检没有阻塞；退出码 `2` 表示必须先处理包内的 `blockers`。即使退出码为 `0`，包仍会明确写出 `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`：它是网页 GPT 的规划/审查输入，不是本地权限授予。
-
-先确认离线候选：
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\run-candidate-validation.ps1
-```
-
-如果只需要监控已经存在的 Master 租约，可以运行一次监控探针：
-
-```powershell
-$env:PYTHONPATH = (Join-Path $PWD 'scorp-agent')
-python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_supervisor_runtime.py `
-  --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
-  --allowed-root C:\ScorpAgent\workspaces\project `
-  --decision-log C:\ScorpAgent\v4-runtime\supervisor.jsonl `
-  --max-iterations 1
-```
-
-这个入口只接管已有 SQLite 状态，不会凭空创建根合同或项目；没有活动租约时会报告阻塞。`--forever` 只应由明确负责生命周期的 Windows 宿主使用。`--rebind` 只启用已登录会话的只读快照和绑定核对，不创建新聊天、不填入提示词、不点击发送。
-
-真正需要浏览器发送时，必须准备结构化计划 JSON，并在审查路径、允许目录、浏览器状态和发送内容后，才使用 `v4_master_controller_runtime.py --send`。`--send` 是人工明确门禁，不是普通网页 GPT 自动获得的权限。登录失效、验证码或提交结果含糊时，运行必须停在 `BLOCKED`。
-
-当前运行还要求把 `--candidate-commit`、`--candidate-manifest` 和
-`--manifest-sha256` 一起传入；三者不匹配时，运行在打开 Chrome、创建 SQLite
-状态或产生浏览器意图前直接阻塞。Chrome Use 会话由 V4 驱动记录生命周期：
-Master/Worker 默认持久且受保护，诊断会话必须显式退休；活动引用存在时不得
-停止共享会话，停止超时记录为 `CLEANUP_BLOCKED`。标签颜色只是可视化标识，不能
-作为状态或完成证据。
-
-操作员如需治理截图中的历史 session，只能使用
-`tools/v4_session_lifecycle.py list` 查看，或对一个明确的 `--session` /
-`--turn-id` 执行 `retire`。这个入口要求候选提交绑定，并且没有全局
-`session prune` 或 `close --all` 操作；执行 `retire` 时应提供
-`--evidence-path`，以便保留带 `artifact_sha256` 的原子审计回执。
-
-## 网页 GPT 应该收到什么
-
-把下面的消息发给负责规划的普通网页版 GPT，同时附上预检 JSON 和后续运行证据：
-
-```text
-你是 SCORP V4 的规划与验收端，不是本地 Windows 执行进程。
-
-先读取：
-1. GPT_START_HERE.md
-2. docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.md
-3. docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json
-
-当前约束：
-- 模型路径是 GPT-5.6 Sol；不要把仓库名 6 解释为 GPT-6。
-- 不使用付费模型 API，不索取或写入 API key、Cookie、验证码或登录数据。
-- Git 只传递计划和证据；SQLite 才是本地运行时的权威状态。
-- 没有本地预检和当前运行证据时，你只能输出计划或 BLOCKED，不能声称已经控制电脑、打开浏览器、创建 Worker 会话或完成项目。
-
-工作顺序：
-1. 判断预检报告中的 capability 状态。
-2. 输出一个包含 root_contract、acceptance_contract、plan 的结构化计划。
-3. 为每个任务指定依赖、允许路径、允许动作和验收 ID。
-4. 等待本地宿主返回命令、退出码、证据引用和候选提交哈希。
-5. 独立区分 PASS、FAIL、BLOCKED、NOT_RUN；任何缺少证据的项目都不能算完成。
-6. 如果需要浏览器登录、验证码、Windows 交互会话或人工发送确认，明确报告阻塞并停止。
-```
-
-## Git 交接怎样工作
-
-如果没有可调用的本地连接器，Git 交接是“网页 GPT 产出计划，Windows 宿主执行，网页 GPT 审查证据”的人工或外部轮询流程：
-
-1. 网页 GPT 生成计划副本，不改写规范模板和生产状态。
-2. Windows 宿主在本地验证计划、路径和候选提交，再调用 SQLite 控制面。
-3. 宿主把 JSON 运行结果、证据哈希、候选提交和阻塞原因提交回 Git。
-4. 网页 GPT 读取这些文件，给出下一步或最终验收判断。
-
-仓库里保留的旧 `relay.ps1` 是 V3 JSON relay 的兼容路径；它不能被当成当前 V4 SQLite 控制面已经接通 GitHub 的证明。当前 V4 的 GitHub 角色是请求和证据发布入口，权威状态仍在本地 SQLite。
-
-当前候选还提供机器可读的连接器合同：
-`docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json`。它只允许版本化
-Runtime 命令，要求 actor/project 绑定和认证密钥，禁止超时重试、任意 shell、
-任意浏览器、任意文件系统、任意 Git 和任意网络能力。合同当前明确标记为
-`UNREGISTERED_HOST`；它是给未来 approved host 做注册前校验的边界，不代表普通
-网页版 GPT 已经获得本地权限。
-
-## 交接完成的判据
-
-交接本身只有在接手者能回答下面四个问题时才算清楚：
-
-1. 网页 GPT 当前是否有本地连接？如果没有，是否明确为 `UNAVAILABLE`？
-2. Windows 上实际启动了哪个入口、使用哪个候选提交？
-3. SQLite、浏览器会话和 Git 之间谁是权威？
-4. 当前结果是 `PASS`、`FAIL`、`BLOCKED` 还是 `NOT_RUN`，证据文件在哪里？
-
-任何一个问题答不上来，都应回到预检，不应继续重试浏览器或把规划文字当成完成报告。
+绑定真实代码工作负载，再验证 `WORK_RESULT/1 -> LocalExecutionAdapter -> candidate_results`，然后做 rebind/restart 和其他剩余门禁。缺证据不能把整体标成 `LIVE_VERIFIED` 或 `ACCEPTED`。
