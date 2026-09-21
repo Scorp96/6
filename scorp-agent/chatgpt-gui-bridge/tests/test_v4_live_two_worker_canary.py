@@ -83,6 +83,34 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
 
         self.assertIsNone(parsed)
 
+    def test_structured_canary_response_recovers_when_cli_mangles_chinese_marker(self):
+        intent_id = "worker-intent-assignment-abc123"
+        expected = {
+            "marker": "SCORPV4CANARYACK1",
+            "project_id": "project-1",
+            "assignment_id": "assignment-abc123",
+            "task_id": "T1",
+            "worker_id": "worker-1",
+            "objective_sha256": "1" * 64,
+            "base_state_version": 0,
+        }
+        response = {
+            "work_result_version": "1",
+            **{key: value for key, value in expected.items() if key != "marker"},
+            "status": "COMPLETE",
+            "scope_completed": [expected["marker"]],
+            "evidence": [{"kind": "live_canary", "claim": expected["marker"]}],
+            "acceptance_coverage": ["LIVE_WORKER_CANARY"],
+        }
+        parser = _parse_response({intent_id: expected})
+
+        parsed = parser(
+            "#### ChatGPT ����\n" + json.dumps(response, ensure_ascii=False),
+            intent_id,
+        )
+
+        self.assertEqual(response, parsed)
+
     def test_canary_markers_are_unambiguous_and_strictly_matched(self):
         for marker in MARKERS.values():
             self.assertRegex(marker, r"^[A-Z0-9]+$")

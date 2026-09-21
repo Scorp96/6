@@ -217,6 +217,21 @@ def _assistant_text(snapshot: str) -> str:
     positions = [(text.rfind(marker), marker) for marker in markers]
     start, marker = max(positions, key=lambda item: item[0])
     if start < 0:
+        # The Windows CLI can decode the Chinese read marker with the wrong
+        # console code page even though the assistant payload itself is valid
+        # UTF-8/JSON.  Recover only a final object carrying the Worker result
+        # discriminator; the caller still validates every identity field and
+        # marker before admitting it.
+        decoder = json.JSONDecoder()
+        for index in range(len(text) - 1, -1, -1):
+            if text[index] != "{":
+                continue
+            try:
+                value, _ = decoder.raw_decode(text[index:])
+            except (TypeError, ValueError):
+                continue
+            if isinstance(value, Mapping) and "work_result_version" in value:
+                return json.dumps(dict(value), ensure_ascii=False)
         return ""
     return text[start + len(marker) :].strip()
 
