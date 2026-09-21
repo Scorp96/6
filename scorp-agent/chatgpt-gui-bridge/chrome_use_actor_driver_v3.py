@@ -205,6 +205,49 @@ def _send_ref_from_snapshot(payload) -> str:
     return "@" + candidates[0]
 
 
+def _prompt_observation_from_snapshot(payload, expected_prompt: str) -> str:
+    """Classify an explicitly exposed composer value without guessing.
+
+    Chrome Use does not include the textbox value in every accessibility
+    snapshot.  Treat that absence as ``UNREPORTED`` so legacy transports keep
+    their existing contract; only an explicit textbox value that differs from
+    the intended prompt is a deterministic pre-submit failure.
+    """
+
+    expected = str(expected_prompt or "")
+    if not expected:
+        return "UNREPORTED"
+    rendered = _render_payload(payload)
+    if expected in rendered:
+        return "MATCH"
+    explicit_value = False
+    try:
+        refs = _refs_from_snapshot(payload)
+    except ValueError:
+        refs = {}
+    for meta in refs.values():
+        if not isinstance(meta, dict):
+            continue
+        if str(meta.get("role") or "").strip().lower() != "textbox":
+            continue
+        for key in ("value", "text", "content"):
+            if key not in meta:
+                continue
+            explicit_value = True
+            if expected in str(meta.get(key) or ""):
+                return "MATCH"
+    for line in rendered.splitlines():
+        if "textbox" not in line.casefold() or "[ref=" not in line:
+            continue
+        marker = re.search(r"\]\s*:\s*(.*)$", line)
+        if marker is None:
+            continue
+        explicit_value = True
+        if expected in marker.group(1):
+            return "MATCH"
+    return "MISMATCH" if explicit_value else "UNREPORTED"
+
+
 def _composer_ready_or_unreported(payload) -> bool:
     """Accept text-only auth snapshots; gate only an explicit empty refs tree.
 
@@ -707,9 +750,13 @@ class ChromeUseActorDriverV3:
             return await self._editor_ref(session, allow_rate_limit_recovery=False)
         return _editor_ref_from_snapshot(payload)
 
-    async def _send_ref(self, session):
+    async def _send_ref(self, session, *, expected_prompt=None):
         await self._prepare_interactive(session)
         payload = await self.cli.run_json(session, "snapshot", "-i", timeout_seconds=self.timeout_seconds)
+        if expected_prompt is not None:
+            observation = _prompt_observation_from_snapshot(payload, expected_prompt)
+            if observation == "MISMATCH":
+                raise ValueError("CHROME_USE_PROMPT_NOT_CONFIRMED")
         try:
             return _send_ref_from_snapshot(payload)
         except ValueError as exc:
@@ -911,7 +958,7 @@ class ChromeUseActorDriverV3:
         composer and typing again could corrupt the session.
         """
         try:
-            return await self._send_ref(session)
+            return await self._send_ref(session, expected_prompt=prompt)
         except SendControlResolutionError as first_error:
             if chatgpt_throttle_visible(_render_payload(first_error.payload)):
                 recovery = await self.recover_rate_limit_dialog(session)
@@ -936,7 +983,7 @@ class ChromeUseActorDriverV3:
                         prompt,
                         timeout_seconds=self.timeout_seconds,
                     )
-                    return await self._send_ref(session)
+                    return await self._send_ref(session, expected_prompt=prompt)
                 except SendControlResolutionError as recovered_error:
                     recovered_error.add_context(
                         rate_limit_recovery="RECOVERED_BUT_SEND_CONTROL_UNRESOLVED",
@@ -988,7 +1035,7 @@ class ChromeUseActorDriverV3:
                 )
                 raise first_error from exc
             try:
-                return await self._send_ref(session)
+                return await self._send_ref(session, expected_prompt=prompt)
             except SendControlResolutionError as repaired_error:
                 repaired_error.add_context(
                     key_event_repair="USED_BUT_SEND_CONTROL_STILL_MISSING",

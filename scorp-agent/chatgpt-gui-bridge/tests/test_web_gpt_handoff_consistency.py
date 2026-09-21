@@ -13,16 +13,16 @@ class WebGptHandoffConsistencyTests(unittest.TestCase):
 
     def test_handoff_is_bound_to_validated_code_candidate(self):
         validation = self._read_json(
-            "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json"
+            "docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json"
         )
         handoff = self._read_json("docs/handoffs/SCORP_V4_WEB_GPT_HANDOFF.json")
-        candidate = validation["implementation_commit"]
+        candidate = validation["candidate_commit"]
 
         self.assertRegex(candidate, r"^[0-9a-f]{40}$")
         self.assertEqual(candidate, handoff["candidate_commit"])
         self.assertEqual(candidate, handoff["evidence_binding"]["validated_commit"])
         self.assertEqual(
-            "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
+            "docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json",
             handoff["evidence_binding"]["validation_record"],
         )
 

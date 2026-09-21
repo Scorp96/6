@@ -330,6 +330,47 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual([], press_calls)
             self.assertFalse(any('#prompt-textarea' in args for _, args, _ in cli.calls))
 
+    def test_submit_refuses_send_when_post_fill_snapshot_proves_composer_value_mismatch(self):
+        class RootAfterSubmitCli(FakeCli):
+            async def run_json(self, session, *args, timeout_seconds=30):
+                self.calls.append((session, list(args), timeout_seconds))
+                if list(args[:2]) == ['get', 'url']:
+                    return {'data': {'value': 'https://chatgpt.com/'}}
+                if args and args[0] == 'click':
+                    return {'success': True}
+                if not self.responses:
+                    raise AssertionError(f'unexpected call: {session} {args}')
+                value = self.responses.pop(0)
+                if isinstance(value, BaseException):
+                    raise value
+                return value
+
+        with tempfile.TemporaryDirectory() as td:
+            cli = RootAfterSubmitCli()
+            cli.responses = [
+                {'success': True},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+                {'success': True},
+                {
+                    'data': {
+                        'refs': {
+                            'e11': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                            'e20': {'name': 'Send', 'role': 'button'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e11]: WRONG_VALUE\n- button "Send" [ref=e20]',
+                    }
+                },
+            ]
+            driver = self._driver(td, cli)
+            with self.assertRaisesRegex(ValueError, 'CHROME_USE_PROMPT_NOT_CONFIRMED') as raised:
+                asyncio.run(driver.submit_prompt(
+                    prompt='EXPECTED_VALUE',
+                    turn_id='turn-mismatched-composer',
+                    actor_kind='WORKER',
+                    conversation_url=None,
+                ))
+            self.assertEqual([], [args for _, args, _ in cli.calls if args and args[0] == 'click'])
+
     def test_submit_recovers_worker_rate_limit_before_filling_prompt(self):
         with tempfile.TemporaryDirectory() as td:
             cli = NewTabFakeCli()
