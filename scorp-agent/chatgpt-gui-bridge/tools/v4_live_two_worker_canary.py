@@ -233,7 +233,19 @@ def _assistant_text(snapshot: str) -> str:
             if isinstance(value, Mapping) and "work_result_version" in value:
                 return json.dumps(dict(value), ensure_ascii=False)
         return ""
-    return text[start + len(marker) :].strip()
+    tail = text[start + len(marker) :].strip()
+    # ``read`` appends a localized safety footer after the assistant message.
+    # Extract exactly the first WORK_RESULT/1 JSON object so the footer cannot
+    # turn an otherwise valid response into a false capture failure.
+    first_object = tail.find("{")
+    if first_object >= 0:
+        try:
+            value, _ = json.JSONDecoder().raw_decode(tail[first_object:])
+        except (TypeError, ValueError):
+            value = None
+        if isinstance(value, Mapping) and "work_result_version" in value:
+            return json.dumps(dict(value), ensure_ascii=False)
+    return tail
 
 
 def _parse_response(expected_by_intent: Mapping[str, Mapping[str, object]]):
