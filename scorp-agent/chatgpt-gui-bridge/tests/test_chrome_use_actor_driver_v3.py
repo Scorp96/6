@@ -371,6 +371,18 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 ))
             self.assertEqual([], [args for _, args, _ in cli.calls if args and args[0] == 'click'])
 
+    def test_prompt_observation_does_not_misclassify_multiline_snapshot_prefix(self):
+        from chrome_use_actor_driver_v3 import _prompt_observation_from_snapshot
+
+        expected = 'instruction line\n{"assignment_id":"a-1"}'
+        observed = {
+            'data': {
+                'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}},
+                'snapshot': '- textbox "Message ChatGPT" [ref=e11]: instruction line',
+            }
+        }
+        self.assertEqual('UNREPORTED', _prompt_observation_from_snapshot(observed, expected))
+
     def test_submit_recovers_worker_rate_limit_before_filling_prompt(self):
         with tempfile.TemporaryDirectory() as td:
             cli = NewTabFakeCli()

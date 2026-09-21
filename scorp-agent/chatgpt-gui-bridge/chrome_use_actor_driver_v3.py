@@ -221,6 +221,7 @@ def _prompt_observation_from_snapshot(payload, expected_prompt: str) -> str:
     if expected in rendered:
         return "MATCH"
     explicit_value = False
+    partial_value = False
     try:
         refs = _refs_from_snapshot(payload)
     except ValueError:
@@ -234,8 +235,11 @@ def _prompt_observation_from_snapshot(payload, expected_prompt: str) -> str:
             if key not in meta:
                 continue
             explicit_value = True
-            if expected in str(meta.get(key) or ""):
+            actual = str(meta.get(key) or "")
+            if expected in actual:
                 return "MATCH"
+            if actual and len(actual) < len(expected) and expected.startswith(actual):
+                partial_value = True
     for line in rendered.splitlines():
         if "textbox" not in line.casefold() or "[ref=" not in line:
             continue
@@ -243,8 +247,17 @@ def _prompt_observation_from_snapshot(payload, expected_prompt: str) -> str:
         if marker is None:
             continue
         explicit_value = True
-        if expected in marker.group(1):
+        actual = marker.group(1)
+        if expected in actual:
             return "MATCH"
+        if actual and len(actual) < len(expected) and expected.startswith(actual):
+            # Accessibility snapshots may put only the first line of a
+            # multiline textbox on the ref line and expose the remaining
+            # lines as continuation text.  That is incomplete evidence, not
+            # proof that the composer contains the wrong value.
+            partial_value = True
+    if partial_value:
+        return "UNREPORTED"
     return "MISMATCH" if explicit_value else "UNREPORTED"
 
 
