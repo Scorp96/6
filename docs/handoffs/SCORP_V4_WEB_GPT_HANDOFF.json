@@ -1,13 +1,13 @@
 {
   "format": "scorp-v4-web-gpt-handoff/1",
-  "candidate_commit": "998d4eb2fc3480fffb81be65b730585b1612d00e",
+  "candidate_commit": "1aa021aebc6643668f40182f49da0978c099230d",
   "evidence_binding": {
-    "validated_commit": "998d4eb2fc3480fffb81be65b730585b1612d00e",
-    "validation_record": "docs/handoffs/SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json",
-    "candidate_manifest": "docs/handoffs/SCORP_V4_FAST_RUNTIME_CANDIDATE_MANIFEST_998D4EB.json",
+    "validated_commit": "1aa021aebc6643668f40182f49da0978c099230d",
+    "validation_record": "docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json",
+    "candidate_manifest": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json",
     "preflight_receipt": null,
-    "binding_note": "This handoff describes the 998d4eb code candidate. Offline validation includes the explicit blocked-task replan guard. Prior browser and real-code evidence is bound to predecessor candidate 5bf7953 and is not promoted; the current candidate has no live browser canary because the existing ChatGPT tab remains rate-limited.",
-    "manifest_sha256": "78e56280bb9a9ea2ee49ca63316c8843a5bec867b1636a12148b3f6d6edfc932",
+    "binding_note": "This handoff describes the 1aa021a code candidate. Offline P0 repair regressions pass; fresh current-candidate browser evidence is not run. The prior 4dd0bd7 Master reasoning ambiguity is preserved as an old failure probe and must not be replayed.",
+    "manifest_sha256": "589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b",
     "live_rate_limit_observation": "docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_LIVE_RECHECK_998D4EB_20260915.json"
   },
   "target_repository": "Scorp96/6",
@@ -62,7 +62,7 @@
         "Chrome Use or Windows MCP driver",
         "explicit --send gate"
       ],
-      "current_candidate_evidence": "current_candidate_browser_canary_not_run_after_code_change; predecessor_5bf7953_live_evidence_not_promoted; current_rate_limit_blocker_present; restart_and_unattended_soak_not_run; production_cutover_not_authorized"
+      "current_candidate_evidence": "current_candidate_browser_canary_not_run_after_master-recovery-and-daemon-lease-fix; prior 4dd0bd7 ambiguous Master intent not replayed; restart/rebind/structured-workload/soak/production gates remain unverified"
     },
     "connector_contract": {
       "descriptor": "docs/handoffs/SCORP_V4_RUNTIME_CONNECTOR_DESCRIPTOR.json",
@@ -119,7 +119,8 @@
     "A simulated or injected browser run proves a live ChatGPT run",
     "A historical canary proves the current candidate",
     "BLOCKED or NOT_RUN is completion",
-    "The web GPT may request or store API keys, cookies, or login data in the repository"
+    "The web GPT may request or store API keys, cookies, or login data in the repository",
+    "The 1aa021a offline regression suite proves a live current-candidate browser run"
   ],
   "evidence_rule": "Every execution claim must name candidate_commit, command_or_action, observed_state_or_exit_code, raw_output_reference, and artifact hash."
 }

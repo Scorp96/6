@@ -42,8 +42,8 @@ shown, or the browser result is ambiguous.
 grant that chat local Windows, SQLite, Python, Chrome Use, or Windows MCP
 permissions. If the chat has no local connector, it is in planning/review mode
 and must report `WEB_GPT_DIRECT_LOCAL_CONTROL_UNAVAILABLE`. Use
-`docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_DEA5433.md` and
-`docs/handoffs/SCORP_V4_RELEASE_RECORD_DEA5433.json` for the current
+`docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_1AA021A.md` and
+`docs/handoffs/SCORP_V4_RELEASE_RECORD_1AA021A.json` for the current
 human/operator handoff, then run the read-only preflight before claiming any
 local capability.
 
@@ -107,9 +107,9 @@ python -B .\scorp-agent\chatgpt-gui-bridge\tools\v4_browser_fill_diagnostic.py `
   --run-fill-only `
   --driver-state-path C:\ScorpAgent\v4-fill-diagnostic\driver.json `
   --evidence-path C:\ScorpAgent\v4-fill-diagnostic\evidence.json `
-  --candidate-commit 421ba622784a868aa55cc71d83309b32911f7803 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_421BA62.json `
-  --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89
+  --candidate-commit 1aa021aebc6643668f40182f49da0978c099230d `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-persistent-master-p0-fix-20260921\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json `
+  --manifest-sha256 589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b
 ```
 
 `READY_TO_SEND_NO_CLICK` proves only that the composer repair exposed a Send
@@ -280,9 +280,9 @@ python .\scorp-agent\chatgpt-gui-bridge\tools\v4_master_controller_runtime.py `
   --database-path C:\ScorpAgent\v4-runtime\state.sqlite3 `
   --driver-state-path C:\ScorpAgent\v4-runtime\driver.json `
   --allowed-root C:\ScorpAgent\workspaces\project `
-  --candidate-commit 421ba622784a868aa55cc71d83309b32911f7803 `
-  --candidate-manifest C:\ScorpAgent\worktrees\v4-fast-runtime-command-core\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_421BA62.json `
-  --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89 `
+  --candidate-commit 1aa021aebc6643668f40182f49da0978c099230d `
+  --candidate-manifest C:\ScorpAgent\worktrees\v4-persistent-master-p0-fix-20260921\docs\handoffs\SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json `
+  --manifest-sha256 589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b `
   --send
 ```
 
@@ -616,7 +616,7 @@ under `docs/handoffs/historical-2026-09-14/`; it describes an earlier local
 candidate and must not be presented as evidence for this GitHub copy.
 The root `docs/handoffs/SCORP_V4_VERIFICATION.json` is kept only because an
 upstream test contract reads that path; use the current Release Record and
-`docs/handoffs/SCORP_V4_VALIDATION_DEA5433.json` for the current repository-copy
+`docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json` for the current repository-copy
 validation record. The older `SCORP_V4_FAST_RUNTIME_COMMAND_CORE_VALIDATION.json`
 file is historical compatibility evidence.
 
@@ -635,7 +635,7 @@ Use these paths when an ordinary GPT or operator takes over this repository:
 - Current code candidate: `dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62` (`fix: serialize complete Chrome Use submissions`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes, immutable Git-object release identity, graph crash rollback regression, serialized shared Chrome Use probes, preflight fencing, and whole-submit serialization. The current no-send composer diagnostic passes, while the current two-worker canary is BLOCKED_AMBIGUOUS with CONVERSATION_URL_MISSING; do not retry it.
 - Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
 - Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
-- Current validation record: `docs/handoffs/SCORP_V4_VALIDATION_DEA5433.json`.
+- Current validation record: `docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json`.
 - Current isolated deployment matrix: `docs/handoffs/SCORP_V4_P1_ISOLATED_MATRIX_DEA5433.json`.
 - Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
 - Historical harmless-canary evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` records the earlier real two-worker PASS; the current candidate's current real-code evidence is `docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`; it records T2 execution PASS, T1 BLOCKED, and T3 not run. The older F5B8240 evidence belongs to a different candidate. The older c4d6 evidence remains preserved as `BLOCKED_AMBIGUOUS` and is not replayed.
@@ -654,14 +654,13 @@ require an explicit `--send` gate and a fresh isolated state path.
 
 ## Current candidate handoff override
 
-The current release candidate is `421ba622784a868aa55cc71d83309b32911f7803` with status `TEST_VERIFIED_BROWSER_TWO_WORKER_LIVE_GATE_PASS_REMAINING_LIVE_GATES`. V4 core is 215/215 PASS and GUI Bridge is 528/528 PASS. The exact-candidate real Browser two-Worker gate captured two responses from two submits with `duplicate_submits=0`. Whole-product `LIVE_VERIFIED` and `ACCEPTED` remain false: structured `WORK_RESULT/1 -> LocalExecutionAdapter -> candidate_results`, physical rebind/restart, reboot/no-login, unattended soak, and production cutover remain separate gates.
+The current release candidate is `1aa021aebc6643668f40182f49da0978c099230d` with status `TEST_VERIFIED_P0_REPAIRS_LIVE_UNVERIFIED`. V4 core is 270/270 PASS and GUI Bridge is 567/567 PASS. The current candidate has not yet run a fresh browser canary after the Master recovery-marker and daemon startup-lease fixes. Whole-product `LIVE_VERIFIED` and `ACCEPTED` remain false: current-candidate browser recovery, structured `WORK_RESULT/1 -> LocalExecutionAdapter -> candidate_results`, physical rebind/restart, reboot/no-login, unattended soak, and production cutover remain separate gates.
 
-The current evidence and operator instructions are in `docs/handoffs/SCORP_V4_RELEASE_RECORD_421BA62.json`, `docs/handoffs/SCORP_V4_VALIDATION_421BA62.json`, `docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_421BA62.json`, and `docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_421BA62.md`.
+The current evidence and operator instructions are in `docs/handoffs/SCORP_V4_RELEASE_RECORD_1AA021A.json`, `docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json`, `docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json`, and `docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_1AA021A.md`.
 
-The current manifest hash is `e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89`; startup commands must bind it explicitly:
+The current manifest hash is `589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b`; startup commands must bind it explicitly:
 
 ```powershell
-python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89
-python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --manifest-sha256 e7e2eefc129195f9fe3bc6787b21f9db1cf0e79b7a478c3d30076099d8ae7e89
+python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py --manifest-sha256 589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b
+python -B scorp-agent/chatgpt-gui-bridge/tools/v4_master_supervisor_runtime.py --manifest-sha256 589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b
 ```
-

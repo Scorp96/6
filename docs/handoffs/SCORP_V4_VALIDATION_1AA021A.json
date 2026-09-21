@@ -1,0 +1,85 @@
+{
+  "format": "scorp-v4-validation-record/1",
+  "validation_id": "SCORP_V4_VALIDATION_1AA021A",
+  "candidate_commit": "1aa021aebc6643668f40182f49da0978c099230d",
+  "evidence_parent_sha": "1aa021aebc6643668f40182f49da0978c099230d",
+  "branch": "fix/persistent-master-p0-fix-20260921",
+  "TEST_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "results": {
+    "v4_core_unittest": {
+      "result": "PASS",
+      "tests_run": 270,
+      "command": "python -B -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p 'test_*.py'"
+    },
+    "gui_bridge_unittest": {
+      "result": "PASS",
+      "tests_run": 567,
+      "command": "python -B -m unittest discover -s tests -p 'test_*.py' (cwd=scorp-agent/chatgpt-gui-bridge)'"
+    },
+    "candidate_validation_script": {
+      "result": "PASS",
+      "core_tests": 270,
+      "bridge_tests": 567,
+      "compileall": "PASS"
+    },
+    "git_diff_check": {
+      "result": "PASS"
+    },
+    "python_compileall": {
+      "result": "PASS"
+    },
+    "master_recovery_marker_regression": {
+      "result": "PASS",
+      "tests_run": 2,
+      "scope": "engine marker propagation and real ChromeUseActorDriverV3 read-only recovery"
+    },
+    "daemon_lease_regression": {
+      "result": "PASS",
+      "tests_run": 2,
+      "scope": "slow startup lease ordering and long-action heartbeat renewal"
+    },
+    "candidate_manifest": {
+      "result": "PASS",
+      "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json",
+      "manifest_sha256": "589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b",
+      "raw_file_sha256": "8d6652d667c2c486bd6672ec0f47771c1900a30d5c8976f77eb6845ebc1f2358"
+    }
+  },
+  "old_failure_probes": {
+    "MASTER_UNPROMOTED_REASONING_RECOVERY": "CLOSED_OFFLINE_REAL_DRIVER_REGRESSION",
+    "DAEMON_STARTUP_LEASE_EXPIRY": "CLOSED_OFFLINE_REGRESSION",
+    "DAEMON_LONG_ACTION_HEARTBEAT": "CLOSED_OFFLINE_REGRESSION",
+    "BROWSER_SUBMIT_PROMOTION_LIVE": "OPEN_LIVE_UNVERIFIED"
+  },
+  "new_regression_tests": [
+    "test_reconcile_uses_durable_master_recovery_marker_from_payload",
+    "test_real_driver_master_recovery_uses_short_marker_for_large_prompt",
+    "test_active_controller_startup_builds_before_acquiring_daemon_lease",
+    "test_long_action_renews_daemon_lease_until_handler_returns",
+    "test_prepared_reasoning_intent_persists_recovery_marker"
+  ],
+  "live": {
+    "status": "NOT_RUN",
+    "candidate_commit": "1aa021aebc6643668f40182f49da0978c099230d",
+    "reason": "本次修复后的候选尚未重新执行真实 Windows+Chrome 双 Worker 或 Zero-Human 全流程；此前 4dd0bd7 的实机报告在 Master reasoning 提交处 BLOCKED_AMBIGUOUS，不能提升到本候选。",
+    "retry_count_after_ambiguity": 0,
+    "browser_side_effect_policy": "ambiguous browser results remain BLOCKED; no blind retry",
+    "remaining": [
+      "fresh current-candidate Master reasoning browser recovery",
+      "two dynamic Worker real-browser submissions and structured WORK_RESULT",
+      "LocalExecutionAdapter live closure",
+      "physical browser rebind and daemon restart recovery",
+      "Windows no-login boundary",
+      "unattended soak and production cutover"
+    ]
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-persistent-master-p0-fix-20260921",
+    "remote_feature_ref": "origin/fix/persistent-master-p0-fix-20260921",
+    "runtime_identity": "1aa021aebc6643668f40182f49da0978c099230d; TEST_VERIFIED candidate, LIVE_UNVERIFIED, not production"
+  }
+}

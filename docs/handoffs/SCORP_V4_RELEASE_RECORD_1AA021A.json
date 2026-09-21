@@ -1,0 +1,108 @@
+{
+  "format": "scorp-v4-release-record/2",
+  "release_id": "SCORP_V4_1AA021A",
+  "repository": "Scorp96/6",
+  "branch": "fix/persistent-master-p0-fix-20260921",
+  "code_candidate_sha": "1aa021aebc6643668f40182f49da0978c099230d",
+  "evidence_head_sha": "1aa021aebc6643668f40182f49da0978c099230d",
+  "candidate_commit": "1aa021aebc6643668f40182f49da0978c099230d",
+  "baseline_commit": "4dd0bd7b5cb1c1420f9bb91835aec692daca1431",
+  "status": "TEST_VERIFIED_P0_REPAIRS_LIVE_UNVERIFIED",
+  "TEST_VERIFIED": true,
+  "LIVE_VERIFIED": false,
+  "ACCEPTED": false,
+  "created_at": "2026-09-21T00:00:00Z",
+  "supersedes_release_id": "SCORP_V4_421BA62",
+  "candidate_manifest": {
+    "path": "docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json",
+    "manifest_sha256": "589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b",
+    "file_sha256": "8d6652d667c2c486bd6672ec0f47771c1900a30d5c8976f77eb6845ebc1f2358"
+  },
+  "validation_record": {
+    "path": "docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json",
+    "file_sha256": "7acde0b9a7c604026737d6cc101eb03f1ba2fce2a99aacea34bd5067d805eaa0"
+  },
+  "evidence_ids": {
+    "offline_validation": "SCORP_V4_VALIDATION_1AA021A",
+    "candidate_manifest": "SCORP_V4_CANDIDATE_MANIFEST_1AA021A",
+    "live": []
+  },
+  "authority": {
+    "sqlite": "local transactional authority",
+    "web_gpt": "planning and evidence review only unless a separate local connector provides current evidence",
+    "browser": "explicitly gated Windows side effect",
+    "git": "candidate and evidence transport only"
+  },
+  "p0": {
+    "MASTER_REASONING_RECOVERY_MARKER": "CLOSED_OFFLINE_REAL_DRIVER_REGRESSION",
+    "DAEMON_STARTUP_LEASE_EXPIRY": "CLOSED_OFFLINE_REGRESSION",
+    "DAEMON_LONG_ACTION_HEARTBEAT": "CLOSED_OFFLINE_REGRESSION",
+    "CURRENT_CANDIDATE_BROWSER_E2E": "OPEN_LIVE_UNVERIFIED"
+  },
+  "changes": [
+    "persist a short SCORP_REASONING recovery marker with every new Master reasoning intent and put it before the large prompt body",
+    "use the persisted marker for fail-closed read-only unpromoted-turn reconciliation, with legacy intent-id fallback",
+    "exercise the real ChromeUseActorDriverV3 recovery path with a large prompt and no submit commands",
+    "build local browser/controller/supervisor objects before acquiring the short-lived daemon lease",
+    "retain periodic daemon lease renewal throughout long action handlers"
+  ],
+  "offline_evidence": [
+    {
+      "id": "v4_core_unittest",
+      "result": "PASS",
+      "observed": "270 tests"
+    },
+    {
+      "id": "bridge_unittest",
+      "result": "PASS",
+      "observed": "567 tests"
+    },
+    {
+      "id": "candidate_validation_script",
+      "result": "PASS",
+      "observed": "270 core + 567 bridge + compileall"
+    },
+    {
+      "id": "master_recovery_marker_regression",
+      "result": "PASS",
+      "observed": "real-driver recovery and marker propagation tests"
+    },
+    {
+      "id": "daemon_lease_regression",
+      "result": "PASS",
+      "observed": "startup ordering and long-action heartbeat tests"
+    },
+    {
+      "id": "candidate_manifest",
+      "result": "PASS",
+      "manifest_sha256": "589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b",
+      "file_sha256": "8d6652d667c2c486bd6672ec0f47771c1900a30d5c8976f77eb6845ebc1f2358"
+    }
+  ],
+  "live_evidence": {
+    "status": "NOT_RUN",
+    "reason": "Fresh current-candidate real Windows+Chrome validation is still required. The previous 4dd0bd7 run stopped at a Master reasoning MAY_HAVE_SUBMITTED/BLOCKED_AMBIGUOUS intent; this change is specifically intended to close that path and must be tested once in a fresh isolated state.",
+    "retry_count_of_ambiguous_intents": 0,
+    "not_run": [
+      "current-candidate browser canary",
+      "Zero-Human crash/restart E2E",
+      "structured WORK_RESULT to LocalExecutionAdapter",
+      "physical rebind",
+      "Windows no-login",
+      "unattended soak",
+      "production cutover"
+    ]
+  },
+  "deployment": {
+    "DEPLOYED": false,
+    "PRODUCTION_CHANGED": false,
+    "isolated_worktree": "C:/ScorpAgent/worktrees/v4-persistent-master-p0-fix-20260921",
+    "runtime_identity": "1aa021aebc6643668f40182f49da0978c099230d candidate; not production",
+    "remote_feature_ref": "origin/fix/persistent-master-p0-fix-20260921"
+  },
+  "handoff": {
+    "ordinary_web_gpt": "Read GPT_START_HERE.md, this release record, the validation record, and the packet; Git does not grant local Windows or browser control.",
+    "windows_operator": "Run fresh read-only preflight, then current-candidate canary only after reviewing the exact candidate manifest; keep any ambiguous browser result blocked.",
+    "completion_rule": "Do not set LIVE_VERIFIED or ACCEPTED until fresh current-candidate browser, structured code workload, restart/rebind, and production gates have their own bound evidence."
+  }
+}
