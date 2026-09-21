@@ -1,0 +1,50 @@
+{
+  "format": "scorp-v4-two-worker-live-canary/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
+  "candidate_manifest_path": "C:\\ScorpAgent\\worktrees\\v4-persistent-master-p0-fix-20260921\\docs\\handoffs\\SCORP_V4_CANDIDATE_MANIFEST_D814CB0.json",
+  "candidate_manifest_sha256": "b53e358602698a1e89c6d6becd8fbd4cf65f4b2be3ba64ada7f5977d6a2d2502",
+  "observed_at_utc": "2026-09-21T02:27:45.150341Z",
+  "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
+  "project_id": "scorp-v4-live-d814cb0-double",
+  "worker_count": 2,
+  "master_epoch": 0,
+  "submit_actions": 2,
+  "response_messages": 2,
+  "duplicate_submits": 0,
+  "records": [
+    {
+      "intent_id": "worker-intent-assignment-e2da6c3b82f94e608e597c8a1d8d4f40",
+      "channel": "worker/worker-slot-1",
+      "conversation_url": "https://chatgpt.com/c/6ab0960b-b270-83ee-b8a2-5a630c3736d7",
+      "state": "RESPONSE_CAPTURED",
+      "response_sha256": "471ef496aa53f2cccd923424193c3c991a04710922a95c2751b7b17dd6777f97",
+      "marker": "SCORPV4CANARYACK1"
+    },
+    {
+      "intent_id": "worker-intent-assignment-08bf6e53222e475092f8bedb4bca4615",
+      "channel": "worker/worker-slot-2",
+      "conversation_url": "https://chatgpt.com/c/6ab095f7-3738-83ee-8ae7-1dcf49f04db9",
+      "state": "RESPONSE_CAPTURED",
+      "response_sha256": "8d3f2f3481d7a9094b2713a23537f97f13de09d3f4592d2768a6aafc837e233c",
+      "marker": "SCORPV4CANARYACK2"
+    }
+  ],
+  "lifecycle_cleanup": {
+    "retired_turn_ids": [
+      "worker-intent-assignment-e2da6c3b82f94e608e597c8a1d8d4f40",
+      "worker-intent-assignment-08bf6e53222e475092f8bedb4bca4615"
+    ],
+    "preserved": [],
+    "auth_session": {
+      "status": "RETIRED",
+      "session": "scorp-v4-live-auth-050779106e6d",
+      "cleanup": "STOPPED"
+    }
+  },
+  "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
+  "limitations": [
+    "Prompts are harmless fixed-marker connectivity checks and do not perform repository work.",
+    "This does not authorize production cutover or an unattended soak."
+  ]
+}

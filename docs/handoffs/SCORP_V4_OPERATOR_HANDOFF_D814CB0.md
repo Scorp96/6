@@ -8,7 +8,7 @@
 
 ## 已验证
 
-V4 核心 270/270、GUI Bridge 576/576、broker 29/29 和 candidate validation 均 PASS。真实 Windows + 已登录 Chrome + SQLite 单 Worker、双 Worker 都完成提交、响应核对和意图收尾；原始证据是 `C:\ScorpAgent\v4-live-d814cb0\single-evidence.json`、`C:\ScorpAgent\v4-live-d814cb0\double-evidence.json`。
+V4 核心 270/270、GUI Bridge 576/576、broker 29/29 和 candidate validation 均 PASS。真实 Windows + 已登录 Chrome + SQLite 单 Worker、双 Worker 都完成提交、响应核对和意图收尾；Git 中的证据是 `docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_SINGLE.json`、`docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_DOUBLE.json`，本机原始证据分别位于 `C:\ScorpAgent\v4-live-d814cb0`。
 
 ## 仍未验收
 

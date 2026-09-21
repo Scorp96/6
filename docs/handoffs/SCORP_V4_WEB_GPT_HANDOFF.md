@@ -7,8 +7,8 @@ Git 传递代码、计划和证据，SQLite 是本地权威状态，Windows 宿�
 ## 当前证据
 
 - 离线：V4 核心 `270/270 PASS`，GUI Bridge `576/576 PASS`，broker `29/29 PASS`，candidate validation `PASS`。
-- 真实单 Worker：`C:\ScorpAgent\v4-live-d814cb0\single-evidence.json`，原始文件 SHA-256 `6f55c5cb403082d53c29c73ff68cc229bd0ce15ee5f310cb22d2a5651eef18e6`。
-- 真实双 Worker：`C:\ScorpAgent\v4-live-d814cb0\double-evidence.json`，两个 Worker 都 `RESPONSE_CAPTURED`，原始文件 SHA-256 `331bcf59d9c1717b01154b1fd9df5e2376d3f6fe389b9e164a40f08a375b59f0`。
+- 真实单 Worker：`docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_SINGLE.json`（本机原始路径 `C:\ScorpAgent\v4-live-d814cb0\single-evidence.json`），SHA-256 `6f55c5cb403082d53c29c73ff68cc229bd0ce15ee5f310cb22d2a5651eef18e6`。
+- 真实双 Worker：`docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_DOUBLE.json`（本机原始路径 `C:\ScorpAgent\v4-live-d814cb0\double-evidence.json`），两个 Worker 都 `RESPONSE_CAPTURED`，SHA-256 `331bcf59d9c1717b01154b1fd9df5e2376d3f6fe389b9e164a40f08a375b59f0`。
 - 候选清单：`docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_D814CB0.json`，规范 SHA-256 `b53e358602698a1e89c6d6becd8fbd4cf65f4b2be3ba64ada7f5977d6a2d2502`。
 - 机器记录：`docs/handoffs/SCORP_V4_VALIDATION_D814CB0.json`、`docs/handoffs/SCORP_V4_RELEASE_RECORD_D814CB0.json`。
 - `TEST_VERIFIED=true`；`LIVE_BROWSER_CANARY_VERIFIED=true`；整体 `LIVE_VERIFIED=false`；`ACCEPTED=false`。

@@ -1,0 +1,41 @@
+{
+  "format": "scorp-v4-live-worker-canary/1",
+  "repository": "Scorp96/6",
+  "candidate_code_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
+  "candidate_manifest_path": "C:\\ScorpAgent\\worktrees\\v4-persistent-master-p0-fix-20260921\\docs\\handoffs\\SCORP_V4_CANDIDATE_MANIFEST_D814CB0.json",
+  "candidate_manifest_sha256": "b53e358602698a1e89c6d6becd8fbd4cf65f4b2be3ba64ada7f5977d6a2d2502",
+  "observed_at_utc": "2026-09-21T02:26:34.378554Z",
+  "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
+  "project_id": "scorp-v4-live-d814cb0-single",
+  "worker_count": 1,
+  "master_epoch": 0,
+  "submit_actions": 1,
+  "response_messages": 1,
+  "duplicate_submits": 0,
+  "records": [
+    {
+      "intent_id": "worker-intent-assignment-851f218759e84f498e298f4f87207f77",
+      "channel": "worker/worker-slot-1",
+      "conversation_url": "https://chatgpt.com/c/6ab095c8-9384-83e8-97cc-c3b6a132b831",
+      "state": "RESPONSE_CAPTURED",
+      "response_sha256": "3ca8fa11cfc27256217d957bb7fbe9abdcf336bdab31d91013927a108b05ba16",
+      "marker": "SCORPV4CANARYACK1"
+    }
+  ],
+  "lifecycle_cleanup": {
+    "retired_turn_ids": [
+      "worker-intent-assignment-851f218759e84f498e298f4f87207f77"
+    ],
+    "preserved": [],
+    "auth_session": {
+      "status": "RETIRED",
+      "session": "scorp-v4-live-auth-c8130b506be3",
+      "cleanup": "STOPPED"
+    }
+  },
+  "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
+  "limitations": [
+    "Prompts are harmless fixed-marker connectivity checks and do not perform repository work.",
+    "This does not authorize production cutover or an unattended soak."
+  ]
+}

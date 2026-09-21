@@ -23,12 +23,16 @@
   },
   "validation_record": {
     "path": "docs/handoffs/SCORP_V4_VALIDATION_D814CB0.json",
-    "file_sha256": "9cb2c812afa4c48a0168e4e7b32d11f65175347ad29382fc7e48f3faef1043f5"
+    "file_sha256": "47dd595728c3a2c0e5a95e41c6b67bff191cd3d750914fa997d660dbab7ffaaa"
   },
   "evidence_ids": {
     "offline_validation": "SCORP_V4_VALIDATION_D814CB0",
     "candidate_manifest": "SCORP_V4_CANDIDATE_MANIFEST_D814CB0",
     "live": [
+      "docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_SINGLE.json",
+      "docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_DOUBLE.json"
+    ],
+    "local_sources": [
       "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
       "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json"
     ]
@@ -55,13 +59,15 @@
   "live_evidence": {
     "status": "PASS_BROWSER_CANARY_SCOPE",
     "single_worker": {
-      "path": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
+      "path": "docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_SINGLE.json",
+      "local_source_path": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
       "artifact_sha256": "6f55c5cb403082d53c29c73ff68cc229bd0ce15ee5f310cb22d2a5651eef18e6",
       "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
       "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"
     },
     "two_workers": {
-      "path": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json",
+      "path": "docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_DOUBLE.json",
+      "local_source_path": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json",
       "artifact_sha256": "331bcf59d9c1717b01154b1fd9df5e2376d3f6fe389b9e164a40f08a375b59f0",
       "candidate_commit": "d814cb0384616520e89932e032e70a22d00abe3f",
       "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION"

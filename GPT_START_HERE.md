@@ -635,6 +635,7 @@ Use these paths when an ordinary GPT or Windows operator takes over this reposit
 - Operator handoff: `docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_D814CB0.md`.
 - Offline result: V4 core `270/270 PASS`; GUI bridge `576/576 PASS`; privileged broker `29/29 PASS`; compileall and candidate validation `PASS`.
 - Live browser scope: real Windows + logged-in Chrome + SQLite single Worker and two Worker canaries both `PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION`.
+- Git-readable live evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_SINGLE.json` and `docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_DOUBLE.json`; the original local receipts remain under `C:\ScorpAgent\v4-live-d814cb0`.
 - Current boundary: `TEST_VERIFIED=true`, `LIVE_BROWSER_CANARY_VERIFIED=true`, `LIVE_VERIFIED=false`, `ACCEPTED=false`, `DEPLOYED=false`, `PRODUCTION_CHANGED=false`.
 - Any `MAY_HAVE_SUBMITTED`, missing URL, missing response hash or unclear side effect stays `BLOCKED`; do not blind-retry.
 - Whole-product live acceptance still requires a real repository workload, LocalExecutionAdapter closure, physical rebind/restart, no-login boundary, soak and production gates.

@@ -59,7 +59,8 @@
     "reason": "Current candidate single-worker and two-worker browser canaries passed; whole-product LIVE_VERIFIED remains false because real code workload, local execution closure, restart/rebind and production gates are not run.",
     "single_worker": {
       "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
-      "evidence_path": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_SINGLE.json",
+      "local_source_path": "C:\\ScorpAgent\\v4-live-d814cb0\\single-evidence.json",
       "artifact_sha256": "6f55c5cb403082d53c29c73ff68cc229bd0ce15ee5f310cb22d2a5651eef18e6",
       "worker_count": 1,
       "submit_actions": 1,
@@ -71,7 +72,8 @@
     },
     "two_workers": {
       "result": "PASS_REAL_BROWSER_TWO_WORKER_SUBMIT_AND_RECONCILIATION",
-      "evidence_path": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json",
+      "evidence_path": "docs/handoffs/SCORP_V4_LIVE_CANARY_D814CB0_DOUBLE.json",
+      "local_source_path": "C:\\ScorpAgent\\v4-live-d814cb0\\double-evidence.json",
       "artifact_sha256": "331bcf59d9c1717b01154b1fd9df5e2376d3f6fe389b9e164a40f08a375b59f0",
       "worker_count": 2,
       "submit_actions": 2,
