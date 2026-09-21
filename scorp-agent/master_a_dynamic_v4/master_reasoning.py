@@ -212,6 +212,13 @@ class MasterReasoningCoordinator:
     def semantic_snapshot_sha256(self) -> str:
         return sha256_json(self.semantic_snapshot())
 
+    @staticmethod
+    def _recovery_marker(intent_id: str) -> str:
+        """Return a short durable token that survives browser snapshot truncation."""
+        return "SCORP_REASONING::" + hashlib.sha256(
+            str(intent_id).encode("utf-8")
+        ).hexdigest()[:24]
+
     def _latest_reasoning_intent(self) -> dict[str, Any] | None:
         with self.store._connection() as conn:
             row = conn.execute(
@@ -292,7 +299,8 @@ class MasterReasoningCoordinator:
         }
         intent_id = "master-reasoning-" + sha256_json(material)[:32]
         binding = {**material, "intent_id": intent_id}
-        prompt = json.dumps(
+        recovery_marker = self._recovery_marker(intent_id)
+        prompt_body = json.dumps(
             {
                 "protocol": "SCORP V4 MASTER_REASONING/1",
                 "role": "Logical Master A",
@@ -333,6 +341,11 @@ class MasterReasoningCoordinator:
             sort_keys=True,
             separators=(",", ":"),
         )
+        # Keep the recovery token outside the large serialized snapshot so a
+        # post-crash accessibility read can find it without submitting again.
+        # It is an input prefix only; the model response contract remains one
+        # top-level JSON object.
+        prompt = recovery_marker + "\n" + prompt_body
         return binding, prompt, intent_id
 
     def _prepare(self) -> dict[str, Any]:
@@ -341,6 +354,7 @@ class MasterReasoningCoordinator:
         payload = {
             "prompt": prompt,
             "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+            "recovery_marker": self._recovery_marker(intent_id),
             "reasoning_binding": binding,
             "required_response": "MASTER_DECISION/1",
             "operator_generation": int(control["operator_generation"]),

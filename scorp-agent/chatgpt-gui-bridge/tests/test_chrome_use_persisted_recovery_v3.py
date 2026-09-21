@@ -1,9 +1,11 @@
 import asyncio
+import json
 import pathlib
 import tempfile
 import unittest
 
 from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3
+from v4_browser_engine import build_v4_browser_engine
 
 
 class FakeCli:
@@ -125,6 +127,72 @@ class ChromeUsePersistedRecoveryV3Tests(unittest.TestCase):
             binding = driver.turn_binding(turn_id)
             self.assertEqual(session, binding["session"])
             self.assertIsNone(binding["conversation_url"])
+
+    def test_real_driver_master_recovery_uses_short_marker_for_large_prompt(self):
+        """Exercise the engine-to-ChromeUse recovery path after a Master crash."""
+        with tempfile.TemporaryDirectory() as td:
+            turn_id = "master-reasoning-" + "d" * 32
+            marker = "SCORP_REASONING::" + "e" * 24
+            url = "https://chatgpt.com/c/master-large-prompt"
+            state_path, session = self._seed(td, turn_id, None)
+            # Model the crash boundary: the turn was durably marked before
+            # browser I/O, but URL promotion never completed.
+            ChromeUseActorDriverV3(
+                FakeCli([]), state_path, sleeper=lambda _: asyncio.sleep(0)
+            )._mark_turn_browser_io_started(turn_id)
+            long_prompt = "{" + ("durable-state," * 1500) + "}"
+            cli = FakeCli([
+                {"data": {"url": url}},
+                {"success": True, "data": {"broughtToFront": True}},
+                {
+                    "data": {
+                        "content": (
+                            "#### You said:\n"
+                            + marker + "\n"
+                            + long_prompt + "\n"
+                            + "#### ChatGPT said:\nMASTER_DECISION\n"
+                        ),
+                        "url": url,
+                    }
+                },
+            ])
+            driver = ChromeUseActorDriverV3(cli, state_path, sleeper=lambda _: asyncio.sleep(0))
+
+            def parser(snapshot, observed_intent_id):
+                if marker not in snapshot or "MASTER_DECISION" not in snapshot:
+                    return None
+                return {
+                    "master_decision_version": 1,
+                    "intent_id": observed_intent_id,
+                    "action": "WAIT",
+                }
+
+            engine = build_v4_browser_engine(
+                driver,
+                auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+                response_parser=parser,
+                timeout_seconds=6,
+            )
+            result = engine.reconcile({
+                "intent_id": turn_id,
+                "channel": "master",
+                "actor_id": "A",
+                "action_kind": "MASTER_REASONING",
+                "conversation_url": None,
+                "payload_json": json.dumps({
+                    "prompt": long_prompt,
+                    "recovery_marker": marker,
+                }),
+            })
+
+            self.assertEqual("RESPONSE_CAPTURED", result["status"])
+            self.assertEqual(url, result["conversation_url"])
+            self.assertEqual(["get", "bringToFront", "read"], [call[1][0] for call in cli.calls])
+            forbidden = {"open", "fill", "click", "press", "type"}
+            self.assertFalse(any(args and args[0] in forbidden for _, args, _ in cli.calls))
+            binding = driver.turn_binding(turn_id)
+            self.assertEqual(url, binding["conversation_url"])
+            self.assertEqual(session, binding["session"])
 
 
 if __name__ == "__main__":

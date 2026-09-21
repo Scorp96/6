@@ -71,18 +71,25 @@ def build_v4_browser_engine(
         if not url:
             marker = ""
             action_kind = str(intent.get("action_kind") or "")
-            if action_kind == "CHATGPT_WORKER_SUBMIT":
-                try:
-                    payload = json.loads(str(intent.get("payload_json") or "{}"))
-                except (TypeError, ValueError):
-                    payload = {}
+            try:
+                payload = json.loads(str(intent.get("payload_json") or "{}"))
+            except (TypeError, ValueError):
+                payload = {}
+            if isinstance(payload, Mapping):
+                # Master reasoning persists a short, human-visible token in
+                # the intent because a large JSON prompt can be truncated by
+                # the browser accessibility snapshot after a crash.  Prefer
+                # that durable token for read-only recovery; never invent a
+                # new marker or resend the external action.
+                marker = str(payload.get("recovery_marker") or "").strip()
+            if not marker and action_kind == "CHATGPT_WORKER_SUBMIT":
                 assignment = payload.get("worker_assignment") if isinstance(payload, Mapping) else None
                 if isinstance(assignment, Mapping):
                     marker = str(assignment.get("assignment_id") or "").strip()
-            elif action_kind == "MASTER_REASONING":
+            elif not marker and action_kind == "MASTER_REASONING":
                 # The reasoning prompt carries its deterministic intent id.
-                # This lets recovery locate an unpromoted Master turn without
-                # ever resubmitting an ambiguous external side effect.
+                # Keep this fallback for pre-marker intents created by an
+                # older runtime; new intents use the durable short marker.
                 marker = intent_id
             recover_unpromoted = getattr(driver, "recover_unpromoted_turn_snapshot", None)
             if not marker or not callable(recover_unpromoted):

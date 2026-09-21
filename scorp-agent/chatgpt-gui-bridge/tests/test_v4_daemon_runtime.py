@@ -327,6 +327,83 @@ class V4DaemonRuntimeTests(unittest.TestCase):
                     ).fetchone()[0]
                 self.assertNotEqual(before, after)
 
+    def test_active_controller_startup_builds_before_acquiring_daemon_lease(self):
+        """Slow browser-stack construction must not consume the daemon TTL."""
+        import time
+        from unittest import mock
+
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            driver = root / "driver.json"
+            driver.write_text("{}\n", encoding="utf-8")
+            with StateStore(db, [root]) as store:
+                store.create_contract(
+                    "p", root_contract={"objective": "x"}, acceptance_contract={"ids": []}
+                )
+
+            observed_lease_rows = []
+
+            class FakeGateway:
+                def close(self):
+                    return None
+
+            class FakeController:
+                pass
+
+            class FakeReasoning:
+                def __init__(self, gateway, controller):
+                    pass
+
+                def reasoning_required(self):
+                    return False
+
+            class FakeDaemon:
+                def __init__(self, *args, **kwargs):
+                    self.health_path = Path(kwargs["health_path"])
+
+                def run_loop(self, **kwargs):
+                    self.health_path.write_text(
+                        json.dumps({"status": "TERMINAL"}), encoding="utf-8"
+                    )
+                    return []
+
+            def slow_build(*_args):
+                with StateStore(db, [root]) as probe:
+                    with probe._connection() as conn:
+                        row = conn.execute(
+                            "SELECT lease_status FROM daemon_leases WHERE project_id=?",
+                            ("p",),
+                        ).fetchone()
+                    observed_lease_rows.append(None if row is None else row[0])
+                time.sleep(0.05)
+                return FakeGateway(), FakeController(), None
+
+            args = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db),
+                    "--allowed-root", str(root),
+                    "--project-id", "p",
+                    "--actor-id", "daemon-a",
+                    "--daemon-ttl-seconds", "1",
+                    "--health-path", str(root / "health.json"),
+                    "--max-iterations", "1",
+                    "--active-controller",
+                    "--driver-state-path", str(driver),
+                ]
+            )
+            with mock.patch.object(runtime, "_build_active_controller_runtime", side_effect=slow_build), \
+                    mock.patch.object(runtime, "MasterReasoningCoordinator", FakeReasoning), \
+                    mock.patch.object(runtime, "_build_persistent_action_handlers", return_value={}), \
+                    mock.patch.object(runtime, "LocalDaemon", FakeDaemon):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(0, runtime.run_runtime(args))
+
+            self.assertEqual([None], observed_lease_rows)
+
 
 if __name__ == "__main__":
     unittest.main()

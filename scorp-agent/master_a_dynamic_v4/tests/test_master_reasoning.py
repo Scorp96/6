@@ -130,8 +130,9 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.assertEqual([], snapshot["contract"]["acceptance"]["required"])
 
     def test_prompt_requires_top_level_binding_fields_and_reason(self):
-        binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
-        payload = json.loads(prompt)
+        binding, prompt, intent_id = self.coordinator._binding_and_prompt()
+        recovery_marker, prompt_body = prompt.split("\n", 1)
+        payload = json.loads(prompt_body)
         contract = payload["response_contract"]
         self.assertEqual("TOP_LEVEL", contract["binding_field_location"])
         self.assertTrue(contract["forbid_nested_reasoning_binding"])
@@ -142,6 +143,21 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.assertIn("RESPONSE TOP LEVEL", joined)
         self.assertIn("do not return a nested reasoning_binding object", joined)
         self.assertIn("non-empty top-level reason", joined)
+        self.assertEqual(
+            self.coordinator._recovery_marker(intent_id),
+            recovery_marker,
+        )
+
+    def test_prepared_reasoning_intent_persists_recovery_marker(self):
+        binding, prompt, intent_id = self.coordinator._binding_and_prompt()
+        prepared = self.coordinator._prepare()
+        payload = json.loads(prepared["payload_json"])
+        self.assertEqual(intent_id, prepared["intent_id"])
+        self.assertEqual(
+            self.coordinator._recovery_marker(intent_id),
+            payload["recovery_marker"],
+        )
+        self.assertTrue(prompt.startswith(payload["recovery_marker"] + "\n"))
 
     def test_wait_is_exactly_once_and_quiesces_unchanged_state(self):
         self.assertTrue(self.coordinator.reasoning_required())

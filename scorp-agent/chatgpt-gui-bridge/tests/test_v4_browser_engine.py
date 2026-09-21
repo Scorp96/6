@@ -188,6 +188,57 @@ class V4BrowserEngineTests(unittest.TestCase):
         self.assertEqual([(intent_id, intent_id, 30.0)], driver.unpromoted)
         self.assertEqual([], driver.submits)
 
+    def test_reconcile_uses_durable_master_recovery_marker_from_payload(self):
+        """A durable short marker must locate a crashed Master turn.
+
+        The full Master prompt is intentionally large and may be truncated in
+        an accessibility snapshot.  Recovery therefore cannot rely on the
+        long intent id being visible in the browser.  The marker is persisted
+        with the intent and is the only browser-side locator that is safe to
+        use after a crash.
+        """
+        intent_id = "master-reasoning-" + "b" * 32
+        recovery_marker = "SCORP_REASONING::" + "c" * 24
+        driver = FakeDriver(
+            "Focused Window: Chrome\nhttps://chatgpt.com/c/master-recovered-marker\n"
+            + recovery_marker
+            + "\nMASTER_DECISION"
+        )
+
+        def parser(snapshot, observed_intent_id):
+            if recovery_marker not in snapshot or "MASTER_DECISION" not in snapshot:
+                return None
+            return {
+                "master_decision_version": 1,
+                "intent_id": observed_intent_id,
+                "action": "WAIT",
+            }
+
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=parser,
+            timeout_seconds=30,
+        )
+        intent = {
+            "intent_id": intent_id,
+            "channel": "master",
+            "actor_id": "A",
+            "action_kind": "MASTER_REASONING",
+            "conversation_url": None,
+            "payload_json": json.dumps({
+                "prompt": "{" + ("durable-state," * 500) + "}",
+                "recovery_marker": recovery_marker,
+            }),
+        }
+        result = engine.reconcile(intent)
+        self.assertEqual("RESPONSE_CAPTURED", result["status"])
+        self.assertEqual(
+            [(intent_id, recovery_marker, 30.0)],
+            driver.unpromoted,
+        )
+        self.assertEqual([], driver.submits)
+
     def test_reconcile_mismatched_conversation_is_ambiguous(self):
         driver = FakeDriver("https://chatgpt.com/c/other-conversation\nSCORP_RESULT")
         engine = build_v4_browser_engine(

@@ -238,16 +238,11 @@ def run_runtime(args: argparse.Namespace) -> int:
             raise RuntimeError(
                 f"DAEMON_RECOVERY_{recovery_gate['status']}:{recovery_gate.get('reason', '')}"
             )
-        lease = store.acquire_daemon_lease(
-            str(args.project_id),
-            actor_id,
-            ttl_seconds=int(args.daemon_ttl_seconds),
-        )
-        if args.daemon_epoch is not None and int(lease["daemon_epoch"]) != int(args.daemon_epoch):
-            raise RuntimeError(
-                f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
-            )
-        daemon_epoch = int(lease["daemon_epoch"])
+        # Build all local controller, adapter, and supervisor objects before
+        # acquiring the short-lived daemon authority.  Construction opens
+        # SQLite-backed adapters but performs no browser I/O; holding the
+        # lease across it let a slow Chrome Use startup expire the lease
+        # before LocalDaemon's heartbeat thread could begin.
         action_handlers = {}
         master_supervision = False
         controller = None
@@ -303,6 +298,20 @@ def run_runtime(args: argparse.Namespace) -> int:
                 }
             )
             master_supervision = True
+
+        # The lease now fences only the runnable daemon loop and its external
+        # actions.  This keeps the TTL independent of local initialization
+        # time while preserving the existing epoch and owner checks.
+        lease = store.acquire_daemon_lease(
+            str(args.project_id),
+            actor_id,
+            ttl_seconds=int(args.daemon_ttl_seconds),
+        )
+        if args.daemon_epoch is not None and int(lease["daemon_epoch"]) != int(args.daemon_epoch):
+            raise RuntimeError(
+                f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
+            )
+        daemon_epoch = int(lease["daemon_epoch"])
         daemon = LocalDaemon(
             store,
             project_id=str(args.project_id),

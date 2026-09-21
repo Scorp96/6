@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -144,6 +145,35 @@ class LocalDaemonTests(unittest.TestCase):
             self.assertEqual([], action_calls)
             self.assertEqual(0, store.count_activation_decisions("p"))
             self.assertEqual("BLOCKED", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
+
+    def test_long_action_renews_daemon_lease_until_handler_returns(self):
+        """A slow action remains fenced while it spans several TTL heartbeats."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            heartbeats = []
+
+            def heartbeat():
+                heartbeats.append(time.monotonic())
+
+            def slow_action(_decision):
+                time.sleep(0.08)
+                return {"status": "OK"}
+
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: ArbiterSnapshot("p", "ACTIVE", 0, 3, True, 0, 1, 1, 0),
+                action_handlers={"ASSIGN_WORKER": slow_action},
+                lease_heartbeat=heartbeat,
+                action_heartbeat_interval_seconds=0.01,
+                health_path=root / "health.json",
+            )
+            result = daemon.run_once()
+            self.assertEqual("ASSIGN_WORKER", result.action)
+            self.assertGreaterEqual(len(heartbeats), 4)
 
     def test_assignment_without_action_handler_is_blocked_not_reported_healthy(self):
         with tempfile.TemporaryDirectory() as td:
