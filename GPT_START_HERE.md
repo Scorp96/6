@@ -249,13 +249,10 @@ The `--daemon-epoch` argument is optional for this pipe launcher. When omitted,
 the launcher reads the current SQLite lease epoch; a supplied value remains an
 explicit stale-epoch fence check.
 
-The current Phase 0 field audit is recorded in
-`docs/handoffs/SCORP_V4_PHASE0_RUNTIME_AUDIT.md`. The current candidate is
-`TEST_VERIFIED`; its fresh real-browser revalidation is `NOT_RUN`. The old
-candidate's `LIVE_VERIFIED` canary is historical context only; see
-`docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json`.
-The older c205 run remains historical evidence only and its ambiguous intent
-must not be replayed.
+The prior Phase 0 field audit is historical context. The current candidate-specific
+validation is `docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json`: offline tests are
+`TEST_VERIFIED`, while fresh current-candidate browser evidence is `NOT_RUN`.
+Historical canaries remain historical and ambiguous intents must not be replayed.
 
 The V4 daemon entrypoint may omit `--daemon-epoch`; it then acquires the
 current SQLite lease epoch. A fixed epoch is accepted only as an explicit
@@ -628,29 +625,25 @@ browser status, production status, blockers, and unverified items. Keep
 
 
 
-## Current candidate identity (2026-09-15)
+## Current candidate identity (2026-09-21)
 
-Use these paths when an ordinary GPT or operator takes over this repository:
+Use these paths when an ordinary GPT or Windows operator takes over this repository:
 
-- Current code candidate: `dea5433d9fa871dc440ec4d3dadb0dc7f58a5a62` (`fix: serialize complete Chrome Use submissions`) on `fix/v4-p0-runtime-closure`; it includes the P0 runtime closure fixes, immutable Git-object release identity, graph crash rollback regression, serialized shared Chrome Use probes, preflight fencing, and whole-submit serialization. The current no-send composer diagnostic passes, while the current two-worker canary is BLOCKED_AMBIGUOUS with CONVERSATION_URL_MISSING; do not retry it.
-- Latest rate-limit evidence (predecessor candidate): `docs/handoffs/SCORP_V4_RATE_LIMIT_RECOVERY_FAILURE_BOUNDARY_5E60A3D.json`; current transport-boundary evidence: `docs/handoffs/SCORP_V4_RUNTIME_PIPE_OVERSIZED_FRAME_BOUNDARY_C4DEA24.json`; SQLite explicit-migration guard: `docs/handoffs/SCORP_V4_SQLITE_EXPLICIT_MIGRATION_BOUNDARY_C4DEA24.json`.
-- Isolated worktree: `C:\ScorpAgent\worktrees\v4-fast-runtime-command-core`.
+- Current code candidate: `1aa021aebc6643668f40182f49da0978c099230d` on `fix/persistent-master-p0-fix-20260921`.
+- Isolated worktree: `C:\ScorpAgent\worktrees\v4-persistent-master-p0-fix-20260921`.
+- Current release record: `docs/handoffs/SCORP_V4_RELEASE_RECORD_1AA021A.json`.
 - Current validation record: `docs/handoffs/SCORP_V4_VALIDATION_1AA021A.json`.
-- Current isolated deployment matrix: `docs/handoffs/SCORP_V4_P1_ISOLATED_MATRIX_DEA5433.json`.
-- Latest read-only Windows/repository/runtime snapshot: `docs/handoffs/SCORP_V4_PHASE0_CURRENT_AUDIT_20260915.json`; the production SQLite recovery incident and logical restoration are recorded in `docs/handoffs/SCORP_V4_PRODUCTION_STATE_RECOVERY_F8C6F1F.json`.
-- Historical harmless-canary evidence: `docs/handoffs/SCORP_V4_LIVE_CANARY_SUCCESS_852567B.json` records the earlier real two-worker PASS; the current candidate's current real-code evidence is `docs/handoffs/SCORP_V4_REAL_CODE_CURRENT_5BF7953.json`; it records T2 execution PASS, T1 BLOCKED, and T3 not run. The older F5B8240 evidence belongs to a different candidate. The older c4d6 evidence remains preserved as `BLOCKED_AMBIGUOUS` and is not replayed.
-- Current browser driver state used by the older read-only receipt: `C:\ScorpAgent\v4-c20561b-live-single\driver.json`.
-- Explicit SQLite migration evidence: `docs/handoffs/SCORP_V4_SQLITE_SNAPSHOT_MIGRATION_FE7D414.json`.
+- Current candidate manifest: `docs/handoffs/SCORP_V4_CANDIDATE_MANIFEST_1AA021A.json` with manifest SHA-256 `589b1d9694ac0871d2fca6b9a1583db279784c18f8dbc587ee81f7124c579e3b`.
+- Operator handoff: `docs/handoffs/SCORP_V4_OPERATOR_HANDOFF_1AA021A.md`.
+- Offline result: V4 core `270/270 PASS`; GUI bridge `567/567 PASS`; compileall and candidate validation `PASS`.
+- Current boundary: `TEST_VERIFIED=true`, `LIVE_VERIFIED=false`, `ACCEPTED=false`, `DEPLOYED=false`, `PRODUCTION_CHANGED=false`.
+- The fixed P0 paths are Master reasoning recovery-marker propagation through the real driver and daemon lease ordering during slow local startup. The previous `4dd0bd7` live run stopped at `MAY_HAVE_SUBMITTED/BLOCKED_AMBIGUOUS`; preserve it as a failure probe and do not retry that intent.
+- Historical evidence remains under `docs/handoffs/historical-2026-09-16/` and the other evidence records. It cannot be promoted to this candidate.
 
-The current candidate is `TEST_VERIFIED` for the offline core and is `LIVE_UNVERIFIED` for current-candidate browser sending; its no-send composer and tab-promotion diagnostics pass. The predecessor `5bf7953` real-code workload was partially live-verified: T2 executed through the local adapter with exit 0, T1 returned BLOCKED and was not executed, and T3 remained queued. That evidence is retained as historical context and cannot be promoted automatically. Master replacement, unattended stability, and production cutover remain unverified. This is not `ACCEPTED`: release identity, current-candidate browser evidence, restart recovery, symmetric rate-limit recovery, scheduled-task cutover, and production cutover remain separate gates.
-Any predecessor browser receipt is historical and is not promoted to this candidate. The current candidate was attempted once with the shared-auth-probe fix and fail-closed with a current evidence record; do not claim a live browser pass until two responses are positively captured.
-The prior b0 canary produced two `BLOCKED_AMBIGUOUS` intents with no conversation URL and is preserved as historical evidence; it must not be replayed. The d0 candidate has not yet produced a current two-worker send receipt.
-
-An ordinary web GPT cannot infer or invoke local Windows, SQLite, Python, or
-Chrome Use control merely by reading GitHub. It must either work through an
-operator-owned local connector or provide a structured plan for the local runner.
-The first action is always the offline validation command above; browser sends
-require an explicit `--send` gate and a fresh isolated state path.
+The current candidate has not yet run a fresh real Windows+Chrome canary. The next
+safe step is a read-only preflight followed by a fresh isolated canary only when
+the exact candidate manifest is bound. An ambiguous browser result remains
+`BLOCKED`; do not blind-retry.
 
 ## Current candidate handoff override
 
