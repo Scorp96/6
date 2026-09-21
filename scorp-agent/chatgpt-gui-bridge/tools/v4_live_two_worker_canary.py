@@ -85,7 +85,13 @@ async def ensure_auth_preflight(auth_probe, *, timeout_seconds: float = 60.0):
     return dict(result)
 
 
-def failure_evidence(*, project_id: str, error: Exception, intents: list[Mapping[str, object]]) -> dict[str, object]:
+def failure_evidence(
+    *,
+    project_id: str,
+    error: Exception,
+    intents: list[Mapping[str, object]],
+    worker_count: int = 2,
+) -> dict[str, object]:
     """Build a fail-closed receipt after a live canary exception.
 
     The receipt records durable intent states without replaying or changing
@@ -103,8 +109,13 @@ def failure_evidence(*, project_id: str, error: Exception, intents: list[Mapping
         )
     message = str(error)
     return {
-        "format": "scorp-v4-two-worker-live-canary-failure/1",
+        "format": (
+            "scorp-v4-live-worker-canary-failure/1"
+            if int(worker_count) == 1
+            else "scorp-v4-two-worker-live-canary-failure/1"
+        ),
         "project_id": str(project_id),
+        "worker_count": int(worker_count),
         "result": "BLOCKED",
         "reason": "LIVE_CANARY_EXCEPTION_FAIL_CLOSED",
         "error_type": type(error).__name__,
@@ -397,6 +408,13 @@ async def cleanup_canary_lifecycle(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SCORP V4 real two-Worker browser canary")
     parser.add_argument("--send-canary", action="store_true", help="required to send the two harmless prompts")
+    parser.add_argument(
+        "--worker-count",
+        type=int,
+        choices=(1, 2),
+        default=2,
+        help="bounded live gate size: run one Worker before the two-Worker gate",
+    )
     parser.add_argument("--executable", default=DEFAULT_EXECUTABLE)
     parser.add_argument("--database-path", required=True, type=pathlib.Path)
     parser.add_argument("--driver-state-path", required=True, type=pathlib.Path)
@@ -421,6 +439,9 @@ async def run_canary(args: argparse.Namespace) -> int:
         return 2
     if not args.candidate_commit or args.candidate_manifest is None or not args.manifest_sha256:
         raise RuntimeError("CANDIDATE_BINDING_REQUIRED")
+    worker_count = int(getattr(args, "worker_count", 2))
+    if worker_count not in (1, 2):
+        raise RuntimeError("WORKER_COUNT_INVALID")
     candidate_binding = validate_candidate_binding(
         args.candidate_manifest,
         candidate_commit=args.candidate_commit,
@@ -466,13 +487,14 @@ async def run_canary(args: argparse.Namespace) -> int:
             {"required": ["LIVE_WORKER_CANARY"]},
         )
         master = gateway.start_master_session("master-live-canary")
-        gateway.enqueue_graph([
+        task_specs = [
             {"task_id": "T1", "objective_sha256": "1" * 64, "resource_scope": [args.allowed_root / "canary-t1.txt"], "dependencies": []},
             {"task_id": "T2", "objective_sha256": "2" * 64, "resource_scope": [args.allowed_root / "canary-t2.txt"], "dependencies": []},
-        ])
-        claims = gateway.claim_workers(master_epoch=int(master["master_epoch"]), limit=2)
-        if len(claims) != 2:
-            raise RuntimeError(f"EXPECTED_TWO_CLAIMS:{len(claims)}")
+        ][:worker_count]
+        gateway.enqueue_graph(task_specs)
+        claims = gateway.claim_workers(master_epoch=int(master["master_epoch"]), limit=worker_count)
+        if len(claims) != worker_count:
+            raise RuntimeError(f"EXPECTED_{worker_count}_CLAIMS:{len(claims)}")
         prepared = []
         for claim in claims:
             marker = MARKERS.get(claim.slot_id)
@@ -538,7 +560,11 @@ async def run_canary(args: argparse.Namespace) -> int:
             auth_session=auth_session,
         )
         evidence = {
-            "format": "scorp-v4-two-worker-live-canary/1",
+            "format": (
+                "scorp-v4-live-worker-canary/1"
+                if worker_count == 1
+                else "scorp-v4-two-worker-live-canary/1"
+            ),
             "repository": "Scorp96/6",
             "candidate_code_commit": candidate_binding["candidate_commit"],
             "candidate_manifest_path": candidate_binding["manifest_path"],
@@ -546,6 +572,7 @@ async def run_canary(args: argparse.Namespace) -> int:
             "observed_at_utc": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
             "transport": "ChromeUseActorDriverV3 -> V4 BrowserAdapter -> V4BridgeGateway",
             "project_id": str(args.project_id),
+            "worker_count": worker_count,
             "master_epoch": int(master["master_epoch"]),
             "worker_count": len(records),
             "submit_actions": len(records),
@@ -573,7 +600,12 @@ async def run_canary(args: argparse.Namespace) -> int:
             prepared_intent_ids,
             auth_session=auth_session,
         )
-        receipt = failure_evidence(project_id=str(args.project_id), error=exc, intents=pending)
+        receipt = failure_evidence(
+            project_id=str(args.project_id),
+            error=exc,
+            intents=pending,
+            worker_count=worker_count,
+        )
         receipt.update(
             {
                 "candidate_code_commit": candidate_binding["candidate_commit"],

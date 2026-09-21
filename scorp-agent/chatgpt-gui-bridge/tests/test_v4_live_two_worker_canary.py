@@ -101,6 +101,18 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
             ])
         self.assertGreaterEqual(args.timeout_seconds, 360)
 
+    def test_canary_worker_count_is_bounded_for_single_worker_live_gate(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            args = build_parser().parse_args([
+                '--worker-count', '1',
+                '--database-path', str(root / 'state.sqlite3'),
+                '--driver-state-path', str(root / 'driver.json'),
+                '--allowed-root', str(root),
+                '--evidence-path', str(root / 'evidence.json'),
+            ])
+        self.assertEqual(1, args.worker_count)
+
     def test_cleanup_closes_auth_and_only_terminal_worker_sessions(self):
         class Store:
             def __init__(self):
