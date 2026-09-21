@@ -529,6 +529,59 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             ]
             self.assertEqual([['type', '@e12', 'hello', '--key-events', '--clear']], repair_calls)
 
+    def test_multiline_repair_uses_newline_safe_paste_instead_of_key_events(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            prompt = 'instruction line\n{"assignment_id":"a-1"}'
+            cli.responses = [
+                {
+                    'data': {
+                        'refs': {
+                            'e12': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e12]',
+                    }
+                },
+                {'success': True},
+                {
+                    'data': {
+                        'refs': {
+                            'e13': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                            'e20': {'name': 'Send', 'role': 'button'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e13]\n- button "Send" [ref=e20]',
+                    }
+                },
+            ]
+            driver = self._driver(td, cli)
+            self.assertEqual(
+                '@e20',
+                asyncio.run(driver._send_ref_after_input_repair('session-multiline', '@e11', prompt)),
+            )
+            paste_calls = [
+                args for _, args, _ in cli.calls
+                if args and args[0] == 'paste'
+            ]
+            self.assertEqual(
+                [['paste', prompt, '--selector', '@e12']],
+                paste_calls,
+            )
+            self.assertFalse(any(args and args[0] == 'type' for _, args, _ in cli.calls))
+
+    def test_editor_ref_retries_transient_snapshot_without_browser_side_effect(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            cli.responses = [
+                {'data': {'refs': {}, 'snapshot': 'loading composer'}},
+                {'data': {'refs': {'e11': {'name': 'Message ChatGPT', 'role': 'textbox'}}}},
+            ]
+            driver = self._driver(td, cli)
+            self.assertEqual('@e11', asyncio.run(driver._editor_ref('session-transient-editor')))
+            self.assertEqual(
+                [['snapshot', '-i'], ['snapshot', '-i']],
+                [args for _, args, _ in cli.calls],
+            )
+
     def test_busy_fill_reconciles_composer_before_one_safe_fill_retry(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()

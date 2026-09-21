@@ -739,16 +739,28 @@ class ChromeUseActorDriverV3:
 
     async def _editor_ref(self, session, *, allow_rate_limit_recovery=True):
         await self._prepare_interactive(session)
-        payload = await self.cli.run_json(session, "snapshot", "-i", timeout_seconds=self.timeout_seconds)
-        if allow_rate_limit_recovery and chatgpt_throttle_visible(_render_payload(payload)):
-            recovery = await self.recover_rate_limit_dialog(session)
-            if recovery.get("status") != "RECOVERED":
-                reason = str(recovery.get("reason") or "UNKNOWN")
-                raise ValueError(f"CHROME_USE_RATE_LIMIT_RECOVERY_BLOCKED:{reason}")
-            # The recovery path may refresh the page, so resolve a fresh
-            # textbox ref and never reuse a pre-refresh accessibility target.
-            return await self._editor_ref(session, allow_rate_limit_recovery=False)
-        return _editor_ref_from_snapshot(payload)
+        # A newly selected ChatGPT tab can expose a transient accessibility
+        # tree with no (or multiple) textbox refs while React finishes
+        # rendering.  Re-read only; no browser side effect is allowed in this
+        # recovery.  If the tree remains ambiguous, preserve the original
+        # fail-closed error.
+        for attempt in range(3):
+            payload = await self.cli.run_json(session, "snapshot", "-i", timeout_seconds=self.timeout_seconds)
+            if allow_rate_limit_recovery and chatgpt_throttle_visible(_render_payload(payload)):
+                recovery = await self.recover_rate_limit_dialog(session)
+                if recovery.get("status") != "RECOVERED":
+                    reason = str(recovery.get("reason") or "UNKNOWN")
+                    raise ValueError(f"CHROME_USE_RATE_LIMIT_RECOVERY_BLOCKED:{reason}")
+                # The recovery path may refresh the page, so resolve a fresh
+                # textbox ref and never reuse a pre-refresh accessibility target.
+                return await self._editor_ref(session, allow_rate_limit_recovery=False)
+            try:
+                return _editor_ref_from_snapshot(payload)
+            except ValueError as exc:
+                if not str(exc).startswith("CHROME_USE_EDITOR_REF_COUNT_") or attempt >= 2:
+                    raise
+                await self.sleeper(0.1)
+        raise AssertionError("unreachable")
 
     async def _send_ref(self, session, *, expected_prompt=None):
         await self._prepare_interactive(session)
@@ -1019,15 +1031,30 @@ class ChromeUseActorDriverV3:
                 )
                 raise first_error from exc
             try:
-                await self.cli.run_json(
-                    session,
-                    "type",
-                    repair_editor_ref,
-                    prompt,
-                    "--key-events",
-                    "--clear",
-                    timeout_seconds=self.timeout_seconds,
-                )
+                if "\n" in prompt or "\r" in prompt:
+                    # Key-event typing interprets a newline as Enter in the
+                    # ChatGPT composer.  That can submit only the first line
+                    # and leave the remainder as a second unsent draft.  The
+                    # Chrome Use paste command preserves newlines and still
+                    # targets the freshly minted textbox ref.
+                    await self.cli.run_json(
+                        session,
+                        "paste",
+                        prompt,
+                        "--selector",
+                        repair_editor_ref,
+                        timeout_seconds=self.timeout_seconds,
+                    )
+                else:
+                    await self.cli.run_json(
+                        session,
+                        "type",
+                        repair_editor_ref,
+                        prompt,
+                        "--key-events",
+                        "--clear",
+                        timeout_seconds=self.timeout_seconds,
+                    )
             except Exception as exc:
                 first_error.add_context(
                     key_event_repair="FAILED",
