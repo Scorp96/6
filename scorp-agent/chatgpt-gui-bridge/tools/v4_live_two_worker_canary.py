@@ -200,12 +200,91 @@ def _reply_matches(snapshot: str, expected: str) -> bool:
     return False
 
 
-def _parse_response(expected_by_intent: Mapping[str, str]):
+def _assistant_text(snapshot: str) -> str:
+    text = str(snapshot or "")
+    markers = ("#### ChatGPT 说：", "#### ChatGPT said:")
+    positions = [(text.rfind(marker), marker) for marker in markers]
+    start, marker = max(positions, key=lambda item: item[0])
+    if start < 0:
+        return ""
+    return text[start + len(marker) :].strip()
+
+
+def _parse_response(expected_by_intent: Mapping[str, Mapping[str, object]]):
+    """Parse a canary WORK_RESULT/1 and bind every identity field.
+
+    The live canary uses the same capture-boundary contract as production
+    Worker turns. A fixed marker alone proves only that a model replied; it
+    cannot satisfy V4's assignment identity fence. The parser therefore
+    accepts one JSON object (optionally in a JSON code fence), checks the
+    assignment fields, and requires the harmless marker to be present in the
+    declared scope/evidence.
+    """
+
     def parser(snapshot: str, intent_id: str):
         expected = expected_by_intent.get(str(intent_id))
-        if expected and _reply_matches(snapshot, expected):
-            return {"kind": "LIVE_WORKER_CANARY_ACK", "marker": expected}
-        return None
+        if not isinstance(expected, Mapping):
+            return None
+        text = _assistant_text(snapshot)
+        if text.startswith("```") and text.endswith("```"):
+            lines = text.splitlines()
+            if len(lines) < 3 or lines[0].strip().lower() not in {"```", "```json"}:
+                return None
+            text = "\n".join(lines[1:-1]).strip()
+        value: object
+        try:
+            value = json.loads(text)
+        except (TypeError, ValueError):
+            return None
+        if not isinstance(value, Mapping):
+            return None
+        if str(value.get("work_result_version") or "") != "1":
+            return None
+        for key in (
+            "project_id",
+            "assignment_id",
+            "task_id",
+            "worker_id",
+            "objective_sha256",
+        ):
+            if str(value.get(key) or "") != str(expected.get(key) or ""):
+                return None
+        try:
+            if int(value.get("base_state_version")) != int(expected.get("base_state_version")):
+                return None
+        except (TypeError, ValueError):
+            return None
+        marker = str(expected.get("marker") or "")
+        if not marker or marker not in json.dumps(dict(value), ensure_ascii=False, sort_keys=True):
+            return None
+        return dict(value)
+
+    return parser
+
+
+def _canary_prompt(claim, marker: str) -> str:
+    """Create a harmless prompt that exercises the real Worker result fence."""
+
+    response = {
+        "work_result_version": "1",
+        "project_id": claim.project_id,
+        "assignment_id": claim.assignment_id,
+        "task_id": claim.task_id,
+        "worker_id": claim.worker_id,
+        "objective_sha256": claim.objective_sha256,
+        "base_state_version": claim.base_state_version,
+        "status": "COMPLETE",
+        "scope_completed": [marker],
+        "evidence": [{"kind": "live_canary", "claim": marker}],
+        "acceptance_coverage": ["LIVE_WORKER_CANARY"],
+    }
+    return (
+        f"SCORP_V4_WORKER_CANARY_{claim.slot_id[-1]}: Reply with exactly one JSON object "
+        "matching the following structure and nothing else. This is a harmless "
+        "connectivity test. Do not access files, run commands, or perform any "
+        "other action. Keep every field unchanged.\n"
+        + json.dumps(response, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    )
 
     return parser
 
@@ -355,7 +434,7 @@ async def run_canary(args: argparse.Namespace) -> int:
     args.evidence_path.parent.mkdir(parents=True, exist_ok=True)
 
     cli = ChromeUseCliV3(executable=str(executable))
-    expected_by_intent: dict[str, str] = {}
+    expected_by_intent: dict[str, dict[str, object]] = {}
     driver = ChromeUseActorDriverV3(cli, args.driver_state_path, timeout_seconds=45)
     auth_session = "scorp-v4-live-auth-" + hashlib.sha256(str(args.project_id).encode()).hexdigest()[:12]
     prepared_intent_ids: list[str] = []
@@ -399,12 +478,17 @@ async def run_canary(args: argparse.Namespace) -> int:
             marker = MARKERS.get(claim.slot_id)
             if marker is None:
                 raise RuntimeError("WORKER_SLOT_NOT_CANARY_BOUND")
-            prompt = (
-                f"SCORP_V4_WORKER_CANARY_{claim.slot_id[-1]}: Reply with exactly {marker} and nothing else. "
-                "This is a harmless connectivity test. Do not access files, run commands, or perform any other action."
-            )
+            prompt = _canary_prompt(claim, marker)
             intent = gateway.prepare_worker_intent(claim, prompt, metadata={"canary_marker": marker})
-            expected_by_intent[str(intent["intent_id"])] = marker
+            expected_by_intent[str(intent["intent_id"])] = {
+                "marker": marker,
+                "project_id": claim.project_id,
+                "assignment_id": claim.assignment_id,
+                "task_id": claim.task_id,
+                "worker_id": claim.worker_id,
+                "objective_sha256": claim.objective_sha256,
+                "base_state_version": claim.base_state_version,
+            }
             prepared_intent_ids.append(str(intent["intent_id"]))
             prepared.append((claim, marker, intent))
         submitted = await dispatch_intents_concurrently(

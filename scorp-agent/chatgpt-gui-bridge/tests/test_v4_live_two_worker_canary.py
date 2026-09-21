@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import pathlib
 import threading
 import tempfile
@@ -9,6 +10,7 @@ from unittest import mock
 
 from tools.v4_live_two_worker_canary import (
     MARKERS,
+    _parse_response,
     _reply_matches,
     build_parser,
     cleanup_canary_lifecycle,
@@ -20,6 +22,67 @@ from tools.v4_live_two_worker_canary import (
 
 
 class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
+    def test_structured_canary_response_is_bound_to_assignment(self):
+        intent_id = "worker-intent-assignment-abc123"
+        expected = {
+            "marker": "SCORPV4CANARYACK1",
+            "project_id": "project-1",
+            "assignment_id": "assignment-abc123",
+            "task_id": "T1",
+            "worker_id": "worker-1",
+            "objective_sha256": "1" * 64,
+            "base_state_version": 0,
+        }
+        response = {
+            "work_result_version": "1",
+            **{key: value for key, value in expected.items() if key != "marker"},
+            "status": "COMPLETE",
+            "scope_completed": [expected["marker"]],
+            "evidence": [{"kind": "live_canary", "claim": expected["marker"]}],
+            "acceptance_coverage": ["LIVE_WORKER_CANARY"],
+        }
+        parser = _parse_response({intent_id: expected})
+
+        parsed = parser(
+            "#### ChatGPT said:\n" + json.dumps(response, ensure_ascii=False),
+            intent_id,
+        )
+
+        self.assertEqual(response, parsed)
+
+    def test_structured_canary_response_rejects_wrong_assignment(self):
+        intent_id = "worker-intent-assignment-abc123"
+        expected = {
+            "marker": "SCORPV4CANARYACK1",
+            "project_id": "project-1",
+            "assignment_id": "assignment-abc123",
+            "task_id": "T1",
+            "worker_id": "worker-1",
+            "objective_sha256": "1" * 64,
+            "base_state_version": 0,
+        }
+        response = {
+            "work_result_version": "1",
+            "project_id": "project-1",
+            "assignment_id": "assignment-other",
+            "task_id": "T1",
+            "worker_id": "worker-1",
+            "objective_sha256": "1" * 64,
+            "base_state_version": 0,
+            "status": "COMPLETE",
+            "scope_completed": [expected["marker"]],
+            "evidence": [{"kind": "live_canary", "claim": expected["marker"]}],
+            "acceptance_coverage": ["LIVE_WORKER_CANARY"],
+        }
+        parser = _parse_response({intent_id: expected})
+
+        parsed = parser(
+            "#### ChatGPT said:\n" + json.dumps(response, ensure_ascii=False),
+            intent_id,
+        )
+
+        self.assertIsNone(parsed)
+
     def test_canary_markers_are_unambiguous_and_strictly_matched(self):
         for marker in MARKERS.values():
             self.assertRegex(marker, r"^[A-Z0-9]+$")
