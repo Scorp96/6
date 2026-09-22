@@ -334,6 +334,12 @@ class MasterAController:
                 master_epoch=epoch,
                 blockers=(f"MASTER_{str(watchdog.get('status') or 'UNKNOWN')}",),
             )
+        # load_worker_claims performs the scheduler's durable
+        # expired-lease fencing.  Run that pass before captured-response
+        # recovery: an expired Worker with a durable RESPONSE_CAPTURED intent
+        # must first become FENCED/EXPIRED so recovery can mint a fresh lease
+        # instead of being missed and later re-claimed as new work.
+        self.gateway.load_worker_claims(master_epoch=epoch)
         recover_captured = getattr(self.gateway, "recover_captured_response_claims", None)
         if callable(recover_captured):
             recover_captured(master_epoch=epoch)
