@@ -194,6 +194,64 @@ class ActivationArbiterTests(unittest.TestCase):
             self.assertEqual(2, snapshot.free_slots)
             self.assertEqual(0, snapshot.ambiguous_intents)
 
+    def test_stale_result_action_fences_old_evidence_and_clears_repeated_action(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            worktree = root / "worktree"
+            worktree.mkdir()
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "stale"}, acceptance_contract={"ids": []})
+            from master_a_dynamic_v4.path_policy import PathPolicy
+            from master_a_dynamic_v4.scheduler import Scheduler
+
+            scheduler = Scheduler(store, "p", PathPolicy([root]), max_workers=2)
+            scheduler.enqueue_graph([
+                {"task_id": "T1", "objective_sha256": "a" * 64, "resource_scope": [worktree / "a.txt"], "dependencies": []}
+            ])
+            claim = scheduler.claim_runnable(master_epoch=0, limit=1)[0]
+            result_id = scheduler.record_candidate(
+                claim.assignment_id,
+                lease_token=claim.lease_token,
+                master_epoch=0,
+                kind="HANDOFF",
+                payload={"artifact_sha256": "b" * 64, "result_sha256": "b" * 64},
+            )
+            scheduler.verify_candidate(result_id, result_sha256="b" * 64)
+            store.advance_master_epoch("p", expected_epoch=0)
+            before = store.activation_snapshot("p", daemon_epoch=1)
+            self.assertEqual(1, before.stale_results)
+            fenced = store.fence_stale_results("p")
+            self.assertEqual("FENCED", fenced["status"])
+            self.assertEqual(1, fenced["result_count"])
+            after = store.activation_snapshot("p", daemon_epoch=1)
+            self.assertEqual(0, after.stale_results)
+            again = store.fence_stale_results("p")
+            self.assertEqual(0, again["result_count"])
+            store.close()
+
+    def test_local_daemon_treats_emergency_stop_as_terminal_safe_stop(self):
+        from master_a_dynamic_v4.daemon import LocalDaemon
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "stop"}, acceptance_contract={"ids": []})
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=1,
+                snapshot_provider=lambda: ArbiterSnapshot(
+                    project_id="p", project_status="ACTIVE", master_epoch=0, daemon_epoch=1,
+                    master_active=True, active_workers=1, free_slots=1, ready_tasks=1,
+                    ambiguous_intents=0, operator_state="EMERGENCY_STOPPED",
+                ),
+                health_path=root / "health.json",
+            )
+            decision = daemon.run_once()
+            self.assertEqual("EMERGENCY_STOP", decision.action)
+            self.assertEqual("TERMINAL", __import__("json").loads((root / "health.json").read_text())["status"])
+            store.close()
+
     def test_store_marks_an_active_assignment_without_a_live_lease_as_lost_worker(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

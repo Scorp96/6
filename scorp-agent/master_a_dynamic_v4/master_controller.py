@@ -17,7 +17,7 @@ import uuid
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from .models import CommitResult, sha256_json
+from .models import CommitResult, canonical_json, sha256_json
 from .scheduler import AssignmentClaim, SchedulerError, WorkerFenceError
 from .execution_adapter import ExecutionAdapterRejected
 from .git_worktree import GitWorktreeRejected
@@ -87,6 +87,23 @@ def normalize_worker_result_envelope(value: Mapping[str, Any]) -> dict[str, Any]
     return result
 
 
+def normalize_execution_request_for_comparison(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Canonicalize Windows path spelling without changing authorization data."""
+
+    normalized = dict(value)
+    for key in ("working_directory", "repository", "worktree"):
+        current = normalized.get(key)
+        if isinstance(current, str):
+            normalized[key] = current.replace(chr(92), "/")
+    resources = normalized.get("resource_paths")
+    if isinstance(resources, Sequence) and not isinstance(resources, (str, bytes)):
+        normalized["resource_paths"] = [
+            item.replace(chr(92), "/") if isinstance(item, str) else item
+            for item in resources
+        ]
+    return normalized
+
+
 @dataclasses.dataclass(frozen=True)
 class ControllerStep:
     """Machine-readable outcome of one bounded controller scheduling pass."""
@@ -128,6 +145,7 @@ class MasterAController:
         *,
         execution_adapter: Any | None = None,
         git_worktree_manager: Any | None = None,
+        candidate_commit: str | None = None,
     ):
         self.gateway = gateway
         self.project_id = str(getattr(gateway, "project_id", "") or "").strip()
@@ -140,6 +158,12 @@ class MasterAController:
         self.plan_hash: str | None = None
         self.execution_adapter = execution_adapter
         self.git_worktree_manager = git_worktree_manager
+        candidate = str(candidate_commit or "").strip().lower()
+        if candidate and (
+            len(candidate) != 40 or any(char not in "0123456789abcdef" for char in candidate)
+        ):
+            raise ControllerRejected("CANDIDATE_COMMIT_INVALID")
+        self.candidate_commit = candidate or None
 
     def start(
         self,
@@ -582,6 +606,11 @@ class MasterAController:
         # boundary; otherwise a model could report a blocker and still cause
         # the requested side effect.
         worker_status = str(payload.get("status") or "").strip().upper()
+        self._validate_execution_request_authority(
+            claim,
+            worker_status=worker_status,
+            execution_request=execution_request,
+        )
         if execution_request is not None and worker_status == "COMPLETE":
             if self.execution_adapter is None:
                 raise ControllerRejected("EXECUTION_ADAPTER_UNAVAILABLE")
@@ -771,24 +800,82 @@ class MasterAController:
             except Exception as exc:
                 raise ControllerRejected("LOCAL_EXECUTION_CLEANUP_FAILED") from exc
             return dict(receipt)
-        if intent_state in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS", "CONFIRMED_SUBMITTED"}:
+        local_stage = ""
+        prepared_receipt: Mapping[str, Any] | None = None
+        raw_observation = intent.get("observation_json")
+        if raw_observation:
+            try:
+                decoded_observation = json.loads(str(raw_observation))
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ControllerRejected("LOCAL_EXECUTION_STAGE_EVIDENCE_INVALID") from exc
+            if not isinstance(decoded_observation, Mapping):
+                raise ControllerRejected("LOCAL_EXECUTION_STAGE_EVIDENCE_INVALID")
+            local_stage = str(decoded_observation.get("local_execution_stage") or "").strip().upper()
+            raw_receipt = decoded_observation.get("worktree_receipt")
+            if isinstance(raw_receipt, Mapping):
+                prepared_receipt = dict(raw_receipt)
+        resume_prepared = (
+            intent_state == "MAY_HAVE_SUBMITTED"
+            and local_stage == "WORKTREE_PREPARED"
+            and prepared_receipt is not None
+        )
+        if intent_state in {"MAY_HAVE_SUBMITTED", "BLOCKED_AMBIGUOUS", "CONFIRMED_SUBMITTED"} and not resume_prepared:
             raise ControllerRejected("LOCAL_EXECUTION_RECONCILIATION_REQUIRED")
+        if resume_prepared and not is_write:
+            raise ControllerRejected("LOCAL_EXECUTION_STAGE_INVALID")
         if intent_state not in {"PREPARED", "VERIFIED_NOT_SUBMITTED"}:
-            raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_STATE_INVALID:{intent_state}")
+            if not resume_prepared:
+                raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_STATE_INVALID:{intent_state}")
+        mark_stage = getattr(self.gateway.store, "mark_local_execution_stage", None)
+        if not callable(mark_stage):
+            raise ControllerRejected("LOCAL_EXECUTION_STAGE_UNAVAILABLE")
         try:
-            self.gateway.store.begin_possible_submit(intent_id)
             assert_generation = getattr(self.gateway.store, "assert_intent_generation", None)
             if callable(assert_generation):
                 assert_generation(intent_id)
             worktree_receipt = None
-            if is_write:
-                worktree_receipt = self.git_worktree_manager.prepare(
+            if resume_prepared:
+                verifier = getattr(self.git_worktree_manager, "verify_prepared", None)
+                if not callable(verifier):
+                    raise GitWorktreeRejected("WORKTREE_RECOVERY_UNAVAILABLE")
+                worktree_receipt = verifier(
                     claim,
+                    receipt=prepared_receipt,
                     repository=str(request["repository"]),
                     worktree=str(request["worktree"]),
                     base_commit=str(request["base_commit"]),
                     timeout_seconds=timeout_seconds,
                 )
+            else:
+                self.gateway.store.begin_possible_submit(intent_id)
+                if callable(assert_generation):
+                    assert_generation(intent_id)
+                if is_write:
+                    worktree_receipt = self.git_worktree_manager.prepare(
+                        claim,
+                        repository=str(request["repository"]),
+                        worktree=str(request["worktree"]),
+                        base_commit=str(request["base_commit"]),
+                        timeout_seconds=timeout_seconds,
+                    )
+                    mark_stage(
+                        intent_id,
+                        stage="WORKTREE_PREPARED",
+                        observation={
+                            "worktree_receipt": (
+                                worktree_receipt.as_dict()
+                                if hasattr(worktree_receipt, "as_dict")
+                                else dict(worktree_receipt)
+                            ),
+                        },
+                    )
+            if callable(assert_generation):
+                assert_generation(intent_id)
+            mark_stage(
+                intent_id,
+                stage="EXECUTION_MAY_HAVE_SUBMITTED",
+                observation={"side_effect": "LOCAL_EXECUTION_CALL_FENCED"},
+            )
             if callable(assert_generation):
                 assert_generation(intent_id)
             receipt = self.execution_adapter.execute(
@@ -877,6 +964,45 @@ class MasterAController:
         except (TypeError, ValueError) as exc:
             raise ControllerRejected("LOCAL_EXECUTION_RECEIPT_INVALID") from exc
 
+    @staticmethod
+    def _validate_execution_request_authority(
+        claim: AssignmentClaim,
+        *,
+        worker_status: str,
+        execution_request: Any,
+    ) -> None:
+        """Enforce the durable task template before any local side effect.
+
+        The Worker prompt describes this contract, but the model is never the
+        authority for a local action.  A COMPLETE result may execute only the
+        canonical request previously admitted in ``task_context``.  A task
+        without a template is audit-only and cannot smuggle in a request.
+        Non-COMPLETE results remain evidence of a failed/blocked attempt; they
+        are never executed and may retain a model-declared placeholder for
+        diagnosis, preserving the existing blocked-result contract.
+        """
+
+        if worker_status != "COMPLETE":
+            return
+        context = getattr(claim, "task_context", {}) or {}
+        if not isinstance(context, Mapping):
+            raise ControllerRejected("TASK_CONTEXT_INVALID")
+        template = context.get("execution_request_template")
+        if template is None:
+            if execution_request is not None:
+                raise ControllerRejected("EXECUTION_REQUEST_FORBIDDEN")
+            return
+        if not isinstance(template, Mapping):
+            raise ControllerRejected("EXECUTION_REQUEST_TEMPLATE_INVALID")
+        if execution_request is None:
+            raise ControllerRejected("EXECUTION_REQUEST_REQUIRED")
+        if not isinstance(execution_request, Mapping):
+            raise ControllerRejected("EXECUTION_REQUEST_INVALID")
+        if canonical_json(normalize_execution_request_for_comparison(execution_request)) != canonical_json(
+            normalize_execution_request_for_comparison(template)
+        ):
+            raise ControllerRejected("EXECUTION_REQUEST_TEMPLATE_MISMATCH")
+
     def _require_epoch(self) -> int:
         if self.master_epoch is None:
             raise ControllerRejected("MASTER_SESSION_NOT_STARTED")
@@ -931,6 +1057,12 @@ class MasterAController:
             if len(encoded_context.encode("utf-8")) > 64 * 1024:
                 raise ControllerRejected("TASK_CONTEXT_TOO_LARGE")
             task["task_context"] = dict(task_context)
+            if self.candidate_commit is not None:
+                bound_candidate = str(task_context.get("candidate_commit") or "").strip().lower()
+                if not bound_candidate:
+                    raise ControllerRejected("TASK_CANDIDATE_COMMIT_REQUIRED")
+                if bound_candidate != self.candidate_commit:
+                    raise ControllerRejected("TASK_CANDIDATE_COMMIT_MISMATCH")
             seen.add(task_id)
             normalized_tasks.append(task)
         known = set(seen)

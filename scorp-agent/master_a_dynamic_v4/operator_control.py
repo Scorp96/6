@@ -106,6 +106,10 @@ class OperatorControlService:
                     return self._reject_and_record(
                         conn, request, receipt_id, state, control, "GENERATION_CONFLICT", now
                     )
+                if str(state["status"] or "") in {"COMPLETE", "HARD_BLOCKED", "TERMINAL"}:
+                    return self._reject_and_record(
+                        conn, request, receipt_id, state, control, "PROJECT_TERMINAL", now
+                    )
                 if request.command == "project.supersede":
                     objective_sha = str(request.payload.get("objective_sha256") or "")
                     if not _SHA256.fullmatch(objective_sha):

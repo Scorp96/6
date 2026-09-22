@@ -56,6 +56,39 @@ class OperatorControlTests(unittest.TestCase):
         self.assertEqual("REJECTED", conflict["status"])
         self.assertEqual("RUNTIME_RECEIPT_IDEMPOTENCY_CONFLICT", conflict["error"]["code"])
 
+    def test_complete_project_rejects_every_operator_mutation(self):
+        with self.store._connection() as conn:
+            conn.execute(
+                "UPDATE project_state SET status='COMPLETE', phase='COMPLETE' WHERE project_id=?",
+                ("p1",),
+            )
+
+        commands = (
+            ("project.pause", {}),
+            ("project.resume", {}),
+            ("project.cancel", {}),
+            ("project.supersede", {"objective_sha256": "b" * 64}),
+            ("project.emergency_stop", {}),
+        )
+        for index, (command, payload) in enumerate(commands, 1):
+            with self.subTest(command=command):
+                with self.store._connection() as conn:
+                    conn.execute(
+                        "UPDATE project_state SET state_version=0, status='COMPLETE', phase='COMPLETE' WHERE project_id=?",
+                        ("p1",),
+                    )
+                    conn.execute(
+                        "UPDATE operator_controls SET operator_state='RUNNING', operator_generation=0, objective_generation=0 WHERE project_id=?",
+                        ("p1",),
+                    )
+                response = self.service.execute(
+                    self.request(f"complete-terminal-{index}", command, payload=payload)
+                )
+                self.assertEqual("REJECTED", response["status"])
+                self.assertEqual("PROJECT_TERMINAL", response["error"]["code"])
+                self.assertEqual("COMPLETE", self.store.get_project_state("p1")["status"])
+                self.assertEqual("RUNNING", self.store.get_operator_control("p1")["operator_state"])
+
     def test_sqlite_receipt_failure_rolls_back_mutation_and_returns_fail_closed_error(self):
         request = self.request("pause-sqlite-failure", "project.pause")
         with patch.object(

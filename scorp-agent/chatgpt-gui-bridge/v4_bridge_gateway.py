@@ -204,6 +204,10 @@ class V4BridgeGateway:
     def recover_captured_response_claims(self, *, master_epoch: int, now=None, lease_seconds: int = 900):
         return self.scheduler.recover_captured_response_claims(master_epoch=int(master_epoch), now=now, lease_seconds=int(lease_seconds))
 
+    def fence_stale_results(self, *, reason: str = "STALE_RESULT_REQUIRES_FENCING") -> dict[str, Any]:
+        """Remove admission authority from candidate evidence of old epochs."""
+        return self.store.fence_stale_results(self.project_id, reason=reason)
+
     def load_worker_claims(self, *, master_epoch: int, now=None):
         """Rehydrate active durable Worker assignments after a restart."""
         return self.scheduler.load_active_claims(master_epoch=int(master_epoch), now=now)

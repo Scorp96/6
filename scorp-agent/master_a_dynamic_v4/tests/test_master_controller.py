@@ -8,6 +8,7 @@ import time
 import unittest
 import datetime as dt
 from dataclasses import dataclass
+import dataclasses
 
 
 class MissingControllerTests(unittest.TestCase):
@@ -172,6 +173,25 @@ class MissingControllerTests(unittest.TestCase):
         with self.assertRaisesRegex(ControllerRejected, "MASTER_IDENTITY_INVALID"):
             controller.apply_plan(
                 {"project_id": "controller-project", "master_identity": "B", "tasks": []}
+            )
+
+    def test_candidate_bound_controller_requires_task_candidate_binding(self):
+        from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            candidate_commit="a" * 40,
+        )
+        controller.start({"objective": "candidate bound"}, {"required": ["AC_CONTROLLER"]})
+        with self.assertRaisesRegex(ControllerRejected, "TASK_CANDIDATE_COMMIT_REQUIRED"):
+            controller.apply_plan(
+                {
+                    "project_id": "controller-project",
+                    "master_identity": "A",
+                    "tasks": [_task("T1", "a" * 64)],
+                }
             )
 
     def test_apply_plan_reentry_adopts_existing_transition_without_second_commit(self):
@@ -394,11 +414,22 @@ class MissingControllerTests(unittest.TestCase):
             git_worktree_manager=worktree_manager,
         )
         controller.start({"objective": "execute bounded local work"}, {"required": ["AC_CONTROLLER"]})
+        request = {
+            "module": "master_a_dynamic_v4.csv_workload.cli",
+            "args": [],
+            "working_directory": "C:/lab",
+            "resource_paths": ["C:/lab/T1.txt"],
+            "access_mode": "write",
+            "timeout_seconds": 5,
+            "repository": "C:/lab/repository",
+            "worktree": "C:/lab/T1-worktree",
+            "base_commit": "a" * 40,
+        }
         controller.apply_plan(
             {
                 "project_id": "controller-project",
                 "master_identity": "A",
-                "tasks": [_task("T1", "a" * 64)],
+                "tasks": [_task("T1", "a" * 64, task_context={"execution_request_template": request})],
             }
         )
 
@@ -423,6 +454,157 @@ class MissingControllerTests(unittest.TestCase):
         self.assertTrue(all("execution_receipt" in payload for _, payload in gateway.verified))
         self.assertEqual("master_a_dynamic_v4.csv_workload.cli", adapter.calls[0]["module"])
         self.assertEqual(1, len(worktree_manager.calls))
+
+    def test_execution_template_requires_worker_to_return_request_before_acceptance(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        request = {
+            "module": "master_a_dynamic_v4.csv_workload.cli",
+            "args": [],
+            "working_directory": "C:/lab",
+            "resource_paths": ["C:/lab/T1.txt"],
+            "access_mode": "write",
+            "timeout_seconds": 5,
+            "repository": "C:/lab/repository",
+            "worktree": "C:/lab/T1-worktree",
+            "base_commit": "a" * 40,
+        }
+        gateway = _FakeGateway("controller-project")
+        adapter = _FakeExecutionAdapter()
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            execution_adapter=adapter,
+            git_worktree_manager=_FakeGitWorktreeManager(),
+        )
+        controller.start({"objective": "template required"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64, task_context={"execution_request_template": request})],
+            }
+        )
+
+        def decode(row):
+            result = _result_for(row)
+            result.pop("execution_request", None)
+            return result
+
+        step = controller.step(lambda claim: "run bounded task", decode)
+        self.assertEqual("BLOCKED", step.status)
+        self.assertTrue(any("EXECUTION_REQUEST_REQUIRED" in item for item in step.blockers))
+        self.assertEqual([], adapter.calls)
+        self.assertEqual([], gateway.verified)
+
+    def test_audit_only_task_rejects_worker_execution_request(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        request = {
+            "module": "master_a_dynamic_v4.csv_workload.cli",
+            "args": [],
+            "working_directory": "C:/lab",
+            "resource_paths": ["C:/lab/T1.txt"],
+            "access_mode": "write",
+            "timeout_seconds": 5,
+            "repository": "C:/lab/repository",
+            "worktree": "C:/lab/T1-worktree",
+            "base_commit": "a" * 40,
+        }
+        gateway = _FakeGateway("controller-project")
+        adapter = _FakeExecutionAdapter()
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            execution_adapter=adapter,
+            git_worktree_manager=_FakeGitWorktreeManager(),
+        )
+        controller.start({"objective": "audit only"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+
+        def decode(row):
+            result = _result_for(row)
+            result["execution_request"] = dict(request)
+            return result
+
+        step = controller.step(lambda claim: "audit bounded task", decode)
+        self.assertEqual("BLOCKED", step.status)
+        self.assertTrue(any("EXECUTION_REQUEST_FORBIDDEN" in item for item in step.blockers))
+        self.assertEqual([], adapter.calls)
+        self.assertEqual([], gateway.verified)
+
+    def test_execution_request_must_match_authorized_template_exactly(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        template = {
+            "module": "master_a_dynamic_v4.csv_workload.cli",
+            "args": ["input.csv", "--operation", "validate"],
+            "working_directory": "C:/lab",
+            "resource_paths": ["C:/lab/T1.txt"],
+            "access_mode": "write",
+            "timeout_seconds": 5,
+            "repository": "C:/lab/repository",
+            "worktree": "C:/lab/T1-worktree",
+            "base_commit": "a" * 40,
+        }
+        gateway = _FakeGateway("controller-project")
+        adapter = _FakeExecutionAdapter()
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            execution_adapter=adapter,
+            git_worktree_manager=_FakeGitWorktreeManager(),
+        )
+        controller.start({"objective": "template equality"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64, task_context={"execution_request_template": template})],
+            }
+        )
+
+        def decode(row):
+            result = _result_for(row)
+            result["execution_request"] = dict(template)
+            result["execution_request"]["args"] = ["input.csv", "--operation", "aggregate"]
+            return result
+
+        step = controller.step(lambda claim: "run bounded task", decode)
+        self.assertEqual("BLOCKED", step.status)
+        self.assertTrue(any("EXECUTION_REQUEST_TEMPLATE_MISMATCH" in item for item in step.blockers))
+        self.assertEqual([], adapter.calls)
+        self.assertEqual([], gateway.verified)
+
+    def test_execution_template_comparison_allows_canonical_windows_path_spelling(self):
+        from types import SimpleNamespace
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        template = {
+            "module": "master_a_dynamic_v4.csv_workload.cli",
+            "args": ["input.csv"],
+            "working_directory": r"C:\lab\worker",
+            "resource_paths": [r"C:\lab\worker\input.csv"],
+            "access_mode": "read",
+            "timeout_seconds": 60,
+        }
+        request = {
+            **template,
+            "working_directory": "C:/lab/worker",
+            "resource_paths": ["C:/lab/worker/input.csv"],
+        }
+        claim = SimpleNamespace(task_context={"execution_request_template": template})
+        MasterAController._validate_execution_request_authority(
+            claim,
+            worker_status="COMPLETE",
+            execution_request=request,
+        )
 
     def test_foreign_complete_result_is_rejected_before_local_execution(self):
         from master_a_dynamic_v4.master_controller import MasterAController
@@ -772,6 +954,63 @@ class MissingControllerTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_worktree_prepared_stage_can_resume_without_recreating_worktree(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        adapter = _FakeExecutionAdapter()
+        worktree_manager = _FakeGitWorktreeManager()
+        claim = _Claim(
+            assignment_id="assignment-recovery",
+            project_id="controller-project",
+            task_id="T1",
+            worker_id="worker-T1",
+            slot_id="worker-slot-1",
+            lease_token="lease-T1",
+            master_epoch=1,
+            base_state_version=1,
+            objective_sha256="a" * 64,
+            resource_scope=("C:/lab/T1.txt",),
+            access_mode="write",
+            task_context={"repository_root": "C:/lab/repository"},
+        )
+        request = {
+            "module": "master_a_dynamic_v4.csv_workload.cli",
+            "args": [],
+            "working_directory": "C:/lab",
+            "resource_paths": ["C:/lab/T1.txt"],
+            "access_mode": "write",
+            "timeout_seconds": 5,
+            "repository": "C:/lab/repository",
+            "worktree": "C:/lab/T1-worktree",
+            "base_commit": "a" * 40,
+        }
+        intent_id = f"execution-intent-{claim.assignment_id}"
+        gateway.store.local_intents[intent_id] = {
+            "intent_id": intent_id,
+            "project_id": claim.project_id,
+            "actor_id": claim.worker_id,
+            "channel": "execution/worker-slot-1",
+            "action_kind": "LOCAL_EXECUTION",
+            "state": "MAY_HAVE_SUBMITTED",
+            "response_json": None,
+            "observation_json": json.dumps({
+                "local_execution_stage": "WORKTREE_PREPARED",
+                "worktree_receipt": _FakeGitWorktreeReceipt().as_dict(),
+            }),
+        }
+        controller = MasterAController(
+            gateway,
+            "master-session",
+            execution_adapter=adapter,
+            git_worktree_manager=worktree_manager,
+        )
+        receipt = controller._execute_request(claim, request)
+        self.assertEqual(0, receipt["exit_code"])
+        self.assertEqual([], worktree_manager.calls)
+        self.assertEqual(1, len(worktree_manager.verify_calls))
+        self.assertEqual(1, len(adapter.calls))
+
     def test_restart_does_not_resubmit_an_existing_ambiguous_intent(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 
@@ -816,7 +1055,13 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual("BLOCKED", history[0].status)
 
 
-def _task(task_id: str, objective_sha256: str, dependencies: list[str] | None = None):
+def _task(
+    task_id: str,
+    objective_sha256: str,
+    dependencies: list[str] | None = None,
+    *,
+    task_context: dict | None = None,
+):
     return {
         "task_id": task_id,
         "objective_sha256": objective_sha256,
@@ -824,6 +1069,7 @@ def _task(task_id: str, objective_sha256: str, dependencies: list[str] | None = 
         "access_mode": "write",
         "dependencies": dependencies or [],
         "acceptance_criteria_ids": ["AC_CONTROLLER"],
+        "task_context": dict(task_context or {}),
     }
 
 
@@ -840,6 +1086,7 @@ class _Claim:
     objective_sha256: str
     resource_scope: tuple[str, ...]
     access_mode: str
+    task_context: dict = dataclasses.field(default_factory=dict)
     expires_at: str = "2099-01-01T00:00:00Z"
 
 
@@ -877,6 +1124,11 @@ class _FakeStore:
 
     def finalize_intent(self, intent_id):
         self.local_intents[intent_id]["state"] = "COMPLETED"
+
+    def mark_local_execution_stage(self, intent_id, *, stage, observation):
+        row = self.local_intents[intent_id]
+        row["observation_json"] = json.dumps({**json.loads(row.get("observation_json") or "{}"), **dict(observation), "local_execution_stage": stage})
+        return row
 
 
 class _FakeGateway:
@@ -919,6 +1171,7 @@ class _FakeGateway:
                 objective_sha256=task["objective_sha256"],
                 resource_scope=tuple(task["resource_scope"]),
                 access_mode=task["access_mode"],
+                task_context=dict(task.get("task_context") or {}),
             )
             for index, task in enumerate(tasks[:2], 1)
         ]
@@ -1067,9 +1320,14 @@ class _FakeGitWorktreeReceipt:
 class _FakeGitWorktreeManager:
     def __init__(self):
         self.calls = []
+        self.verify_calls = []
 
     def prepare(self, claim, **request):
         self.calls.append(dict(request))
+        return _FakeGitWorktreeReceipt()
+
+    def verify_prepared(self, claim, **request):
+        self.verify_calls.append(dict(request))
         return _FakeGitWorktreeReceipt()
 
 

@@ -137,6 +137,30 @@ def _build_persistent_action_handlers(
         recover_callback=gateway.recover,
         reasoning_callback=reasoning_callback,
     )
+
+    def blocked_action(decision):
+        return {
+            "status": "BLOCKED",
+            "reason": str(getattr(decision, "reason", "ACTION_BLOCKED") or "ACTION_BLOCKED"),
+        }
+
+    def emergency_stop_action(decision):
+        # OperatorControl has already durably fenced the project.  The daemon
+        # action is an explicit safe-stop acknowledgement; it must not wake
+        # the controller or attempt any browser work.
+        return {
+            "status": "TERMINAL",
+            "reason": str(getattr(decision, "reason", "OPERATOR_EMERGENCY_STOPPED") or "OPERATOR_EMERGENCY_STOPPED"),
+        }
+
+    def fence_stale_results_action(decision):
+        callback = getattr(gateway, "fence_stale_results", None)
+        if not callable(callback):
+            return {"status": "BLOCKED", "reason": "STALE_RESULT_FENCE_UNAVAILABLE"}
+        return callback(
+            reason=str(getattr(decision, "reason", "STALE_RESULT_REQUIRES_FENCING") or "STALE_RESULT_REQUIRES_FENCING")
+        )
+
     return {
         "RECONCILE_AMBIGUOUS": handler,
         "ASSIGN_WORKER": handler,
@@ -144,6 +168,9 @@ def _build_persistent_action_handlers(
         "RESUME_WORKER": handler,
         "RECOVER_STALLED": handler,
         "REASON_MASTER": handler,
+        "BLOCKED": blocked_action,
+        "EMERGENCY_STOP": emergency_stop_action,
+        "FENCE_STALE_RESULTS": fence_stale_results_action,
     }
 
 

@@ -20,6 +20,40 @@ class NoIoEngine:
 
 
 class TerminalAmbiguousFenceTests(unittest.TestCase):
+    def test_block_intent_cannot_downgrade_captured_response(self):
+        from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", allowed_roots=[root])
+            store.create_contract(
+                "p",
+                root_contract={"objective": "guard captured intent"},
+                acceptance_contract={"required": []},
+            )
+            store.prepare_intent(
+                "p", "intent-captured", actor_id="worker", channel="worker/1",
+                action_kind="CHATGPT_WORKER_SUBMIT", payload={"prompt": "x"},
+            )
+            store.begin_possible_submit("intent-captured")
+            store.capture_response(
+                "intent-captured",
+                response={"work_result_version": "1"},
+                conversation_url="https://chatgpt.com/c/captured",
+                remote_identity="worker-1",
+                observation={"source": "test"},
+            )
+            with self.assertRaisesRegex(StoreInvariantError, "INTENT_BLOCK_STATE_INVALID"):
+                store.block_intent(
+                    "intent-captured",
+                    reason="LATE_ERROR",
+                    observation={"source": "late-caller"},
+                )
+            current = store.get_intent("intent-captured")
+            self.assertEqual("RESPONSE_CAPTURED", current["state"])
+            self.assertEqual("PENDING_CLEANUP", store.get_outbox_for_intent("intent-captured")["state"])
+            store.close()
+
     def test_terminal_fence_preserves_evidence_and_removes_side_effect_authority(self):
         from master_a_dynamic_v4.browser_adapter import BrowserAdapter, BrowserAdapterError
         from master_a_dynamic_v4.models import IntentState

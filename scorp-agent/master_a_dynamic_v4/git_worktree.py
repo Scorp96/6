@@ -267,3 +267,114 @@ class GitWorktreeManager:
             finished_at=_stamp(finished),
         )
 
+    def verify_prepared(
+        self,
+        claim: Any,
+        *,
+        receipt: Mapping[str, Any],
+        repository: str | pathlib.Path,
+        worktree: str | pathlib.Path,
+        base_commit: str,
+        timeout_seconds: int = 120,
+    ) -> GitWorktreeReceipt:
+        """Revalidate a durably recorded worktree without creating another one.
+
+        This is read-only evidence for the recovery path.  The caller must
+        have persisted ``WORKTREE_PREPARED`` before the command-start fence;
+        an existing directory alone is never enough to authorize execution.
+        """
+
+        if not isinstance(receipt, Mapping):
+            raise GitWorktreeRejected("WORKTREE_RECEIPT_INVALID")
+        assignment_id = str(getattr(claim, "assignment_id", "") or "").strip()
+        task_id = str(getattr(claim, "task_id", "") or "").strip()
+        if not assignment_id or not task_id:
+            raise GitWorktreeRejected("CLAIM_IDENTITY_MISSING")
+        if str(receipt.get("assignment_id") or "").strip() != assignment_id:
+            raise GitWorktreeRejected("WORKTREE_RECEIPT_ASSIGNMENT_MISMATCH")
+        if str(receipt.get("task_id") or "").strip() != task_id:
+            raise GitWorktreeRejected("WORKTREE_RECEIPT_TASK_MISMATCH")
+        if str(getattr(claim, "access_mode", "") or "").strip().lower() != "write":
+            raise GitWorktreeRejected("GIT_WORKTREE_REQUIRES_WRITE_ASSIGNMENT")
+        scopes = tuple(getattr(claim, "resource_scope", ()) or ())
+        if not scopes:
+            raise GitWorktreeRejected("CLAIM_SCOPE_MISSING")
+        commit = str(base_commit or "").strip().lower()
+        if len(commit) not in {40, 64} or any(char not in "0123456789abcdef" for char in commit):
+            raise GitWorktreeRejected("BASE_COMMIT_INVALID")
+        try:
+            timeout = int(timeout_seconds)
+        except (TypeError, ValueError) as exc:
+            raise GitWorktreeRejected("GIT_TIMEOUT_INVALID") from exc
+        if timeout < 1 or timeout > 1800:
+            raise GitWorktreeRejected("GIT_TIMEOUT_INVALID")
+        try:
+            repo = pathlib.Path(repository).resolve(strict=True)
+            target = pathlib.Path(worktree).resolve(strict=True)
+            if not repo.is_dir() or not (repo / ".git").exists():
+                raise GitWorktreeRejected("REPOSITORY_NOT_GIT")
+            self.path_policy.authorize([repo, target], "write")
+        except (FileNotFoundError, PathBoundaryError) as exc:
+            raise GitWorktreeRejected(str(exc)) from exc
+        task_context = getattr(claim, "task_context", {})
+        if not isinstance(task_context, Mapping):
+            raise GitWorktreeRejected("REPOSITORY_BINDING_MISSING")
+        bound_root = str(task_context.get("repository_root") or "").strip()
+        if not bound_root:
+            raise GitWorktreeRejected("REPOSITORY_BINDING_MISSING")
+        try:
+            bound_repo = pathlib.Path(bound_root).resolve(strict=True)
+        except (FileNotFoundError, OSError) as exc:
+            raise GitWorktreeRejected("REPOSITORY_BINDING_INVALID") from exc
+        if os.path.normcase(str(repo)) != os.path.normcase(str(bound_repo)):
+            raise GitWorktreeRejected("REPOSITORY_BINDING_MISMATCH")
+        if not _inside_scope(target, scopes):
+            raise GitWorktreeRejected("WORKTREE_OUTSIDE_ASSIGNMENT_SCOPE")
+        if os.path.normcase(str(receipt.get("repository") or "")) != os.path.normcase(str(repo)):
+            raise GitWorktreeRejected("WORKTREE_RECEIPT_REPOSITORY_MISMATCH")
+        if os.path.normcase(str(receipt.get("worktree") or "")) != os.path.normcase(str(target)):
+            raise GitWorktreeRejected("WORKTREE_RECEIPT_PATH_MISMATCH")
+        receipt_base = str(receipt.get("base_commit") or "").strip().lower()
+        if receipt_base != commit:
+            raise GitWorktreeRejected("WORKTREE_RECEIPT_BASE_MISMATCH")
+
+        started = dt.datetime.now(UTC)
+        stdout_parts: list[str] = []
+        stderr_parts: list[str] = []
+        commands: list[tuple[str, ...]] = []
+        head_args = ("-C", str(target), "rev-parse", "HEAD")
+        commands.append(head_args)
+        head = self._run(
+            head_args,
+            cwd=target,
+            timeout_seconds=timeout,
+            stdout_parts=stdout_parts,
+            stderr_parts=stderr_parts,
+        ).lower()
+        if head != commit or str(receipt.get("head_commit") or "").strip().lower() != head:
+            raise GitWorktreeRejected("WORKTREE_BASE_MISMATCH")
+        clean_args = ("-C", str(target), "status", "--porcelain", "--untracked-files=all")
+        commands.append(clean_args)
+        if self._run(
+            clean_args,
+            cwd=target,
+            timeout_seconds=timeout,
+            stdout_parts=stdout_parts,
+            stderr_parts=stderr_parts,
+        ):
+            raise GitWorktreeRejected("WORKTREE_NOT_CLEAN")
+        finished = dt.datetime.now(UTC)
+        return GitWorktreeReceipt(
+            assignment_id=assignment_id,
+            task_id=task_id,
+            repository=str(repo),
+            worktree=str(target),
+            base_commit=commit,
+            head_commit=head,
+            commands=tuple(commands),
+            stdout_sha256=_sha256_text("".join(stdout_parts)),
+            stderr_sha256=_sha256_text("".join(stderr_parts)),
+            started_at=_stamp(started),
+            finished_at=_stamp(finished),
+        )
+

@@ -424,6 +424,7 @@ def run_runtime(args: argparse.Namespace) -> int:
         controller = MasterAController(
             gateway,
             str(args.session_id),
+            candidate_commit=candidate_binding["candidate_commit"],
             execution_adapter=LocalExecutionAdapter(
                 [allowed_root],
                 python_executable=args.python_executable,

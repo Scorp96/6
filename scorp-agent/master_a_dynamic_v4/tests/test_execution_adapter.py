@@ -248,6 +248,48 @@ class ExecutionAdapterTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_local_execution_substage_is_durable_and_ordered(self):
+        from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", allowed_roots=[root])
+            try:
+                store.create_contract(
+                    "local-stage",
+                    root_contract={"objective": "stage"},
+                    acceptance_contract={"required": ["AC"]},
+                )
+                store.prepare_intent(
+                    "local-stage",
+                    "execution-stage",
+                    actor_id="worker-1",
+                    channel="execution/worker-slot-1",
+                    action_kind="LOCAL_EXECUTION",
+                    payload={"assignment_id": "assignment-stage", "request": {"module": "x"}},
+                )
+                store.begin_possible_submit("execution-stage")
+                prepared = store.mark_local_execution_stage(
+                    "execution-stage",
+                    stage="WORKTREE_PREPARED",
+                    observation={"worktree_receipt": {"assignment_id": "assignment-stage"}},
+                )
+                self.assertEqual("WORKTREE_PREPARED", __import__("json").loads(prepared["observation_json"])["local_execution_stage"])
+                started = store.mark_local_execution_stage(
+                    "execution-stage",
+                    stage="EXECUTION_MAY_HAVE_SUBMITTED",
+                    observation={"side_effect": "LOCAL_EXECUTION_CALL_FENCED"},
+                )
+                self.assertEqual("EXECUTION_MAY_HAVE_SUBMITTED", __import__("json").loads(started["observation_json"])["local_execution_stage"])
+                with self.assertRaisesRegex(StoreInvariantError, "LOCAL_EXECUTION_STAGE_ORDER_INVALID"):
+                    store.mark_local_execution_stage(
+                        "execution-stage",
+                        stage="WORKTREE_PREPARED",
+                        observation={},
+                    )
+            finally:
+                store.close()
+
 
 if __name__ == "__main__":
     unittest.main()

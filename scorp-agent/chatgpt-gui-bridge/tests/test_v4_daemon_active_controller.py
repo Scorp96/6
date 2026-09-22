@@ -21,6 +21,11 @@ class _Gateway:
     def __init__(self, recovery):
         self.recovery = recovery
         self.recover_calls = 0
+        self.fence_calls = 0
+
+    def fence_stale_results(self, **_kwargs):
+        self.fence_calls += 1
+        return {"status": "FENCED", "count": 1}
 
     def recover(self):
         self.recover_calls += 1
@@ -103,6 +108,9 @@ class V4DaemonActiveControllerTests(unittest.TestCase):
                 "RESUME_WORKER",
                 "RECOVER_STALLED",
                 "REASON_MASTER",
+                "BLOCKED",
+                "EMERGENCY_STOP",
+                "FENCE_STALE_RESULTS",
             },
             set(handlers),
         )
@@ -117,6 +125,11 @@ class V4DaemonActiveControllerTests(unittest.TestCase):
         self.assertEqual("APPLIED", reasoned["status"])
         self.assertEqual(1, reasoning.calls)
         self.assertEqual(1, controller.step_calls)
+        self.assertEqual("BLOCKED", handlers["BLOCKED"](_decision("BLOCKED"))["status"])
+        self.assertEqual("TERMINAL", handlers["EMERGENCY_STOP"](_decision("EMERGENCY_STOP"))["status"])
+        fenced = handlers["FENCE_STALE_RESULTS"](_decision("FENCE_STALE_RESULTS"))
+        self.assertEqual("FENCED", fenced["status"])
+        self.assertEqual(1, gateway.fence_calls)
 
     def test_action_map_never_steps_when_recovery_remains_ambiguous(self):
         controller = _Controller()

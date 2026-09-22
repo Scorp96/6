@@ -1024,6 +1024,7 @@ class StateStore:
                 SELECT COUNT(*) FROM candidate_results r
                 JOIN project_state p ON p.project_id=r.project_id
                 WHERE r.project_id=? AND r.master_epoch<p.master_epoch
+                  AND r.verification_state NOT IN ('STALE','REJECTED','FENCED')
                 """,
                 (project,),
             ).fetchone()[0])
@@ -1077,6 +1078,93 @@ class StateStore:
                 active_worker_lost=active_worker_lost,
                 browser_semantic_state=str(observation["browser_semantic_state"]) if observation is not None else "UNKNOWN",
             )
+
+    def fence_stale_results(
+        self, project_id: str, *, reason: str = "STALE_RESULT_REQUIRES_FENCING"
+    ) -> dict[str, Any]:
+        """Fence candidate results and active work from an older Master epoch.
+
+        The ActivationArbiter emits ``FENCE_STALE_RESULTS`` when a new Master
+        epoch is active while old candidate evidence remains.  This operation
+        is deliberately local and transactional: it removes admission
+        authority from the old evidence, fences any still-active lease from
+        that epoch, and records one durable audit event.  Already fenced or
+        rejected history is left untouched so the action is idempotent.
+        """
+
+        project = str(project_id or "").strip()
+        why = str(reason or "").strip() or "STALE_RESULT_REQUIRES_FENCING"
+        if not project:
+            raise StoreInvariantError("PROJECT_ID_EMPTY")
+        with self._transaction() as conn:
+            state = conn.execute(
+                "SELECT master_epoch,status FROM project_state WHERE project_id=?",
+                (project,),
+            ).fetchone()
+            if state is None:
+                raise StoreInvariantError("PROJECT_NOT_FOUND")
+            current_epoch = int(state["master_epoch"])
+            result_rows = conn.execute(
+                """
+                SELECT result_id,assignment_id FROM candidate_results
+                WHERE project_id=? AND master_epoch<?
+                  AND verification_state NOT IN ('STALE','REJECTED','FENCED')
+                ORDER BY result_id
+                """,
+                (project, current_epoch),
+            ).fetchall()
+            assignment_rows = conn.execute(
+                """
+                SELECT a.assignment_id,a.task_id
+                FROM assignments a
+                WHERE a.project_id=? AND a.master_epoch<? AND a.state='ACTIVE'
+                ORDER BY a.assignment_id
+                """,
+                (project, current_epoch),
+            ).fetchall()
+            stamp = utc_now()
+            for row in result_rows:
+                conn.execute(
+                    "UPDATE candidate_results SET verification_state='STALE' WHERE result_id=?",
+                    (row["result_id"],),
+                )
+            for row in assignment_rows:
+                conn.execute(
+                    "UPDATE assignments SET state='FENCED',updated_at=? WHERE assignment_id=? AND state='ACTIVE'",
+                    (stamp, row["assignment_id"]),
+                )
+                conn.execute(
+                    "UPDATE leases SET state='FENCED',released_at=? WHERE assignment_id=? AND state='ACTIVE'",
+                    (stamp, row["assignment_id"]),
+                )
+                conn.execute(
+                    "UPDATE task_nodes SET state='QUEUED',updated_at=? WHERE project_id=? AND task_id=? AND state='RUNNING'",
+                    (stamp, project, row["task_id"]),
+                )
+            if result_rows or assignment_rows:
+                conn.execute(
+                    "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                    (
+                        f"event-{uuid.uuid4().hex}",
+                        project,
+                        "STALE_RESULTS_FENCED",
+                        canonical_json({
+                            "master_epoch": current_epoch,
+                            "result_ids": [str(row["result_id"]) for row in result_rows],
+                            "assignment_ids": [str(row["assignment_id"]) for row in assignment_rows],
+                            "reason": why,
+                        }),
+                        stamp,
+                    ),
+                )
+            return {
+                "status": "FENCED",
+                "project_id": project,
+                "master_epoch": current_epoch,
+                "result_count": len(result_rows),
+                "assignment_count": len(assignment_rows),
+                "reason": why,
+            }
 
     def _fence_worker_leases_for_epoch(
         self,
@@ -2070,6 +2158,69 @@ class StateStore:
                 conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone()
             )
 
+    def mark_local_execution_stage(
+        self,
+        intent_id: str,
+        *,
+        stage: str,
+        observation: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Durably record a bounded local-execution substage.
+
+        ``WORKTREE_PREPARED`` is the only stage from which a restart may
+        safely resume a write task: the command-start fence is written only
+        after the worktree receipt has been persisted.  Once
+        ``EXECUTION_MAY_HAVE_SUBMITTED`` is recorded, recovery remains
+        fail-closed and requires reconciliation instead of replay.
+        """
+
+        value = str(stage or "").strip().upper()
+        if value not in {"WORKTREE_PREPARED", "EXECUTION_MAY_HAVE_SUBMITTED"}:
+            raise StoreInvariantError("LOCAL_EXECUTION_STAGE_INVALID")
+        if not isinstance(observation, Mapping):
+            raise StoreInvariantError("LOCAL_EXECUTION_STAGE_EVIDENCE_INVALID")
+        with self._transaction() as conn:
+            row = conn.execute(
+                "SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)
+            ).fetchone()
+            if row is None:
+                raise StoreInvariantError("INTENT_NOT_FOUND")
+            if str(row["action_kind"]) != "LOCAL_EXECUTION":
+                raise StoreInvariantError("LOCAL_EXECUTION_INTENT_REQUIRED")
+            if str(row["state"]) != IntentState.MAY_HAVE_SUBMITTED.value:
+                raise StoreInvariantError("LOCAL_EXECUTION_STAGE_STATE_INVALID")
+            prior: dict[str, Any] = {}
+            raw_prior = row["observation_json"]
+            if raw_prior:
+                try:
+                    decoded = json.loads(str(raw_prior))
+                    if isinstance(decoded, Mapping):
+                        prior = dict(decoded)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    raise StoreInvariantError("LOCAL_EXECUTION_STAGE_EVIDENCE_INVALID")
+            prior_stage = str(prior.get("local_execution_stage") or "").strip().upper()
+            if value == "WORKTREE_PREPARED" and prior_stage not in {"", value}:
+                raise StoreInvariantError("LOCAL_EXECUTION_STAGE_ORDER_INVALID")
+            if value == "EXECUTION_MAY_HAVE_SUBMITTED" and prior_stage not in {"", "WORKTREE_PREPARED", value}:
+                raise StoreInvariantError("LOCAL_EXECUTION_STAGE_ORDER_INVALID")
+            merged = {**prior, **dict(observation), "local_execution_stage": value}
+            now = utc_now()
+            conn.execute(
+                "UPDATE action_intents SET observation_json=?,updated_at=? WHERE intent_id=?",
+                (canonical_json(merged), now, intent_id),
+            )
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) VALUES(?,?,?,?,?)",
+                (
+                    f"event-{uuid.uuid4().hex}",
+                    str(row["project_id"]),
+                    "LOCAL_EXECUTION_STAGE_RECORDED",
+                    canonical_json({"intent_id": intent_id, "stage": value}),
+                    now,
+                ),
+            )
+            return dict(conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone())
+
     def block_intent(
         self, intent_id: str, *, reason: str, observation: Mapping[str, Any]
     ) -> dict[str, Any]:
@@ -2088,6 +2239,19 @@ class StateStore:
         if not observed_url.startswith("https://chatgpt.com/c/") or not observed_url.removeprefix("https://chatgpt.com/c/"):
             observed_url = None
         with self._transaction() as conn:
+            current = conn.execute(
+                "SELECT state FROM action_intents WHERE intent_id=?", (intent_id,)
+            ).fetchone()
+            if current is None:
+                raise StoreInvariantError("INTENT_NOT_FOUND")
+            if current["state"] not in {
+                IntentState.PREPARED.value,
+                IntentState.VERIFIED_NOT_SUBMITTED.value,
+                IntentState.MAY_HAVE_SUBMITTED.value,
+                IntentState.CONFIRMED_SUBMITTED.value,
+                IntentState.BLOCKED_AMBIGUOUS.value,
+            }:
+                raise StoreInvariantError("INTENT_BLOCK_STATE_INVALID")
             if conn.execute(
                 """
                 UPDATE action_intents

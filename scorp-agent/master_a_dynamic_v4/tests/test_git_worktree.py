@@ -55,6 +55,34 @@ class GitWorktreeTests(unittest.TestCase):
             self.assertEqual(commit, observed)
             self.assertTrue((target / "README.md").is_file())
 
+    def test_verifies_durable_prepared_worktree_without_creating_another(self):
+        from master_a_dynamic_v4.git_worktree import GitWorktreeManager
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            repo, commit = self.make_repo(root)
+            target = root / "worker-worktree"
+            claim = Claim(
+                "assignment-git-recovery",
+                "T1",
+                "write",
+                (str(target),),
+                task_context={"repository_root": str(repo)},
+            )
+            manager = GitWorktreeManager([root])
+            receipt = manager.prepare(
+                claim, repository=repo, worktree=target, base_commit=commit
+            )
+            verified = manager.verify_prepared(
+                claim,
+                receipt=receipt.as_dict(),
+                repository=repo,
+                worktree=target,
+                base_commit=commit,
+            )
+            self.assertEqual(commit, verified.head_commit)
+            self.assertEqual(target.resolve(), pathlib.Path(verified.worktree))
+
     def test_rejects_dirty_repository_before_creating_worktree(self):
         from master_a_dynamic_v4.git_worktree import GitWorktreeManager, GitWorktreeRejected
 

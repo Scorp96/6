@@ -172,7 +172,7 @@ class LocalDaemon:
         status = "HEALTHY"
         error: str | None = None
         handler = self.action_handlers.get(decision.action)
-        if decision.action in {"TERMINAL"}:
+        if decision.action in {"TERMINAL", "EMERGENCY_STOP"}:
             status = "TERMINAL"
         elif decision.action not in {"TERMINAL", "HEARTBEAT_IDLE"} and handler is None:
             status = "BLOCKED"
