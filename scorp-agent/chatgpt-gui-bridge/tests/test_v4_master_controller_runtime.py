@@ -127,6 +127,39 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         snapshot = "#### ChatGPT ˵��:\n" + json.dumps(value) + "\n"
         self.assertEqual(value, runtime.parse_structured_response(snapshot, "intent-1"))
 
+    def test_parser_accepts_reordered_worker_json_with_trailing_footer(self):
+        runtime = load_runtime()
+        intent_id = "worker-intent-assignment-reordered"
+        value = {
+            "acceptance_coverage": ["DECIMAL_AGGREGATE"],
+            "assignment_id": "assignment-reordered",
+            "base_state_version": 1,
+            "candidate_commit": "a" * 40,
+            "evidence": [
+                {
+                    "kind": "execution_request",
+                    "claim": "assigned aggregate request supplied",
+                }
+            ],
+            "objective_sha256": "b" * 64,
+            "project_id": "p1",
+            "result_sha256": "0" * 64,
+            "scope_completed": ["DECIMAL_AGGREGATE"],
+            "status": "COMPLETE",
+            "task_id": "T2",
+            "worker_id": "w2",
+            "work_result_version": "1",
+        }
+        snapshot = (
+            "#### ChatGPT ˵��:\n"
+            + json.dumps(value, separators=(",", ":"))
+            + "\nprovider footer"
+        )
+        self.assertEqual(
+            value,
+            runtime.parse_structured_response(snapshot, intent_id),
+        )
+
     def test_worker_prompt_requires_evidence_for_complete_results(self):
         runtime = load_runtime()
         claim = types.SimpleNamespace(
