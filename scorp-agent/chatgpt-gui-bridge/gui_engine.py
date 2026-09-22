@@ -74,7 +74,31 @@ class ChatGptGuiEngine:
         response, snapshot, conversation_url = result
         url = str(conversation_url or "").strip()
         if not url or not isinstance(response, Mapping) or not response:
-            return {"status": "SUBMITTED", "conversation_url": url, "snapshot": str(snapshot or "")}
+            submitted = {
+                "status": "SUBMITTED",
+                "conversation_url": url,
+                "snapshot": str(snapshot or ""),
+            }
+            if url:
+                # A canonical conversation URL is already a positive remote
+                # submission identity even when the model is still generating
+                # and no structured response is available yet.  Persist a
+                # deterministic submit-stage identity so BrowserAdapter can
+                # confirm the side effect instead of misclassifying a normal
+                # slow response as SUBMIT_IDENTITY_AMBIGUOUS.
+                submitted["remote_identity"] = hashlib.sha256(
+                    json.dumps(
+                        {
+                            "intent_id": intent["intent_id"],
+                            "url": url,
+                            "state": "SUBMITTED",
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    ).encode("utf-8")
+                ).hexdigest()
+            return submitted
         remote_identity = hashlib.sha256(
             json.dumps(
                 {"intent_id": intent["intent_id"], "url": url, "response": dict(response)},
