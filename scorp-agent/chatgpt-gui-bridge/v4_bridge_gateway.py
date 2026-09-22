@@ -153,6 +153,11 @@ class V4BridgeGateway:
             evidence_refs,
         )
 
+    def get_master_transition(self, transition_id: str) -> dict[str, Any] | None:
+        """Read one already-admitted Master transition for safe controller re-entry."""
+
+        return self.store.get_transition(self.project_id, transition_id)
+
     def commit_master_proposal_and_enqueue(
         self,
         transition_id: str,
