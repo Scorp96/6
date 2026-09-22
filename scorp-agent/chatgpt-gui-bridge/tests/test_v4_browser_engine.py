@@ -3,9 +3,11 @@ import pathlib
 import tempfile
 import unittest
 
-sys_path = pathlib.Path(__file__).resolve().parents[1]
+bridge_root = pathlib.Path(__file__).resolve().parents[1]
+agent_root = pathlib.Path(__file__).resolve().parents[2]
 import sys
-sys.path.insert(0, str(sys_path))
+sys.path.insert(0, str(bridge_root))
+sys.path.insert(0, str(agent_root))
 
 from v4_browser_engine import build_v4_browser_engine
 
@@ -60,6 +62,52 @@ class V4BrowserEngineTests(unittest.TestCase):
         self.assertEqual("https://chatgpt.com/c/engine-test", result["conversation_url"])
         self.assertEqual("WORKER", driver.submits[0]["actor_kind"])
         self.assertEqual("intent-engine", driver.submits[0]["turn_id"])
+        self.assertRegex(result["remote_identity"], r"^[0-9a-f]{64}$")
+
+    def test_parser_free_slow_submit_is_confirmed_by_browser_adapter(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        from master_a_dynamic_v4.state_store import StateStore
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = StateStore(root / "state.sqlite3", allowed_roots=[root])
+            store.create_contract(
+                "slow-submit-project",
+                root_contract={"objective": "slow browser response"},
+                acceptance_contract={"required": ["AC_SLOW_SUBMIT"]},
+            )
+            store.prepare_intent(
+                "slow-submit-project",
+                "intent-slow",
+                actor_id="worker-slow",
+                channel="worker/worker-slot-1",
+                action_kind="CHATGPT_SUBMIT",
+                payload={"prompt": "bounded task"},
+            )
+            driver = FakeDriver(
+                "Focused Window: Chrome\n"
+                "https://chatgpt.com/c/slow-submit\n"
+                "#### ChatGPT said:\nThinking"
+            )
+            engine = build_v4_browser_engine(
+                driver,
+                auth_probe=lambda channel: {
+                    "status": "AUTHENTICATED",
+                    "channel": channel,
+                },
+            )
+            try:
+                row = BrowserAdapter(store, engine).submit_once("intent-slow")
+                self.assertEqual("CONFIRMED_SUBMITTED", row["state"])
+                self.assertEqual(
+                    "https://chatgpt.com/c/slow-submit",
+                    row["conversation_url"],
+                )
+                self.assertRegex(row["remote_identity"], r"^[0-9a-f]{64}$")
+                self.assertIsNone(row["ambiguity_reason"])
+                self.assertEqual(1, len(driver.submits))
+            finally:
+                store.close()
 
     def test_parser_capture_and_reconcile_keep_url_identity(self):
         driver = FakeDriver("https://chatgpt.com/c/engine-test\nSCORP_RESULT")
