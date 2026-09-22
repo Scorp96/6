@@ -517,6 +517,47 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual([], worktree_manager.calls)
         self.assertEqual("BLOCKED", gateway.verified[0][1]["status"])
 
+    def test_expired_worker_fencing_precedes_captured_response_recovery(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        class RecoveryOrderGateway(_FakeGateway):
+            def __init__(self):
+                super().__init__("controller-project")
+                self.recovery_order = []
+                self.expiration_pass_seen = False
+
+            def load_worker_claims(self, *, master_epoch):
+                self.recovery_order.append("load")
+                self.expiration_pass_seen = True
+                return []
+
+            def recover_captured_response_claims(self, *, master_epoch):
+                self.recovery_order.append("recover")
+                if not self.expiration_pass_seen:
+                    raise AssertionError("RECOVERY_RAN_BEFORE_EXPIRED_LEASE_FENCING")
+                return []
+
+            def claim_workers(self, *, master_epoch, limit=2):
+                return []
+
+        gateway = RecoveryOrderGateway()
+        controller = MasterAController(gateway, "master-session")
+        controller.start(
+            {"objective": "recovery ordering"},
+            {"required": ["AC_CONTROLLER"]},
+        )
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64)],
+            }
+        )
+        step = controller.step(lambda claim: "must not dispatch")
+        self.assertEqual("IDLE", step.status)
+        self.assertEqual(["load", "recover", "load"], gateway.recovery_order)
+        self.assertEqual([], step.claims)
+
     def test_ambiguous_browser_state_is_left_for_reconciliation(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 
