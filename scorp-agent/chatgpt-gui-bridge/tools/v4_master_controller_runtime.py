@@ -314,8 +314,14 @@ def _worker_prompt(claim) -> str:
     )
     execution_required = isinstance(execution_template, Mapping) and bool(execution_template)
     execution_instruction = (
-        "For COMPLETE, copy execution_request exactly from "
-        "task_context.execution_request_template; do not invent or broaden it."
+        "This Worker does not execute LocalExecution and must not read, modify, or "
+        "probe the local resource itself. When task_context.execution_request_template "
+        "is present and its request stays inside the assignment resource_scope with the "
+        "same access_mode, COMPLETE means the bounded execution request is fully "
+        "prepared for the runtime: copy execution_request exactly from "
+        "task_context.execution_request_template; do not invent or broaden it. Do not "
+        "return BLOCKED merely because this chat cannot access the local filesystem or "
+        "run commands; the runtime executes and independently verifies the request."
         if execution_required
         else "This assignment does not authorize LocalExecution. Omit execution_request "
         "entirely; analysis/audit evidence is the deliverable."
@@ -339,6 +345,11 @@ def _worker_prompt(claim) -> str:
                 "For COMPLETE results, evidence must be an array of JSON objects with exactly kind and claim keys; do not use prose evidence strings.",
                 "Do not restate execution_request.args, execution_request.resource_paths, arrays, objects, or other JSON syntax inside any free-text string field.",
                 "Set status=COMPLETE only after non-empty scope_completed, evidence, and acceptance_coverage are supplied.",
+                (
+                    "For an execution-template assignment, scope_completed, evidence, and acceptance_coverage describe successful preparation of the authorized bounded request, not the local execution outcome. Do not claim that the file was read or the command ran."
+                    if execution_required
+                    else "For an audit-only assignment, scope_completed, evidence, and acceptance_coverage describe the bounded analysis actually performed."
+                ),
                 "Copy candidate_commit exactly from task_context into the result; include any 64-hex result_sha256 placeholder. The runtime recomputes result_sha256 from the captured normalized result and any authorized execution receipt.",
             ],
             "result_requirements": {
