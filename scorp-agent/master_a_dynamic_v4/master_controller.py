@@ -274,15 +274,43 @@ class MasterAController:
             transition_id = "master-plan-" + hashlib.sha256(
                 canonical_plan(normalized).encode("utf-8")
             ).hexdigest()[:32]
-        description = self.gateway.describe()
-        expected_version = int(description["state_version"])
+        self.plan_hash = sha256_json(normalized)
         proposal = {
             "project_id": self.project_id,
             "master_identity": "A",
             "kind": "TASK_GRAPH",
             "task_ids": [task["task_id"] for task in normalized["tasks"]],
-            "plan_sha256": sha256_json(normalized),
+            "plan_sha256": self.plan_hash,
         }
+
+        # A runtime re-entry must not submit the same already-admitted plan
+        # against a newer state_version.  StateStore.commit intentionally binds
+        # transition content to its original CAS expected_version, so replaying
+        # through commit with the current version is a different transition
+        # content and is correctly REJECTED.  Adopt the durable transition
+        # read-only when its semantic plan identity and epoch match exactly.
+        get_transition = getattr(self.gateway, "get_master_transition", None)
+        if callable(get_transition):
+            existing = get_transition(transition_id)
+            if existing is not None:
+                if str(existing.get("project_id") or "") != self.project_id:
+                    raise ControllerRejected("MASTER_PLAN_TRANSITION_PROJECT_MISMATCH")
+                if int(existing.get("master_epoch", -1)) != epoch:
+                    raise ControllerRejected("MASTER_PLAN_TRANSITION_EPOCH_MISMATCH")
+                if str(existing.get("proposal_sha256") or "") != sha256_json(proposal):
+                    raise ControllerRejected("MASTER_PLAN_TRANSITION_CONFLICT")
+                if str(existing.get("result") or "") != CommitResult.COMMITTED.value:
+                    raise ControllerRejected("MASTER_PLAN_TRANSITION_NOT_COMMITTED")
+                return {
+                    "project_id": self.project_id,
+                    "master_epoch": epoch,
+                    "transition_id": transition_id,
+                    "plan_sha256": self.plan_hash,
+                    "task_ids": tuple(task["task_id"] for task in normalized["tasks"]),
+                }
+
+        description = self.gateway.describe()
+        expected_version = int(description["state_version"])
         atomic_admit = getattr(self.gateway, "commit_master_proposal_and_enqueue", None)
         if callable(atomic_admit):
             result = atomic_admit(
@@ -305,7 +333,6 @@ class MasterAController:
                 self.gateway.enqueue_graph(normalized["tasks"])
         if result not in {CommitResult.COMMITTED, CommitResult.ALREADY_COMMITTED}:
             raise ControllerRejected(f"MASTER_PLAN_COMMIT_{str(result)}")
-        self.plan_hash = sha256_json(normalized)
         return {
             "project_id": self.project_id,
             "master_epoch": epoch,
