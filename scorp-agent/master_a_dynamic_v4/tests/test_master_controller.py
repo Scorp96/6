@@ -556,7 +556,7 @@ class MissingControllerTests(unittest.TestCase):
         step = controller.step(lambda claim: "must not dispatch")
         self.assertEqual("IDLE", step.status)
         self.assertEqual(["load", "recover", "load"], gateway.recovery_order)
-        self.assertEqual([], step.claims)
+        self.assertEqual((), step.claims)
 
     def test_ambiguous_browser_state_is_left_for_reconciliation(self):
         from master_a_dynamic_v4.master_controller import MasterAController
