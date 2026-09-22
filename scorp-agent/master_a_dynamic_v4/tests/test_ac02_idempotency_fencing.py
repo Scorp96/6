@@ -37,6 +37,49 @@ class IdempotencyFencingTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_identical_transition_replay_ignores_later_state_version_drift(self):
+        from master_a_dynamic_v4.models import CommitResult
+
+        with tempfile.TemporaryDirectory() as td:
+            store = self.make_store(pathlib.Path(td))
+            try:
+                self.assertEqual(
+                    CommitResult.COMMITTED,
+                    store.commit(0, 0, "same-transition", self.proposal(), []),
+                )
+                self.assertEqual(
+                    CommitResult.COMMITTED,
+                    store.commit(1, 0, "later-transition", self.proposal("LATER"), []),
+                )
+
+                replay = store.commit(
+                    2,
+                    0,
+                    "same-transition",
+                    self.proposal(),
+                    [],
+                )
+                conflict = store.commit(
+                    2,
+                    0,
+                    "same-transition",
+                    self.proposal("CHANGED"),
+                    [],
+                )
+
+                self.assertEqual(CommitResult.ALREADY_COMMITTED, replay)
+                self.assertEqual(CommitResult.REJECTED, conflict)
+                self.assertEqual(
+                    2,
+                    store.get_project_state("project-ac02")["state_version"],
+                )
+                self.assertEqual(
+                    2,
+                    store.count_committed_transitions("project-ac02"),
+                )
+            finally:
+                store.close()
+
     def test_old_epoch_is_fenced_and_stale_version_conflicts(self):
         from master_a_dynamic_v4.models import CommitResult
 
