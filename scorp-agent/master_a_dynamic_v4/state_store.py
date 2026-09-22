@@ -609,6 +609,20 @@ class StateStore:
                 raise StoreInvariantError("PROJECT_NOT_FOUND")
             return dict(row)
 
+    def get_transition(self, project_id: str, transition_id: str) -> dict[str, Any] | None:
+        """Return one project-scoped committed transition without mutation."""
+
+        project = str(project_id or "").strip()
+        transition = str(transition_id or "").strip()
+        if not project or not transition:
+            raise StoreInvariantError("TRANSITION_ID_INVALID")
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM transitions WHERE project_id=? AND transition_id=?",
+                (project, transition),
+            ).fetchone()
+            return None if row is None else dict(row)
+
     def get_daemon_supervision(self, project_id: str) -> dict[str, Any]:
         project = str(project_id or "").strip()
         if not project:
@@ -1506,39 +1520,14 @@ class StateStore:
 
         with self._transaction() as conn:
             existing = conn.execute(
-                """
-                SELECT project_id,master_epoch,proposal_sha256,
-                       evidence_refs_sha256,content_sha256,result
-                FROM transitions
-                WHERE transition_id=?
-                """,
+                "SELECT content_sha256,result FROM transitions WHERE transition_id=?",
                 (transition,),
             ).fetchone()
             if existing is not None:
-                # Replay identity is the committed semantic transition, not the
-                # caller's *current* CAS version.  A long-running controller
-                # can legitimately re-enter after the original plan commit has
-                # advanced state_version; requiring the old expected_version
-                # again makes the same transition hash differently and turns a
-                # safe resume into MASTER_PLAN_COMMIT_REJECTED.
-                state = conn.execute(
-                    "SELECT * FROM project_state WHERE project_id=?", (project_id,)
-                ).fetchone()
-                if state is None:
-                    return CommitResult.REJECTED
-                if int(state["master_epoch"]) != epoch:
-                    return CommitResult.FENCED
-                if int(existing["master_epoch"]) != epoch:
-                    return CommitResult.FENCED
-                if (
-                    str(existing["project_id"]) != project_id
-                    or str(existing["proposal_sha256"]) != proposal_hash
-                    or str(existing["evidence_refs_sha256"]) != evidence_hash
-                    or str(existing["result"]) != CommitResult.COMMITTED.value
-                ):
-                    return CommitResult.REJECTED
-                ensure_graph(conn)
-                return CommitResult.ALREADY_COMMITTED
+                if str(existing["content_sha256"]) == content_hash:
+                    ensure_graph(conn)
+                    return CommitResult.ALREADY_COMMITTED
+                return CommitResult.REJECTED
 
             state = conn.execute(
                 "SELECT * FROM project_state WHERE project_id=?", (project_id,)
