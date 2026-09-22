@@ -204,6 +204,42 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertIn("Omit execution_request", joined)
         self.assertNotIn("supplying execution_request", joined)
 
+    def test_execution_worker_prompt_does_not_require_local_file_access(self):
+        runtime = load_runtime()
+        claim = types.SimpleNamespace(
+            project_id="p1",
+            assignment_id="a1",
+            task_id="T1",
+            worker_id="w1",
+            slot_id="worker-slot-1",
+            master_epoch=0,
+            base_state_version=1,
+            objective_sha256="a" * 64,
+            resource_scope=("C:/lab/orders.csv",),
+            access_mode="read",
+            task_context={
+                "candidate_commit": "b" * 40,
+                "execution_request_template": {
+                    "module": "master_a_dynamic_v4.csv_workload.cli",
+                    "args": ["C:/lab/orders.csv", "--operation", "validate"],
+                    "working_directory": "C:/lab",
+                    "resource_paths": ["C:/lab/orders.csv"],
+                    "access_mode": "read",
+                    "timeout_seconds": 60,
+                },
+            },
+        )
+        payload = json.loads(runtime._worker_prompt(claim))
+        joined = " ".join(str(item) for item in payload["instructions"])
+        self.assertIn("does not execute LocalExecution", joined)
+        self.assertIn("must not read, modify, or probe the local resource itself", joined)
+        self.assertIn("COMPLETE means the bounded execution request is fully prepared", joined)
+        self.assertIn(
+            "Do not return BLOCKED merely because this chat cannot access the local filesystem",
+            joined,
+        )
+        self.assertIn("Do not claim that the file was read or the command ran", joined)
+
     def test_worker_prompt_requires_candidate_commit_and_result_hash(self):
         runtime = load_runtime()
         claim = types.SimpleNamespace(
