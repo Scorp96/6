@@ -174,6 +174,74 @@ class MissingControllerTests(unittest.TestCase):
                 {"project_id": "controller-project", "master_identity": "B", "tasks": []}
             )
 
+    def test_apply_plan_reentry_adopts_existing_transition_without_second_commit(self):
+        from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
+        from master_a_dynamic_v4.models import CommitResult, sha256_json
+
+        class ReplayGateway(_FakeGateway):
+            def __init__(self):
+                super().__init__("controller-project")
+                self.commit_calls = 0
+                self.transitions = {}
+                self._state_version = 0
+
+            def describe(self):
+                return {
+                    "state_version": self._state_version,
+                    "master_epoch": self._epoch,
+                }
+
+            def get_master_transition(self, transition_id):
+                row = self.transitions.get(transition_id)
+                return None if row is None else dict(row)
+
+            def commit_master_proposal(self, transition_id, proposal, *, expected_version, master_epoch):
+                self.commit_calls += 1
+                if expected_version != self._state_version:
+                    return CommitResult.VERSION_CONFLICT
+                self.transitions[transition_id] = {
+                    "transition_id": transition_id,
+                    "project_id": self.project_id,
+                    "master_epoch": master_epoch,
+                    "proposal_sha256": sha256_json(proposal),
+                    "result": CommitResult.COMMITTED.value,
+                }
+                self._state_version += 1
+                return CommitResult.COMMITTED
+
+        gateway = ReplayGateway()
+        plan = {
+            "project_id": "controller-project",
+            "master_identity": "A",
+            "transition_id": "durable-plan",
+            "tasks": [_task("T1", "a" * 64)],
+        }
+
+        first = MasterAController(gateway, "master-session")
+        first.start({"objective": "reentry"}, {"required": ["AC_CONTROLLER"]})
+        first_admission = first.apply_plan(plan)
+        self.assertEqual(1, gateway.commit_calls)
+        self.assertEqual(1, gateway._state_version)
+
+        # Simulate unrelated durable state progress after the plan commit.
+        gateway._state_version = 7
+
+        resumed = MasterAController(gateway, "master-session")
+        resumed.start({"objective": "reentry"}, {"required": ["AC_CONTROLLER"]})
+        replay_admission = resumed.apply_plan(plan)
+
+        self.assertEqual(1, gateway.commit_calls)
+        self.assertEqual(first_admission["plan_sha256"], replay_admission["plan_sha256"])
+        self.assertEqual(("T1",), replay_admission["task_ids"])
+
+        changed = {
+            **plan,
+            "tasks": [_task("T1", "b" * 64)],
+        }
+        with self.assertRaisesRegex(ControllerRejected, "MASTER_PLAN_TRANSITION_CONFLICT"):
+            resumed.apply_plan(changed)
+        self.assertEqual(1, gateway.commit_calls)
+
     def test_controller_step_reports_two_distinct_assignments(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 
