@@ -1506,14 +1506,39 @@ class StateStore:
 
         with self._transaction() as conn:
             existing = conn.execute(
-                "SELECT content_sha256,result FROM transitions WHERE transition_id=?",
+                """
+                SELECT project_id,master_epoch,proposal_sha256,
+                       evidence_refs_sha256,content_sha256,result
+                FROM transitions
+                WHERE transition_id=?
+                """,
                 (transition,),
             ).fetchone()
             if existing is not None:
-                if str(existing["content_sha256"]) == content_hash:
-                    ensure_graph(conn)
-                    return CommitResult.ALREADY_COMMITTED
-                return CommitResult.REJECTED
+                # Replay identity is the committed semantic transition, not the
+                # caller's *current* CAS version.  A long-running controller
+                # can legitimately re-enter after the original plan commit has
+                # advanced state_version; requiring the old expected_version
+                # again makes the same transition hash differently and turns a
+                # safe resume into MASTER_PLAN_COMMIT_REJECTED.
+                state = conn.execute(
+                    "SELECT * FROM project_state WHERE project_id=?", (project_id,)
+                ).fetchone()
+                if state is None:
+                    return CommitResult.REJECTED
+                if int(state["master_epoch"]) != epoch:
+                    return CommitResult.FENCED
+                if int(existing["master_epoch"]) != epoch:
+                    return CommitResult.FENCED
+                if (
+                    str(existing["project_id"]) != project_id
+                    or str(existing["proposal_sha256"]) != proposal_hash
+                    or str(existing["evidence_refs_sha256"]) != evidence_hash
+                    or str(existing["result"]) != CommitResult.COMMITTED.value
+                ):
+                    return CommitResult.REJECTED
+                ensure_graph(conn)
+                return CommitResult.ALREADY_COMMITTED
 
             state = conn.execute(
                 "SELECT * FROM project_state WHERE project_id=?", (project_id,)
