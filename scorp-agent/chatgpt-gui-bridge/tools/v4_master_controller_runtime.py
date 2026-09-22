@@ -166,12 +166,14 @@ def parse_structured_response(snapshot: str, intent_id: str) -> dict[str, Any] |
         return None
     tail = str(snapshot or "")[marker_position:]
     decoder = json.JSONDecoder()
-    starts = list(
-        re.finditer(
-            r'\{\s*"(?:work_result_version|master_decision_version)"\s*:',
-            tail,
-        )
-    )
+    # JSON object key order is not part of WORK_RESULT/1 or
+    # MASTER_DECISION/1 identity.  The model may legally emit
+    # acceptance_coverage (or any other field) before the version field.
+    # Enumerate object starts after the assistant marker and let the existing
+    # strict protocol/assignment validator decide which decoded mapping is the
+    # authoritative response.  This stays fail-closed without depending on
+    # presentation order.
+    starts = list(re.finditer(r'\{\s*"', tail))
     for match in reversed(starts):
         try:
             candidate, _ = decoder.raw_decode(tail[match.start() :])
