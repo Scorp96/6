@@ -58,7 +58,7 @@ class ChromeUseCliV3Tests(unittest.TestCase):
         )
         self.assertEqual(4, len(calls))
 
-    def test_prepare_interactive_surfaces_the_bound_session(self):
+    def test_prepare_interactive_is_background_by_default(self):
         calls = []
 
         async def runner(argv, timeout_seconds):
@@ -66,6 +66,20 @@ class ChromeUseCliV3Tests(unittest.TestCase):
             return 0, '{"success":true}', ''
 
         cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner)
+        self.assertEqual(
+            {"success": True, "interactive": False},
+            asyncio.run(cli.prepare_interactive('scorp-p0-a', timeout_seconds=4)),
+        )
+        self.assertEqual([], calls)
+
+    def test_prepare_interactive_surfaces_the_bound_session_when_enabled(self):
+        calls = []
+
+        async def runner(argv, timeout_seconds):
+            calls.append((list(argv), timeout_seconds))
+            return 0, '{"success":true}', ''
+
+        cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner, interactive=True)
         self.assertEqual(
             {"success": True},
             asyncio.run(cli.prepare_interactive('scorp-p0-a', timeout_seconds=4)),

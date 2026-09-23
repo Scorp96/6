@@ -596,7 +596,13 @@ async def run_daemon(
         await sleeper(poll_seconds)
 
 
-def build_v3_driver(transport, project_root, chrome_use_executable, timeout_seconds=30):
+def build_v3_driver(
+    transport,
+    project_root,
+    chrome_use_executable,
+    timeout_seconds=30,
+    chrome_use_interactive=False,
+):
     value = str(transport or "").strip().lower()
     if value == "chrome-use":
         executable = str(chrome_use_executable or "").strip()
@@ -604,7 +610,10 @@ def build_v3_driver(transport, project_root, chrome_use_executable, timeout_seco
             raise ValueError("CHROME_USE_EXECUTABLE_REQUIRED")
         from chrome_use_cli_v3 import ChromeUseCliV3
         from chrome_use_actor_driver_v3 import ChromeUseActorDriverV3
-        cli = ChromeUseCliV3(executable=executable)
+        cli = ChromeUseCliV3(
+            executable=executable,
+            interactive=bool(chrome_use_interactive),
+        )
         return ChromeUseActorDriverV3(
             cli,
             Path(project_root) / "chrome-use-driver-v3.json",
@@ -625,6 +634,7 @@ def build_runtime_from_args(args):
         args.v3_project_root,
         args.chrome_use_executable,
         timeout_seconds=getattr(args, 'v3_transport_timeout_seconds', 30),
+        chrome_use_interactive=getattr(args, 'chrome_use_interactive', False),
     )
     v3_runtime = ProductionV3Runtime(
         args.v3_project_root,
@@ -650,6 +660,11 @@ def main(argv=None):
     parser.add_argument('--v3-max-workers', type=int, default=4)
     parser.add_argument('--v3-transport', choices=('chrome-use','windows-mcp'), default='chrome-use')
     parser.add_argument('--chrome-use-executable', default=r'C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe')
+    parser.add_argument(
+        '--chrome-use-interactive',
+        action='store_true',
+        help='explicitly allow Chrome Use to foreground its bound tab for a supervised canary',
+    )
     parser.add_argument('--v3-transport-timeout-seconds', type=int, default=30)
     parser.add_argument('--poll-seconds', type=int, default=10)
     parser.add_argument('--once', action='store_true')

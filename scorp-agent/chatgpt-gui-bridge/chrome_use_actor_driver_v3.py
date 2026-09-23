@@ -694,7 +694,7 @@ class ChromeUseActorDriverV3:
         return observed
 
     async def _snapshot(self, session, url):
-        await self.cli.run_json(session, "bringToFront", timeout_seconds=self.timeout_seconds)
+        await self._prepare_snapshot(session)
         payload = await self.cli.run_json(session, "read", timeout_seconds=self.timeout_seconds)
         return "Focused Window: Chrome\n" + url + "\n" + _render_payload(payload)
 
@@ -738,7 +738,7 @@ class ChromeUseActorDriverV3:
             "session": session,
         }
 
-    async def _prepare_interactive(self, session):
+    async def _prepare_interactive(self, session, *, timeout_seconds=None):
         """Request foreground rendering when the transport supports it.
 
         The driver is also used with deterministic fake clients in offline
@@ -748,7 +748,25 @@ class ChromeUseActorDriverV3:
 
         prepare = getattr(self.cli, "prepare_interactive", None)
         if callable(prepare):
-            await prepare(session, timeout_seconds=self.timeout_seconds)
+            timeout = self.timeout_seconds if timeout_seconds is None else float(timeout_seconds)
+            await prepare(session, timeout_seconds=timeout)
+
+    async def _prepare_snapshot(self, session, *, timeout_seconds=None):
+        """Prepare a read snapshot without foregrounding real Chrome by default.
+
+        Older injected test/legacy clients do not expose the Chrome Use
+        capability object and historically expected a foreground command at
+        this boundary. Preserve that compatibility seam while the real
+        ``ChromeUseCliV3(interactive=False)`` path stays background-only.
+        """
+
+        prepare = getattr(self.cli, "prepare_interactive", None)
+        timeout = self.timeout_seconds if timeout_seconds is None else float(timeout_seconds)
+        if callable(prepare):
+            await prepare(session, timeout_seconds=timeout)
+            return
+        if getattr(self.cli, "interactive", True):
+            await self.cli.run_json(session, "bringToFront", timeout_seconds=timeout)
 
     async def _editor_ref(self, session, *, allow_rate_limit_recovery=True):
         await self._prepare_interactive(session)
@@ -1169,7 +1187,7 @@ class ChromeUseActorDriverV3:
         observed = await self._get_url(session, timeout_seconds=timeout)
         if observed != url:
             raise ValueError("ACTOR_GUI_RECOVERY_CONVERSATION_MISMATCH")
-        await self.cli.run_json(session, "bringToFront", timeout_seconds=timeout)
+        await self._prepare_snapshot(session, timeout_seconds=timeout)
         payload = await self.cli.run_json(session, "read", timeout_seconds=timeout)
         return "Focused Window: Chrome\n" + url + "\n" + _render_payload(payload)
 
@@ -1195,7 +1213,7 @@ class ChromeUseActorDriverV3:
         if observed == _ROOT_URL:
             raise ValueError("ACTOR_GUI_RECOVERY_CANONICAL_URL_MISSING")
         observed = _canonical_url(observed)
-        await self.cli.run_json(session, "bringToFront", timeout_seconds=timeout)
+        await self._prepare_snapshot(session, timeout_seconds=timeout)
         payload = await self.cli.run_json(session, "read", timeout_seconds=timeout)
         snapshot = "Focused Window: Chrome\n" + observed + "\n" + _render_payload(payload)
         if marker not in snapshot:

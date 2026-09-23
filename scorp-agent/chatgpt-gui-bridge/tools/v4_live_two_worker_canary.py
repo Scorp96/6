@@ -443,6 +443,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="bounded live gate size: run one Worker before the two-Worker gate",
     )
     parser.add_argument("--executable", default=DEFAULT_EXECUTABLE)
+    parser.add_argument(
+        "--chrome-use-interactive",
+        action="store_true",
+        help="explicitly allow Chrome Use to foreground its bound tabs for a supervised canary",
+    )
     parser.add_argument("--database-path", required=True, type=pathlib.Path)
     parser.add_argument("--driver-state-path", required=True, type=pathlib.Path)
     parser.add_argument("--allowed-root", required=True, type=pathlib.Path)
@@ -481,7 +486,10 @@ async def run_canary(args: argparse.Namespace) -> int:
     args.driver_state_path.parent.mkdir(parents=True, exist_ok=True)
     args.evidence_path.parent.mkdir(parents=True, exist_ok=True)
 
-    cli = ChromeUseCliV3(executable=str(executable))
+    cli = ChromeUseCliV3(
+        executable=str(executable),
+        interactive=bool(args.chrome_use_interactive),
+    )
     expected_by_intent: dict[str, dict[str, object]] = {}
     driver = ChromeUseActorDriverV3(cli, args.driver_state_path, timeout_seconds=45)
     auth_session = "scorp-v4-live-auth-" + hashlib.sha256(str(args.project_id).encode()).hexdigest()[:12]

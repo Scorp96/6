@@ -53,11 +53,14 @@ async def _default_runner(argv, timeout_seconds):
 
 
 class ChromeUseCliV3:
-    def __init__(self, *, executable="chrome-use.exe", runner=None):
+    def __init__(self, *, executable="chrome-use.exe", runner=None, interactive=False):
         self.executable = str(executable or "").strip()
         if not self.executable:
             raise ValueError("CHROME_USE_EXECUTABLE_EMPTY")
         self.runner = runner or _default_runner
+        # Foreground rendering is opt-in. The daemon should not repeatedly
+        # steal the user's focus or open visible browser popups.
+        self.interactive = bool(interactive)
         self._daemon_mutex = _daemon_lock(self.executable)
 
     async def run_json(self, session, *args, timeout_seconds=30):
@@ -112,10 +115,13 @@ class ChromeUseCliV3:
 
         Chrome Use drives extension-connected tabs in the background by default.
         ChatGPT's controlled composer can expose the textbox while withholding
-        the post-fill Send control until the tab is visible. Keep this as an
-        explicit capability on the Chrome Use adapter so injected test/fake
-        clients do not need to emulate browser visibility semantics.
+        the post-fill Send control until the tab is visible. Keep foreground
+        rendering as an explicit capability on the Chrome Use adapter so the
+        default daemon path stays in the background.
         """
+
+        if not self.interactive:
+            return {"success": True, "interactive": False}
 
         return await self.run_json(
             session,

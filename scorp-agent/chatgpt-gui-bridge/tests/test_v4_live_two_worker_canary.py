@@ -171,6 +171,20 @@ class V4LiveTwoWorkerCanaryTests(unittest.TestCase):
             ])
         self.assertEqual(1, args.worker_count)
 
+    def test_canary_browser_foregrounding_is_opt_in(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            base = [
+                '--database-path', str(root / 'state.sqlite3'),
+                '--driver-state-path', str(root / 'driver.json'),
+                '--allowed-root', str(root),
+                '--evidence-path', str(root / 'evidence.json'),
+            ]
+            self.assertFalse(build_parser().parse_args(base).chrome_use_interactive)
+            self.assertTrue(
+                build_parser().parse_args(base + ['--chrome-use-interactive']).chrome_use_interactive
+            )
+
     def test_cleanup_closes_auth_and_only_terminal_worker_sessions(self):
         class Store:
             def __init__(self):

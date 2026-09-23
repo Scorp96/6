@@ -307,6 +307,14 @@ are identifiers only; they do not carry status semantics. The lifecycle record,
 not color or natural-language claims, is the authority for ACTIVE, RETIRED, and
 cleanup state.
 
+Chrome Use foregrounding is disabled by default. The normal bridge and Master A
+runtime inspect and operate the bound tab in the background, so the machine dog
+does not repeatedly steal focus or open visible browser popups. A supervised
+canary may opt in explicitly with `--chrome-use-interactive`; this is an
+operator choice and is not part of the unattended default. The explicit legacy
+`windows-mcp` transport remains foreground-oriented and is not the default V3
+transport.
+
 To inspect or retire one named session, use
 `scorp-agent/chatgpt-gui-bridge/tools/v4_session_lifecycle.py`. `list` is
 read-only. `retire` requires an exact candidate manifest binding and either a
@@ -584,8 +592,10 @@ path. It must also receive the exact `--candidate-commit`,
 `--candidate-manifest`, and `--manifest-sha256` values for the frozen
 candidate; missing or mismatched identity is rejected before browser I/O. The
 two prompts are fixed marker-only messages; the script never reads repository
-files as Worker input. Any resulting evidence records the bound candidate
-identity instead of an unverified runtime placeholder.
+files as Worker input. Chrome Use remains background-only by default; add
+`--chrome-use-interactive` only for a supervised canary when foregrounding the
+bound tabs is deliberately acceptable. Any resulting evidence records the
+bound candidate identity instead of an unverified runtime placeholder.
 
 旧 SQLite 不能直接交给 `StateStore` 自动升级。若要迁移，必须先复制到隔离
 目录，再显式运行：

@@ -255,6 +255,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--driver-state-path", required=True, type=pathlib.Path)
     parser.add_argument("--allowed-root", required=True, type=pathlib.Path)
     parser.add_argument("--executable", default=DEFAULT_EXECUTABLE)
+    parser.add_argument(
+        "--chrome-use-interactive",
+        action="store_true",
+        help="explicitly allow Chrome Use to foreground its bound tab for a supervised canary",
+    )
     parser.add_argument("--python-executable", default=sys.executable)
     parser.add_argument("--project-id", default="scorp-v4-master-runtime")
     parser.add_argument("--session-id", default="master-a-runtime")
@@ -396,7 +401,10 @@ def run_runtime(args: argparse.Namespace) -> int:
     database_path.parent.mkdir(parents=True, exist_ok=True)
     driver_state_path.parent.mkdir(parents=True, exist_ok=True)
 
-    cli = ChromeUseCliV3(executable=str(executable))
+    cli = ChromeUseCliV3(
+        executable=str(executable),
+        interactive=bool(args.chrome_use_interactive),
+    )
     driver = ChromeUseActorDriverV3(cli, driver_state_path, timeout_seconds=min(args.timeout_seconds, 120))
 
     async def auth_probe(channel: str):

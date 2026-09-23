@@ -20,6 +20,7 @@ class V3RuntimeTransportWiringTests(unittest.TestCase):
             v3_transport='chrome-use',
             chrome_use_executable=r'C:\\fake\\chrome-use.exe',
             v3_transport_timeout_seconds=30,
+            chrome_use_interactive=False,
         )
 
     def test_build_runtime_injects_explicit_chrome_use_driver(self):
@@ -36,6 +37,7 @@ class V3RuntimeTransportWiringTests(unittest.TestCase):
         source=__import__('inspect').getsource(bridge_worker.main)
         self.assertIn('--v3-transport', source)
         self.assertIn('--chrome-use-executable', source)
+        self.assertIn('--chrome-use-interactive', source)
 
 
 if __name__=='__main__':

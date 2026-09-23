@@ -19,6 +19,17 @@ class V3TransportSelectionTests(unittest.TestCase):
             )
             self.assertIsInstance(driver, ChromeUseActorDriverV3)
             self.assertEqual(driver.state_path, Path(td) / "chrome-use-driver-v3.json")
+            self.assertFalse(driver.cli.interactive)
+
+    def test_chrome_use_foregrounding_requires_explicit_opt_in(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = build_v3_driver(
+                transport="chrome-use",
+                project_root=td,
+                chrome_use_executable=r"C:\fake\chrome-use.exe",
+                chrome_use_interactive=True,
+            )
+            self.assertTrue(driver.cli.interactive)
 
     def test_missing_chrome_use_executable_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
@@ -70,6 +81,7 @@ class V3TransportSelectionTests(unittest.TestCase):
             r"C:\isolated-v3",
             r"C:\chrome-use\chrome-use.exe",
             timeout_seconds=17,
+            chrome_use_interactive=False,
         )
         runtime_cls.assert_called_once_with(
             r"C:\isolated-v3",

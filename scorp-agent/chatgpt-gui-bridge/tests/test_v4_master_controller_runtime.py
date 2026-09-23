@@ -307,6 +307,21 @@ class MasterControllerRuntimeTests(unittest.TestCase):
             self.assertFalse((root / "state.sqlite3").exists())
             self.assertFalse((root / "driver.json").exists())
 
+    def test_browser_foregrounding_is_opt_in(self):
+        runtime = load_runtime()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            base = [
+                "--plan-json", str(root / "plan.json"),
+                "--database-path", str(root / "state.sqlite3"),
+                "--driver-state-path", str(root / "driver.json"),
+                "--allowed-root", str(root),
+            ]
+            self.assertFalse(runtime.build_parser().parse_args(base).chrome_use_interactive)
+            self.assertTrue(
+                runtime.build_parser().parse_args(base + ["--chrome-use-interactive"]).chrome_use_interactive
+            )
+
     def test_send_requires_exact_candidate_manifest_before_opening_browser(self):
         runtime = load_runtime()
         with tempfile.TemporaryDirectory() as td:
