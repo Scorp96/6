@@ -56,7 +56,11 @@ function Read-HealthEvidence {
         return [pscustomobject]$result
     }
     try {
-        $health = Get-Content -LiteralPath $HealthPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        # Windows PowerShell coerces ISO-8601 JSON dates into local DateTime
+        # values during ConvertFrom-Json. Keep the raw text so a trailing `Z`
+        # remains UTC when the heartbeat age is calculated below.
+        $healthRaw = Get-Content -LiteralPath $HealthPath -Raw -ErrorAction Stop
+        $health = $healthRaw | ConvertFrom-Json -ErrorAction Stop
     } catch {
         $result.reason = 'HEALTH_JSON_INVALID'
         return [pscustomobject]$result
@@ -88,7 +92,15 @@ function Read-HealthEvidence {
     }
     $result.actor_id = $actor
     try {
-        $heartbeat = [DateTimeOffset]::Parse([string]$health.heartbeat_at).ToUniversalTime()
+        $heartbeatMatch = [regex]::Match($healthRaw, '"heartbeat_at"\s*:\s*"(?<value>[^"]+)"')
+        if (-not $heartbeatMatch.Success) { throw 'HEALTH_HEARTBEAT_MISSING' }
+        $heartbeatText = $heartbeatMatch.Groups['value'].Value
+        $styles = [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal
+        $heartbeat = [DateTimeOffset]::Parse(
+            $heartbeatText,
+            [Globalization.CultureInfo]::InvariantCulture,
+            $styles
+        ).ToUniversalTime()
         $age = [math]::Max(0, ([DateTimeOffset]::UtcNow - $heartbeat).TotalSeconds)
     } catch {
         $result.reason = 'HEALTH_HEARTBEAT_INVALID'

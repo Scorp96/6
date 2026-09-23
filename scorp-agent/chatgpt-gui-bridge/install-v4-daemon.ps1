@@ -70,6 +70,8 @@ try {
     if (-not (Test-Path -LiteralPath $daemonScript -PathType Leaf)) { throw 'V4_RELEASE_RUNTIME_SCRIPT_MISSING' }
     $watchdogScript = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'watch-v4-daemon.ps1'))
     if (-not (Test-Path -LiteralPath $watchdogScript -PathType Leaf)) { throw 'V4_WATCHDOG_SCRIPT_MISSING' }
+    $watchdogLauncher = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'tools\run_hidden_powershell.py'))
+    if (-not (Test-Path -LiteralPath $watchdogLauncher -PathType Leaf)) { throw 'V4_WATCHDOG_LAUNCHER_MISSING' }
     if (-not $HealthPath) { $HealthPath = [IO.Path]::ChangeExtension($database, '.daemon-health.json') }
     Assert-NoQuote $HealthPath 'HealthPath'
 
@@ -136,7 +138,12 @@ try {
         '-MaxHealthAgeSeconds', [string]$WatchdogMaxHealthAgeSeconds,
         '-StartupGraceSeconds', [string]$WatchdogStartupGraceSeconds
     ) -join ' '
-    $watchdogAction = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $watchdogArguments -WorkingDirectory $PSScriptRoot
+    $watchdogLauncherArguments = @(
+        '-B', ('"{0}"' -f $watchdogLauncher),
+        '--script', ('"{0}"' -f $watchdogScript),
+        $watchdogArguments
+    ) -join ' '
+    $watchdogAction = New-ScheduledTaskAction -Execute $windowlessPython -Argument $watchdogLauncherArguments -WorkingDirectory $PSScriptRoot
     $watchdogPeriodic = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
     $watchdogSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
 
@@ -146,7 +153,7 @@ try {
         $registered = Get-ScheduledTask -TaskName $resolvedTaskName -ErrorAction Stop
         if ($registered.Actions[0].Execute -ne $windowlessPython) { throw 'REGISTERED_PYTHON_MISMATCH' }
         $registeredWatchdog = Get-ScheduledTask -TaskName $watchdogTaskName -ErrorAction Stop
-        if ($registeredWatchdog.Actions[0].Execute -ne 'powershell.exe') { throw 'REGISTERED_WATCHDOG_EXECUTABLE_MISMATCH' }
+        if ([IO.Path]::GetFullPath([string]$registeredWatchdog.Actions[0].Execute) -ine $windowlessPython) { throw 'REGISTERED_WATCHDOG_EXECUTABLE_MISMATCH' }
         if ($Start) {
             Start-ScheduledTask -TaskName $resolvedTaskName
             Start-ScheduledTask -TaskName $watchdogTaskName
@@ -155,7 +162,7 @@ try {
     $installSucceeded = $true
     $epochValue = if ($DaemonEpoch -ge 0) { $DaemonEpoch } else { $null }
     $epochMode = if ($DaemonEpoch -ge 0) { 'EXPECTED' } else { 'ACQUIRE_CURRENT' }
-    [pscustomobject]@{ task_name=$resolvedTaskName; watchdog_task_name=$watchdogTaskName; database=$database; project_id=$ProjectId; driver_state_path=$driverState; master_session_id=$MasterSessionId; active_controller=$true; supervise_master=$true; daemon_epoch=$epochValue; epoch_mode=$epochMode; started=[bool]$Start; script=$daemonScript; watchdog_script=$watchdogScript; watchdog_max_health_age_seconds=$WatchdogMaxHealthAgeSeconds; watchdog_startup_grace_seconds=$WatchdogStartupGraceSeconds }
+    [pscustomobject]@{ task_name=$resolvedTaskName; watchdog_task_name=$watchdogTaskName; database=$database; project_id=$ProjectId; driver_state_path=$driverState; master_session_id=$MasterSessionId; active_controller=$true; supervise_master=$true; daemon_epoch=$epochValue; epoch_mode=$epochMode; started=[bool]$Start; script=$daemonScript; watchdog_script=$watchdogScript; watchdog_launcher=$watchdogLauncher; watchdog_max_health_age_seconds=$WatchdogMaxHealthAgeSeconds; watchdog_startup_grace_seconds=$WatchdogStartupGraceSeconds }
 }
 finally {
     if (-not $installSucceeded) {

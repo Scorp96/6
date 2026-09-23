@@ -68,6 +68,28 @@ class V4DaemonInstallerTests(unittest.TestCase):
         self.assertIn("'-WindowStyle', 'Hidden'", text)
         self.assertIn("-NonInteractive", text)
 
+    def test_watchdog_uses_a_non_console_launcher(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("run_hidden_powershell.py", text)
+        self.assertIn("$watchdogLauncher", text)
+        self.assertIn("-Execute $windowlessPython", text)
+        self.assertNotIn("$watchdogAction = New-ScheduledTaskAction -Execute 'powershell.exe'", text)
+
+    def test_hidden_powershell_launcher_suppresses_console_creation(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "tools" / "run_hidden_powershell.py"
+        self.assertTrue(path.is_file())
+        text = path.read_text(encoding="utf-8")
+        for token in (
+            "CREATE_NO_WINDOW",
+            "STARTF_USESHOWWINDOW",
+            "SW_HIDE",
+            "-WindowStyle",
+            "-NonInteractive",
+            "subprocess.run",
+        ):
+            self.assertIn(token, text)
+
     def test_main_task_uses_windowless_python_and_watchdog_tracks_that_identity(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
         text = path.read_text(encoding="utf-8")
@@ -116,6 +138,22 @@ class V4DaemonInstallerTests(unittest.TestCase):
         self.assertNotIn("sqlite3", text.lower())
         self.assertNotIn("taskkill", text.lower())
         self.assertNotIn("Stop-Process", text)
+
+    def test_watchdog_parses_utc_heartbeat_before_powershell_date_coercion(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "watch-v4-daemon.ps1"
+        text = path.read_text(encoding="utf-8")
+        for token in (
+            "$healthRaw",
+            '"heartbeat_at"',
+            "DateTimeStyles",
+            "InvariantCulture",
+            "AdjustToUniversal",
+        ):
+            self.assertIn(token, text)
+        self.assertNotIn(
+            "[DateTimeOffset]::Parse([string]$health.heartbeat_at)",
+            text,
+        )
 
     def test_installer_refuses_missing_database_and_has_rollback_boundary(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
