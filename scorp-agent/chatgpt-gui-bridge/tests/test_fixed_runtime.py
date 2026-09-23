@@ -4,11 +4,12 @@ import unittest
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 
 class FixedRuntimeTests(unittest.TestCase):
-    def test_scheduled_task_executes_fixed_python_directly(self):
+    def test_scheduled_task_executes_fixed_python_without_a_console_window(self):
         text=(ROOT/'install-bridge.ps1').read_text(encoding='utf-8')
         self.assertIn("chatgpt-gui-bridge-runtime", text)
         self.assertIn("Scripts\\python.exe", text)
-        self.assertIn("New-ScheduledTaskAction -Execute $python", text)
+        self.assertIn("Resolve-WindowlessPython", text)
+        self.assertIn("New-ScheduledTaskAction -Execute $windowlessPython", text)
         self.assertNotIn("New-ScheduledTaskAction -Execute $ps", text)
 
     def test_runtime_dependency_is_pinned(self):

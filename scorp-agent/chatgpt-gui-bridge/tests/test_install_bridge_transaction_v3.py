@@ -52,6 +52,17 @@ class InstallBridgeTransactionV3Tests(unittest.TestCase):
         self.assertIn("-Force | Out-Null", self.text)
         self.assertIn("BRIDGE_INSTALL_PASS", self.text)
 
+    def test_background_defaults_use_windowless_python_and_hidden_watchdog(self):
+        for token in (
+            "Resolve-WindowlessPython",
+            "pythonw.exe",
+            "-Execute $windowlessPython",
+            "'-WindowStyle','Hidden'",
+            "'-NonInteractive'",
+            "[string]$actualAction.Execute -ne $windowlessPython",
+        ):
+            self.assertIn(token, self.text)
+
 
 if __name__ == "__main__":
     unittest.main()

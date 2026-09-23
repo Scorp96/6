@@ -14,6 +14,22 @@ $python = Join-Path $RuntimeDir 'Scripts\python.exe'
 $V3ProjectRoot = 'C:\ScorpAgent\state-v3\active'
 $files = @('bridge_core.py','gui_transport.py','bridge_worker.py','role_relay.py','run-bridge.ps1','production_v3_runtime.py','chat_resource_manager_v3.py','worker_conversation_pool_v3.py','actor_gui_backend_v3.py','actor_response_journal_v3.py','chrome_use_cli_v3.py','chrome_use_actor_driver_v3.py','v4_auth.py','continuation_watchdog_v3.py','durable_actor_transport_v3.py','master_state_transition_v3.py','master_window_lease_v3.py','master_worker_coordinator_v3.py','master_worker_relay_v3.py','parallel_master_worker_relay_v3.py','project_state_v3.py','session_registry_v3.py','turn_scheduler_v3.py','windows_mcp_actor_driver_v3.py','worker_event_pump_v3.py','worker_result_guard_v3.py','worker_event_queue_v3.py','bridge-watchdog.ps1','project_bootstrap_v3.py','project-bootstrap-template.json','project_lifecycle_v3.py','install-bridge.ps1')
 
+function Resolve-WindowlessPython([string]$Executable) {
+  $fullPath = [IO.Path]::GetFullPath($Executable)
+  $leaf = [IO.Path]::GetFileName($fullPath)
+  if ($leaf -ieq 'pythonw.exe') {
+    $windowlessPath = $fullPath
+  } elseif ($leaf -ieq 'python.exe') {
+    $windowlessPath = Join-Path (Split-Path -Parent $fullPath) 'pythonw.exe'
+  } else {
+    throw 'PYTHON_RUNTIME_EXECUTABLE_UNSUPPORTED'
+  }
+  if (-not (Test-Path -LiteralPath $windowlessPath -PathType Leaf)) {
+    throw 'PYTHONW_RUNTIME_MISSING'
+  }
+  return [IO.Path]::GetFullPath($windowlessPath)
+}
+
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $StateDir -Force | Out-Null
 New-Item -ItemType Directory -Path $V3ProjectRoot -Force | Out-Null
@@ -32,6 +48,7 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
   $ErrorActionPreference = $savedEap
   if ($nativeRc -ne 0) { throw 'BRIDGE_RUNTIME_CREATE_FAILED' }
 }
+$windowlessPython = Resolve-WindowlessPython $python
 $savedEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 & $uv pip install --python $python 'mcp==2.2.0'
@@ -90,7 +107,7 @@ try {
     '--v3-max-workers','4',
     '--poll-seconds','10'
   ) -join ' '
-  $action = New-ScheduledTaskAction -Execute $python -Argument $arguments
+  $action = New-ScheduledTaskAction -Execute $windowlessPython -Argument $arguments
   $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
   $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
   $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Days 3)
@@ -99,6 +116,8 @@ try {
   $watchdogScript = Join-Path $InstallDir 'bridge-watchdog.ps1'
   $watchdogArguments = @(
     '-NoProfile',
+    '-NonInteractive',
+    '-WindowStyle','Hidden',
     '-ExecutionPolicy','Bypass',
     '-File',"`"$watchdogScript`"",
     '-TargetTaskName',"`"$TaskName`"",
@@ -120,7 +139,7 @@ try {
   $actualAction = $task.Actions | Select-Object -First 1
   $watchdogTask = Get-ScheduledTask -TaskName $WatchdogTaskName -ErrorAction Stop
   if ([string]$task.State -ne 'Running') { throw ('BRIDGE_INSTALL_MAIN_NOT_RUNNING ' + [string]$task.State) }
-  if ([string]$actualAction.Execute -ne $python) { throw 'BRIDGE_INSTALL_ACTION_EXECUTE_MISMATCH' }
+  if ([string]$actualAction.Execute -ne $windowlessPython) { throw 'BRIDGE_INSTALL_ACTION_EXECUTE_MISMATCH' }
   if (-not ([string]$actualAction.Arguments).Contains('--v3-project-root')) { throw 'BRIDGE_INSTALL_V3_BINDING_MISSING' }
 
   $installSucceeded = $true
@@ -131,7 +150,7 @@ try {
     last_result=$info.LastTaskResult
     execute=[string]$actualAction.Execute
     arguments=[string]$actualAction.Arguments
-    runtime=$python
+    runtime=$windowlessPython
     install_dir=$InstallDir
     state_dir=$StateDir
     v3_project_root=$V3ProjectRoot

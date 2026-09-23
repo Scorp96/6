@@ -68,6 +68,32 @@ class V4DaemonInstallerTests(unittest.TestCase):
         self.assertIn("'-WindowStyle', 'Hidden'", text)
         self.assertIn("-NonInteractive", text)
 
+    def test_main_task_uses_windowless_python_and_watchdog_tracks_that_identity(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("Resolve-WindowlessPython", text)
+        self.assertIn("pythonw.exe", text)
+        self.assertIn("-Execute $windowlessPython", text)
+        self.assertIn("'-PythonExecutable', ('\"{0}\"' -f $windowlessPython)", text)
+        self.assertIn("$registered.Actions[0].Execute -ne $windowlessPython", text)
+
+    def test_live_migration_backups_and_rebinds_existing_tasks_without_changing_arguments(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / "migrate-v4-daemon-windowless.ps1"
+        self.assertTrue(path.is_file())
+        text = path.read_text(encoding="utf-8")
+        for token in (
+            "Export-ScheduledTask",
+            "Set-ScheduledTask",
+            "pythonw.exe",
+            "-PythonExecutable",
+            "BackupDirectory",
+            "AllowWatchdogWithoutPythonBinding",
+            "EnsureWatchdogHidden",
+            "Stop-ScheduledTask",
+            "Start-ScheduledTask",
+        ):
+            self.assertIn(token, text)
+
     def test_watchdog_only_demand_starts_absent_runtime_and_never_mutates_sqlite(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "watch-v4-daemon.ps1"
         self.assertTrue(path.is_file())

@@ -29,6 +29,22 @@ function Assert-NoQuote([string]$Value, [string]$Name) {
     if ($Value.Contains('"')) { throw "$Name contains an unsupported quote" }
 }
 
+function Resolve-WindowlessPython([string]$Executable) {
+    $fullPath = [IO.Path]::GetFullPath($Executable)
+    $leaf = [IO.Path]::GetFileName($fullPath)
+    if ($leaf -ieq 'pythonw.exe') {
+        $windowlessPath = $fullPath
+    } elseif ($leaf -ieq 'python.exe') {
+        $windowlessPath = Join-Path (Split-Path -Parent $fullPath) 'pythonw.exe'
+    } else {
+        throw 'PYTHON_RUNTIME_EXECUTABLE_UNSUPPORTED'
+    }
+    if (-not (Test-Path -LiteralPath $windowlessPath -PathType Leaf)) {
+        throw 'PYTHONW_RUNTIME_MISSING'
+    }
+    return [IO.Path]::GetFullPath($windowlessPath)
+}
+
 try {
     foreach ($pair in @(
         @{Value=$DatabasePath;Name='DatabasePath'},
@@ -41,12 +57,14 @@ try {
         @{Value=$watchdogTaskName;Name='WatchdogTaskName'}
     )) { Assert-NoQuote $pair.Value $pair.Name }
 
+    $Python = [IO.Path]::GetFullPath($Python)
     $database = [IO.Path]::GetFullPath($DatabasePath)
     $allowed = [IO.Path]::GetFullPath($AllowedRoot)
     $driverState = [IO.Path]::GetFullPath($DriverStatePath)
     if (-not (Test-Path -LiteralPath $database -PathType Leaf)) { throw 'STATE_DATABASE_MISSING' }
     if (-not (Test-Path -LiteralPath $allowed -PathType Container)) { throw 'ALLOWED_ROOT_MISSING' }
     if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { throw 'PYTHON_RUNTIME_MISSING' }
+    $windowlessPython = Resolve-WindowlessPython $Python
 
     $daemonScript = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'tools\v4_release_runtime.py'))
     if (-not (Test-Path -LiteralPath $daemonScript -PathType Leaf)) { throw 'V4_RELEASE_RUNTIME_SCRIPT_MISSING' }
@@ -97,7 +115,7 @@ try {
         '--master-session-id', ('"{0}"' -f $MasterSessionId)
     )
     $arguments = $argumentList -join ' '
-    $action = New-ScheduledTaskAction -Execute $Python -Argument $arguments -WorkingDirectory (Split-Path -Parent $daemonScript)
+    $action = New-ScheduledTaskAction -Execute $windowlessPython -Argument $arguments -WorkingDirectory (Split-Path -Parent $daemonScript)
     $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
     $logon = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
     $startup = New-ScheduledTaskTrigger -AtStartup
@@ -112,7 +130,7 @@ try {
         '-MainTaskName', ('"{0}"' -f $resolvedTaskName),
         '-ProjectId', ('"{0}"' -f $ProjectId),
         '-ReleaseRuntimeScript', ('"{0}"' -f $daemonScript),
-        '-PythonExecutable', ('"{0}"' -f [IO.Path]::GetFullPath($Python)),
+        '-PythonExecutable', ('"{0}"' -f $windowlessPython),
         '-DatabasePath', ('"{0}"' -f $database),
         '-HealthPath', ('"{0}"' -f [IO.Path]::GetFullPath($HealthPath)),
         '-MaxHealthAgeSeconds', [string]$WatchdogMaxHealthAgeSeconds,
@@ -126,7 +144,7 @@ try {
         Register-ScheduledTask -TaskName $resolvedTaskName -Action $action -Trigger @($logon, $startup) -Principal $principal -Settings $settings -Description 'SCORP V4 SQLite local daemon' -Force | Out-Null
         Register-ScheduledTask -TaskName $watchdogTaskName -Action $watchdogAction -Trigger @($logon, $startup, $watchdogPeriodic) -Principal $principal -Settings $watchdogSettings -Description 'SCORP V4 independent daemon recovery watchdog' -Force | Out-Null
         $registered = Get-ScheduledTask -TaskName $resolvedTaskName -ErrorAction Stop
-        if ($registered.Actions[0].Execute -ne $Python) { throw 'REGISTERED_PYTHON_MISMATCH' }
+        if ($registered.Actions[0].Execute -ne $windowlessPython) { throw 'REGISTERED_PYTHON_MISMATCH' }
         $registeredWatchdog = Get-ScheduledTask -TaskName $watchdogTaskName -ErrorAction Stop
         if ($registeredWatchdog.Actions[0].Execute -ne 'powershell.exe') { throw 'REGISTERED_WATCHDOG_EXECUTABLE_MISMATCH' }
         if ($Start) {
