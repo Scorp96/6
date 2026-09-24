@@ -124,11 +124,6 @@ try {
     $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Days 3650)
 
     $watchdogArguments = @(
-        '-NoProfile',
-        '-NonInteractive',
-        '-WindowStyle', 'Hidden',
-        '-ExecutionPolicy', 'Bypass',
-        '-File', ('"{0}"' -f $watchdogScript),
         '-MainTaskName', ('"{0}"' -f $resolvedTaskName),
         '-ProjectId', ('"{0}"' -f $ProjectId),
         '-ReleaseRuntimeScript', ('"{0}"' -f $daemonScript),

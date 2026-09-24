@@ -55,18 +55,24 @@ class V4DaemonInstallerTests(unittest.TestCase):
             "'-DatabasePath'",
             "'-MaxHealthAgeSeconds'",
             "'-StartupGraceSeconds'",
-            "'-WindowStyle', 'Hidden'",
             "Start-ScheduledTask -TaskName $watchdogTaskName",
             "Unregister-ScheduledTask -TaskName $watchdogTaskName",
             "$priorWatchdogXml",
         ):
             self.assertIn(token, text)
 
-    def test_watchdog_task_defaults_to_hidden_window(self):
+    def test_watchdog_launcher_owns_powershell_host_flags(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
         text = path.read_text(encoding="utf-8")
-        self.assertIn("'-WindowStyle', 'Hidden'", text)
-        self.assertIn("-NonInteractive", text)
+        self.assertIn("$watchdogArguments = @(\n        '-MainTaskName'", text)
+        for duplicate in (
+            "'-NoProfile'",
+            "'-NonInteractive'",
+            "'-WindowStyle', 'Hidden'",
+            "'-ExecutionPolicy', 'Bypass'",
+            "'-File', ('\"{0}\"' -f $watchdogScript)",
+        ):
+            self.assertNotIn(duplicate, text)
 
     def test_watchdog_uses_a_non_console_launcher(self):
         path = pathlib.Path(__file__).resolve().parents[1] / "install-v4-daemon.ps1"
