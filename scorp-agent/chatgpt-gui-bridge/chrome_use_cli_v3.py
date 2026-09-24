@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import subprocess
+import sys
 import tempfile
 import time
 import threading
@@ -28,10 +30,28 @@ async def _terminate_process(proc):
 
 async def _default_runner(argv, timeout_seconds):
     with tempfile.TemporaryFile(mode="w+b") as stdout_file, tempfile.TemporaryFile(mode="w+b") as stderr_file:
+        process_kwargs = {
+            "stdin": subprocess.DEVNULL,
+            "stdout": stdout_file,
+            "stderr": stderr_file,
+        }
+        if sys.platform == "win32":
+            # ``chrome-use.exe`` is a console executable.  A pythonw parent
+            # does not give it a hidden console automatically, so Windows
+            # Terminal can briefly claim the foreground for every CLI call.
+            # Keep the default transport background-only; supervised
+            # foregrounding is still controlled by the explicit
+            # ``interactive``/``bringToFront`` path below.
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            process_kwargs.update(
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
         proc = await asyncio.create_subprocess_exec(
             *argv,
-            stdout=stdout_file,
-            stderr=stderr_file,
+            **process_kwargs,
         )
         try:
             await asyncio.wait_for(proc.wait(), timeout=float(timeout_seconds))

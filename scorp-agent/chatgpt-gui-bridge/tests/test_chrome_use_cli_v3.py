@@ -1,4 +1,6 @@
 import asyncio
+import subprocess
+import sys
 import unittest
 from unittest import mock
 
@@ -217,6 +219,35 @@ class ChromeUseCliV3Tests(unittest.TestCase):
 
         asyncio.run(exercise())
         self.assertTrue(proc.killed)
+
+    def test_default_runner_suppresses_windows_console_window(self):
+        calls = []
+
+        class FakeProcess:
+            returncode = 0
+
+            async def wait(self):
+                return self.returncode
+
+        async def fake_create(*args, **kwargs):
+            calls.append((args, kwargs))
+            return FakeProcess()
+
+        async def exercise():
+            with mock.patch('chrome_use_cli_v3.asyncio.create_subprocess_exec', new=fake_create):
+                return await _default_runner(
+                    ['chrome-use.exe', '--session', 'hidden', '--json', 'status'],
+                    1,
+                )
+
+        self.assertEqual((0, '', ''), asyncio.run(exercise()))
+        self.assertEqual(1, len(calls))
+        if sys.platform == 'win32':
+            kwargs = calls[0][1]
+            self.assertEqual(subprocess.CREATE_NO_WINDOW, kwargs['creationflags'])
+            startupinfo = kwargs['startupinfo']
+            self.assertTrue(startupinfo.dwFlags & subprocess.STARTF_USESHOWWINDOW)
+            self.assertEqual(subprocess.SW_HIDE, startupinfo.wShowWindow)
 
     def test_default_runner_outer_cancellation_kills_child_before_propagating(self):
         class FakeProcess:
