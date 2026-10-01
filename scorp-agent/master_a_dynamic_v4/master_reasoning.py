@@ -604,10 +604,55 @@ class MasterReasoningCoordinator:
             "intent_id": intent_id,
         }
 
+    def _replay_current_terminal(
+        self,
+        intent: Mapping[str, Any],
+        terminal: Mapping[str, Any],
+    ) -> dict[str, Any] | None:
+        if str(terminal.get("kind") or "") != "MASTER_DECISION_APPLIED":
+            return None
+        payload = terminal.get("payload")
+        if not isinstance(payload, Mapping):
+            raise MasterReasoningRejected("MASTER_REASONING_EVENT_INVALID")
+        expected = str(payload.get("output_snapshot_sha256") or "")
+        if not expected or expected != self.semantic_snapshot_sha256():
+            return None
+        action = str(payload.get("action") or "").strip().upper()
+        if action not in self._ALLOWED_ACTIONS:
+            raise MasterReasoningRejected("MASTER_DECISION_ACTION_INVALID")
+        status = (
+            "IDLE"
+            if action == "WAIT"
+            else "BLOCKED"
+            if action == "HUMAN_REQUIRED"
+            else "APPLIED"
+        )
+        response = {
+            "status": status,
+            "action": action,
+            "intent_id": str(intent.get("intent_id") or ""),
+            "input_snapshot_sha256": str(
+                payload.get("input_snapshot_sha256") or ""
+            ),
+            "output_snapshot_sha256": expected,
+            "result": dict(payload.get("result") or {}),
+        }
+        if action == "HUMAN_REQUIRED":
+            response["reason"] = (
+                "HUMAN_APPROVAL_REQUIRED:"
+                + str(payload.get("reason") or "")
+            )
+        return response
+
     def run_once(self) -> dict[str, Any]:
         latest = self._latest_reasoning_intent()
-        if latest is not None and self._terminal_event(str(latest["intent_id"])) is not None:
-            latest = None
+        if latest is not None:
+            terminal = self._terminal_event(str(latest["intent_id"]))
+            if terminal is not None:
+                replay = self._replay_current_terminal(latest, terminal)
+                if replay is not None:
+                    return replay
+                latest = None
         intent = latest if latest is not None else self._prepare()
         intent_id = str(intent["intent_id"])
         state = str(intent.get("state") or "")
