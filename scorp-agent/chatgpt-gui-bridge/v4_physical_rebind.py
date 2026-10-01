@@ -112,9 +112,109 @@ class ReadOnlyBrowserRebinder:
         master = int(master_epoch)
         if daemon < 1 or master < 0:
             raise PhysicalRebindError("PHYSICAL_VERIFY_EPOCH_INVALID")
-        binding, url, evidence = self._verify_binding(
-            source="READ_ONLY_PHYSICAL_VERIFY"
-        )
+        try:
+            binding, url, evidence = self._verify_binding(
+                source="READ_ONLY_PHYSICAL_VERIFY"
+            )
+        except PhysicalRebindError as exc:
+            # A missing/dead physical Chrome session may be restored only to
+            # the already durable canonical URL.  URL conflicts and auth
+            # blockers remain fail-closed and never navigate.
+            if not str(exc).startswith("BROWSER_OBSERVATION_FAILED:"):
+                raise
+            binding = self.store.get_browser_binding(
+                self.project_id, self.channel
+            )
+            if not isinstance(binding, Mapping):
+                raise PhysicalRebindError(
+                    "MASTER_BROWSER_BINDING_MISSING"
+                ) from exc
+            try:
+                url = validate_conversation_url(
+                    str(binding.get("conversation_url") or "")
+                )
+            except (TypeError, ValueError) as url_exc:
+                raise PhysicalRebindError(
+                    "MASTER_BROWSER_URL_INVALID"
+                ) from url_exc
+            restore = getattr(self.driver, "restore_known_binding", None)
+            if not callable(restore):
+                raise
+            try:
+                observed = _run_sync(
+                    asyncio.wait_for(
+                        restore(self.channel, url),
+                        timeout=self.timeout_seconds,
+                    )
+                )
+            except Exception as restore_exc:
+                raise PhysicalRebindError(
+                    "BROWSER_RESTORE_FAILED:"
+                    + type(restore_exc).__name__
+                    + ":"
+                    + str(restore_exc)
+                ) from restore_exc
+            if not isinstance(observed, Mapping):
+                raise PhysicalRebindError(
+                    "BROWSER_RESTORE_OBSERVATION_INVALID"
+                )
+            auth = _run_sync(self.auth_probe(self.channel))
+            if (
+                not isinstance(auth, Mapping)
+                or str(auth.get("status") or "") != "AUTHENTICATED"
+            ):
+                status = str(
+                    auth.get("status")
+                    if isinstance(auth, Mapping)
+                    else "INVALID"
+                )
+                raise PhysicalRebindError(
+                    f"AUTH_BLOCKED:{status}"
+                )
+            try:
+                driver_url = validate_conversation_url(
+                    str(observed.get("driver_url") or "")
+                )
+                physical_url = validate_conversation_url(
+                    str(observed.get("physical_url") or "")
+                )
+            except (TypeError, ValueError) as observed_exc:
+                raise PhysicalRebindError(
+                    "BROWSER_RESTORED_URL_INVALID"
+                ) from observed_exc
+            if (
+                driver_url != url
+                or physical_url != url
+                or driver_url != physical_url
+            ):
+                raise PhysicalRebindError(
+                    "RECONCILE_REQUIRED:"
+                    f"sqlite={url};driver={driver_url};physical={physical_url}"
+                )
+            snapshot = str(observed.get("snapshot") or "")
+            if url not in snapshot:
+                raise PhysicalRebindError(
+                    "BROWSER_URL_NOT_CONFIRMED"
+                )
+            session = str(observed.get("session") or "").strip()
+            if not session:
+                raise PhysicalRebindError(
+                    "BROWSER_RESTORED_SESSION_MISSING"
+                )
+            evidence = {
+                "source": "READ_ONLY_PHYSICAL_VERIFY",
+                "auth_status": "AUTHENTICATED",
+                "driver_url": driver_url,
+                "physical_url": physical_url,
+                "session": session,
+                "snapshot_sha256": hashlib.sha256(
+                    snapshot.encode("utf-8")
+                ).hexdigest(),
+                "binding_generation": int(
+                    binding.get("generation", 0)
+                ),
+                "restore_source": "KNOWN_DURABLE_CANONICAL_URL",
+            }
         evidence = {
             **evidence,
             "daemon_epoch": daemon,

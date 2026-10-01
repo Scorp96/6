@@ -738,6 +738,102 @@ class ChromeUseActorDriverV3:
             "session": session,
         }
 
+
+    async def restore_known_binding(self, channel, conversation_url):
+        """Restore one durable actor conversation without submitting a prompt.
+
+        This operation may navigate only when there is no conflicting active
+        physical binding for the actor role.  It never fills the composer,
+        clicks Send, presses Enter, or retries an external action.
+        """
+
+        channel = str(channel or "").strip().casefold()
+        if not channel:
+            raise ValueError("CHROME_USE_CHANNEL_MISSING")
+        role = (
+            "MASTER"
+            if channel == "master"
+            else "WORKER"
+            if channel.startswith("worker")
+            else None
+        )
+        if role is None:
+            raise ValueError("CHROME_USE_CHANNEL_UNSUPPORTED")
+        target = _canonical_url(conversation_url)
+
+        with self._state_mutex:
+            state = self._load()
+            candidates = []
+            ambiguous = []
+            for session, row in state.get("sessions", {}).items():
+                if not isinstance(row, dict) or row.get("status") != "ACTIVE":
+                    continue
+                if self._normalise_role(row.get("role", "UNKNOWN")) != role:
+                    continue
+                urls = sorted(
+                    {
+                        str(value or "").strip()
+                        for value in row.get("conversation_urls", [])
+                        if str(value or "").strip()
+                    }
+                )
+                if len(urls) > 1:
+                    ambiguous.append((str(session), tuple(urls)))
+                elif len(urls) == 1:
+                    candidates.append((str(session), urls[0]))
+
+            if ambiguous:
+                raise ValueError("CHROME_USE_PHYSICAL_BINDING_AMBIGUOUS")
+            if len(candidates) > 1:
+                raise ValueError(
+                    f"CHROME_USE_PHYSICAL_BINDING_COUNT_{len(candidates)}"
+                )
+            if candidates:
+                session, existing_url = candidates[0]
+                if existing_url != target:
+                    raise ValueError("CHROME_USE_PHYSICAL_BINDING_CONFLICT")
+            else:
+                entry = state.get("conversations", {}).get(target)
+                session = (
+                    str(entry.get("session") or "").strip()
+                    if isinstance(entry, dict)
+                    else ""
+                )
+                if not session:
+                    session = self._conversation_session(target)
+                lifecycle = state.get("sessions", {}).get(session)
+                if (
+                    isinstance(lifecycle, dict)
+                    and lifecycle.get("status") == "RETIRED"
+                ):
+                    raise ValueError("CHROME_USE_SESSION_RETIRED")
+                state["conversations"][target] = {"session": session}
+                self._touch_session(
+                    state,
+                    session,
+                    role=role,
+                    conversation_url=target,
+                )
+                self._save(state)
+
+        observed = await self._ensure_url(session, target)
+        if observed != target:
+            raise ValueError("ACTOR_GUI_FOCUSED_CONVERSATION_MISMATCH")
+        payload = await self.cli.run_json(
+            session,
+            "read",
+            timeout_seconds=self.timeout_seconds,
+        )
+        return {
+            "driver_url": target,
+            "physical_url": observed,
+            "snapshot": "Focused Window: Chrome\\n"
+            + observed
+            + "\\n"
+            + _render_payload(payload),
+            "session": session,
+            "restored": True,
+        }
     async def _prepare_interactive(self, session, *, timeout_seconds=None):
         """Request foreground rendering when the transport supports it.
 
