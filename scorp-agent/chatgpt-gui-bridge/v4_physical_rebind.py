@@ -171,12 +171,14 @@ class ReadOnlyBrowserRebinder:
         text = str(observed.get("snapshot") or "")
         if url not in text:
             raise PhysicalRebindError("BROWSER_URL_NOT_CONFIRMED")
+        session = str(observed.get("session") or "").strip()
 
         evidence = {
             "source": source,
             "auth_status": "AUTHENTICATED",
             "driver_url": driver_url,
             "physical_url": physical_url,
+            "session": session or None,
             "snapshot_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "binding_generation": int(binding.get("generation", 0)),
         }
