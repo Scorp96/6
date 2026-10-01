@@ -16,6 +16,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 UTC = dt.timezone.utc
 SCHEMA_VERSION = 7
+MASTER_PHYSICAL_VERIFY_TTL_SECONDS = 90
 _UNSET = object()
 
 _REQUIRED_SCHEMA_TABLES = frozenset(
@@ -1017,25 +1018,38 @@ class StateStore:
                 evidence = dict(parsed)
 
         effective_daemon_epoch: int | None
+        now = self._aware_time(None)
         if daemon_epoch is not None:
             effective_daemon_epoch = int(daemon_epoch)
         else:
             daemon = conn.execute(
-                "SELECT daemon_epoch FROM daemon_leases WHERE project_id=?",
+                """SELECT daemon_epoch,lease_status,lease_until
+                   FROM daemon_leases WHERE project_id=?""",
                 (project,),
             ).fetchone()
-            effective_daemon_epoch = int(daemon[0]) if daemon is not None else None
+            if (
+                daemon is not None
+                and str(daemon["lease_status"] or "ACTIVE") == "ACTIVE"
+                and str(daemon["lease_until"] or "") > now.isoformat().replace("+00:00", "Z")
+            ):
+                effective_daemon_epoch = int(daemon["daemon_epoch"])
+            else:
+                effective_daemon_epoch = None
 
         verified = False
+        verification_age_seconds: float | None = None
         if bound and effective_daemon_epoch is not None:
             try:
                 evidence_generation = int(evidence.get("binding_generation"))
                 evidence_daemon_epoch = int(evidence.get("daemon_epoch"))
                 evidence_master_epoch = int(evidence.get("master_epoch"))
-            except (TypeError, ValueError):
+                verified_at = _parse_timestamp(str(evidence.get("verified_at") or ""))
+                verification_age_seconds = (now - verified_at).total_seconds()
+            except (TypeError, ValueError, StoreInvariantError):
                 evidence_generation = -1
                 evidence_daemon_epoch = -1
                 evidence_master_epoch = -1
+                verification_age_seconds = None
             url = str(binding["conversation_url"])
             verified = bool(
                 str(evidence.get("source") or "") == "READ_ONLY_PHYSICAL_VERIFY"
@@ -1046,6 +1060,8 @@ class StateStore:
                 and evidence_generation == int(binding["generation"])
                 and evidence_daemon_epoch == int(effective_daemon_epoch)
                 and evidence_master_epoch == int(state["master_epoch"])
+                and verification_age_seconds is not None
+                and -5.0 <= verification_age_seconds <= MASTER_PHYSICAL_VERIFY_TTL_SECONDS
             )
 
         binding_view = None
@@ -1065,6 +1081,8 @@ class StateStore:
             "verified": bool(verified),
             "daemon_epoch": effective_daemon_epoch,
             "master_epoch": int(state["master_epoch"]),
+            "verification_ttl_seconds": MASTER_PHYSICAL_VERIFY_TTL_SECONDS,
+            "verification_age_seconds": verification_age_seconds,
             "browser_binding": binding_view,
             "verification_evidence": evidence or None,
         }
