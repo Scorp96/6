@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import datetime as dt
 import hashlib
 import inspect
 import json
@@ -98,6 +99,49 @@ class ReadOnlyBrowserRebinder:
             "master_epoch": epoch,
             "conversation_url": url,
             "binding": dict(persisted) if isinstance(persisted, Mapping) else persisted,
+            "evidence": evidence,
+        }
+
+    def verify_current(
+        self,
+        *,
+        daemon_epoch: int,
+        master_epoch: int,
+    ) -> dict[str, Any]:
+        daemon = int(daemon_epoch)
+        master = int(master_epoch)
+        if daemon < 1 or master < 0:
+            raise PhysicalRebindError("PHYSICAL_VERIFY_EPOCH_INVALID")
+        binding, url, evidence = self._verify_binding(
+            source="READ_ONLY_PHYSICAL_VERIFY"
+        )
+        evidence = {
+            **evidence,
+            "daemon_epoch": daemon,
+            "master_epoch": master,
+            "verified_at": dt.datetime.now(dt.timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z"),
+        }
+        persisted = self.browser_adapter.rebind(
+            self.project_id,
+            self.channel,
+            actor_id=self.actor_id,
+            conversation_url=url,
+            predecessor_url=url,
+            reason="PHYSICAL_SESSION_VERIFIED",
+            evidence=evidence,
+        )
+        return {
+            "status": "VERIFIED",
+            "daemon_epoch": daemon,
+            "master_epoch": master,
+            "conversation_url": url,
+            "binding": (
+                dict(persisted)
+                if isinstance(persisted, Mapping)
+                else persisted
+            ),
             "evidence": evidence,
         }
 
