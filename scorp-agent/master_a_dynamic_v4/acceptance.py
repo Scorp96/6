@@ -198,6 +198,17 @@ class AcceptanceValidator:
             ).fetchone() is not None:
                 blockers.add("LATE_BLOCKING_FINDINGS")
 
+            physical = self.store._master_physical_status_in_connection(
+                conn,
+                project_id,
+                daemon_epoch=None,
+            )
+            if physical["required"]:
+                if not physical["bound"]:
+                    blockers.add("MASTER_PHYSICAL_BINDING_REQUIRED")
+                elif not physical["verified"]:
+                    blockers.add("MASTER_PHYSICAL_VERIFICATION_REQUIRED")
+
         ordered = tuple(sorted(blockers))
         if failed:
             return AcceptanceDecision(AcceptanceStatus.FAIL, ordered)
