@@ -128,6 +128,69 @@ class ChromeUsePersistedRecoveryV3Tests(unittest.TestCase):
             self.assertEqual(session, binding["session"])
             self.assertIsNone(binding["conversation_url"])
 
+    def test_unpromoted_root_composer_proves_original_turn_not_submitted(self):
+        with tempfile.TemporaryDirectory() as td:
+            turn_id = "master-reasoning-" + "f" * 32
+            marker = "SCORP_REASONING::" + "a" * 24
+            prompt = marker + "\n" + '{"role":"Logical Master A"}'
+            state_path, session = self._seed(td, turn_id, None)
+            ChromeUseActorDriverV3(
+                FakeCli([]), state_path, sleeper=lambda _: asyncio.sleep(0)
+            )._mark_turn_browser_io_started(turn_id)
+            cli = FakeCli([
+                {"data": {"url": "https://chatgpt.com/"}},
+                {
+                    "data": {
+                        "origin": "https://chatgpt.com/",
+                        "refs": {
+                            "e88": {
+                                "name": prompt,
+                                "role": "generic",
+                            },
+                            "e89": {"name": "发送", "role": "button"},
+                            "e90": {
+                                "name": "询问 ChatGPT",
+                                "role": "textbox",
+                                "value": prompt,
+                            },
+                        },
+                        "snapshot": (
+                            f'- generic "{prompt}" [ref=e88]\n'
+                            '- button "发送" [ref=e89]\n'
+                            f'- textbox "询问 ChatGPT" [ref=e90]: {prompt}'
+                        ),
+                    }
+                },
+            ])
+            driver = ChromeUseActorDriverV3(
+                cli, state_path, sleeper=lambda _: asyncio.sleep(0)
+            )
+
+            proof = asyncio.run(
+                driver.prove_unpromoted_turn_not_submitted(
+                    turn_id,
+                    expected_prompt=prompt,
+                    expected_marker=marker,
+                    timeout_seconds=6,
+                )
+            )
+
+            self.assertEqual(
+                "ROOT_COMPOSER_RETAINS_EXACT_PROMPT_WITH_SEND_CONTROL",
+                proof["proof"],
+            )
+            self.assertEqual(session, proof["session"])
+            self.assertEqual("https://chatgpt.com/", proof["physical_url"])
+            self.assertRegex(proof["snapshot_sha256"], r"^[0-9a-f]{64}$")
+            self.assertEqual(
+                [["get", "url"], ["snapshot", "-i"]],
+                [call[1] for call in cli.calls],
+            )
+            forbidden = {"open", "fill", "click", "press", "type", "bringToFront"}
+            self.assertFalse(
+                any(args and args[0] in forbidden for _, args, _ in cli.calls)
+            )
+
     def test_real_driver_master_recovery_uses_short_marker_for_large_prompt(self):
         """Exercise the engine-to-ChromeUse recovery path after a Master crash."""
         with tempfile.TemporaryDirectory() as td:

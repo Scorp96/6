@@ -19,6 +19,7 @@ class FakeDriver:
         self.reconciles = []
         self.unpromoted = []
         self.not_submitted_proof = None
+        self.unpromoted_not_submitted_proof = None
 
     def prove_turn_not_submitted(self, turn_id):
         value = self.not_submitted_proof
@@ -37,6 +38,19 @@ class FakeDriver:
     async def recover_unpromoted_turn_snapshot(self, turn_id, *, expected_marker, timeout_seconds=None):
         self.unpromoted.append((turn_id, expected_marker, timeout_seconds))
         return self.snapshot
+
+    async def prove_unpromoted_turn_not_submitted(
+        self,
+        turn_id,
+        *,
+        expected_prompt,
+        expected_marker,
+        timeout_seconds=None,
+    ):
+        value = self.unpromoted_not_submitted_proof
+        if isinstance(value, dict):
+            return dict(value)
+        return value
 
 
 class V4BrowserEngineTests(unittest.TestCase):
@@ -194,6 +208,43 @@ class V4BrowserEngineTests(unittest.TestCase):
         self.assertEqual("VERIFIED_NOT_SUBMITTED", result["status"])
         self.assertEqual(
             "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
+            result["proof"],
+        )
+        self.assertEqual([], driver.unpromoted)
+        self.assertEqual([], driver.submits)
+
+    def test_reconcile_accepts_positive_unsent_composer_proof_without_resubmit(self):
+        marker = "SCORP_REASONING::" + "b" * 24
+        prompt = marker + "\nreason about durable state"
+        intent_id = "master-reasoning-" + "8" * 32
+        driver = FakeDriver("")
+        driver.unpromoted_not_submitted_proof = {
+            "proof": "ROOT_COMPOSER_RETAINS_EXACT_PROMPT_WITH_SEND_CONTROL",
+            "physical_url": "https://chatgpt.com/",
+            "session": "master-unsent",
+        }
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=lambda snapshot, observed_intent_id: None,
+            timeout_seconds=30,
+        )
+
+        result = engine.reconcile({
+            "intent_id": intent_id,
+            "channel": "master",
+            "actor_id": "A",
+            "action_kind": "MASTER_REASONING",
+            "conversation_url": None,
+            "payload_json": json.dumps({
+                "prompt": prompt,
+                "recovery_marker": marker,
+            }),
+        })
+
+        self.assertEqual("VERIFIED_NOT_SUBMITTED", result["status"])
+        self.assertEqual(
+            "ROOT_COMPOSER_RETAINS_EXACT_PROMPT_WITH_SEND_CONTROL",
             result["proof"],
         )
         self.assertEqual([], driver.unpromoted)

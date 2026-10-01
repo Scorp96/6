@@ -647,6 +647,16 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 }
             }),
         )
+        self.assertEqual(
+            '@e22',
+            _send_ref_from_snapshot({
+                'data': {
+                    'refs': {
+                        'e22': {'name': '发送', 'role': 'button'},
+                    }
+                }
+            }),
+        )
 
     def test_submit_send_diagnostic_binds_to_post_fill_editor_and_prompt_hash(self):
         with tempfile.TemporaryDirectory() as td:

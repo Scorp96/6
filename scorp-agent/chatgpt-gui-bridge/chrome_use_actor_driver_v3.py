@@ -19,6 +19,7 @@ _PROTOCOL = "scorp.chrome-use-driver/v1"
 _ALLOWED_ACTORS = {"MASTER", "WORKER"}
 _LIFECYCLE_ROLES = {"MASTER", "WORKER", "DIAGNOSTIC", "UNKNOWN"}
 _SEND_BUTTON_NAMES = {
+    "发送",
     "发送提示",
     "发送提示词",
     "发送消息",
@@ -1316,6 +1317,69 @@ class ChromeUseActorDriverV3:
             raise ValueError("ACTOR_GUI_RECOVERY_MARKER_MISSING")
         self._promote(turn_id, observed)
         return snapshot
+
+    async def prove_unpromoted_turn_not_submitted(
+        self,
+        turn_id,
+        *,
+        expected_prompt,
+        expected_marker,
+        timeout_seconds=None,
+    ):
+        """Prove that an unpromoted turn remains unsent in the root composer.
+
+        This is a read-only recovery operation.  A root URL alone is not
+        sufficient proof because a submission may still be promoting.  The
+        original durable prompt must still be exposed by the one composer and
+        the page must expose exactly one recognized Send control.  Together
+        those observations prove that the original action remains available
+        for submission and did not create a remote conversation.
+        """
+
+        turn = str(turn_id or "").strip()
+        prompt = str(expected_prompt or "")
+        marker = str(expected_marker or "").strip()
+        if not turn:
+            raise ValueError("ACTOR_GUI_TURN_ID_MISSING")
+        if not prompt or not marker or marker not in prompt:
+            raise ValueError("ACTOR_GUI_RECOVERY_PROMPT_IDENTITY_INVALID")
+        binding = self.turn_binding(turn)
+        if not isinstance(binding, dict):
+            return None
+        session = str(binding.get("session") or "").strip()
+        if (
+            not session
+            or str(binding.get("conversation_url") or "").strip()
+            or binding.get("browser_io_started") is not True
+        ):
+            return None
+        timeout = self.timeout_seconds if timeout_seconds is None else float(timeout_seconds)
+        if timeout <= 0:
+            raise ValueError("CHROME_USE_TIMEOUT_INVALID")
+        observed = await self._get_url(session, timeout_seconds=timeout)
+        if observed != _ROOT_URL:
+            return None
+        payload = await self.cli.run_json(
+            session,
+            "snapshot",
+            "-i",
+            timeout_seconds=timeout,
+        )
+        if _prompt_observation_from_snapshot(payload, prompt) != "MATCH":
+            return None
+        _editor_ref_from_snapshot(payload)
+        _send_ref_from_snapshot(payload)
+        rendered = _render_payload(payload)
+        if marker not in rendered:
+            return None
+        return {
+            "proof": "ROOT_COMPOSER_RETAINS_EXACT_PROMPT_WITH_SEND_CONTROL",
+            "protocol_version": _PROTOCOL,
+            "session": session,
+            "physical_url": observed,
+            "prompt_sha256": _sha(prompt),
+            "snapshot_sha256": _sha(rendered),
+        }
 
     async def submit_prompt(self, *, prompt, turn_id, actor_kind, conversation_url):
         # Persist the logical turn before waiting on the process-local submit

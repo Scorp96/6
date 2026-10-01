@@ -106,6 +106,29 @@ def build_v4_browser_engine(
                         "proof": str(proof["proof"]),
                         "observation": dict(proof),
                     }
+            prove_unpromoted_not_submitted = getattr(
+                driver, "prove_unpromoted_turn_not_submitted", None
+            )
+            prompt = str(payload.get("prompt") or "") if isinstance(payload, Mapping) else ""
+            if callable(prove_unpromoted_not_submitted) and prompt:
+                try:
+                    proof = await asyncio.wait_for(
+                        prove_unpromoted_not_submitted(
+                            intent_id,
+                            expected_prompt=prompt,
+                            expected_marker=marker,
+                            timeout_seconds=float(timeout_seconds),
+                        ),
+                        timeout=float(timeout_seconds),
+                    )
+                except (TimeoutError, RuntimeError, ValueError):
+                    proof = None
+                if isinstance(proof, Mapping) and str(proof.get("proof") or "").strip():
+                    return {
+                        "status": "VERIFIED_NOT_SUBMITTED",
+                        "proof": str(proof["proof"]),
+                        "observation": dict(proof),
+                    }
             try:
                 snapshot = await asyncio.wait_for(
                     recover_unpromoted(
