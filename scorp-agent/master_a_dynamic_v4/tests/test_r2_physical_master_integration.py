@@ -202,6 +202,22 @@ class R2PhysicalMasterIntegrationTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_bootstrap_wait_replays_same_terminal_without_second_submit(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = self._store(root)
+            try:
+                gateway = _BootstrapGateway(store)
+                coordinator = MasterReasoningCoordinator(gateway, _Controller())
+                first = coordinator.run_once()
+                second = coordinator.run_once()
+                self.assertEqual("IDLE", first["status"])
+                self.assertEqual("IDLE", second["status"])
+                self.assertEqual(first["intent_id"], second["intent_id"])
+                self.assertEqual(1, gateway.submit_calls)
+            finally:
+                store.close()
+
     def test_runtime_status_surfaces_master_browser_and_physical_state(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
