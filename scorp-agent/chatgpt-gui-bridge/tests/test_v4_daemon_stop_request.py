@@ -8,6 +8,26 @@ from unittest import mock
 
 
 class V4DaemonStopRequestTests(unittest.TestCase):
+    def test_stop_path_may_use_authority_control_directory_but_cannot_escape_it(self):
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            authority = Path(td) / "active"
+            workspace = authority / "workspace"
+            workspace.mkdir(parents=True)
+            database = authority / "state.sqlite3"
+            database.write_bytes(b"")
+            control_path = authority / "control" / "runtime.stop.json"
+
+            self.assertEqual(
+                control_path.resolve(),
+                runtime._resolve_stop_request_path(control_path, workspace, database),
+            )
+            with self.assertRaisesRegex(RuntimeError, "STOP_REQUEST_PATH_OUTSIDE_AUTHORITY_ROOT"):
+                runtime._resolve_stop_request_path(
+                    Path(td) / "outside.stop.json", workspace, database
+                )
+
     def test_runtime_passes_fenced_stop_signal_and_acknowledges_after_cleanup(self):
         from master_a_dynamic_v4.state_store import StateStore
         from tools import v4_daemon_runtime as runtime

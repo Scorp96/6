@@ -218,6 +218,24 @@ class FencedStopRequest:
         return ack_path
 
 
+def _resolve_stop_request_path(
+    raw: pathlib.Path,
+    allowed_root: pathlib.Path,
+    database_path: pathlib.Path,
+) -> pathlib.Path:
+    """Keep daemon control files inside the isolated authority directory."""
+
+    path = pathlib.Path(raw).resolve()
+    authority_root = pathlib.Path(database_path).resolve().parent
+    workspace = pathlib.Path(allowed_root).resolve()
+    try:
+        workspace.relative_to(authority_root)
+        path.relative_to(authority_root)
+    except ValueError as exc:
+        raise RuntimeError("STOP_REQUEST_PATH_OUTSIDE_AUTHORITY_ROOT") from exc
+    return path
+
+
 def _validate_active_controller_options(args: argparse.Namespace) -> None:
     """Fail before any browser-capable runtime can be built."""
     if not bool(getattr(args, "active_controller", False)):
@@ -367,11 +385,9 @@ def run_runtime(args: argparse.Namespace) -> int:
     )
     stop_request_path = None
     if getattr(args, "stop_request_path", None) is not None:
-        stop_request_path = pathlib.Path(args.stop_request_path).resolve()
-        try:
-            stop_request_path.relative_to(allowed_root)
-        except ValueError as exc:
-            raise RuntimeError("STOP_REQUEST_PATH_OUTSIDE_ALLOWED_ROOT") from exc
+        stop_request_path = _resolve_stop_request_path(
+            pathlib.Path(args.stop_request_path), allowed_root, database_path
+        )
 
     store = StateStore(database_path, [allowed_root])
     scheduler = Scheduler(store, str(args.project_id), PathPolicy([allowed_root]), max_workers=2)
