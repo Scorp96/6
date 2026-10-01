@@ -2038,6 +2038,59 @@ class StateStore:
                 or str(authority["operator_state"]) not in {"ACTIVE", "RUNNING"}
             ):
                 raise StoreInvariantError("MASTER_REASONING_AUTHORITY_FENCED")
+
+            # New R2 reasoning intents bind the browser transport generation
+            # separately from the observed remote identity.  Legacy intents
+            # omit this key and retain their existing reconciliation behavior.
+            if "transport_binding" in payload:
+                transport = payload.get("transport_binding")
+                current_transport = conn.execute(
+                    """SELECT actor_id,conversation_url,generation
+                       FROM browser_bindings
+                       WHERE project_id=? AND channel='master'""",
+                    (str(row["project_id"]),),
+                ).fetchone()
+                if transport is None:
+                    if current_transport is not None:
+                        raise StoreInvariantError(
+                            "MASTER_REASONING_TRANSPORT_BINDING_FENCED"
+                        )
+                else:
+                    if not isinstance(transport, Mapping):
+                        raise StoreInvariantError(
+                            "MASTER_REASONING_TRANSPORT_BINDING_INVALID"
+                        )
+                    required_transport = (
+                        "channel",
+                        "actor_id",
+                        "conversation_url",
+                        "generation",
+                    )
+                    if any(key not in transport for key in required_transport):
+                        raise StoreInvariantError(
+                            "MASTER_REASONING_TRANSPORT_BINDING_INVALID"
+                        )
+                    transport_url = str(
+                        transport.get("conversation_url") or ""
+                    ).strip()
+                    try:
+                        transport_generation = int(transport["generation"])
+                    except (TypeError, ValueError) as exc:
+                        raise StoreInvariantError(
+                            "MASTER_REASONING_TRANSPORT_BINDING_INVALID"
+                        ) from exc
+                    if (
+                        str(transport.get("channel") or "") != "master"
+                        or str(transport.get("actor_id") or "") != "A"
+                        or not transport_url.startswith("https://chatgpt.com/c/")
+                        or current_transport is None
+                        or str(current_transport["actor_id"]) != "A"
+                        or str(current_transport["conversation_url"]) != transport_url
+                        or int(current_transport["generation"]) != transport_generation
+                    ):
+                        raise StoreInvariantError(
+                            "MASTER_REASONING_TRANSPORT_BINDING_FENCED"
+                        )
             return
 
         assignment = payload.get("worker_assignment")
@@ -2612,7 +2665,28 @@ class StateStore:
                 if existing["actor_id"] != actor:
                     raise StoreInvariantError("BROWSER_BINDING_ACTOR_CHANGED")
                 if existing["conversation_url"] == url:
-                    return dict(existing)
+                    if predecessor_url not in {None, url} or not why:
+                        raise StoreInvariantError("REBIND_PROVENANCE_REQUIRED")
+                    conn.execute(
+                        """
+                        UPDATE browser_bindings
+                        SET rebind_reason=?,evidence_json=?,updated_at=?
+                        WHERE project_id=? AND channel=?
+                        """,
+                        (
+                            why,
+                            canonical_json(dict(evidence)),
+                            now,
+                            project_id,
+                            channel,
+                        ),
+                    )
+                    return dict(
+                        conn.execute(
+                            "SELECT * FROM browser_bindings WHERE project_id=? AND channel=?",
+                            (project_id, channel),
+                        ).fetchone()
+                    )
                 if predecessor_url != existing["conversation_url"] or not why:
                     raise StoreInvariantError("REBIND_PROVENANCE_REQUIRED")
                 conn.execute(
