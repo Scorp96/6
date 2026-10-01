@@ -57,9 +57,29 @@ class ChatGptGuiEngine:
         prompt = str(payload.get("prompt") or "")
         if not prompt:
             raise ValueError("GUI_PROMPT_MISSING")
+        target_url = str(intent.get("conversation_url") or "").strip() or None
+        transport = payload.get("transport_binding")
+        if target_url is None and transport is not None:
+            if not isinstance(transport, Mapping):
+                raise ValueError("GUI_TRANSPORT_BINDING_INVALID")
+            transport_channel = str(transport.get("channel") or "").strip()
+            transport_actor = str(transport.get("actor_id") or "").strip()
+            transport_url = str(transport.get("conversation_url") or "").strip()
+            try:
+                transport_generation = int(transport.get("generation"))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("GUI_TRANSPORT_BINDING_INVALID") from exc
+            if (
+                transport_channel != str(intent.get("channel") or "").strip()
+                or transport_actor != str(intent.get("actor_id") or "").strip()
+                or not transport_url.startswith("https://chatgpt.com/c/")
+                or transport_generation < 0
+            ):
+                raise ValueError("GUI_TRANSPORT_BINDING_INVALID")
+            target_url = transport_url
         run_kwargs = {
             "timeout_seconds": self.timeout_seconds,
-            "conversation_url": intent.get("conversation_url"),
+            "conversation_url": target_url,
         }
         try:
             accepts_actor_kind = "actor_kind" in inspect.signature(self.run_turn).parameters
