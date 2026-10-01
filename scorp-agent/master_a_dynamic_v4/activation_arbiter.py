@@ -37,6 +37,9 @@ class ArbiterSnapshot:
     browser_succeeded: bool = False
     browser_error: bool = False
     reasoning_required: bool = False
+    master_physical_required: bool = False
+    master_physical_bound: bool = False
+    master_physical_verified: bool = False
 
     def as_dict(self) -> dict[str, object]:
         return dataclasses.asdict(self)
@@ -105,6 +108,10 @@ class ActivationArbiter:
             action, reason = "FENCE_STALE_RESULTS", "STALE_RESULT_REQUIRES_FENCING"
         elif not value.master_active:
             action, reason = "RESUME_MASTER", "MASTER_LEASE_MISSING"
+        elif value.master_physical_required and not value.master_physical_bound:
+            action, reason = "REASON_MASTER", "MASTER_PHYSICAL_BOOTSTRAP_REQUIRED"
+        elif value.master_physical_required and not value.master_physical_verified:
+            action, reason = "VERIFY_MASTER", "MASTER_PHYSICAL_VERIFICATION_REQUIRED"
         elif value.pending_results:
             action, reason = "WAKE_MASTER", "PENDING_RESULT_REQUIRES_MASTER_WAKE"
         elif value.active_worker_lost:
