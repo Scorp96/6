@@ -961,6 +961,124 @@ class StateStore:
             )
             return dict(conn.execute("SELECT * FROM daemon_leases WHERE project_id=?", (project,)).fetchone())
 
+    def _master_physical_status_in_connection(
+        self,
+        conn: sqlite3.Connection,
+        project_id: str,
+        *,
+        daemon_epoch: int | None = None,
+    ) -> dict[str, Any]:
+        project = str(project_id or "").strip()
+        if not project:
+            raise StoreInvariantError("PROJECT_ID_EMPTY")
+        state = conn.execute(
+            "SELECT master_epoch FROM project_state WHERE project_id=?",
+            (project,),
+        ).fetchone()
+        contract = conn.execute(
+            "SELECT acceptance_contract_json FROM contracts WHERE project_id=?",
+            (project,),
+        ).fetchone()
+        if state is None or contract is None:
+            raise StoreInvariantError("PROJECT_OR_CONTRACT_MISSING")
+        try:
+            acceptance = json.loads(str(contract["acceptance_contract_json"]))
+        except (TypeError, ValueError) as exc:
+            raise StoreInvariantError("ACCEPTANCE_CONTRACT_INVALID") from exc
+        required_ids = acceptance.get("required", []) if isinstance(acceptance, Mapping) else []
+        if not isinstance(required_ids, list):
+            raise StoreInvariantError("ACCEPTANCE_CONTRACT_INVALID")
+        required = "AC_PERSISTENT_RUNTIME_OPERATIONAL" in {
+            str(value) for value in required_ids
+        }
+
+        row = conn.execute(
+            """SELECT channel,actor_id,conversation_url,generation,
+                      predecessor_url,rebind_reason,evidence_json,updated_at
+               FROM browser_bindings
+               WHERE project_id=? AND channel='master'""",
+            (project,),
+        ).fetchone()
+        binding = dict(row) if row is not None else None
+        bound = bool(
+            binding is not None
+            and str(binding.get("actor_id") or "") == "A"
+            and str(binding.get("conversation_url") or "").startswith(
+                "https://chatgpt.com/c/"
+            )
+        )
+        evidence: dict[str, Any] = {}
+        if binding is not None:
+            try:
+                parsed = json.loads(str(binding.get("evidence_json") or "{}"))
+            except (TypeError, ValueError):
+                parsed = {}
+            if isinstance(parsed, Mapping):
+                evidence = dict(parsed)
+
+        effective_daemon_epoch: int | None
+        if daemon_epoch is not None:
+            effective_daemon_epoch = int(daemon_epoch)
+        else:
+            daemon = conn.execute(
+                "SELECT daemon_epoch FROM daemon_leases WHERE project_id=?",
+                (project,),
+            ).fetchone()
+            effective_daemon_epoch = int(daemon[0]) if daemon is not None else None
+
+        verified = False
+        if bound and effective_daemon_epoch is not None:
+            try:
+                evidence_generation = int(evidence.get("binding_generation"))
+                evidence_daemon_epoch = int(evidence.get("daemon_epoch"))
+                evidence_master_epoch = int(evidence.get("master_epoch"))
+            except (TypeError, ValueError):
+                evidence_generation = -1
+                evidence_daemon_epoch = -1
+                evidence_master_epoch = -1
+            url = str(binding["conversation_url"])
+            verified = bool(
+                str(evidence.get("source") or "") == "READ_ONLY_PHYSICAL_VERIFY"
+                and str(evidence.get("auth_status") or "") == "AUTHENTICATED"
+                and str(evidence.get("driver_url") or "") == url
+                and str(evidence.get("physical_url") or "") == url
+                and bool(str(evidence.get("session") or "").strip())
+                and evidence_generation == int(binding["generation"])
+                and evidence_daemon_epoch == int(effective_daemon_epoch)
+                and evidence_master_epoch == int(state["master_epoch"])
+            )
+
+        binding_view = None
+        if binding is not None:
+            binding_view = {
+                "channel": str(binding["channel"]),
+                "actor_id": str(binding["actor_id"]),
+                "conversation_url": str(binding["conversation_url"]),
+                "generation": int(binding["generation"]),
+                "predecessor_url": binding["predecessor_url"],
+                "rebind_reason": binding["rebind_reason"],
+                "updated_at": binding["updated_at"],
+            }
+        return {
+            "required": bool(required),
+            "bound": bool(bound),
+            "verified": bool(verified),
+            "daemon_epoch": effective_daemon_epoch,
+            "master_epoch": int(state["master_epoch"]),
+            "browser_binding": binding_view,
+            "verification_evidence": evidence or None,
+        }
+
+    def master_physical_status(
+        self, project_id: str, *, daemon_epoch: int | None = None
+    ) -> dict[str, Any]:
+        with self._connection() as conn:
+            return self._master_physical_status_in_connection(
+                conn,
+                project_id,
+                daemon_epoch=daemon_epoch,
+            )
+
     def activation_snapshot(self, project_id: str, *, daemon_epoch: int):
         """Read the bounded state required by the local ActivationArbiter.
 
@@ -1056,6 +1174,11 @@ class StateStore:
             ).fetchone()[0])
             pending_results = pending_candidate_results + captured_worker_results
             free_slots = max(0, 2 - active_workers)
+            physical = self._master_physical_status_in_connection(
+                conn,
+                project,
+                daemon_epoch=int(daemon_epoch),
+            )
             progress_state = str(observation["progress_state"]) if observation is not None else ("ACTIVE_NO_VISIBLE_PROGRESS" if active_workers else "IDLE")
             return ArbiterSnapshot(
                 project_id=project,
@@ -1077,6 +1200,9 @@ class StateStore:
                 pending_results=pending_results,
                 active_worker_lost=active_worker_lost,
                 browser_semantic_state=str(observation["browser_semantic_state"]) if observation is not None else "UNKNOWN",
+                master_physical_required=bool(physical["required"]),
+                master_physical_bound=bool(physical["bound"]),
+                master_physical_verified=bool(physical["verified"]),
             )
 
     def fence_stale_results(
@@ -1922,6 +2048,9 @@ class StateStore:
                 "SELECT payload_json FROM events WHERE project_id=? AND kind='ACTIVATION_DECISION' ORDER BY created_at DESC LIMIT 1",
                 (project,),
             ).fetchone()
+        physical = self.master_physical_status(
+            project, daemon_epoch=int(daemon_epoch)
+        )
         return {
             "project_id": project,
             "daemon_epoch": int(daemon_epoch),
@@ -1932,6 +2061,14 @@ class StateStore:
             "daemon": dict(daemon) if daemon is not None else None,
             "supervision": dict(supervision) if supervision is not None else None,
             "master": dict(master) if master is not None else None,
+            "master_browser_binding": physical["browser_binding"],
+            "master_physical": {
+                "required": physical["required"],
+                "bound": physical["bound"],
+                "verified": physical["verified"],
+                "daemon_epoch": physical["daemon_epoch"],
+                "master_epoch": physical["master_epoch"],
+            },
             "workers": {"active": active_workers, "capacity": 2, "free": max(0, 2 - active_workers)},
             "tasks": {"queued": queued, "running": running},
             "reconciliation": {"ambiguous_intents": ambiguous, "pending_results": pending_results},
