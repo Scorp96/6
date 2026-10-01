@@ -8,7 +8,7 @@ from pathlib import Path
 from master_a_dynamic_v4.acceptance import AcceptanceValidator
 from master_a_dynamic_v4.master_reasoning import MasterReasoningCoordinator
 from master_a_dynamic_v4.runtime_commands import RuntimeCommandService
-from master_a_dynamic_v4.state_store import StateStore
+from master_a_dynamic_v4.state_store import StateStore, utc_now
 
 
 STRICT_ACCEPTANCE = "AC_PERSISTENT_RUNTIME_OPERATIONAL"
@@ -117,7 +117,7 @@ class R2PhysicalMasterIntegrationTests(unittest.TestCase):
                 "master_epoch": int(
                     store.get_project_state("p")["master_epoch"]
                 ),
-                "verified_at": "2026-10-01T11:00:00Z",
+                "verified_at": utc_now(),
             },
         )
 
@@ -153,6 +153,95 @@ class R2PhysicalMasterIntegrationTests(unittest.TestCase):
                 restarted = store.activation_snapshot("p", daemon_epoch=8)
                 self.assertTrue(restarted.master_physical_bound)
                 self.assertFalse(restarted.master_physical_verified)
+            finally:
+                store.close()
+
+    def test_physical_verification_expires_within_same_daemon_epoch(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = self._store(root)
+            try:
+                store.start_master_session("p", "master-a", ttl_seconds=300)
+                url = "https://chatgpt.com/c/master-r2"
+                store.rebind_browser(
+                    "p",
+                    "master",
+                    actor_id="A",
+                    conversation_url=url,
+                    predecessor_url=None,
+                    reason="MASTER_REASONING_BOOTSTRAP",
+                    evidence={"source": "bootstrap"},
+                )
+                current = store.get_browser_binding("p", "master")
+                store.rebind_browser(
+                    "p",
+                    "master",
+                    actor_id="A",
+                    conversation_url=url,
+                    predecessor_url=url,
+                    reason="PHYSICAL_SESSION_VERIFIED",
+                    evidence={
+                        "source": "READ_ONLY_PHYSICAL_VERIFY",
+                        "auth_status": "AUTHENTICATED",
+                        "driver_url": url,
+                        "physical_url": url,
+                        "session": "scorp-p0-conv-r2",
+                        "snapshot_sha256": "b" * 64,
+                        "binding_generation": int(current["generation"]),
+                        "daemon_epoch": 7,
+                        "master_epoch": int(
+                            store.get_project_state("p")["master_epoch"]
+                        ),
+                        "verified_at": "2000-01-01T00:00:00Z",
+                    },
+                )
+                snapshot = store.activation_snapshot("p", daemon_epoch=7)
+                self.assertTrue(snapshot.master_physical_bound)
+                self.assertFalse(snapshot.master_physical_verified)
+            finally:
+                store.close()
+
+    def test_released_daemon_lease_invalidates_acceptance_physical_verification(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = self._store(root)
+            try:
+                lease = store.acquire_daemon_lease(
+                    "p", "daemon-r2", ttl_seconds=300
+                )
+                url = "https://chatgpt.com/c/master-r2"
+                store.rebind_browser(
+                    "p",
+                    "master",
+                    actor_id="A",
+                    conversation_url=url,
+                    predecessor_url=None,
+                    reason="MASTER_REASONING_BOOTSTRAP",
+                    evidence={"source": "bootstrap"},
+                )
+                self._verify_binding(
+                    store,
+                    daemon_epoch=int(lease["daemon_epoch"]),
+                    url=url,
+                )
+                self.assertTrue(
+                    store.master_physical_status("p")["verified"]
+                )
+                store.release_daemon_lease(
+                    "p",
+                    "daemon-r2",
+                    daemon_epoch=int(lease["daemon_epoch"]),
+                )
+                self.assertFalse(
+                    store.master_physical_status("p")["verified"]
+                )
+                decision = AcceptanceValidator(store).evaluate(
+                    "p", "a" * 40, {}
+                )
+                self.assertIn(
+                    "MASTER_PHYSICAL_VERIFICATION_REQUIRED",
+                    decision.blockers,
+                )
             finally:
                 store.close()
 
