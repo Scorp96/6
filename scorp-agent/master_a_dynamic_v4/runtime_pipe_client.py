@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from multiprocessing.context import AuthenticationError
 from multiprocessing.connection import Client
 from typing import Any
 
@@ -66,7 +67,10 @@ class RuntimePipeClient:
         if len(encoded) > self.max_message_bytes:
             raise RuntimePipeError("PIPE_MESSAGE_TOO_LARGE")
 
-        connection = Client(self.endpoint, family="AF_PIPE", authkey=self.authkey)
+        try:
+            connection = Client(self.endpoint, family="AF_PIPE", authkey=self.authkey)
+        except AuthenticationError as exc:
+            raise RuntimePipeError("PIPE_AUTHENTICATION_FAILED") from exc
         try:
             connection.send_bytes(encoded)
             if not connection.poll(self.timeout_seconds):

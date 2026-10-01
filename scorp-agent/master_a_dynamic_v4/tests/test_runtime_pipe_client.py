@@ -7,8 +7,10 @@ import subprocess
 import tempfile
 import time
 import unittest
+from multiprocessing.context import AuthenticationError
+from unittest.mock import patch
 
-from master_a_dynamic_v4.runtime_pipe import pipe_name
+from master_a_dynamic_v4.runtime_pipe import RuntimePipeError, pipe_name
 from master_a_dynamic_v4.runtime_pipe_client import RuntimePipeClient
 from master_a_dynamic_v4.state_store import StateStore
 
@@ -102,6 +104,23 @@ class RuntimePipeClientTests(unittest.TestCase):
                     "payload": {},
                 }
             )
+
+    def test_wrong_pipe_authentication_is_mapped_to_fail_closed_transport_error(self):
+        client = RuntimePipeClient(project_id="p1", authkey=b"scorp-client-test-authkey")
+        request = {
+            "protocol_version": "scorp.runtime.command/1",
+            "request_id": "pipe-client-wrong-auth",
+            "command": "runtime.status",
+            "project_id": "p1",
+            "actor": "gpt-master",
+            "payload": {},
+        }
+        with patch(
+            "master_a_dynamic_v4.runtime_pipe_client.Client",
+            side_effect=AuthenticationError("digest sent was rejected"),
+        ):
+            with self.assertRaisesRegex(RuntimePipeError, "PIPE_AUTHENTICATION_FAILED"):
+                client.request(request)
 
 
 if __name__ == "__main__":

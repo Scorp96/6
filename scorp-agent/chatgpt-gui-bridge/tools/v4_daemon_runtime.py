@@ -17,6 +17,7 @@ import pathlib
 import uuid
 import sys
 import threading
+from multiprocessing.context import AuthenticationError
 from typing import Any
 
 BRIDGE_ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -234,6 +235,23 @@ def _resolve_stop_request_path(
     except ValueError as exc:
         raise RuntimeError("STOP_REQUEST_PATH_OUTSIDE_AUTHORITY_ROOT") from exc
     return path
+
+
+def _serve_runtime_pipe(server, listener, stop_event, errors: list[str]) -> None:
+    """Serve until stopped; one rejected credential must not kill the daemon."""
+
+    while not stop_event.is_set():
+        try:
+            server.serve_once(listener)
+        except AuthenticationError:
+            # The Named Pipe challenge already rejected this connection. Keep
+            # the authenticated service available for the next caller.
+            continue
+        except Exception as exc:
+            if stop_event.is_set():
+                return
+            errors.append(type(exc).__name__ + ":" + str(exc))
+            return
 
 
 def _validate_active_controller_options(args: argparse.Namespace) -> None:
@@ -512,16 +530,9 @@ def run_runtime(args: argparse.Namespace) -> int:
             pipe_stop = threading.Event()
 
             def runtime_pipe_loop() -> None:
-                while not pipe_stop.is_set():
-                    try:
-                        pipe_server.serve_once(pipe_listener)
-                    except Exception as exc:
-                        if pipe_stop.is_set():
-                            return
-                        pipe_errors.append(
-                            type(exc).__name__ + ":" + str(exc)
-                        )
-                        return
+                _serve_runtime_pipe(
+                    pipe_server, pipe_listener, pipe_stop, pipe_errors
+                )
 
             pipe_thread = threading.Thread(
                 target=runtime_pipe_loop,

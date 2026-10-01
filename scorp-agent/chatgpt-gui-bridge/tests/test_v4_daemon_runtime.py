@@ -6,10 +6,34 @@ import json
 import tempfile
 import time
 import unittest
+from multiprocessing.context import AuthenticationError
 from pathlib import Path
 
 
 class V4DaemonRuntimeTests(unittest.TestCase):
+    def test_pipe_listener_rejects_bad_auth_without_killing_runtime_service(self):
+        import threading
+        from tools import v4_daemon_runtime as runtime
+
+        stop = threading.Event()
+        errors = []
+
+        class FakeServer:
+            def __init__(self):
+                self.calls = 0
+
+            def serve_once(self, _listener):
+                self.calls += 1
+                if self.calls == 1:
+                    raise AuthenticationError("digest received was wrong")
+                stop.set()
+
+        server = FakeServer()
+        runtime._serve_runtime_pipe(server, object(), stop, errors)
+
+        self.assertEqual(2, server.calls)
+        self.assertEqual([], errors)
+
     def test_observe_only_runtime_reports_missing_master_without_executing_resume(self):
         from master_a_dynamic_v4.state_store import StateStore
         from tools import v4_daemon_runtime as runtime
