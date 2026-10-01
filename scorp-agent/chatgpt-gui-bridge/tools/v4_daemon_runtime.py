@@ -339,6 +339,18 @@ def run_runtime(args: argparse.Namespace) -> int:
                 f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
             )
         daemon_epoch = int(lease["daemon_epoch"])
+        if (
+            rebind_callback is not None
+            and callable(getattr(rebind_callback, "verify_current", None))
+        ):
+            def verify_master_action(decision):
+                return rebind_callback.verify_current(
+                    daemon_epoch=daemon_epoch,
+                    master_epoch=int(decision.master_epoch),
+                )
+
+            action_handlers["VERIFY_MASTER"] = verify_master_action
+
         daemon = LocalDaemon(
             store,
             project_id=str(args.project_id),
