@@ -9,6 +9,8 @@ param(
     [string]$Python = 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe',
     [string]$TaskName = 'SCORP_V4_DAEMON',
     [string]$HealthPath,
+    [string]$RuntimePipeAuthKeyFile,
+    [string]$RuntimePipeActor = 'gpt-master',
     [ValidateRange(15, 3600)][int]$WatchdogMaxHealthAgeSeconds = 90,
     [ValidateRange(5, 600)][int]$WatchdogStartupGraceSeconds = 60,
     [switch]$Start
@@ -52,6 +54,8 @@ try {
         @{Value=$ProjectId;Name='ProjectId'},
         @{Value=$DriverStatePath;Name='DriverStatePath'},
         @{Value=$MasterSessionId;Name='MasterSessionId'},
+        @{Value=$RuntimePipeAuthKeyFile;Name='RuntimePipeAuthKeyFile'},
+        @{Value=$RuntimePipeActor;Name='RuntimePipeActor'},
         @{Value=$Python;Name='Python'},
         @{Value=$TaskName;Name='TaskName'},
         @{Value=$watchdogTaskName;Name='WatchdogTaskName'}
@@ -61,6 +65,11 @@ try {
     $database = [IO.Path]::GetFullPath($DatabasePath)
     $allowed = [IO.Path]::GetFullPath($AllowedRoot)
     $driverState = [IO.Path]::GetFullPath($DriverStatePath)
+    $runtimePipeAuthKeyFile = $null
+    if ($RuntimePipeAuthKeyFile) {
+        $runtimePipeAuthKeyFile = [IO.Path]::GetFullPath($RuntimePipeAuthKeyFile)
+        if (-not (Test-Path -LiteralPath $runtimePipeAuthKeyFile -PathType Leaf)) { throw 'RUNTIME_PIPE_AUTHKEY_FILE_MISSING' }
+    }
     if (-not (Test-Path -LiteralPath $database -PathType Leaf)) { throw 'STATE_DATABASE_MISSING' }
     if (-not (Test-Path -LiteralPath $allowed -PathType Container)) { throw 'ALLOWED_ROOT_MISSING' }
     if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { throw 'PYTHON_RUNTIME_MISSING' }
@@ -116,6 +125,12 @@ try {
         '--supervise-master',
         '--master-session-id', ('"{0}"' -f $MasterSessionId)
     )
+    if ($runtimePipeAuthKeyFile) {
+        $argumentList += @(
+            '--runtime-pipe-authkey-file', ('"{0}"' -f $runtimePipeAuthKeyFile),
+            '--runtime-pipe-actor', ('"{0}"' -f $RuntimePipeActor)
+        )
+    }
     $arguments = $argumentList -join ' '
     $action = New-ScheduledTaskAction -Execute $windowlessPython -Argument $arguments -WorkingDirectory (Split-Path -Parent $daemonScript)
     $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited

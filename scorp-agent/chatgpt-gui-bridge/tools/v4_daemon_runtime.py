@@ -16,6 +16,7 @@ import os
 import pathlib
 import uuid
 import sys
+import threading
 
 BRIDGE_ROOT = pathlib.Path(__file__).resolve().parents[1]
 AGENT_ROOT = BRIDGE_ROOT.parent
@@ -37,6 +38,9 @@ from master_a_dynamic_v4.daemon import (  # noqa: E402
 from master_a_dynamic_v4.master_controller import MasterAController  # noqa: E402
 from master_a_dynamic_v4.master_supervisor import MasterSupervisor  # noqa: E402
 from master_a_dynamic_v4.master_reasoning import MasterReasoningCoordinator  # noqa: E402
+from master_a_dynamic_v4.runtime_commands import RuntimeCommandService  # noqa: E402
+from master_a_dynamic_v4.runtime_pipe import RuntimePipeServer, create_listener  # noqa: E402
+from master_a_dynamic_v4.runtime_pipe_cli import authkey_from_file  # noqa: E402
 from master_a_dynamic_v4.path_policy import PathPolicy  # noqa: E402
 from master_a_dynamic_v4.scheduler import Scheduler, WorkerFenceError  # noqa: E402
 from master_a_dynamic_v4.state_store import StateStore  # noqa: E402
@@ -97,6 +101,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicitly enable the fenced MasterAController action adapter",
     )
     parser.add_argument("--driver-state-path", type=pathlib.Path)
+    parser.add_argument("--runtime-pipe-authkey-file", type=pathlib.Path)
+    parser.add_argument("--runtime-pipe-actor", default="gpt-master")
     return parser
 
 
@@ -259,6 +265,11 @@ def run_runtime(args: argparse.Namespace) -> int:
     lease = None
     graceful_exit = False
     run_loop_started = False
+    pipe_listener = None
+    pipe_thread = None
+    pipe_stop = None
+    pipe_errors: list[str] = []
+    runtime_pipe_enabled = False
     try:
         recovery_gate = store.daemon_recovery_gate(str(args.project_id))
         if recovery_gate["status"] != "ALLOWED":
@@ -339,6 +350,47 @@ def run_runtime(args: argparse.Namespace) -> int:
                 f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
             )
         daemon_epoch = int(lease["daemon_epoch"])
+
+        if args.runtime_pipe_authkey_file is not None:
+            authkey = authkey_from_file(args.runtime_pipe_authkey_file)
+            pipe_service = RuntimeCommandService(
+                store,
+                project_id=str(args.project_id),
+                daemon_epoch=daemon_epoch,
+                actor=str(args.runtime_pipe_actor),
+            )
+            pipe_server = RuntimePipeServer(
+                pipe_service,
+                project_id=str(args.project_id),
+                authkey=authkey,
+                actor=str(args.runtime_pipe_actor),
+            )
+            pipe_listener = create_listener(
+                pipe_server.endpoint,
+                authkey=authkey,
+            )
+            pipe_stop = threading.Event()
+
+            def runtime_pipe_loop() -> None:
+                while not pipe_stop.is_set():
+                    try:
+                        pipe_server.serve_once(pipe_listener)
+                    except Exception as exc:
+                        if pipe_stop.is_set():
+                            return
+                        pipe_errors.append(
+                            type(exc).__name__ + ":" + str(exc)
+                        )
+                        return
+
+            pipe_thread = threading.Thread(
+                target=runtime_pipe_loop,
+                name="scorp-runtime-pipe",
+                daemon=True,
+            )
+            pipe_thread.start()
+            runtime_pipe_enabled = True
+
         if (
             rebind_callback is not None
             and callable(getattr(rebind_callback, "verify_current", None))
@@ -355,14 +407,22 @@ def run_runtime(args: argparse.Namespace) -> int:
             store,
             project_id=str(args.project_id),
             daemon_epoch=daemon_epoch,
-            snapshot_provider=lambda: dataclasses.replace(
-                store.activation_snapshot(
-                    str(args.project_id), daemon_epoch=daemon_epoch
-                ),
-                reasoning_required=bool(
-                    reasoning_coordinator is not None
-                    and reasoning_coordinator.reasoning_required()
-                ),
+            snapshot_provider=lambda: (
+                (_ for _ in ()).throw(
+                    RuntimeError(
+                        "RUNTIME_PIPE_FAILED:" + pipe_errors[0]
+                    )
+                )
+                if pipe_errors
+                else dataclasses.replace(
+                    store.activation_snapshot(
+                        str(args.project_id), daemon_epoch=daemon_epoch
+                    ),
+                    reasoning_required=bool(
+                        reasoning_coordinator is not None
+                        and reasoning_coordinator.reasoning_required()
+                    ),
+                )
             ),
             lease_heartbeat=lambda: store.heartbeat_daemon_lease(
                 str(args.project_id),
@@ -407,11 +467,21 @@ def run_runtime(args: argparse.Namespace) -> int:
             "master_supervision": master_supervision,
             "active_controller": bool(args.active_controller),
             "persistent_master_reasoning": bool(reasoning_coordinator is not None),
+            "runtime_pipe": "ENABLED" if runtime_pipe_enabled else "DISABLED",
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         graceful_exit = True
         return 0 if health["status"] in {"HEALTHY", "TERMINAL"} else 2
     finally:
+        if pipe_stop is not None:
+            pipe_stop.set()
+        if pipe_listener is not None:
+            try:
+                pipe_listener.close()
+            except Exception:
+                pass
+        if pipe_thread is not None and pipe_thread.is_alive():
+            pipe_thread.join(timeout=2.0)
         # A lease acquired during startup must not be stranded when a
         # configuration fence (for example a stale explicit epoch) rejects
         # the process before it can execute a daemon loop.  Such a rejection

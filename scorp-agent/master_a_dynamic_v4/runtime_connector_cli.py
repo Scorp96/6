@@ -17,7 +17,7 @@ from typing import Any
 
 from .runtime_pipe import MAX_MESSAGE_BYTES, RuntimePipeError
 from .runtime_pipe_client import RuntimePipeClient
-from .runtime_pipe_cli import authkey_from_env
+from .runtime_pipe_cli import authkey_from_env, authkey_from_file
 from .runtime_protocol import RuntimeProtocolError, error_response, parse_request
 
 
@@ -107,6 +107,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--actor", default="gpt-master")
     parser.add_argument("--authkey-env", default="SCORP_RUNTIME_PIPE_AUTHKEY")
+    parser.add_argument("--authkey-file")
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     return parser
 
@@ -114,7 +115,11 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
     try:
-        authkey = authkey_from_env(args.authkey_env)
+        authkey = (
+            authkey_from_file(args.authkey_file)
+            if args.authkey_file
+            else authkey_from_env(args.authkey_env)
+        )
         session = RuntimeConnectorSession(
             RuntimePipeClient(
                 project_id=args.project_id,

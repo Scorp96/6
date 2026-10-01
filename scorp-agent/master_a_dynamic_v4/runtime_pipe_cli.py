@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import pathlib
 import sys
 from collections.abc import Sequence
 
@@ -25,6 +26,18 @@ def authkey_from_env(name: str) -> bytes:
     return encoded
 
 
+def authkey_from_file(path: str | pathlib.Path) -> bytes:
+    secret = pathlib.Path(path).expanduser().resolve(strict=True)
+    if not secret.is_file():
+        raise ValueError("PIPE_AUTHKEY_FILE_MISSING")
+    value = secret.read_bytes()
+    if len(value) < 16:
+        raise ValueError("PIPE_AUTHKEY_TOO_SHORT")
+    if len(value) > 4096:
+        raise ValueError("PIPE_AUTHKEY_FILE_TOO_LARGE")
+    return value
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="scorp-runtime-pipe")
     parser.add_argument("--database", "--database-path", dest="database", required=True)
@@ -38,6 +51,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--actor", default="gpt-master")
     parser.add_argument("--authkey-env", default="SCORP_RUNTIME_PIPE_AUTHKEY")
+    parser.add_argument("--authkey-file")
     parser.add_argument("--once", action="store_true", help="serve exactly one authenticated connection")
     parser.add_argument("--max-connections", type=int, default=0, help="optional bounded connection count; 0 means run until stopped")
     return parser
@@ -50,7 +64,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.max_connections < 0:
         _parser().error("--max-connections must be non-negative")
     try:
-        authkey = authkey_from_env(args.authkey_env)
+        authkey = (
+            authkey_from_file(args.authkey_file)
+            if args.authkey_file
+            else authkey_from_env(args.authkey_env)
+        )
         store = StateStore(args.database, args.allowed_root)
     except (OSError, StoreInvariantError, ValueError) as exc:
         print(f"runtime pipe startup failed: {type(exc).__name__}: {exc}", file=sys.stderr)
