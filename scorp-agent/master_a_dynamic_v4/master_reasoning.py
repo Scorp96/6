@@ -492,6 +492,63 @@ class MasterReasoningCoordinator:
             )
         return payload
 
+    def _promote_bootstrap_master_binding(
+        self,
+        intent: Mapping[str, Any],
+        binding: Mapping[str, Any],
+    ) -> dict[str, Any] | None:
+        try:
+            payload = json.loads(str(intent.get("payload_json") or "{}"))
+        except (TypeError, ValueError) as exc:
+            raise MasterReasoningRejected(
+                "MASTER_REASONING_PAYLOAD_INVALID"
+            ) from exc
+        if not isinstance(payload, Mapping):
+            raise MasterReasoningRejected("MASTER_REASONING_PAYLOAD_INVALID")
+        # Legacy reasoning intents predate durable transport identity and must
+        # remain reconcilable without inventing a binding on recovery.
+        if "transport_binding" not in payload:
+            return None
+        if payload.get("transport_binding") is not None:
+            return self.store.get_browser_binding(self.project_id, "master")
+
+        if self.store.get_browser_binding(self.project_id, "master") is not None:
+            raise MasterReasoningRejected(
+                "MASTER_REASONING_TRANSPORT_BINDING_CHANGED"
+            )
+        url = str(intent.get("conversation_url") or "").strip()
+        remote_identity = str(intent.get("remote_identity") or "").strip()
+        if not url.startswith("https://chatgpt.com/c/") or not remote_identity:
+            raise MasterReasoningRejected(
+                "MASTER_REASONING_BOOTSTRAP_IDENTITY_MISSING"
+            )
+        try:
+            observation = json.loads(str(intent.get("observation_json") or "{}"))
+        except (TypeError, ValueError):
+            observation = {}
+        if not isinstance(observation, Mapping):
+            observation = {}
+        snapshot = str(observation.get("snapshot") or "")
+        evidence = {
+            "source": "MASTER_REASONING_BOOTSTRAP",
+            "intent_id": str(intent.get("intent_id") or ""),
+            "master_epoch": int(binding["master_epoch"]),
+            "remote_identity": remote_identity,
+            "response_sha256": str(intent.get("response_sha256") or ""),
+            "snapshot_sha256": hashlib.sha256(
+                snapshot.encode("utf-8")
+            ).hexdigest(),
+        }
+        return self.store.rebind_browser(
+            self.project_id,
+            "master",
+            actor_id="A",
+            conversation_url=url,
+            predecessor_url=None,
+            reason="MASTER_REASONING_BOOTSTRAP",
+            evidence=evidence,
+        )
+
     def _current_binding_matches(self, binding: Mapping[str, Any]) -> bool:
         state = self.store.get_project_state(self.project_id)
         control = self.store.get_operator_control(self.project_id)
@@ -595,6 +652,12 @@ class MasterReasoningCoordinator:
                 reason="MASTER_REASONING_STATE_CHANGED",
             )
             return {"status": "STALE", "reason": "MASTER_REASONING_STATE_CHANGED", "intent_id": intent_id}
+
+        # A first successful Master turn is the only path that may create the
+        # canonical master browser binding.  Promotion happens only after a
+        # valid, current MASTER_DECISION has been captured; it never causes a
+        # resend and remains unverified until the daemon performs VERIFY_MASTER.
+        self._promote_bootstrap_master_binding(intent, binding)
 
         action = str(decision["action"])
         if action == "APPLY_PLAN":
