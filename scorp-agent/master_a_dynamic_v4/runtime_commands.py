@@ -167,6 +167,8 @@ class RuntimeCommandService:
             "observation": snapshot["observation"],
             "daemon": snapshot["daemon"],
             "master": master["master"],
+            "master_browser_binding": master["browser_binding"],
+            "master_physical": master["physical"],
             "last_decision": master["last_decision"],
             "workers": {"active": active_workers, "capacity": 2, "free": max(0, 2 - active_workers)},
             "tasks": {"queued": queued, "running": running},
@@ -215,9 +217,20 @@ class RuntimeCommandService:
                 "SELECT payload_json FROM events WHERE project_id=? AND kind='ACTIVATION_DECISION' ORDER BY created_at DESC LIMIT 1",
                 (project_id,),
             ).fetchone()
+        physical = self.store.master_physical_status(
+            project_id, daemon_epoch=self.daemon_epoch
+        )
         return {
             "project_id": project_id,
             "master": dict(row) if row is not None else None,
+            "browser_binding": physical["browser_binding"],
+            "physical": {
+                "required": physical["required"],
+                "bound": physical["bound"],
+                "verified": physical["verified"],
+                "daemon_epoch": physical["daemon_epoch"],
+                "master_epoch": physical["master_epoch"],
+            },
             "pending_results": pending_results,
             "pending_reconciliation": ambiguous,
             "last_decision": json.loads(str(decision[0])) if decision is not None else None,
