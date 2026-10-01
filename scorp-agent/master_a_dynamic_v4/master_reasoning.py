@@ -167,6 +167,12 @@ class MasterReasoningCoordinator:
                    FROM daemon_supervision WHERE project_id=?""",
                 (self.project_id,),
             ).fetchone()
+            master_browser_binding = conn.execute(
+                """SELECT channel,actor_id,conversation_url,generation
+                   FROM browser_bindings
+                   WHERE project_id=? AND channel='master'""",
+                (self.project_id,),
+            ).fetchone()
             event_rows = [dict(row) for row in conn.execute(
                 """SELECT event_id,kind,payload_json
                    FROM events
@@ -206,6 +212,11 @@ class MasterReasoningCoordinator:
             "release": dict(release) if release is not None else None,
             "daemon": dict(daemon) if daemon is not None else None,
             "supervision": dict(supervision) if supervision is not None else None,
+            "master_browser_binding": (
+                dict(master_browser_binding)
+                if master_browser_binding is not None
+                else None
+            ),
             "durable_events": durable_events,
         }
 
@@ -351,11 +362,28 @@ class MasterReasoningCoordinator:
     def _prepare(self) -> dict[str, Any]:
         binding, prompt, intent_id = self._binding_and_prompt()
         control = self.store.get_operator_control(self.project_id)
+        # Derive the transport contract from the exact durable snapshot that
+        # produced input_snapshot_sha256.  Reading browser_bindings again here
+        # would create a race where the prompt describes generation N but the
+        # browser target is generation N+1.
+        try:
+            prompt_payload = json.loads(prompt.split("\n", 1)[1])
+            durable_snapshot = prompt_payload["durable_snapshot"]
+        except (IndexError, KeyError, TypeError, ValueError) as exc:
+            raise MasterReasoningRejected(
+                "MASTER_REASONING_PROMPT_SNAPSHOT_INVALID"
+            ) from exc
+        transport = durable_snapshot.get("master_browser_binding")
+        if transport is not None and not isinstance(transport, Mapping):
+            raise MasterReasoningRejected(
+                "MASTER_REASONING_TRANSPORT_BINDING_INVALID"
+            )
         payload = {
             "prompt": prompt,
             "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
             "recovery_marker": self._recovery_marker(intent_id),
             "reasoning_binding": binding,
+            "transport_binding": dict(transport) if transport is not None else None,
             "required_response": "MASTER_DECISION/1",
             "operator_generation": int(control["operator_generation"]),
             "objective_generation": int(control["objective_generation"]),
