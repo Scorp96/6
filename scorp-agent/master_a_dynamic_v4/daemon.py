@@ -68,9 +68,11 @@ class LocalDaemon:
         worker_lease_recovery: Callable[[], Any] | None = None,
         worker_lease_renewal: Callable[[], Any] | None = None,
         project_completion: Callable[[], Any] | None = None,
+        paused_master_heartbeat: Callable[[], Any] | None = None,
         recovery_callback: Callable[[], Any] | None = None,
         health_path: str | pathlib.Path,
         actor_id: str = "scorp-daemon",
+        execution_mode: str = "ACTIVE",
         action_heartbeat_interval_seconds: float = 5.0,
     ) -> None:
         if store is None or not str(project_id).strip():
@@ -94,6 +96,7 @@ class LocalDaemon:
         self.worker_lease_recovery = worker_lease_recovery
         self.worker_lease_renewal = worker_lease_renewal
         self.project_completion = project_completion
+        self.paused_master_heartbeat = paused_master_heartbeat
         self.recovery_callback = recovery_callback
         self._recovery_recorded = False
         self.health_path = pathlib.Path(health_path).resolve()
@@ -102,20 +105,28 @@ class LocalDaemon:
         self._last_progress_at: str | None = None
         self._last_observation: dict[str, Any] = {}
         self._last_run_status: str | None = None
+        mode = str(execution_mode or "").strip().upper()
+        if mode not in {"ACTIVE", "OBSERVE_ONLY"}:
+            raise ValueError("DAEMON_EXECUTION_MODE_INVALID")
+        self.execution_mode = mode
 
     def run_once(self) -> ActivationDecision:
         # Reconcile worker leases before taking the snapshot used by the
         # arbiter.  Otherwise an expired lease can be mistaken for a healthy
         # idle state and remain stranded until a later scheduler pass.
-        if self.worker_lease_recovery is not None:
-            self.worker_lease_recovery()
-        if self.worker_lease_renewal is not None:
-            self.worker_lease_renewal()
-        # Completion is an explicit durable transition, not an inference from
-        # an idle snapshot. The callback must be fail-closed and may only mark
-        # COMPLETE after a fresh machine-grounded acceptance PASS.
-        if self.project_completion is not None:
-            self.project_completion()
+        control = self.store.get_operator_control(self.project_id)
+        scheduling_state = str(control.get("operator_state") or "UNKNOWN").upper()
+        paused = scheduling_state == "PAUSED"
+        if self.execution_mode == "ACTIVE" and not paused:
+            if self.worker_lease_recovery is not None:
+                self.worker_lease_recovery()
+            if self.worker_lease_renewal is not None:
+                self.worker_lease_renewal()
+            # Completion is an explicit durable transition, not an inference
+            # from an idle snapshot. The callback must be fail-closed and may
+            # only mark COMPLETE after fresh machine-grounded acceptance.
+            if self.project_completion is not None:
+                self.project_completion()
         snapshot_raw = self.snapshot_provider()
         snapshot = snapshot_raw if isinstance(snapshot_raw, ArbiterSnapshot) else ArbiterSnapshot(**dict(snapshot_raw))
         if snapshot.project_id != self.project_id or snapshot.daemon_epoch != self.daemon_epoch:
@@ -133,6 +144,16 @@ class LocalDaemon:
                 self.lease_heartbeat()
             except Exception:
                 self._write_health(status="BLOCKED", snapshot=snapshot, error="DAEMON_LEASE_HEARTBEAT_FAILED")
+                raise
+        if paused and self.execution_mode == "ACTIVE" and self.paused_master_heartbeat is not None:
+            try:
+                self.paused_master_heartbeat()
+            except Exception:
+                self._write_health(
+                    status="BLOCKED",
+                    snapshot=snapshot,
+                    error="PAUSED_MASTER_HEARTBEAT_FAILED",
+                )
                 raise
         try:
             observation = self.store.record_runtime_observation(
@@ -168,12 +189,22 @@ class LocalDaemon:
                     error="DAEMON_LEASE_FENCE_BEFORE_ACTION",
                 )
                 raise
-        self.store.record_activation_decision(decision.as_dict())
+        if self.execution_mode == "ACTIVE":
+            self.store.record_activation_decision(decision.as_dict())
         status = "HEALTHY"
         error: str | None = None
         handler = self.action_handlers.get(decision.action)
         if decision.action in {"TERMINAL", "EMERGENCY_STOP"}:
             status = "TERMINAL"
+        elif paused and decision.action == "BLOCKED" and decision.reason == "OPERATOR_FENCE_PAUSED":
+            # PAUSED is a live scheduling fence. It keeps the process and the
+            # already-active logical Master lease alive without executing the
+            # generic BLOCKED action handler or creating any new lifecycle.
+            pass
+        elif self.execution_mode == "OBSERVE_ONLY" and decision.action != "BLOCKED":
+            # Observation mode reports what the arbiter would choose but never
+            # executes an action or treats a missing action handler as failure.
+            pass
         elif decision.action not in {"TERMINAL", "HEARTBEAT_IDLE"} and handler is None:
             status = "BLOCKED"
             error = f"ACTION_HANDLER_REQUIRED:{decision.action}"
@@ -223,6 +254,7 @@ class LocalDaemon:
         self._write_health(status=status, snapshot=snapshot, decision=decision, error=error)
         if (
             status in {"HEALTHY", "TERMINAL"}
+            and self.execution_mode == "ACTIVE"
             and self.recovery_callback is not None
             and not self._recovery_recorded
         ):
@@ -276,6 +308,25 @@ class LocalDaemon:
             "actor_id": self.actor_id,
             "process_id": os.getpid(),
             "heartbeat_at": _now(),
+            "execution_mode": self.execution_mode,
+            "scheduling_state": (
+                "RUNNING"
+                if str(snapshot.operator_state).upper() in {"ACTIVE", "RUNNING"}
+                else "PAUSED"
+            ),
+            "dispatch_allowed": bool(
+                status == "HEALTHY"
+                and self.execution_mode == "ACTIVE"
+                and str(snapshot.operator_state).upper() in {"ACTIVE", "RUNNING"}
+                and snapshot.master_active
+                and not snapshot.auth_blocked
+                and not snapshot.auth_host_blocker
+                and snapshot.ambiguous_intents == 0
+                and (
+                    not snapshot.master_physical_required
+                    or snapshot.master_physical_verified
+                )
+            ),
             "liveness": {
                 "state": snapshot.progress_state,
                 "last_progress_at": self._last_progress_at,

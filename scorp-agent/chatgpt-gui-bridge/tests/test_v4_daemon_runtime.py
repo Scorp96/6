@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 class V4DaemonRuntimeTests(unittest.TestCase):
-    def test_runtime_reads_sqlite_and_fails_closed_when_master_rebind_handler_is_absent(self):
+    def test_observe_only_runtime_reports_missing_master_without_executing_resume(self):
         from master_a_dynamic_v4.state_store import StateStore
         from tools import v4_daemon_runtime as runtime
 
@@ -33,10 +33,12 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 rc = runtime.run_runtime(args)
-            self.assertEqual(2, rc)
+            self.assertEqual(0, rc)
             summary = json.loads(output.getvalue())
             self.assertEqual("RESUME_MASTER", summary["decisions"][0]["action"])
-            self.assertEqual("BLOCKED", summary["status"])
+            self.assertEqual("HEALTHY", summary["status"])
+            self.assertEqual("OBSERVE_ONLY", summary["execution_mode"])
+            self.assertFalse(summary["dispatch_allowed"])
             self.assertTrue((root / "health.json").is_file())
 
     def test_default_daemon_owner_is_unique_per_runtime_invocation(self):
@@ -128,11 +130,11 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             ]
             first = runtime.build_parser().parse_args(common + ["--actor-id", "daemon-a", "--health-path", str(root / "a.json")])
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(2, runtime.run_runtime(first))
+                self.assertEqual(0, runtime.run_runtime(first))
             second = runtime.build_parser().parse_args(common + ["--actor-id", "daemon-b", "--health-path", str(root / "b.json")])
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
-                self.assertEqual(2, runtime.run_runtime(second))
+                self.assertEqual(0, runtime.run_runtime(second))
             self.assertEqual(2, json.loads(output.getvalue())["daemon_epoch"])
             with StateStore(db, [root]) as reopened:
                 self.assertEqual(0, reopened.get_daemon_supervision("p")["restart_count"])
@@ -157,7 +159,7 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 rc = runtime.run_runtime(args)
-            self.assertEqual(2, rc)
+            self.assertEqual(0, rc)
             summary = json.loads(output.getvalue())
             self.assertEqual(1, summary["daemon_epoch"])
 
@@ -194,7 +196,7 @@ class V4DaemonRuntimeTests(unittest.TestCase):
                 ]
             )
             with contextlib.redirect_stdout(io.StringIO()) as output:
-                self.assertEqual(2, runtime.run_runtime(good))
+                self.assertEqual(0, runtime.run_runtime(good))
             self.assertEqual(2, json.loads(output.getvalue())["daemon_epoch"])
 
     def test_runtime_reacquires_a_new_epoch_after_the_previous_lease_expires(self):
@@ -214,12 +216,12 @@ class V4DaemonRuntimeTests(unittest.TestCase):
             ]
             first = runtime.build_parser().parse_args(common + ["--health-path", str(root / "first.json")])
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(2, runtime.run_runtime(first))
+                self.assertEqual(0, runtime.run_runtime(first))
             time.sleep(1.2)
             second = runtime.build_parser().parse_args(common + ["--health-path", str(root / "second.json")])
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
-                self.assertEqual(2, runtime.run_runtime(second))
+                self.assertEqual(0, runtime.run_runtime(second))
             self.assertEqual(2, json.loads(output.getvalue())["daemon_epoch"])
 
     def test_successful_runtime_iteration_resets_prior_crash_sequence_before_exit(self):
@@ -326,6 +328,62 @@ class V4DaemonRuntimeTests(unittest.TestCase):
                         ("p", "master-a"),
                     ).fetchone()[0]
                 self.assertNotEqual(before, after)
+
+    def test_paused_runtime_keeps_same_daemon_and_master_epoch_without_dispatch(self):
+        from master_a_dynamic_v4.state_store import StateStore
+        from tools import v4_daemon_runtime as runtime
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            db = root / "state.sqlite3"
+            with StateStore(db, [root]) as store:
+                store.create_contract(
+                    "p", root_contract={"objective": "x"}, acceptance_contract={"ids": []}
+                )
+                started = store.start_master_session("p", "master-a", ttl_seconds=60)
+                with store._connection() as conn:
+                    conn.execute(
+                        "UPDATE operator_controls SET operator_state='PAUSED' WHERE project_id='p'"
+                    )
+            args = runtime.build_parser().parse_args(
+                [
+                    "--database-path", str(db),
+                    "--allowed-root", str(root),
+                    "--project-id", "p",
+                    "--actor-id", "daemon-a",
+                    "--health-path", str(root / "health.json"),
+                    "--max-iterations", "2",
+                    "--interval-seconds", "0",
+                    "--supervise-master",
+                    "--master-session-id", "master-a",
+                ]
+            )
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(0, runtime.run_runtime(args))
+
+            summary = json.loads(output.getvalue())
+            self.assertEqual(2, summary["decision_count"])
+            self.assertEqual("ACTIVE", summary["execution_mode"])
+            self.assertEqual("PAUSED", summary["scheduling_state"])
+            self.assertFalse(summary["dispatch_allowed"])
+            self.assertEqual(["BLOCKED", "BLOCKED"], [item["action"] for item in summary["decisions"]])
+            with StateStore(db, [root]) as reopened:
+                state = reopened.get_project_state("p")
+                self.assertEqual(started["master_epoch"], state["master_epoch"])
+                with reopened._connection() as conn:
+                    session = conn.execute(
+                        "SELECT state,heartbeat_at FROM master_sessions WHERE project_id=? AND session_id=?",
+                        ("p", "master-a"),
+                    ).fetchone()
+                    assignments = conn.execute(
+                        "SELECT COUNT(*) FROM assignments WHERE project_id=?",
+                        ("p",),
+                    ).fetchone()[0]
+                self.assertEqual("ACTIVE", session["state"])
+                self.assertNotEqual(started["heartbeat_at"], session["heartbeat_at"])
+                self.assertEqual(0, assignments)
 
     def test_active_controller_startup_builds_before_acquiring_daemon_lease(self):
         """Slow browser-stack construction must not consume the daemon TTL."""

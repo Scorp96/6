@@ -17,6 +17,7 @@ import pathlib
 import uuid
 import sys
 import threading
+from typing import Any
 
 BRIDGE_ROOT = pathlib.Path(__file__).resolve().parents[1]
 AGENT_ROOT = BRIDGE_ROOT.parent
@@ -103,6 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--driver-state-path", type=pathlib.Path)
     parser.add_argument("--runtime-pipe-authkey-file", type=pathlib.Path)
     parser.add_argument("--runtime-pipe-actor", default="gpt-master")
+    parser.add_argument("--stop-request-path", type=pathlib.Path)
     return parser
 
 
@@ -114,6 +116,106 @@ def _resolve_daemon_actor_id(raw: object | None) -> str:
     # Scheduled Task name.  Reusing a fixed owner across process restarts can
     # renew a still-live lease and illegally reuse its daemon epoch.
     return f"scorp-daemon-{os.getpid()}-{uuid.uuid4().hex}"
+
+
+class FencedStopRequest:
+    """Action-boundary stop signal fenced to one physical daemon identity."""
+
+    def __init__(
+        self,
+        path: pathlib.Path,
+        *,
+        project_id: str,
+        daemon_owner: str,
+        daemon_epoch: int,
+        pid: int,
+    ) -> None:
+        self.path = pathlib.Path(path).resolve()
+        self.project_id = str(project_id)
+        self.daemon_owner = str(daemon_owner)
+        self.daemon_epoch = int(daemon_epoch)
+        self.pid = int(pid)
+        self.request_id: str | None = None
+        self.rejection_reason: str | None = None
+        self._accepted_payload: dict[str, Any] | None = None
+
+    def _reject(self, reason: str, payload: dict[str, Any] | None = None) -> bool:
+        self.rejection_reason = str(reason)
+        rejection_path = self.path.with_suffix(".rejected.json")
+        observed = payload or {}
+        receipt = {
+            "protocol_version": "scorp.v4.stop-rejection/1",
+            "status": "REJECTED",
+            "reason": self.rejection_reason,
+            "expected_project_id": self.project_id,
+            "expected_daemon_owner": self.daemon_owner,
+            "expected_daemon_epoch": self.daemon_epoch,
+            "expected_pid": self.pid,
+            "observed_project_id": str(observed.get("project_id") or ""),
+            "observed_daemon_owner": str(observed.get("daemon_owner") or ""),
+            "observed_daemon_epoch": observed.get("daemon_epoch"),
+            "observed_pid": observed.get("pid"),
+            "observed_request_id": str(observed.get("request_id") or ""),
+        }
+        temporary = rejection_path.with_name(rejection_path.name + ".tmp")
+        temporary.write_text(
+            json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, rejection_path)
+        return False
+
+    def is_set(self) -> bool:
+        if self._accepted_payload is not None:
+            return True
+        if not self.path.is_file():
+            self.rejection_reason = None
+            return False
+        try:
+            payload = json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return self._reject("STOP_REQUEST_INVALID_JSON")
+        if not isinstance(payload, dict):
+            return self._reject("STOP_REQUEST_INVALID_OBJECT")
+        request_id = str(payload.get("request_id") or "").strip()
+        try:
+            matches = (
+                str(payload.get("project_id") or "") == self.project_id
+                and str(payload.get("daemon_owner") or "") == self.daemon_owner
+                and int(payload.get("daemon_epoch")) == self.daemon_epoch
+                and int(payload.get("pid")) == self.pid
+            )
+        except (TypeError, ValueError):
+            matches = False
+        if not request_id:
+            return self._reject("STOP_REQUEST_ID_MISSING", payload)
+        if not matches:
+            return self._reject("STOP_REQUEST_IDENTITY_MISMATCH", payload)
+        self.request_id = request_id
+        self.rejection_reason = None
+        self._accepted_payload = dict(payload)
+        return True
+
+    def acknowledge(self) -> pathlib.Path:
+        if self._accepted_payload is None or not self.request_id:
+            raise RuntimeError("STOP_REQUEST_NOT_ACCEPTED")
+        ack_path = self.path.with_suffix(".ack.json")
+        payload = {
+            "protocol_version": "scorp.v4.stop-ack/1",
+            "status": "ACKNOWLEDGED",
+            "project_id": self.project_id,
+            "daemon_owner": self.daemon_owner,
+            "daemon_epoch": self.daemon_epoch,
+            "pid": self.pid,
+            "request_id": self.request_id,
+        }
+        temporary = ack_path.with_name(ack_path.name + ".tmp")
+        temporary.write_text(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, ack_path)
+        return ack_path
 
 
 def _validate_active_controller_options(args: argparse.Namespace) -> None:
@@ -258,6 +360,18 @@ def run_runtime(args: argparse.Namespace) -> int:
     _validate_active_controller_options(args)
     actor_id = _resolve_daemon_actor_id(getattr(args, "actor_id", None))
     health_path = pathlib.Path(args.health_path).resolve() if args.health_path else database_path.with_suffix(".daemon-health.json")
+    execution_mode = (
+        "ACTIVE"
+        if bool(args.active_controller) or bool(args.supervise_master)
+        else "OBSERVE_ONLY"
+    )
+    stop_request_path = None
+    if getattr(args, "stop_request_path", None) is not None:
+        stop_request_path = pathlib.Path(args.stop_request_path).resolve()
+        try:
+            stop_request_path.relative_to(allowed_root)
+        except ValueError as exc:
+            raise RuntimeError("STOP_REQUEST_PATH_OUTSIDE_ALLOWED_ROOT") from exc
 
     store = StateStore(database_path, [allowed_root])
     scheduler = Scheduler(store, str(args.project_id), PathPolicy([allowed_root]), max_workers=2)
@@ -270,6 +384,7 @@ def run_runtime(args: argparse.Namespace) -> int:
     pipe_stop = None
     pipe_errors: list[str] = []
     runtime_pipe_enabled = False
+    stop_request: FencedStopRequest | None = None
     try:
         recovery_gate = store.daemon_recovery_gate(str(args.project_id))
         if recovery_gate["status"] != "ALLOWED":
@@ -350,6 +465,14 @@ def run_runtime(args: argparse.Namespace) -> int:
                 f"DAEMON_EPOCH_MISMATCH expected={args.daemon_epoch} actual={lease['daemon_epoch']}"
             )
         daemon_epoch = int(lease["daemon_epoch"])
+        if stop_request_path is not None:
+            stop_request = FencedStopRequest(
+                stop_request_path,
+                project_id=str(args.project_id),
+                daemon_owner=actor_id,
+                daemon_epoch=daemon_epoch,
+                pid=os.getpid(),
+            )
 
         if args.runtime_pipe_authkey_file is not None:
             authkey = authkey_from_file(args.runtime_pipe_authkey_file)
@@ -358,6 +481,7 @@ def run_runtime(args: argparse.Namespace) -> int:
                 project_id=str(args.project_id),
                 daemon_epoch=daemon_epoch,
                 actor=str(args.runtime_pipe_actor),
+                execution_mode=execution_mode,
             )
             pipe_server = RuntimePipeServer(
                 pipe_service,
@@ -438,12 +562,18 @@ def run_runtime(args: argparse.Namespace) -> int:
             project_completion=lambda: _finalize_project_if_accepted(
                 store, str(args.project_id)
             ),
+            paused_master_heartbeat=lambda: (
+                controller.heartbeat()
+                if controller is not None and controller.master_epoch is not None
+                else {"status": "NO_ACTIVE_MASTER"}
+            ),
             recovery_callback=lambda: store.record_daemon_recovery(
                 str(args.project_id)
             ),
             action_handlers=action_handlers,
             health_path=health_path,
             actor_id=actor_id,
+            execution_mode=execution_mode,
             action_heartbeat_interval_seconds=max(
                 0.5,
                 min(5.0, float(args.daemon_ttl_seconds) / 3.0),
@@ -453,6 +583,7 @@ def run_runtime(args: argparse.Namespace) -> int:
         decisions = daemon.run_loop(
             interval_seconds=float(args.interval_seconds),
             max_iterations=None if args.forever else int(args.max_iterations),
+            stop_event=stop_request,
         )
         health = json.loads(health_path.read_text(encoding="utf-8"))
         summary = {
@@ -468,6 +599,18 @@ def run_runtime(args: argparse.Namespace) -> int:
             "active_controller": bool(args.active_controller),
             "persistent_master_reasoning": bool(reasoning_coordinator is not None),
             "runtime_pipe": "ENABLED" if runtime_pipe_enabled else "DISABLED",
+            "execution_mode": execution_mode,
+            "scheduling_state": health.get("scheduling_state"),
+            "dispatch_allowed": bool(health.get("dispatch_allowed", False)),
+            "stop_request": (
+                {
+                    "accepted": stop_request.request_id is not None,
+                    "request_id": stop_request.request_id,
+                    "rejection_reason": stop_request.rejection_reason,
+                }
+                if stop_request is not None
+                else None
+            ),
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         graceful_exit = True
@@ -497,6 +640,8 @@ def run_runtime(args: argparse.Namespace) -> int:
         if controller_gateway is not None:
             controller_gateway.close()
         store.close()
+        if stop_request is not None and graceful_exit and stop_request.request_id is not None:
+            stop_request.acknowledge()
 
 
 def _finalize_project_if_accepted(store, project_id: str) -> dict[str, object]:

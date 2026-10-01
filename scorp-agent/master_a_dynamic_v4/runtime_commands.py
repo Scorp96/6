@@ -27,11 +27,16 @@ class RuntimeCommandService:
         *,
         daemon_epoch: int | None = None,
         actor: str | None = None,
+        execution_mode: str = "ACTIVE",
     ):
         self.store = store
         self.project_id = str(project_id or "").strip()
         self.actor = str(actor_id or actor or "runtime")
         self.actor_id = self.actor
+        mode = str(execution_mode or "").strip().upper()
+        if mode not in {"ACTIVE", "OBSERVE_ONLY"}:
+            raise ValueError("RUNTIME_EXECUTION_MODE_INVALID")
+        self.execution_mode = mode
         if daemon_epoch is None and self.project_id:
             with self.store._connection() as conn:
                 row = conn.execute(
@@ -54,6 +59,13 @@ class RuntimeCommandService:
                     error={"code": "PROJECT_SCOPE_MISMATCH"},
                 )
             if request.is_mutation:
+                if self.execution_mode == "OBSERVE_ONLY":
+                    return build_response(
+                        request,
+                        status="REJECTED",
+                        daemon_epoch=self.daemon_epoch,
+                        error={"code": "OBSERVE_ONLY_MUTATION_FORBIDDEN"},
+                    )
                 return self.operator.execute(request)
             if request.command == "runtime.status":
                 result = self._runtime_status(request.project_id, actor=request.actor)
@@ -159,9 +171,25 @@ class RuntimeCommandService:
                 (project_id,),
             ).fetchone()[0])
         master = self._master_status(project_id)
+        operator_state = str(snapshot["operator"].get("operator_state") or "UNKNOWN").upper()
+        physical = master["physical"]
+        active_master = master["master"]
+        dispatch_allowed = bool(
+            self.execution_mode == "ACTIVE"
+            and operator_state in {"ACTIVE", "RUNNING"}
+            and active_master is not None
+            and str(active_master.get("state") or "") == "ACTIVE"
+            and ambiguous == 0
+            and (not physical["required"] or physical["verified"])
+        )
         return {
             "project_id": project_id,
             "actor": str(actor or self.actor),
+            "execution_mode": self.execution_mode,
+            "scheduling_state": (
+                "RUNNING" if operator_state in {"ACTIVE", "RUNNING"} else "PAUSED"
+            ),
+            "dispatch_allowed": dispatch_allowed,
             "project": snapshot["project"],
             "operator": snapshot["operator"],
             "observation": snapshot["observation"],
