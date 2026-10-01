@@ -121,7 +121,7 @@ try {
     $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
     $logon = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
     $startup = New-ScheduledTaskTrigger -AtStartup
-    $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Days 3650)
+    $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Days 3650)
 
     $watchdogArguments = @(
         '-MainTaskName', ('"{0}"' -f $resolvedTaskName),
@@ -140,7 +140,7 @@ try {
     ) -join ' '
     $watchdogAction = New-ScheduledTaskAction -Execute $windowlessPython -Argument $watchdogLauncherArguments -WorkingDirectory $PSScriptRoot
     $watchdogPeriodic = New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
-    $watchdogSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
+    $watchdogSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
 
     if ($PSCmdlet.ShouldProcess($resolvedTaskName, 'Register SCORP V4 daemon scheduled task')) {
         Register-ScheduledTask -TaskName $resolvedTaskName -Action $action -Trigger @($logon, $startup) -Principal $principal -Settings $settings -Description 'SCORP V4 SQLite local daemon' -Force | Out-Null
