@@ -178,6 +178,17 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.assertIn("dependencies", " ".join(payload["instructions"]))
         self.assertIn("objective_sha256", " ".join(payload["instructions"]))
 
+    def test_prompt_requires_json_safe_forward_slash_resource_scopes(self):
+        _binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
+        payload = json.loads(prompt.split("\n", 1)[1])
+        contract = payload["plan_contract"]
+        permitted = contract["canonical_permitted_resources"]
+        self.assertTrue(permitted)
+        self.assertTrue(all("\\" not in path for path in permitted))
+        joined = " ".join(payload["instructions"])
+        self.assertIn("forward slashes", joined)
+        self.assertIn("Never emit a raw backslash", joined)
+
     def test_prepared_reasoning_intent_persists_recovery_marker(self):
         binding, prompt, intent_id = self.coordinator._binding_and_prompt()
         prepared = self.coordinator._prepare()

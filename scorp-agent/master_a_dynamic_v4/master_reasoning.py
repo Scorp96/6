@@ -303,6 +303,17 @@ class MasterReasoningCoordinator:
         snapshot_sha = sha256_json(snapshot)
         state = snapshot["project"]
         control = snapshot["operator"]
+        root_contract = snapshot.get("contract", {}).get("root", {})
+        permitted_resources = (
+            root_contract.get("permitted_resources", [])
+            if isinstance(root_contract, Mapping)
+            else []
+        )
+        if not permitted_resources:
+            permitted_resources = self.store.allowed_roots
+        canonical_permitted_resources = [
+            str(path).replace("\\", "/") for path in permitted_resources
+        ]
         material = {
             "project_id": self.project_id,
             "master_epoch": int(state["master_epoch"]),
@@ -362,6 +373,8 @@ class MasterReasoningCoordinator:
                     "resource_scope_constraint": (
                         "Every path must stay within durable_snapshot.contract.root.permitted_resources."
                     ),
+                    "canonical_permitted_resources": canonical_permitted_resources,
+                    "response_path_format": "Windows paths use forward slashes in JSON strings.",
                     "candidate_commit": (
                         str(snapshot.get("release", {}).get("candidate_commit") or "")
                         if isinstance(snapshot.get("release"), Mapping)
@@ -379,6 +392,7 @@ class MasterReasoningCoordinator:
                     "Use APPLY_PLAN only when durable state requires a new or revised task graph.",
                     "For APPLY_PLAN include only the plan and task fields listed in plan_contract; use dependencies, never depends_on.",
                     "Every task requires a 64-hex objective_sha256, resource_scope inside the permitted resources, dependencies as task IDs, and task_context containing a concise worker_objective.",
+                    "Build every resource_scope from plan_contract.canonical_permitted_resources and use forward slashes for all Windows path separators in response JSON. Never emit a raw backslash in a JSON path string.",
                     "When plan_contract.candidate_commit is non-empty, copy it exactly to every task_context.candidate_commit.",
                     "Use access_mode='read' or 'write', required=true for required work, and acceptance_criteria_ids from the durable acceptance contract.",
                     "Use REQUEUE_TASK only for an existing BLOCKED task after its blocking condition has changed; include task_id and reason.",
