@@ -60,6 +60,7 @@ class V4BrowserEngineTests(unittest.TestCase):
             "channel": "worker-1",
             "actor_id": "worker-1",
             "conversation_url": None,
+            "attempt": 1,
             "payload_json": json.dumps({"prompt": "bounded task"}),
         }
 
@@ -247,6 +248,90 @@ class V4BrowserEngineTests(unittest.TestCase):
             "ROOT_COMPOSER_RETAINS_EXACT_PROMPT_WITH_SEND_CONTROL",
             result["proof"],
         )
+        self.assertEqual([], driver.unpromoted)
+        self.assertEqual([], driver.submits)
+
+    def test_reconcile_ignores_submit_edge_flag_and_recovers_remote_response(self):
+        marker = "SCORP_REASONING::" + "d" * 24
+        intent_id = "master-reasoning-" + "7" * 32
+        driver = FakeDriver(
+            "Focused Window: Chrome\nhttps://chatgpt.com/c/edge-crossed-remotely\n"
+            + marker
+            + "\nMASTER_DECISION"
+        )
+        driver.not_submitted_proof = {
+            "proof": "PERSISTED_TURN_SUBMIT_EDGE_NOT_CROSSED",
+            "session": "master-edge-diagnostic-only",
+        }
+
+        def parser(snapshot, observed_intent_id):
+            if marker not in snapshot or "MASTER_DECISION" not in snapshot:
+                return None
+            return {
+                "master_decision_version": 1,
+                "intent_id": observed_intent_id,
+                "action": "WAIT",
+            }
+
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=parser,
+            timeout_seconds=30,
+        )
+        result = engine.reconcile({
+            "intent_id": intent_id,
+            "channel": "master",
+            "actor_id": "A",
+            "action_kind": "MASTER_REASONING",
+            "conversation_url": None,
+            "attempt": 1,
+            "payload_json": json.dumps({
+                "prompt": marker + "\nreason about durable state",
+                "recovery_marker": marker,
+            }),
+        })
+
+        self.assertEqual("RESPONSE_CAPTURED", result["status"])
+        self.assertEqual(
+            "https://chatgpt.com/c/edge-crossed-remotely",
+            result["conversation_url"],
+        )
+        self.assertEqual([(intent_id, marker, 30.0)], driver.unpromoted)
+
+    def test_reconcile_blocks_second_retry_even_with_exact_root_composer_proof(self):
+        marker = "SCORP_REASONING::" + "e" * 24
+        prompt = marker + "\nreason about durable state"
+        intent_id = "master-reasoning-" + "6" * 32
+        driver = FakeDriver("")
+        driver.unpromoted_not_submitted_proof = {
+            "proof": "ROOT_COMPOSER_RETAINS_EXACT_PROMPT_WITH_SEND_CONTROL",
+            "physical_url": "https://chatgpt.com/",
+            "session": "master-second-retry",
+        }
+        engine = build_v4_browser_engine(
+            driver,
+            auth_probe=lambda channel: {"status": "AUTHENTICATED"},
+            response_parser=lambda snapshot, observed_intent_id: None,
+            timeout_seconds=30,
+        )
+
+        result = engine.reconcile({
+            "intent_id": intent_id,
+            "channel": "master",
+            "actor_id": "A",
+            "action_kind": "MASTER_REASONING",
+            "conversation_url": None,
+            "attempt": 2,
+            "payload_json": json.dumps({
+                "prompt": prompt,
+                "recovery_marker": marker,
+            }),
+        })
+
+        self.assertEqual("AMBIGUOUS", result["status"])
+        self.assertEqual("PRE_SUBMIT_RETRY_LIMIT_REACHED", result["reason"])
+        self.assertEqual(2, result["attempt"])
         self.assertEqual([], driver.unpromoted)
         self.assertEqual([], driver.submits)
 

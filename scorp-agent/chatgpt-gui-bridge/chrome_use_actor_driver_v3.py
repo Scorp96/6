@@ -658,16 +658,11 @@ class ChromeUseActorDriverV3:
                         "known_turn_count": len(state["turns"]),
                         "session": str(row.get("session") or ""),
                     }
-                if (
-                    row.get("browser_io_started") is True
-                    and row.get("submit_edge_crossed") is False
-                ):
-                    return {
-                        "proof": "PERSISTED_TURN_SUBMIT_EDGE_NOT_CROSSED",
-                        "protocol_version": str(state.get("protocol_version") or ""),
-                        "known_turn_count": len(state["turns"]),
-                        "session": str(row.get("session") or ""),
-                    }
+                # Once browser I/O has started, a missing local submit-edge
+                # marker is diagnostic only. Browser-side behavior can race or
+                # complete without this process persisting the expected click/
+                # Enter boundary, so it is never positive proof that the remote
+                # action did not happen.
                 return None
             return {
                 "proof": "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",

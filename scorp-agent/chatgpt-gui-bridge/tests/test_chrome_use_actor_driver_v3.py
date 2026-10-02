@@ -140,15 +140,11 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 bound["proof"],
             )
             driver._mark_turn_browser_io_started("turn-existing")
-            pre_submit = driver.prove_turn_not_submitted("turn-existing")
-            self.assertEqual(
-                "PERSISTED_TURN_SUBMIT_EDGE_NOT_CROSSED",
-                pre_submit["proof"],
-            )
+            self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
             driver._mark_turn_submit_edge_crossed("turn-existing", method="click")
             self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
 
-    def test_submit_failure_before_click_retains_positive_not_submitted_proof(self):
+    def test_submit_failure_before_click_is_not_positive_not_submitted_proof(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()
             cli.responses = [
@@ -173,11 +169,11 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                     conversation_url=None,
                 ))
 
-            proof = driver.prove_turn_not_submitted('turn-pre-submit-failure')
+            self.assertIsNone(driver.prove_turn_not_submitted('turn-pre-submit-failure'))
             self.assertEqual(
-                'PERSISTED_TURN_SUBMIT_EDGE_NOT_CROSSED', proof['proof']
+                [],
+                [args for _, args, _ in cli.calls if args and args[0] in {'click', 'press'}],
             )
-            self.assertEqual([], [args for _, args, _ in cli.calls if args and args[0] in {'click', 'press'}])
 
     def test_submit_lock_timeout_persists_positive_pre_io_proof_without_browser_call(self):
         class RejectingLock:

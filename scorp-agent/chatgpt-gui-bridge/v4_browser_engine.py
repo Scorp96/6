@@ -19,6 +19,14 @@ from gui_transport import extract_conversation_url
 
 ResponseParser = Callable[[str, str], Mapping[str, Any] | None]
 
+_DURABLE_PRE_IO_PROOFS = frozenset({
+    "PERSISTED_DRIVER_STATE_NO_TURN_BINDING_BEFORE_BROWSER_IO",
+    "PERSISTED_TURN_BINDING_BROWSER_IO_NOT_STARTED",
+})
+_ROOT_COMPOSER_PROOFS = frozenset({
+    "ROOT_COMPOSER_RETAINS_EXACT_PROMPT_WITH_SEND_CONTROL",
+})
+
 
 def _remote_identity(intent_id: str, url: str, response: Mapping[str, Any]) -> str:
     payload = json.dumps(
@@ -100,10 +108,15 @@ def build_v4_browser_engine(
                     proof = prove_not_submitted(intent_id)
                 except (OSError, RuntimeError, ValueError):
                     proof = None
-                if isinstance(proof, Mapping) and str(proof.get("proof") or "").strip():
+                proof_name = (
+                    str(proof.get("proof") or "").strip()
+                    if isinstance(proof, Mapping)
+                    else ""
+                )
+                if proof_name in _DURABLE_PRE_IO_PROOFS:
                     return {
                         "status": "VERIFIED_NOT_SUBMITTED",
-                        "proof": str(proof["proof"]),
+                        "proof": proof_name,
                         "observation": dict(proof),
                     }
             prove_unpromoted_not_submitted = getattr(
@@ -123,10 +136,29 @@ def build_v4_browser_engine(
                     )
                 except (TimeoutError, RuntimeError, ValueError):
                     proof = None
-                if isinstance(proof, Mapping) and str(proof.get("proof") or "").strip():
+                proof_name = (
+                    str(proof.get("proof") or "").strip()
+                    if isinstance(proof, Mapping)
+                    else ""
+                )
+                if proof_name in _ROOT_COMPOSER_PROOFS:
+                    try:
+                        attempt = int(intent.get("attempt") or 1)
+                    except (TypeError, ValueError):
+                        attempt = 1
+                    # A live root-composer observation permits one retry after
+                    # the original attempt. Repeated observations cannot turn
+                    # into an unbounded external-action loop.
+                    if attempt >= 2:
+                        return {
+                            "status": "AMBIGUOUS",
+                            "reason": "PRE_SUBMIT_RETRY_LIMIT_REACHED",
+                            "attempt": attempt,
+                            "observation": dict(proof),
+                        }
                     return {
                         "status": "VERIFIED_NOT_SUBMITTED",
-                        "proof": str(proof["proof"]),
+                        "proof": proof_name,
                         "observation": dict(proof),
                     }
             try:
