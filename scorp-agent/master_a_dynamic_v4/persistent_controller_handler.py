@@ -115,8 +115,16 @@ class PersistentControllerActionHandler:
                 "outcomes": list(outcomes or ()),
             }
             if status == "BLOCKED":
+                blocker_values = [str(value) for value in (blockers or ())]
+                if blocker_values and all(
+                    value.rsplit(":", 1)[-1] == "BROWSER_RECONCILIATION_REQUIRED"
+                    for value in blocker_values
+                ):
+                    result["status"] = "WAITING"
+                    result["reason"] = "BROWSER_RECONCILIATION_PENDING"
+                    return result
                 result["reason"] = (
-                    ";".join(str(value) for value in (blockers or ()))
+                    ";".join(blocker_values)
                     or "CONTROLLER_STEP_BLOCKED"
                 )
             return result

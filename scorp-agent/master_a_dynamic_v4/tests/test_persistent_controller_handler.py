@@ -8,14 +8,15 @@ from master_a_dynamic_v4.daemon import PersistentControllerActionHandler
 
 
 class _Controller:
-    def __init__(self, status="IDLE"):
+    def __init__(self, status="IDLE", blockers=()):
         self.status = status
+        self.blockers = tuple(blockers)
         self.step_calls = 0
 
     def step(self, prompt_factory):
         self.step_calls += 1
         prompt_factory(types.SimpleNamespace(task_id="T1"))
-        return types.SimpleNamespace(status=self.status, blockers=(), outcomes=())
+        return types.SimpleNamespace(status=self.status, blockers=self.blockers, outcomes=())
 
 
 def _decision(action):
@@ -82,6 +83,20 @@ class PersistentControllerActionHandlerTests(unittest.TestCase):
         )
         result = handler(_decision("WAKE_MASTER"))
         self.assertEqual("BLOCKED", result["status"])
+
+    def test_browser_reconciliation_blocker_keeps_daemon_alive_to_poll_same_intent(self):
+        controller = _Controller(
+            status="BLOCKED",
+            blockers=("task-1:BROWSER_RECONCILIATION_REQUIRED",),
+        )
+        handler = PersistentControllerActionHandler(
+            controller,
+            worker_prompt_factory=lambda claim: "prompt",
+            recover_callback=lambda: [],
+        )
+        result = handler(_decision("ASSIGN_WORKER"))
+        self.assertEqual("WAITING", result["status"])
+        self.assertEqual("BROWSER_RECONCILIATION_PENDING", result["reason"])
 
     def test_reason_master_uses_reasoning_callback_not_controller_step(self):
         controller = _Controller()
