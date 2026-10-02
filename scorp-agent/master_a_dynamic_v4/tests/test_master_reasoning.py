@@ -189,6 +189,20 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         self.assertIn("forward slashes", joined)
         self.assertIn("Never emit a raw backslash", joined)
 
+    def test_prompt_makes_apply_plan_nesting_unambiguous(self):
+        _binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
+        payload = json.loads(prompt.split("\n", 1)[1])
+        response = payload["response_contract"]
+        self.assertEqual(["plan"], response["action_required_top_level_fields"]["APPLY_PLAN"])
+        self.assertEqual(
+            ["master_identity", "tasks", "transition_id"],
+            response["forbidden_top_level_fields"],
+        )
+        self.assertEqual("plan.tasks[]", response["task_field_location"])
+        joined = " ".join(payload["instructions"])
+        self.assertIn("nested top-level plan object", joined)
+        self.assertIn("Never put tasks at the response top level", joined)
+
     def test_prepared_reasoning_intent_persists_recovery_marker(self):
         binding, prompt, intent_id = self.coordinator._binding_and_prompt()
         prepared = self.coordinator._prepare()
