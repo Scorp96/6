@@ -613,6 +613,52 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             )
             self.assertFalse(any(args and args[0] == 'type' for _, args, _ in cli.calls))
 
+    def test_busy_multiline_paste_is_reconciled_read_only_without_repaste(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            prompt = 'instruction line\n{"assignment_id":"a-1"}'
+            cli.responses = [
+                {
+                    'data': {
+                        'refs': {
+                            'e12': {'name': 'Message ChatGPT', 'role': 'textbox'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e12]',
+                    }
+                },
+                RuntimeError(
+                    'CHROME_USE_EXIT_1: Invalid response: EOF while parsing a value '
+                    'after 5 retries - daemon may be busy or unresponsive'
+                ),
+                {
+                    'data': {
+                        'refs': {
+                            'e13': {
+                                'name': 'Message ChatGPT',
+                                'role': 'textbox',
+                                'value': prompt,
+                            },
+                            'e20': {'name': 'Send', 'role': 'button'},
+                        },
+                        'snapshot': '- textbox "Message ChatGPT" [ref=e13]\n- button "Send" [ref=e20]',
+                    }
+                },
+            ]
+            driver = self._driver(td, cli)
+
+            self.assertEqual(
+                '@e20',
+                asyncio.run(
+                    driver._send_ref_after_input_repair(
+                        'session-busy-multiline', '@e11', prompt
+                    )
+                ),
+            )
+            paste_calls = [
+                args for _, args, _ in cli.calls if args and args[0] == 'paste'
+            ]
+            self.assertEqual([['paste', prompt, '--selector', '@e12']], paste_calls)
+
     def test_editor_ref_retries_transient_snapshot_without_browser_side_effect(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()

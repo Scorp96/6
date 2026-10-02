@@ -1200,14 +1200,13 @@ class ChromeUseActorDriverV3:
                     # and leave the remainder as a second unsent draft.  The
                     # Chrome Use paste command preserves newlines and still
                     # targets the freshly minted textbox ref.
-                    await self.cli.run_json(
+                    reconciled_send_ref = await self._paste_prompt_with_reconciliation(
                         session,
-                        "paste",
-                        prompt,
-                        "--selector",
                         repair_editor_ref,
-                        timeout_seconds=self.timeout_seconds,
+                        prompt,
                     )
+                    if reconciled_send_ref is not None:
+                        return reconciled_send_ref
                 else:
                     await self.cli.run_json(
                         session,
@@ -1233,6 +1232,43 @@ class ChromeUseActorDriverV3:
                     initial_button_names=first_error.diagnostics.get("button_names", []),
                 )
                 raise
+
+    async def _paste_prompt_with_reconciliation(self, session, editor_ref, prompt):
+        """Paste once and reconcile one daemon EOF without repeating input.
+
+        Chrome Use can lose the local JSON reply after the page already
+        accepted a paste. A read-only snapshot can prove that the exact prompt
+        and unique Send control are present. When it cannot, preserve the
+        original failure and leave the browser intent ambiguous.
+        """
+
+        try:
+            await self.cli.run_json(
+                session,
+                "paste",
+                prompt,
+                "--selector",
+                editor_ref,
+                timeout_seconds=self.timeout_seconds,
+            )
+            return None
+        except RuntimeError as exc:
+            if not _chrome_use_daemon_busy_error(exc):
+                raise
+            try:
+                payload = await self.cli.run_json(
+                    session,
+                    "snapshot",
+                    "-i",
+                    timeout_seconds=self.timeout_seconds,
+                )
+                if _prompt_observation_from_snapshot(payload, prompt) != "MATCH":
+                    raise exc
+                return _send_ref_from_snapshot(payload)
+            except Exception as recovery_error:
+                if recovery_error is exc:
+                    raise
+                raise exc from recovery_error
 
     async def _fill_prompt_with_reconciliation(self, session, editor_ref, prompt, target):
         """Fill once, and recover one daemon EOF only after a read-only check.

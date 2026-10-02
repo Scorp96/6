@@ -27,6 +27,39 @@ class InjectedCrash(BrowserAdapterError):
     pass
 
 
+_SAFE_BROWSER_DIAGNOSTIC_FIELDS = frozenset({
+    "button_count",
+    "button_names",
+    "initial_button_names",
+    "initial_snapshot_sha256",
+    "key_event_error",
+    "key_event_repair",
+    "rate_limit_recovery",
+    "rate_limit_recovery_error",
+    "ref_count",
+    "snapshot_sha256",
+})
+
+
+def _safe_browser_diagnostics(exc: Exception) -> dict[str, Any]:
+    raw = getattr(exc, "diagnostics", None)
+    if not isinstance(raw, Mapping):
+        return {}
+    safe: dict[str, Any] = {}
+    for key in sorted(_SAFE_BROWSER_DIAGNOSTIC_FIELDS):
+        if key not in raw:
+            continue
+        value = raw.get(key)
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            safe[key] = value
+        elif isinstance(value, list) and all(
+            isinstance(item, (str, int, float, bool)) or item is None
+            for item in value
+        ):
+            safe[key] = list(value)
+    return safe
+
+
 class BrowserAdapter:
     def __init__(self, store: StateStore, engine: Any, *, failpoint: str | None = None):
         self.store = store
@@ -70,6 +103,9 @@ class BrowserAdapter:
             "error_message_sha256": hashlib.sha256(message.encode("utf-8")).hexdigest(),
             "traceback": frames,
         }
+        diagnostics = _safe_browser_diagnostics(exc)
+        if diagnostics:
+            payload["diagnostics"] = diagnostics
         event_id = f"browser-submit-exception-{intent_id}-attempt-{attempt}"
         payload_json = canonical_json(payload)
         with self.store._transaction() as conn:

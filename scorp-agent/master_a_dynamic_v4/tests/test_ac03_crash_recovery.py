@@ -285,7 +285,14 @@ class CrashRecoveryTests(unittest.TestCase):
             store, engine, _ = self.make_runtime(root)
 
             def failed_submit(_intent):
-                raise RuntimeError("CHROME_USE_EOF_DAEMON_BUSY")
+                error = RuntimeError("CHROME_USE_EOF_DAEMON_BUSY")
+                error.diagnostics = {
+                    "key_event_repair": "FAILED",
+                    "key_event_error": "RuntimeError",
+                    "snapshot_sha256": "a" * 64,
+                    "prompt": "must-never-be-persisted",
+                }
+                raise error
 
             engine.submit = failed_submit
             try:
@@ -307,6 +314,15 @@ class CrashRecoveryTests(unittest.TestCase):
                 self.assertNotIn("CHROME_USE_EOF_DAEMON_BUSY", event["payload_json"])
                 self.assertTrue(payload["error_message_sha256"])
                 self.assertTrue(payload["traceback"])
+                self.assertEqual(
+                    {
+                        "key_event_error": "RuntimeError",
+                        "key_event_repair": "FAILED",
+                        "snapshot_sha256": "a" * 64,
+                    },
+                    payload["diagnostics"],
+                )
+                self.assertNotIn("must-never-be-persisted", event["payload_json"])
             finally:
                 store.close()
 
