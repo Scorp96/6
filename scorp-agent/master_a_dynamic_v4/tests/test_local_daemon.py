@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from master_a_dynamic_v4.activation_arbiter import ArbiterSnapshot
 from master_a_dynamic_v4.daemon import LocalDaemon
@@ -13,6 +15,35 @@ from master_a_dynamic_v4.state_store import StateStore
 
 
 class LocalDaemonTests(unittest.TestCase):
+    def test_health_write_retries_transient_windows_sharing_violation(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            snapshot = ArbiterSnapshot("p", "ACTIVE", 0, 3, False, 0, 1, 0, 0)
+            daemon = LocalDaemon(
+                store,
+                project_id="p",
+                daemon_epoch=3,
+                snapshot_provider=lambda: snapshot,
+                health_path=root / "health.json",
+            )
+            real_replace = os.replace
+            attempts = []
+
+            def sharing_violation_then_success(source, destination):
+                attempts.append((source, destination))
+                if len(attempts) < 3:
+                    raise PermissionError(5, "sharing violation", str(destination))
+                return real_replace(source, destination)
+
+            with patch("master_a_dynamic_v4.daemon.os.replace", side_effect=sharing_violation_then_success):
+                daemon._write_health(status="HEALTHY", snapshot=snapshot)
+
+            self.assertEqual(3, len(attempts))
+            self.assertEqual("HEALTHY", json.loads((root / "health.json").read_text(encoding="utf-8"))["status"])
+            self.assertEqual([], list(root.glob("health.json.tmp*")))
+
     def test_resume_master_action_uses_existing_supervisor_without_browser_side_effects(self):
         class FakeSupervisor:
             def __init__(self):

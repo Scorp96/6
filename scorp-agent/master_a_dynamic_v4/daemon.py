@@ -341,6 +341,25 @@ class LocalDaemon:
         }
         if decision is not None:
             payload["last_decision"] = decision.as_dict()
-        temporary = self.health_path.with_name(self.health_path.name + ".tmp")
-        temporary.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-        os.replace(temporary, self.health_path)
+        temporary = self.health_path.with_name(
+            self.health_path.name
+            + f".tmp.{os.getpid()}.{threading.get_ident()}"
+        )
+        temporary.write_text(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        try:
+            for attempt in range(5):
+                try:
+                    os.replace(temporary, self.health_path)
+                    break
+                except PermissionError:
+                    # Windows readers can briefly hold the destination without
+                    # delete sharing. Keep atomic replacement, but tolerate the
+                    # bounded sharing window instead of killing the daemon.
+                    if attempt == 4:
+                        raise
+                    time.sleep(0.01 * (2**attempt))
+        finally:
+            temporary.unlink(missing_ok=True)
