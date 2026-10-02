@@ -166,6 +166,10 @@ class RuntimeCommandService:
                 "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS')",
                 (project_id,),
             ).fetchone()[0])
+            pending_browser_responses = int(conn.execute(
+                "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state='CONFIRMED_SUBMITTED'",
+                (project_id,),
+            ).fetchone()[0])
             pending_results = int(conn.execute(
                 "SELECT COUNT(*) FROM candidate_results WHERE project_id=? AND verification_state='PENDING'",
                 (project_id,),
@@ -180,6 +184,7 @@ class RuntimeCommandService:
             and active_master is not None
             and str(active_master.get("state") or "") == "ACTIVE"
             and ambiguous == 0
+            and pending_browser_responses == 0
             and (not physical["required"] or physical["verified"])
         )
         return {
@@ -200,7 +205,11 @@ class RuntimeCommandService:
             "last_decision": master["last_decision"],
             "workers": {"active": active_workers, "capacity": 2, "free": max(0, 2 - active_workers)},
             "tasks": {"queued": queued, "running": running},
-            "reconciliation": {"ambiguous_intents": ambiguous, "pending_results": pending_results},
+            "reconciliation": {
+                "ambiguous_intents": ambiguous,
+                "pending_browser_responses": pending_browser_responses,
+                "pending_results": pending_results,
+            },
         }
 
     def _worker_status(self, project_id: str) -> dict[str, Any]:
@@ -241,6 +250,10 @@ class RuntimeCommandService:
                 "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS')",
                 (project_id,),
             ).fetchone()[0])
+            pending_browser_responses = int(conn.execute(
+                "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state='CONFIRMED_SUBMITTED'",
+                (project_id,),
+            ).fetchone()[0])
             decision = conn.execute(
                 "SELECT payload_json FROM events WHERE project_id=? AND kind='ACTIVATION_DECISION' ORDER BY created_at DESC LIMIT 1",
                 (project_id,),
@@ -261,6 +274,7 @@ class RuntimeCommandService:
             },
             "pending_results": pending_results,
             "pending_reconciliation": ambiguous,
+            "pending_browser_responses": pending_browser_responses,
             "last_decision": json.loads(str(decision[0])) if decision is not None else None,
             "observation": self._observation(project_id),
         }

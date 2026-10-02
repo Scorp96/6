@@ -151,6 +151,32 @@ class FalseCompletionTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_confirmed_submission_without_captured_response_blocks_completion(self):
+        with tempfile.TemporaryDirectory() as td:
+            store, contract = self.make_store(pathlib.Path(td))
+            try:
+                self.record_valid_evidence(store, contract)
+                store.prepare_intent(
+                    "project-ac04",
+                    "intent-confirmed",
+                    actor_id="worker-1",
+                    channel="worker/worker-slot-1",
+                    action_kind="CHATGPT_WORKER_SUBMIT",
+                    payload={"prompt_sha256": "5" * 64},
+                )
+                with store._transaction() as conn:
+                    conn.execute(
+                        "UPDATE action_intents SET state='CONFIRMED_SUBMITTED' WHERE intent_id='intent-confirmed'"
+                    )
+                    conn.execute(
+                        "UPDATE outbox SET state='SENT' WHERE intent_id='intent-confirmed'"
+                    )
+                decision = self.evaluate(store)
+                self.assertEqual("BLOCKED", decision.status.value)
+                self.assertIn("BROWSER_INTENTS_UNRESOLVED", decision.blockers)
+            finally:
+                store.close()
+
 
     def test_caller_supplied_artifact_set_cannot_override_release_manifest(self):
         from master_a_dynamic_v4.acceptance import AcceptanceValidator

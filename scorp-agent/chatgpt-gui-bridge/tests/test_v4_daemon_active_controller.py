@@ -103,6 +103,7 @@ class V4DaemonActiveControllerTests(unittest.TestCase):
         self.assertEqual(
             {
                 "RECONCILE_AMBIGUOUS",
+                "RECONCILE_SUBMITTED",
                 "ASSIGN_WORKER",
                 "WAKE_MASTER",
                 "RESUME_WORKER",

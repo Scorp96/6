@@ -45,6 +45,7 @@ class V4DaemonActiveControllerRuntimeIntegrationTests(unittest.TestCase):
                     runtime.run_runtime(args)
         required = {
             'RECONCILE_AMBIGUOUS',
+            'RECONCILE_SUBMITTED',
             'ASSIGN_WORKER',
             'WAKE_MASTER',
             'RESUME_WORKER',

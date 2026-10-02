@@ -183,7 +183,7 @@ class AcceptanceValidator:
             ).fetchone() is not None:
                 blockers.add("OUTBOX_UNRESOLVED")
             if conn.execute(
-                "SELECT 1 FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS') LIMIT 1",
+                "SELECT 1 FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS','CONFIRMED_SUBMITTED') LIMIT 1",
                 (project_id,),
             ).fetchone() is not None:
                 blockers.add("BROWSER_INTENTS_UNRESOLVED")

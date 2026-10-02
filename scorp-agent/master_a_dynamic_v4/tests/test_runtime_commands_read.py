@@ -56,6 +56,25 @@ class RuntimeReadCommandTests(unittest.TestCase):
         self.assertEqual([], evidence["result"]["items"])
         self.assertEqual(100, evidence["result"]["limit"])
 
+    def test_runtime_status_reports_confirmed_submission_waiting_for_response(self):
+        self.store.prepare_intent(
+            "p1",
+            "worker-intent-confirmed",
+            actor_id="worker-1",
+            channel="worker/worker-slot-1",
+            action_kind="CHATGPT_WORKER_SUBMIT",
+            payload={"prompt": "x"},
+        )
+        with self.store._transaction() as conn:
+            conn.execute(
+                "UPDATE action_intents SET state='CONFIRMED_SUBMITTED' WHERE intent_id='worker-intent-confirmed'"
+            )
+            conn.execute(
+                "UPDATE outbox SET state='SENT' WHERE intent_id='worker-intent-confirmed'"
+            )
+        response = self.service.execute(self.request("runtime.status"))
+        self.assertEqual(1, response["result"]["reconciliation"]["pending_browser_responses"])
+
     def test_evidence_query_rejects_unbounded_limit(self):
         response = self.service.execute(self.request("evidence.query", {"limit": 101}))
         self.assertEqual("REJECTED", response["status"])

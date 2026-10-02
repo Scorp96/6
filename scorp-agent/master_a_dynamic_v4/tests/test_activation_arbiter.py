@@ -74,6 +74,24 @@ class ActivationArbiterTests(unittest.TestCase):
         self.assertEqual("RECONCILE_AMBIGUOUS", decision.action)
         self.assertEqual("AMBIGUOUS_BROWSER_SIDE_EFFECT", decision.reason)
 
+    def test_confirmed_submission_waiting_for_response_is_reconciled(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p",
+                project_status="ACTIVE",
+                master_epoch=4,
+                daemon_epoch=8,
+                master_active=True,
+                active_workers=1,
+                free_slots=1,
+                ready_tasks=0,
+                ambiguous_intents=0,
+                pending_browser_responses=1,
+            )
+        )
+        self.assertEqual("RECONCILE_SUBMITTED", decision.action)
+        self.assertEqual("RESPONSE_CAPTURE_PENDING", decision.reason)
+
     def test_master_resume_precedes_worker_assignment(self):
         decision = self.arbiter.decide(
             ArbiterSnapshot(
@@ -333,6 +351,32 @@ class ActivationArbiterTests(unittest.TestCase):
             decision = self.arbiter.decide(snapshot)
             self.assertEqual("WAKE_MASTER", decision.action)
             self.assertEqual("PENDING_RESULT_REQUIRES_MASTER_WAKE", decision.reason)
+            store.close()
+
+    def test_confirmed_worker_submission_is_exposed_as_pending_browser_response(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = StateStore(root / "state.sqlite3", [root])
+            store.create_contract("p", root_contract={"objective": "x"}, acceptance_contract={"ids": []})
+            store.prepare_intent(
+                "p",
+                "worker-intent-a1",
+                actor_id="worker-1",
+                channel="worker/worker-slot-1",
+                action_kind="CHATGPT_WORKER_SUBMIT",
+                payload={"prompt": "x"},
+            )
+            with store._transaction() as conn:
+                conn.execute(
+                    "UPDATE action_intents SET state='CONFIRMED_SUBMITTED' WHERE intent_id='worker-intent-a1'"
+                )
+                conn.execute(
+                    "UPDATE outbox SET state='SENT' WHERE intent_id='worker-intent-a1'"
+                )
+            snapshot = store.activation_snapshot("p", daemon_epoch=1)
+            self.assertEqual(1, snapshot.pending_browser_responses)
+            decision = self.arbiter.decide(snapshot)
+            self.assertEqual("RECONCILE_SUBMITTED", decision.action)
             store.close()
 
     def test_daemon_keeps_lease_alive_during_long_action(self):

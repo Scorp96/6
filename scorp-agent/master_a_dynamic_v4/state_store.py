@@ -1155,6 +1155,10 @@ class StateStore:
                 "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS')",
                 (project,),
             ).fetchone()[0])
+            pending_browser_responses = int(conn.execute(
+                "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state='CONFIRMED_SUBMITTED'",
+                (project,),
+            ).fetchone()[0])
             stale = int(conn.execute(
                 """
                 SELECT COUNT(*) FROM candidate_results r
@@ -1209,6 +1213,7 @@ class StateStore:
                 ready_tasks=ready_tasks,
                 ambiguous_intents=ambiguous,
                 progress_state=progress_state,
+                pending_browser_responses=pending_browser_responses,
                 stale_results=stale,
                 # Missing operator authority is not equivalent to RUNNING;
                 # surface it as an explicit unknown fence so the Arbiter

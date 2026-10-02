@@ -25,6 +25,7 @@ class ArbiterSnapshot:
     ready_tasks: int
     ambiguous_intents: int
     progress_state: str = "IDLE"
+    pending_browser_responses: int = 0
     stale_results: int = 0
     auth_blocked: bool = False
     operator_state: str = "RUNNING"
@@ -85,7 +86,7 @@ class ActivationArbiter:
             raise ValueError("PROJECT_ID_EMPTY")
         if value.master_epoch < 0 or value.daemon_epoch < 0:
             raise ValueError("EPOCH_INVALID")
-        if min(value.active_workers, value.free_slots, value.ready_tasks, value.ambiguous_intents, value.stale_results, value.pending_results) < 0:
+        if min(value.active_workers, value.free_slots, value.ready_tasks, value.ambiguous_intents, value.pending_browser_responses, value.stale_results, value.pending_results) < 0:
             raise ValueError("SNAPSHOT_COUNT_INVALID")
 
         raw = json.dumps(value.as_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -104,6 +105,8 @@ class ActivationArbiter:
             action, reason = "BLOCKED", str(value.auth_host_blocker or "AUTHENTICATION_REQUIRED")
         elif value.ambiguous_intents:
             action, reason = "RECONCILE_AMBIGUOUS", "AMBIGUOUS_BROWSER_SIDE_EFFECT"
+        elif value.pending_browser_responses:
+            action, reason = "RECONCILE_SUBMITTED", "RESPONSE_CAPTURE_PENDING"
         elif value.stale_results:
             action, reason = "FENCE_STALE_RESULTS", "STALE_RESULT_REQUIRES_FENCING"
         elif not value.master_active:

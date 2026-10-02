@@ -307,6 +307,7 @@ def _build_persistent_action_handlers(
 
     return {
         "RECONCILE_AMBIGUOUS": handler,
+        "RECONCILE_SUBMITTED": handler,
         "ASSIGN_WORKER": handler,
         "WAKE_MASTER": handler,
         "RESUME_WORKER": handler,

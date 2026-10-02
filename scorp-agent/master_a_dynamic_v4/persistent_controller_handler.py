@@ -56,7 +56,7 @@ class PersistentControllerActionHandler:
 
     def __call__(self, decision: ActivationDecision) -> dict[str, Any]:
         action = str(getattr(decision, "action", "") or "").strip()
-        if action == "RECONCILE_AMBIGUOUS":
+        if action in {"RECONCILE_AMBIGUOUS", "RECONCILE_SUBMITTED"}:
             recovered = self.recover_callback()
             items = list(recovered or ())
             unresolved = []
@@ -71,7 +71,11 @@ class PersistentControllerActionHandler:
             if unresolved:
                 return {
                     "status": "WAITING",
-                    "reason": "BROWSER_RECONCILIATION_PENDING",
+                    "reason": (
+                        "BROWSER_RESPONSE_PENDING"
+                        if action == "RECONCILE_SUBMITTED"
+                        else "BROWSER_RECONCILIATION_PENDING"
+                    ),
                     "recovery": items,
                 }
             return {"status": "RECOVERED", "recovery": items}

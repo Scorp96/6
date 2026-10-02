@@ -61,6 +61,20 @@ class PersistentControllerActionHandlerTests(unittest.TestCase):
         self.assertEqual("BROWSER_RECONCILIATION_PENDING", result["reason"])
         self.assertEqual(0, controller.step_calls)
 
+    def test_confirmed_submission_action_polls_recovery_without_controller_step(self):
+        controller = _Controller()
+        recover_calls = []
+        handler = PersistentControllerActionHandler(
+            controller,
+            worker_prompt_factory=lambda claim: "prompt",
+            recover_callback=lambda: recover_calls.append(True) or [("intent-1", "CONFIRMED_SUBMITTED")],
+        )
+        result = handler(_decision("RECONCILE_SUBMITTED"))
+        self.assertEqual("WAITING", result["status"])
+        self.assertEqual("BROWSER_RESPONSE_PENDING", result["reason"])
+        self.assertEqual([True], recover_calls)
+        self.assertEqual(0, controller.step_calls)
+
     def test_assign_worker_runs_exactly_one_bounded_controller_step(self):
         controller = _Controller(status="IDLE")
         prompts = []
