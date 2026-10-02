@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from master_a_dynamic_v4.master_controller import ControllerRejected
 from master_a_dynamic_v4.master_reasoning import MasterReasoningCoordinator
 from master_a_dynamic_v4.path_policy import PathPolicy
 from master_a_dynamic_v4.scheduler import Scheduler
@@ -18,6 +19,11 @@ class _Controller:
     def apply_plan(self, plan):
         self.plans.append(dict(plan))
         return {"project_id": plan["project_id"], "status": "ADMITTED"}
+
+
+class _RejectingController(_Controller):
+    def apply_plan(self, plan):
+        raise ControllerRejected("TASK_OBJECTIVE_SHA256_INVALID")
 
 
 class _Adapter:
@@ -148,6 +154,30 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
             recovery_marker,
         )
 
+    def test_prompt_documents_the_exact_authoritative_plan_task_schema(self):
+        _binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
+        payload = json.loads(prompt.split("\n", 1)[1])
+        contract = payload["plan_contract"]
+        self.assertEqual(
+            [
+                "task_id",
+                "objective_sha256",
+                "resource_scope",
+                "access_mode",
+                "dependencies",
+                "required",
+                "acceptance_criteria_ids",
+                "task_context",
+            ],
+            contract["task_allowed_fields"],
+        )
+        self.assertEqual(
+            ["task_id", "objective_sha256", "resource_scope", "dependencies"],
+            contract["task_required_fields"],
+        )
+        self.assertIn("dependencies", " ".join(payload["instructions"]))
+        self.assertIn("objective_sha256", " ".join(payload["instructions"]))
+
     def test_prepared_reasoning_intent_persists_recovery_marker(self):
         binding, prompt, intent_id = self.coordinator._binding_and_prompt()
         prepared = self.coordinator._prepare()
@@ -207,6 +237,26 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
             "BROWSER_SUBMIT_EXCEPTION",
             {event["kind"] for event in self.coordinator.semantic_snapshot()["durable_events"]},
         )
+
+    def test_invalid_apply_plan_is_terminalized_with_exact_reason(self):
+        self.gateway.next_action = "APPLY_PLAN"
+        coordinator = MasterReasoningCoordinator(
+            self.gateway,
+            _RejectingController(),
+        )
+
+        result = coordinator.run_once()
+
+        self.assertEqual("BLOCKED", result["status"])
+        self.assertEqual(
+            "MASTER_PLAN_REJECTED:TASK_OBJECTIVE_SHA256_INVALID",
+            result["reason"],
+        )
+        terminal = coordinator._terminal_event(result["intent_id"])
+        self.assertEqual("MASTER_DECISION_REJECTED", terminal["kind"])
+        self.assertEqual("REJECTED", terminal["payload"]["status"])
+        self.assertEqual(result["reason"], terminal["payload"]["reason"])
+        self.assertTrue(coordinator.reasoning_required())
 
     def test_pre_io_verified_not_submitted_retries_same_reasoning_intent(self):
         intent = self.coordinator._prepare()

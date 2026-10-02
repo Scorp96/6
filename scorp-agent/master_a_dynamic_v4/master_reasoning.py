@@ -5,7 +5,9 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from .master_controller import ControllerRejected
 from .models import canonical_json, sha256_json
+from .scheduler import SchedulerError
 from .state_store import utc_now
 
 
@@ -334,6 +336,39 @@ class MasterReasoningCoordinator:
                     ],
                     "forbid_nested_reasoning_binding": True,
                 },
+                "plan_contract": {
+                    "plan_allowed_fields": [
+                        "project_id",
+                        "master_identity",
+                        "tasks",
+                        "transition_id",
+                    ],
+                    "task_allowed_fields": [
+                        "task_id",
+                        "objective_sha256",
+                        "resource_scope",
+                        "access_mode",
+                        "dependencies",
+                        "required",
+                        "acceptance_criteria_ids",
+                        "task_context",
+                    ],
+                    "task_required_fields": [
+                        "task_id",
+                        "objective_sha256",
+                        "resource_scope",
+                        "dependencies",
+                    ],
+                    "resource_scope_constraint": (
+                        "Every path must stay within durable_snapshot.contract.root.permitted_resources."
+                    ),
+                    "candidate_commit": (
+                        str(snapshot.get("release", {}).get("candidate_commit") or "")
+                        if isinstance(snapshot.get("release"), Mapping)
+                        else ""
+                    ),
+                    "candidate_commit_location": "task_context.candidate_commit",
+                },
                 "instructions": [
                     "Return exactly one JSON object and no prose.",
                     "Set master_decision_version=1.",
@@ -342,7 +377,10 @@ class MasterReasoningCoordinator:
                     "Choose action from APPLY_PLAN, REQUEUE_TASK, WAIT, HUMAN_REQUIRED.",
                     "Never declare PROJECT_COMPLETE from model judgment; deterministic acceptance owns completion.",
                     "Use APPLY_PLAN only when durable state requires a new or revised task graph.",
-                    "For APPLY_PLAN include plan with project_id, master_identity='A', tasks, and optional transition_id.",
+                    "For APPLY_PLAN include only the plan and task fields listed in plan_contract; use dependencies, never depends_on.",
+                    "Every task requires a 64-hex objective_sha256, resource_scope inside the permitted resources, dependencies as task IDs, and task_context containing a concise worker_objective.",
+                    "When plan_contract.candidate_commit is non-empty, copy it exactly to every task_context.candidate_commit.",
+                    "Use access_mode='read' or 'write', required=true for required work, and acceptance_criteria_ids from the durable acceptance contract.",
                     "Use REQUEUE_TASK only for an existing BLOCKED task after its blocking condition has changed; include task_id and reason.",
                     "Use WAIT only when existing durable work should continue without a new plan.",
                     "Use HUMAN_REQUIRED only for genuine approval, irreducible ambiguity, safety, or budget decisions.",
@@ -707,7 +745,28 @@ class MasterReasoningCoordinator:
 
         action = str(decision["action"])
         if action == "APPLY_PLAN":
-            applied = self.controller.apply_plan(dict(decision["plan"]))
+            try:
+                applied = self.controller.apply_plan(dict(decision["plan"]))
+            except (ControllerRejected, SchedulerError) as exc:
+                reason = "MASTER_PLAN_REJECTED:" + str(exc)
+                output_sha = self.semantic_snapshot_sha256()
+                self._record_terminal(
+                    intent_id=intent_id,
+                    kind="MASTER_DECISION_REJECTED",
+                    status="REJECTED",
+                    input_snapshot_sha256=str(binding["input_snapshot_sha256"]),
+                    output_snapshot_sha256=output_sha,
+                    decision=decision,
+                    result={},
+                    reason=reason,
+                )
+                return {
+                    "status": "BLOCKED",
+                    "reason": reason,
+                    "intent_id": intent_id,
+                    "input_snapshot_sha256": str(binding["input_snapshot_sha256"]),
+                    "output_snapshot_sha256": output_sha,
+                }
             result = dict(applied) if isinstance(applied, Mapping) else {"value": str(applied)}
             status = "APPLIED"
         elif action == "REQUEUE_TASK":

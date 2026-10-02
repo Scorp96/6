@@ -15,6 +15,7 @@ from master_a_dynamic_v4.production_bootstrap import (
     bootstrap_production_authority,
     verify_production_authority,
 )
+from master_a_dynamic_v4.state_store import StateStore
 
 
 CANDIDATE = "b" * 40
@@ -88,6 +89,18 @@ class ProductionInstallTests(unittest.TestCase):
             )
             self.assertEqual("ACTIVE", observed["status"])
             self.assertEqual(0, observed["master_epoch"])
+            store = StateStore(authority / "state.sqlite3", [authority / "workspace"])
+            try:
+                with store._connection() as conn:
+                    release_candidate = conn.execute(
+                        "SELECT candidate_commit FROM release_candidates WHERE project_id=?",
+                        ("scorp-v4-production",),
+                    ).fetchone()
+                state = store.get_project_state("scorp-v4-production")
+            finally:
+                store.close()
+            self.assertEqual(CANDIDATE, release_candidate[0])
+            self.assertEqual(CANDIDATE, state["completion_candidate_commit"])
             self.assertTrue((authority / "state.sqlite3").is_file())
             self.assertTrue((authority / "workspace").is_dir())
             self.assertFalse((authority / "driver.json").exists())

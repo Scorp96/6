@@ -356,6 +356,16 @@ def _build_active_controller_runtime(
         engine,
         master_ttl_seconds=1500,
     )
+    with gateway.store._connection() as conn:
+        release_candidate = conn.execute(
+            "SELECT candidate_commit FROM release_candidates WHERE project_id=?",
+            (str(project_id),),
+        ).fetchone()
+    candidate_commit = (
+        str(release_candidate["candidate_commit"])
+        if release_candidate is not None
+        else None
+    )
     controller = MasterAController(
         gateway,
         str(master_session_id),
@@ -366,6 +376,7 @@ def _build_active_controller_runtime(
             allowed_modules=["master_a_dynamic_v4.csv_workload.cli"],
         ),
         git_worktree_manager=GitWorktreeManager([allowed_root]),
+        candidate_commit=candidate_commit,
     )
     controller.attach_existing_session()
     rebind_callback = ReadOnlyBrowserRebinder(

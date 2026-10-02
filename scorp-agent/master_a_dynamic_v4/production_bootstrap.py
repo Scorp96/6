@@ -136,6 +136,15 @@ def bootstrap_production_authority(
             manifest=manifest,
             expected_project_id=project,
         )
+        store = StateStore(authority / "state.sqlite3", [authority / "workspace"])
+        try:
+            store.record_release_candidate(
+                project,
+                candidate_commit=str(manifest["candidate_commit"]),
+                manifest=dict(manifest),
+            )
+        finally:
+            store.close()
         return stored
     if authority.exists() and any(authority.iterdir()):
         raise InstallIdentityError("AUTHORITY_ROOT_NOT_EMPTY")
@@ -168,6 +177,11 @@ def bootstrap_production_authority(
             project,
             root_contract=root_contract,
             acceptance_contract=acceptance_contract,
+        )
+        store.record_release_candidate(
+            project,
+            candidate_commit=str(manifest["candidate_commit"]),
+            manifest=dict(manifest),
         )
         state = store.get_project_state(project)
         with store._connection() as conn:
