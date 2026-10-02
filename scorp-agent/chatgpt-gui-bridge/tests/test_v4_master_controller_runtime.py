@@ -262,6 +262,38 @@ class MasterControllerRuntimeTests(unittest.TestCase):
         self.assertIn("candidate_commit", payload["instructions"][-1])
         self.assertIn("result_sha256", payload["instructions"][-1])
 
+    def test_worker_prompt_requires_all_authoritative_identity_and_list_fields(self):
+        runtime = load_runtime()
+        claim = types.SimpleNamespace(
+            project_id="p1", assignment_id="a1", task_id="T1", worker_id="w1",
+            slot_id="worker-slot-1", master_epoch=0, base_state_version=3,
+            objective_sha256="a" * 64, resource_scope=("C:/lab/orders.csv",),
+            access_mode="read", task_context={"candidate_commit": "b" * 40},
+        )
+        payload = json.loads(runtime._worker_prompt(claim))
+        requirements = payload["result_requirements"]
+        self.assertEqual(
+            [
+                "work_result_version", "project_id", "assignment_id", "task_id",
+                "worker_id", "objective_sha256", "base_state_version",
+                "candidate_commit", "status", "result_sha256",
+                "scope_completed", "scope_not_completed", "deliverables", "evidence",
+                "acceptance_coverage", "facts", "inferences", "unknowns",
+                "contradictions", "followup_proposals",
+            ],
+            requirements["required_top_level_fields"],
+        )
+        self.assertEqual(
+            {
+                "project_id": "p1", "assignment_id": "a1", "task_id": "T1",
+                "worker_id": "w1", "objective_sha256": "a" * 64,
+                "base_state_version": 3,
+            },
+            requirements["copy_exactly_from_assignment"],
+        )
+        joined = " ".join(payload["instructions"])
+        self.assertIn("Copy project_id, assignment_id, task_id, worker_id, objective_sha256, and base_state_version", joined)
+
     def test_worker_prompt_requires_json_safe_structured_evidence(self):
         runtime = load_runtime()
         claim = types.SimpleNamespace(
