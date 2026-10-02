@@ -179,6 +179,7 @@ class MasterReasoningCoordinator:
                    WHERE project_id=?
                      AND kind NOT IN (
                        'ACTIVATION_DECISION',
+                       'BROWSER_SUBMIT_EXCEPTION',
                        'MASTER_DECISION_APPLIED',
                        'MASTER_DECISION_STALE'
                      )

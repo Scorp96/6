@@ -134,9 +134,10 @@ class ChromeUsePersistedRecoveryV3Tests(unittest.TestCase):
             marker = "SCORP_REASONING::" + "a" * 24
             prompt = marker + "\n" + '{"role":"Logical Master A"}'
             state_path, session = self._seed(td, turn_id, None)
-            ChromeUseActorDriverV3(
+            crashed_driver = ChromeUseActorDriverV3(
                 FakeCli([]), state_path, sleeper=lambda _: asyncio.sleep(0)
-            )._mark_turn_browser_io_started(turn_id)
+            )
+            crashed_driver._mark_turn_browser_io_started(turn_id)
             cli = FakeCli([
                 {"data": {"url": "https://chatgpt.com/"}},
                 {
@@ -200,9 +201,11 @@ class ChromeUsePersistedRecoveryV3Tests(unittest.TestCase):
             state_path, session = self._seed(td, turn_id, None)
             # Model the crash boundary: the turn was durably marked before
             # browser I/O, but URL promotion never completed.
-            ChromeUseActorDriverV3(
+            crashed_driver = ChromeUseActorDriverV3(
                 FakeCli([]), state_path, sleeper=lambda _: asyncio.sleep(0)
-            )._mark_turn_browser_io_started(turn_id)
+            )
+            crashed_driver._mark_turn_browser_io_started(turn_id)
+            crashed_driver._mark_turn_submit_edge_crossed(turn_id, method="click")
             long_prompt = "{" + ("durable-state," * 1500) + "}"
             cli = FakeCli([
                 {"data": {"url": url}},

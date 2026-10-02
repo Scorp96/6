@@ -430,6 +430,7 @@ class ChromeUseActorDriverV3:
                     "role": role,
                     "status": "ACTIVE",
                     "browser_io_started": False,
+                    "submit_edge_crossed": False,
                 }
                 self._touch_session(state, session, role=role, turn_id=turn_id)
                 self._save(state)
@@ -445,12 +446,18 @@ class ChromeUseActorDriverV3:
                 if isinstance(old, dict) and "browser_io_started" in old
                 else False
             )
+            prior_submit_edge = (
+                old.get("submit_edge_crossed")
+                if isinstance(old, dict) and "submit_edge_crossed" in old
+                else None
+            )
             state["turns"][turn_id] = {
                 "session": session,
                 "conversation_url": url,
                 "role": role,
                 "status": "ACTIVE",
                 "browser_io_started": prior_io,
+                "submit_edge_crossed": prior_submit_edge,
             }
             self._touch_session(state, session, role=role, turn_id=turn_id, conversation_url=url)
             self._save(state)
@@ -603,6 +610,29 @@ class ChromeUseActorDriverV3:
             self._save(state)
         return dict(row)
 
+    def _mark_turn_submit_edge_crossed(self, turn_id, *, method):
+        """Persist the exact boundary immediately before click or Enter."""
+
+        turn = str(turn_id or "").strip()
+        submit_method = str(method or "").strip().lower()
+        if not turn:
+            raise ValueError("ACTOR_GUI_TURN_ID_MISSING")
+        if submit_method not in {"click", "enter"}:
+            raise ValueError("ACTOR_GUI_SUBMIT_METHOD_INVALID")
+        with self._state_mutex:
+            state = self._load()
+            row = state["turns"].get(turn)
+            if not isinstance(row, dict) or not row.get("session"):
+                raise ValueError("ACTOR_GUI_TURN_BINDING_MISSING")
+            if row.get("browser_io_started") is not True:
+                raise ValueError("ACTOR_GUI_BROWSER_IO_NOT_STARTED")
+            row["submit_edge_crossed"] = True
+            row["submit_edge_method"] = submit_method
+            row["submit_edge_crossed_at"] = self._now()
+            state["turns"][turn] = row
+            self._save(state)
+        return dict(row)
+
     def prove_turn_not_submitted(self, turn_id):
         """Return positive pre-I/O proof only from an existing durable driver state.
 
@@ -624,6 +654,16 @@ class ChromeUseActorDriverV3:
                 if row.get("browser_io_started") is False:
                     return {
                         "proof": "PERSISTED_TURN_BINDING_BROWSER_IO_NOT_STARTED",
+                        "protocol_version": str(state.get("protocol_version") or ""),
+                        "known_turn_count": len(state["turns"]),
+                        "session": str(row.get("session") or ""),
+                    }
+                if (
+                    row.get("browser_io_started") is True
+                    and row.get("submit_edge_crossed") is False
+                ):
+                    return {
+                        "proof": "PERSISTED_TURN_SUBMIT_EDGE_NOT_CROSSED",
                         "protocol_version": str(state.get("protocol_version") or ""),
                         "known_turn_count": len(state["turns"]),
                         "session": str(row.get("session") or ""),
@@ -1463,6 +1503,7 @@ class ChromeUseActorDriverV3:
                 # control, submit the same intent once with the CLI's explicit
                 # Enter command.  A later URL check decides whether it
                 # actually created a conversation; there is no blind retry.
+                self._mark_turn_submit_edge_crossed(turn_id, method="enter")
                 await self.cli.run_json(
                     session,
                     "press",
@@ -1486,6 +1527,7 @@ class ChromeUseActorDriverV3:
             send_ref = None
         if send_ref is not None:
             try:
+                self._mark_turn_submit_edge_crossed(turn_id, method="click")
                 await self.cli.run_json(session, "click", send_ref, timeout_seconds=self.timeout_seconds)
             except TimeoutError as timeout_error:
                 if conversation_url is not None:

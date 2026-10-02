@@ -190,6 +190,24 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
             )
         self.assertTrue(self.coordinator.reasoning_required())
 
+    def test_browser_submit_exception_audit_event_does_not_change_semantic_snapshot(self):
+        before = self.coordinator.semantic_snapshot_sha256()
+        with self.store._transaction() as conn:
+            conn.execute(
+                "INSERT INTO events(event_id,project_id,kind,payload_json,created_at) "
+                "VALUES('browser-submit-exception-intent-attempt-1','p',"
+                "'BROWSER_SUBMIT_EXCEPTION','{\"error_type\":\"ValueError\"}',"
+                "'2026-09-19T00:00:00Z')"
+            )
+
+        after = self.coordinator.semantic_snapshot_sha256()
+
+        self.assertEqual(before, after)
+        self.assertNotIn(
+            "BROWSER_SUBMIT_EXCEPTION",
+            {event["kind"] for event in self.coordinator.semantic_snapshot()["durable_events"]},
+        )
+
     def test_pre_io_verified_not_submitted_retries_same_reasoning_intent(self):
         intent = self.coordinator._prepare()
         deferred = self.store.mark_pre_io_verified_not_submitted(
