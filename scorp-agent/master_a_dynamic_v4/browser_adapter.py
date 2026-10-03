@@ -40,6 +40,10 @@ _SAFE_BROWSER_DIAGNOSTIC_FIELDS = frozenset({
     "snapshot_sha256",
 })
 
+_PROVEN_NOT_ATTEMPTED_EXCEPTION_PROOFS = frozenset({
+    "CHROME_USE_PROCESS_NOT_STARTED_BEFORE_SUBMIT",
+})
+
 
 def _safe_browser_diagnostics(exc: Exception) -> dict[str, Any]:
     raw = getattr(exc, "diagnostics", None)
@@ -267,11 +271,38 @@ class BrowserAdapter:
         except InjectedCrash:
             raise
         except Exception as exc:
-            # Once MAY_HAVE_SUBMITTED is durable, a transport exception is
-            # ambiguous even when the client reports an EOF before returning a
-            # response. Preserve immutable diagnostics before reconciliation
-            # can overwrite the mutable intent observation.
+            # Preserve immutable diagnostics before reconciliation can
+            # overwrite the mutable intent observation.
             self._record_submit_exception_event(persisted, exc)
+            proof = str(getattr(exc, "proof", "") or "").strip()
+            side_effect = str(getattr(exc, "side_effect", "") or "").strip()
+            if (
+                side_effect == "NOT_ATTEMPTED"
+                and proof in _PROVEN_NOT_ATTEMPTED_EXCEPTION_PROOFS
+            ):
+                observation = {
+                    "side_effect": "NOT_ATTEMPTED",
+                    "proof": proof,
+                    "error_type": type(exc).__name__,
+                }
+                try:
+                    attempt = int(persisted.get("attempt") or 1)
+                except (TypeError, ValueError):
+                    attempt = 1
+                if attempt >= 2:
+                    return self.store.block_intent(
+                        intent_id,
+                        reason="PRE_SUBMIT_RETRY_LIMIT_REACHED",
+                        observation=observation,
+                    )
+                return self.store.mark_verified_not_submitted(
+                    intent_id,
+                    proof=proof,
+                    observation=observation,
+                )
+            # All unclassified transport exceptions remain ambiguous after
+            # the durable MAY_HAVE_SUBMITTED fence. This includes EOF,
+            # timeout, and every error after the click/Enter submit edge.
             message = str(exc)
             return self.store.block_intent(
                 intent_id,

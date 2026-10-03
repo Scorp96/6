@@ -326,6 +326,62 @@ class CrashRecoveryTests(unittest.TestCase):
             finally:
                 store.close()
 
+    def test_proven_process_start_failure_retries_same_intent_once(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+
+        class ProvenNotAttempted(FileNotFoundError):
+            side_effect = "NOT_ATTEMPTED"
+            proof = "CHROME_USE_PROCESS_NOT_STARTED_BEFORE_SUBMIT"
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, engine, _ = self.make_runtime(root)
+
+            def process_start_failed(_intent):
+                raise ProvenNotAttempted("chrome-use process did not start")
+
+            engine.submit = process_start_failed
+            try:
+                first = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("VERIFIED_NOT_SUBMITTED", first["state"])
+                self.assertEqual(1, int(first["attempt"]))
+                observation = __import__("json").loads(first["observation_json"])
+                self.assertEqual("NOT_ATTEMPTED", observation["side_effect"])
+                self.assertEqual(ProvenNotAttempted.proof, observation["proof"])
+
+                engine.submit = FakeEngine.submit.__get__(engine, FakeEngine)
+                second = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("CONFIRMED_SUBMITTED", second["state"])
+                self.assertEqual(2, int(second["attempt"]))
+                self.assertEqual(1, engine.submit_count)
+            finally:
+                store.close()
+
+    def test_second_proven_process_start_failure_hits_retry_limit(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+
+        class ProvenNotAttempted(FileNotFoundError):
+            side_effect = "NOT_ATTEMPTED"
+            proof = "CHROME_USE_PROCESS_NOT_STARTED_BEFORE_SUBMIT"
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store, engine, _ = self.make_runtime(root)
+
+            def process_start_failed(_intent):
+                raise ProvenNotAttempted("chrome-use process did not start")
+
+            engine.submit = process_start_failed
+            try:
+                first = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("VERIFIED_NOT_SUBMITTED", first["state"])
+                second = BrowserAdapter(store, engine).submit_once("intent-ac03")
+                self.assertEqual("BLOCKED_AMBIGUOUS", second["state"])
+                self.assertEqual("PRE_SUBMIT_RETRY_LIMIT_REACHED", second["ambiguity_reason"])
+                self.assertEqual(2, int(second["attempt"]))
+            finally:
+                store.close()
+
     def test_ambiguous_submit_retains_observed_conversation_url_for_read_only_reconcile(self):
         from master_a_dynamic_v4.browser_adapter import BrowserAdapter
 

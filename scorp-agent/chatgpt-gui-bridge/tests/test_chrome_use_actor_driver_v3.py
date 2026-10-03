@@ -45,6 +45,54 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertTrue(first.startswith('scorp-p0-conv-'))
 
+    def test_process_start_failure_before_submit_edge_is_positive_not_attempted_proof(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+
+            async def fail_before_submit_edge(**kwargs):
+                driver._mark_turn_browser_io_started(kwargs['turn_id'])
+                raise FileNotFoundError('chrome-use executable was not found')
+
+            driver._submit_prompt_unlocked = fail_before_submit_edge
+            with self.assertRaises(FileNotFoundError) as raised:
+                asyncio.run(driver.submit_prompt(
+                    prompt='SCORP_SAFE_PROCESS_START_FAILURE',
+                    turn_id='turn-process-not-started',
+                    actor_kind='MASTER',
+                    conversation_url='https://chatgpt.com/c/existing-master',
+                ))
+
+            self.assertEqual('NOT_ATTEMPTED', getattr(raised.exception, 'side_effect', None))
+            self.assertEqual(
+                'CHROME_USE_PROCESS_NOT_STARTED_BEFORE_SUBMIT',
+                getattr(raised.exception, 'proof', None),
+            )
+            binding = driver.turn_binding('turn-process-not-started')
+            self.assertTrue(binding['browser_io_started'])
+            self.assertIsNot(True, binding['submit_edge_crossed'])
+
+    def test_process_failure_after_submit_edge_remains_ambiguous(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+
+            async def fail_after_submit_edge(**kwargs):
+                driver._mark_turn_browser_io_started(kwargs['turn_id'])
+                driver._mark_turn_submit_edge_crossed(kwargs['turn_id'], method='click')
+                raise FileNotFoundError('post-click executable lookup failed')
+
+            driver._submit_prompt_unlocked = fail_after_submit_edge
+            with self.assertRaises(FileNotFoundError) as raised:
+                asyncio.run(driver.submit_prompt(
+                    prompt='SCORP_AMBIGUOUS_POST_SUBMIT_FAILURE',
+                    turn_id='turn-post-submit-failure',
+                    actor_kind='MASTER',
+                    conversation_url='https://chatgpt.com/c/existing-master',
+                ))
+
+            self.assertIsNone(getattr(raised.exception, 'side_effect', None))
+            self.assertIsNone(getattr(raised.exception, 'proof', None))
+            self.assertTrue(driver.turn_binding('turn-post-submit-failure')['submit_edge_crossed'])
+
     def test_lifecycle_records_roles_and_migrates_legacy_state(self):
         with tempfile.TemporaryDirectory() as td:
             state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'

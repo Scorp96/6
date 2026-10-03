@@ -79,6 +79,13 @@ class SendControlResolutionError(ValueError):
         self._refresh_message()
 
 
+class ChromeUseSubmissionNotAttempted(FileNotFoundError):
+    """Positive local proof that no click/Enter submission edge was crossed."""
+
+    side_effect = "NOT_ATTEMPTED"
+    proof = "CHROME_USE_PROCESS_NOT_STARTED_BEFORE_SUBMIT"
+
+
 def _state_lock(path: Path) -> threading.RLock:
     key = str(path.resolve())
     with _STATE_LOCKS_GUARD:
@@ -1474,12 +1481,25 @@ class ChromeUseActorDriverV3:
         if not acquired:
             raise TimeoutError("CHROME_USE_SUBMISSION_BUSY")
         try:
-            return await self._submit_prompt_unlocked(
-                prompt=prompt,
-                turn_id=turn_id,
-                actor_kind=actor_kind,
-                conversation_url=conversation_url,
-            )
+            try:
+                return await self._submit_prompt_unlocked(
+                    prompt=prompt,
+                    turn_id=turn_id,
+                    actor_kind=actor_kind,
+                    conversation_url=conversation_url,
+                )
+            except FileNotFoundError as exc:
+                # CreateProcess failed before the durable click/Enter edge.
+                # That is positive local evidence that this driver did not
+                # submit the prompt, even if earlier read/fill browser I/O was
+                # attempted.  After the edge, the same OS error is ambiguous.
+                binding = self.turn_binding(turn_id)
+                if (
+                    isinstance(binding, dict)
+                    and binding.get("submit_edge_crossed") is not True
+                ):
+                    raise ChromeUseSubmissionNotAttempted(str(exc)) from exc
+                raise
         finally:
             self._submission_mutex.release()
 
