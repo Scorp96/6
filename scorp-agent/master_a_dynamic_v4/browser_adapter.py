@@ -44,6 +44,10 @@ _PROVEN_NOT_ATTEMPTED_EXCEPTION_PROOFS = frozenset({
     "CHROME_USE_PROCESS_NOT_STARTED_BEFORE_SUBMIT",
 })
 
+_TERMINAL_LOCAL_SUBMIT_BLOCKERS = frozenset({
+    "PRE_SUBMIT_RETRY_LIMIT_REACHED",
+})
+
 
 def _safe_browser_diagnostics(exc: Exception) -> dict[str, Any]:
     raw = getattr(exc, "diagnostics", None)
@@ -365,6 +369,16 @@ class BrowserAdapter:
     def reconcile(self, intent_id: str) -> dict[str, Any]:
         current = self.store.get_intent(intent_id)
         if current["state"] == IntentState.FENCED_AMBIGUOUS.value:
+            return current
+        if (
+            current["state"] == IntentState.BLOCKED_AMBIGUOUS.value
+            and str(current.get("ambiguity_reason") or "")
+            in _TERMINAL_LOCAL_SUBMIT_BLOCKERS
+        ):
+            # A bounded local process-start failure has already exhausted its
+            # one safe intent retry. Browser reconciliation cannot add remote
+            # evidence because no submit edge was crossed, and must not erase
+            # the terminal reason with a generic snapshot outcome.
             return current
         if current["state"] == IntentState.RESPONSE_CAPTURED.value:
             self.store.finalize_intent(intent_id)

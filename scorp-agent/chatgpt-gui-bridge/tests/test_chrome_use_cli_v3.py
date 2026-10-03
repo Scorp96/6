@@ -249,6 +249,35 @@ class ChromeUseCliV3Tests(unittest.TestCase):
             self.assertTrue(startupinfo.dwFlags & subprocess.STARTF_USESHOWWINDOW)
             self.assertEqual(subprocess.SW_HIDE, startupinfo.wShowWindow)
 
+    def test_default_runner_retries_bounded_process_creation_before_browser_io(self):
+        calls = []
+
+        class FakeProcess:
+            returncode = 0
+
+            async def wait(self):
+                return self.returncode
+
+        async def fake_create(*args, **kwargs):
+            calls.append((args, kwargs))
+            if len(calls) < 3:
+                raise FileNotFoundError('transient CreateProcess failure')
+            return FakeProcess()
+
+        async def no_delay(_seconds):
+            return None
+
+        async def exercise():
+            with mock.patch('chrome_use_cli_v3.asyncio.create_subprocess_exec', new=fake_create):
+                with mock.patch('chrome_use_cli_v3.asyncio.sleep', new=no_delay):
+                    return await _default_runner(
+                        ['chrome-use.exe', '--session', 'bounded-start', '--json', 'status'],
+                        1,
+                    )
+
+        self.assertEqual((0, '', ''), asyncio.run(exercise()))
+        self.assertEqual(3, len(calls))
+
     def test_default_runner_outer_cancellation_kills_child_before_propagating(self):
         class FakeProcess:
             def __init__(self):

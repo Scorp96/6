@@ -11,6 +11,7 @@ import threading
 
 _DAEMON_LOCKS: dict[str, threading.Lock] = {}
 _DAEMON_LOCKS_GUARD = threading.Lock()
+_PROCESS_START_RETRY_DELAYS = (0.1, 0.5)
 
 
 def _daemon_lock(executable: str) -> threading.Lock:
@@ -49,10 +50,22 @@ async def _default_runner(argv, timeout_seconds):
                 startupinfo=startupinfo,
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
-        proc = await asyncio.create_subprocess_exec(
-            *argv,
-            **process_kwargs,
-        )
+        for start_attempt in range(len(_PROCESS_START_RETRY_DELAYS) + 1):
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *argv,
+                    **process_kwargs,
+                )
+                break
+            except FileNotFoundError:
+                # CreateProcess did not return a child handle, so no Chrome
+                # Use command or browser side effect exists to duplicate.
+                # Windows has produced short-lived launch failures for the
+                # installed executable under real multi-session load. Retry
+                # only this local process-creation edge with a fixed bound.
+                if start_attempt >= len(_PROCESS_START_RETRY_DELAYS):
+                    raise
+                await asyncio.sleep(_PROCESS_START_RETRY_DELAYS[start_attempt])
         try:
             await asyncio.wait_for(proc.wait(), timeout=float(timeout_seconds))
         except asyncio.TimeoutError as exc:

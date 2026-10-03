@@ -379,6 +379,13 @@ class CrashRecoveryTests(unittest.TestCase):
                 self.assertEqual("BLOCKED_AMBIGUOUS", second["state"])
                 self.assertEqual("PRE_SUBMIT_RETRY_LIMIT_REACHED", second["ambiguity_reason"])
                 self.assertEqual(2, int(second["attempt"]))
+
+                def unexpected_reconcile(_intent):
+                    self.fail("terminal local retry exhaustion must not be overwritten by browser reconcile")
+
+                engine.reconcile = unexpected_reconcile
+                preserved = BrowserAdapter(store, engine).reconcile("intent-ac03")
+                self.assertEqual("PRE_SUBMIT_RETRY_LIMIT_REACHED", preserved["ambiguity_reason"])
             finally:
                 store.close()
 
