@@ -761,7 +761,7 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 fill_calls,
             )
 
-    def test_large_prompt_fill_uses_cli_file_transport_capability(self):
+    def test_large_prompt_fill_uses_cli_bounded_text_transport_capability(self):
         with tempfile.TemporaryDirectory() as td:
             cli = LargeFillFakeCli()
             driver = self._driver(td, cli)

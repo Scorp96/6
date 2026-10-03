@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
-import pathlib
 import subprocess
 import sys
 import tempfile
@@ -32,10 +30,10 @@ async def _terminate_process(proc):
         pass
 
 
-async def _default_runner(argv, timeout_seconds):
+async def _default_runner(argv, timeout_seconds, stdin_text=None):
     with tempfile.TemporaryFile(mode="w+b") as stdout_file, tempfile.TemporaryFile(mode="w+b") as stderr_file:
         process_kwargs = {
-            "stdin": subprocess.DEVNULL,
+            "stdin": subprocess.PIPE if stdin_text is not None else subprocess.DEVNULL,
             "stdout": stdout_file,
             "stderr": stderr_file,
         }
@@ -69,6 +67,16 @@ async def _default_runner(argv, timeout_seconds):
                 if start_attempt >= len(_PROCESS_START_RETRY_DELAYS):
                     raise
                 await asyncio.sleep(_PROCESS_START_RETRY_DELAYS[start_attempt])
+        if stdin_text is not None:
+            try:
+                proc.stdin.write(str(stdin_text).encode("utf-8"))
+                await proc.stdin.drain()
+            except (BrokenPipeError, ConnectionResetError):
+                # Preserve the child exit status and stderr as the authority
+                # when it rejects stdin before consuming the complete value.
+                pass
+            finally:
+                proc.stdin.close()
         try:
             await asyncio.wait_for(proc.wait(), timeout=float(timeout_seconds))
         except asyncio.TimeoutError as exc:
@@ -88,12 +96,30 @@ async def _default_runner(argv, timeout_seconds):
     )
 
 
+async def _default_stdin_runner(argv, timeout_seconds, stdin_text):
+    return await _default_runner(argv, timeout_seconds, stdin_text=stdin_text)
+
+
 class ChromeUseCliV3:
-    def __init__(self, *, executable="chrome-use.exe", runner=None, interactive=False):
+    def __init__(
+        self,
+        *,
+        executable="chrome-use.exe",
+        runner=None,
+        stdin_runner=None,
+        interactive=False,
+    ):
         self.executable = str(executable or "").strip()
         if not self.executable:
             raise ValueError("CHROME_USE_EXECUTABLE_EMPTY")
         self.runner = runner or _default_runner
+        self.stdin_runner = (
+            stdin_runner
+            if stdin_runner is not None
+            else _default_stdin_runner
+            if runner is None
+            else None
+        )
         # Foreground rendering is opt-in. The daemon should not repeatedly
         # steal the user's focus or open visible browser popups.
         self.interactive = bool(interactive)
@@ -113,6 +139,9 @@ class ChromeUseCliV3:
             "--json",
             *[str(value) for value in args],
         ]
+        return await self._run_argv_json(argv, timeout_seconds)
+
+    async def _run_argv_json(self, argv, timeout_seconds, *, stdin_text=None):
         # The Chrome Use relay is a single command daemon even when logical
         # sessions differ. Serialize subprocess requests across driver
         # instances so two Worker threads cannot make the relay return an EOF
@@ -134,7 +163,16 @@ class ChromeUseCliV3:
             # longer reaches the release() finally block.
             await asyncio.sleep(min(0.05, remaining))
         try:
-            returncode, stdout, stderr = await self.runner(argv, timeout_seconds)
+            if stdin_text is None:
+                returncode, stdout, stderr = await self.runner(argv, timeout_seconds)
+            else:
+                if self.stdin_runner is None:
+                    raise RuntimeError("CHROME_USE_STDIN_RUNNER_UNAVAILABLE")
+                returncode, stdout, stderr = await self.stdin_runner(
+                    argv,
+                    timeout_seconds,
+                    stdin_text,
+                )
         finally:
             self._daemon_mutex.release()
         if int(returncode) != 0:
@@ -152,8 +190,8 @@ class ChromeUseCliV3:
         Windows CreateProcess has a bounded command-line length. Master
         integration prompts can include multiple Worker results and exceed
         that boundary before ``chrome-use.exe`` starts. Chrome Use supports a
-        UTF-8 file transport for ``fill``; keep the file alive only for the
-        duration of the subprocess and remove it after every outcome.
+        UTF-8 stdin transport for ``fill``; it preserves the original value
+        without putting it in argv or creating a durable prompt artifact.
         """
 
         value = str(text)
@@ -166,27 +204,26 @@ class ChromeUseCliV3:
                 timeout_seconds=timeout_seconds,
             )
 
-        file_descriptor, prompt_path_text = tempfile.mkstemp(
-            prefix="scorp-chrome-fill-",
-            suffix=".txt",
+        session = str(session or "").strip()
+        if not session:
+            raise ValueError("CHROME_USE_SESSION_EMPTY")
+        timeout_seconds = float(timeout_seconds)
+        if timeout_seconds <= 0:
+            raise ValueError("CHROME_USE_TIMEOUT_INVALID")
+        argv = [
+            self.executable,
+            "--session",
+            session,
+            "--json",
+            "fill",
+            str(selector),
+            "--stdin",
+        ]
+        return await self._run_argv_json(
+            argv,
+            timeout_seconds,
+            stdin_text=value,
         )
-        prompt_path = pathlib.Path(prompt_path_text)
-        try:
-            with os.fdopen(file_descriptor, "w", encoding="utf-8", newline="") as prompt_file:
-                prompt_file.write(value)
-            file_descriptor = -1
-            return await self.run_json(
-                session,
-                "fill",
-                selector,
-                "--file",
-                str(prompt_path),
-                timeout_seconds=timeout_seconds,
-            )
-        finally:
-            if file_descriptor >= 0:
-                os.close(file_descriptor)
-            prompt_path.unlink(missing_ok=True)
 
     async def prepare_interactive(self, session, *, timeout_seconds=30):
         """Surface this session before reading controls that depend on visibility.

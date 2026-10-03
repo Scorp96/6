@@ -1,5 +1,4 @@
 import asyncio
-import pathlib
 import subprocess
 import sys
 import unittest
@@ -127,30 +126,31 @@ class ChromeUseCliV3Tests(unittest.TestCase):
             asyncio.run(cli.run_json('scorp-p0-a', 'status', timeout_seconds=9))
         self.assertEqual(1, len(calls))
 
-    def test_fill_text_uses_temporary_utf8_file_for_large_prompt(self):
+    def test_fill_text_uses_stdin_for_large_prompt(self):
         calls = []
-        observed = {}
         prompt = 'SCORP_LONG_PROMPT\n' + ('分析结果' * 12000)
 
         async def runner(argv, timeout_seconds):
-            calls.append((list(argv), timeout_seconds))
-            file_index = list(argv).index('--file') + 1
-            prompt_path = pathlib.Path(argv[file_index])
-            observed['path'] = prompt_path
-            observed['content'] = prompt_path.read_text(encoding='utf-8')
+            raise AssertionError('large fill must not use the argv runner')
+
+        async def stdin_runner(argv, timeout_seconds, stdin_text):
+            calls.append((list(argv), timeout_seconds, stdin_text))
             return 0, '{"success":true}', ''
 
-        cli = ChromeUseCliV3(executable='chrome-use.exe', runner=runner)
+        cli = ChromeUseCliV3(
+            executable='chrome-use.exe',
+            runner=runner,
+            stdin_runner=stdin_runner,
+        )
         result = asyncio.run(
             cli.fill_text('master-session', '@e123', prompt, timeout_seconds=9)
         )
 
         self.assertEqual({'success': True}, result)
-        self.assertEqual(prompt, observed['content'])
-        self.assertFalse(observed['path'].exists())
         self.assertNotIn(prompt, calls[0][0])
+        self.assertEqual(prompt, calls[0][2])
         self.assertEqual(
-            ['fill', '@e123', '--file'],
+            ['fill', '@e123', '--stdin'],
             calls[0][0][4:7],
         )
 
