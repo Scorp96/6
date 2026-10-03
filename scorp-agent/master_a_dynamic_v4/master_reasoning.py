@@ -360,6 +360,7 @@ class MasterReasoningCoordinator:
                     "forbid_nested_reasoning_binding": True,
                 },
                 "plan_contract": {
+                    "master_identity_literal": "A",
                     "plan_allowed_fields": [
                         "project_id",
                         "master_identity",
@@ -403,6 +404,7 @@ class MasterReasoningCoordinator:
                     "Never declare PROJECT_COMPLETE from model judgment; deterministic acceptance owns completion.",
                     "Use APPLY_PLAN only when durable state requires a new or revised task graph.",
                     "For APPLY_PLAN put project_id, master_identity, transition_id, and tasks inside one nested top-level plan object; put each task inside plan.tasks[]. Never put tasks at the response top level. Use only the plan and task fields listed in plan_contract; use dependencies, never depends_on.",
+                    'For APPLY_PLAN set plan.master_identity to the exact string "A". Do not expand, rename, or describe that literal.',
                     "Every task requires a 64-hex objective_sha256, resource_scope inside the permitted resources, dependencies as task IDs, and task_context containing a concise worker_objective.",
                     "Build every resource_scope from plan_contract.canonical_permitted_resources and use forward slashes for all Windows path separators in response JSON. Never emit a raw backslash in a JSON path string.",
                     "When plan_contract.candidate_commit is non-empty, copy it exactly to every task_context.candidate_commit.",

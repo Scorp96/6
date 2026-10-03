@@ -193,6 +193,7 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         _binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
         payload = json.loads(prompt.split("\n", 1)[1])
         response = payload["response_contract"]
+        contract = payload["plan_contract"]
         self.assertEqual(["plan"], response["action_required_top_level_fields"]["APPLY_PLAN"])
         self.assertEqual(
             ["master_identity", "tasks", "transition_id"],
@@ -202,6 +203,8 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
         joined = " ".join(payload["instructions"])
         self.assertIn("nested top-level plan object", joined)
         self.assertIn("Never put tasks at the response top level", joined)
+        self.assertEqual("A", contract["master_identity_literal"])
+        self.assertIn('plan.master_identity to the exact string "A"', joined)
 
     def test_prepared_reasoning_intent_persists_recovery_marker(self):
         binding, prompt, intent_id = self.coordinator._binding_and_prompt()
