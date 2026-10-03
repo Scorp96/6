@@ -68,12 +68,12 @@ class GenerationFenceTests(unittest.TestCase):
 
     def test_paused_generation_blocks_browser_before_submit(self):
         control = self.store.get_operator_control("p1")
+        self.assertEqual("OK", self._pause()["status"])
         self.store.prepare_intent(
             "p1", "intent-1", actor_id="worker", channel="worker/1", action_kind="CHATGPT_SUBMIT",
             payload={"prompt": "hello", "operator_generation": control["operator_generation"],
                      "objective_generation": control["objective_generation"]},
         )
-        self._pause()
         engine = _Engine()
         result = BrowserAdapter(self.store, engine).submit_once("intent-1")
         self.assertEqual("BLOCKED_AMBIGUOUS", result["state"])
@@ -82,12 +82,12 @@ class GenerationFenceTests(unittest.TestCase):
 
     def test_begin_possible_submit_rechecks_generation_in_transaction(self):
         control = self.store.get_operator_control("p1")
+        self.assertEqual("OK", self._pause()["status"])
         self.store.prepare_intent(
             "p1", "intent-2", actor_id="worker", channel="worker/1", action_kind="LOCAL_EXECUTION",
             payload={"operator_generation": control["operator_generation"],
                      "objective_generation": control["objective_generation"]},
         )
-        self._pause()
         with self.assertRaisesRegex(StoreInvariantError, "OPERATOR_GENERATION_FENCED"):
             self.store.begin_possible_submit("intent-2")
         self.assertEqual("PREPARED", self.store.get_intent("intent-2")["state"])

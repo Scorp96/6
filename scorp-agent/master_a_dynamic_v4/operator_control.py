@@ -122,6 +122,89 @@ class OperatorControlService:
                     return self._reject_and_record(
                         conn, request, receipt_id, state, control, "PROJECT_TERMINAL", now
                     )
+                if request.command == "project.pause":
+                    active_workers = int(
+                        conn.execute(
+                            """
+                            SELECT COUNT(*) FROM leases
+                            WHERE project_id=? AND state='ACTIVE' AND expires_at>?
+                            """,
+                            (request.project_id, now),
+                        ).fetchone()[0]
+                    )
+                    if active_workers:
+                        return self._reject_and_record(
+                            conn, request, receipt_id, state, control, "PAUSE_ACTIVE_WORKERS", now
+                        )
+                    pending_candidate_results = int(
+                        conn.execute(
+                            """
+                            SELECT COUNT(*) FROM candidate_results
+                            WHERE project_id=? AND verification_state='PENDING'
+                            """,
+                            (request.project_id,),
+                        ).fetchone()[0]
+                    )
+                    captured_worker_results = int(
+                        conn.execute(
+                            """
+                            SELECT COUNT(*)
+                            FROM action_intents i
+                            JOIN assignments a
+                              ON a.project_id=i.project_id
+                             AND i.intent_id=('worker-intent-' || a.assignment_id)
+                            LEFT JOIN candidate_results r ON r.assignment_id=a.assignment_id
+                            WHERE i.project_id=?
+                              AND i.action_kind='CHATGPT_WORKER_SUBMIT'
+                              AND i.state='RESPONSE_CAPTURED'
+                              AND r.assignment_id IS NULL
+                            """,
+                            (request.project_id,),
+                        ).fetchone()[0]
+                    )
+                    if pending_candidate_results + captured_worker_results:
+                        return self._reject_and_record(
+                            conn, request, receipt_id, state, control, "PAUSE_PENDING_RESULTS", now
+                        )
+                    ambiguous_intents = int(
+                        conn.execute(
+                            """
+                            SELECT COUNT(*) FROM action_intents
+                            WHERE project_id=?
+                              AND state IN ('MAY_HAVE_SUBMITTED','BLOCKED_AMBIGUOUS')
+                            """,
+                            (request.project_id,),
+                        ).fetchone()[0]
+                    )
+                    if ambiguous_intents:
+                        return self._reject_and_record(
+                            conn,
+                            request,
+                            receipt_id,
+                            state,
+                            control,
+                            "PAUSE_AMBIGUOUS_BROWSER_INTENT",
+                            now,
+                        )
+                    browser_submissions = int(
+                        conn.execute(
+                            """
+                            SELECT COUNT(*) FROM action_intents
+                            WHERE project_id=? AND state IN ('PREPARED','CONFIRMED_SUBMITTED')
+                            """,
+                            (request.project_id,),
+                        ).fetchone()[0]
+                    )
+                    if browser_submissions:
+                        return self._reject_and_record(
+                            conn,
+                            request,
+                            receipt_id,
+                            state,
+                            control,
+                            "PAUSE_BROWSER_SUBMISSION_IN_FLIGHT",
+                            now,
+                        )
 
                 operator_generation = int(control["operator_generation"]) + 1
                 objective_generation = int(control["objective_generation"])

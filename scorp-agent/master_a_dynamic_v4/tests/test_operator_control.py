@@ -187,7 +187,7 @@ class OperatorControlTests(unittest.TestCase):
         claims = scheduler.claim_runnable(master_epoch=0)
         self.assertEqual(1, len(claims))
 
-    def test_resume_rehydrates_existing_claim_after_pause(self):
+    def test_pause_rejects_existing_active_claim_at_unsafe_checkpoint(self):
         from master_a_dynamic_v4.path_policy import PathPolicy
         from master_a_dynamic_v4.scheduler import Scheduler
 
@@ -202,16 +202,84 @@ class OperatorControlTests(unittest.TestCase):
                 "dependencies": [],
             }
         ])
+        scheduler.claim_runnable(master_epoch=0)[0]
+
+        response = self.service.execute(self.request("pause-existing", "project.pause"))
+
+        self.assertEqual("REJECTED", response["status"])
+        self.assertEqual("PAUSE_ACTIVE_WORKERS", response["error"]["code"])
+        self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
+        self.assertEqual("RUNNING", self.store.get_operator_control("p1")["operator_state"])
+
+    def test_pause_rejects_pending_candidate_result_at_unsafe_checkpoint(self):
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+
+        worktree = self.root / "pending-result-worktree"
+        worktree.mkdir()
+        scheduler = Scheduler(self.store, "p1", PathPolicy([worktree]), max_workers=2)
+        scheduler.enqueue_graph([
+            {
+                "task_id": "pending-result-task",
+                "objective_sha256": "9" * 64,
+                "resource_scope": [worktree / "one.txt"],
+                "dependencies": [],
+            }
+        ])
         claim = scheduler.claim_runnable(master_epoch=0)[0]
-
-        self.assertEqual("OK", self.service.execute(self.request("pause-existing", "project.pause"))["status"])
-        self.assertEqual(
-            "OK",
-            self.service.execute(self.request("resume-existing", "project.resume", state_version=1))["status"],
+        scheduler.record_candidate(
+            claim.assignment_id,
+            lease_token=claim.lease_token,
+            master_epoch=0,
+            kind="HANDOFF",
+            payload={"artifact_sha256": "8" * 64, "result_sha256": "8" * 64},
         )
+        with self.store._connection() as conn:
+            conn.execute(
+                "UPDATE leases SET expires_at=? WHERE assignment_id=?",
+                ("2000-01-01T00:00:00.000000Z", claim.assignment_id),
+            )
 
-        restored = scheduler.load_active_claims(master_epoch=0)
-        self.assertEqual([claim.assignment_id], [item.assignment_id for item in restored])
+        response = self.service.execute(self.request("pause-pending-result", "project.pause"))
+
+        self.assertEqual("REJECTED", response["status"])
+        self.assertEqual("PAUSE_PENDING_RESULTS", response["error"]["code"])
+        self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
+
+    def test_pause_rejects_browser_submission_states_at_unsafe_checkpoint(self):
+        expected = {
+            "PREPARED": "PAUSE_BROWSER_SUBMISSION_IN_FLIGHT",
+            "CONFIRMED_SUBMITTED": "PAUSE_BROWSER_SUBMISSION_IN_FLIGHT",
+            "MAY_HAVE_SUBMITTED": "PAUSE_AMBIGUOUS_BROWSER_INTENT",
+            "BLOCKED_AMBIGUOUS": "PAUSE_AMBIGUOUS_BROWSER_INTENT",
+        }
+        for index, (intent_state, error_code) in enumerate(expected.items(), 1):
+            with self.subTest(intent_state=intent_state):
+                intent_id = f"pause-intent-{index}"
+                self.store.prepare_intent(
+                    "p1",
+                    intent_id,
+                    actor_id="worker-1",
+                    channel="worker/slot-1",
+                    action_kind="CHATGPT_WORKER_SUBMIT",
+                    payload={"assignment_id": "assignment-1"},
+                )
+                with self.store._connection() as conn:
+                    conn.execute(
+                        "UPDATE action_intents SET state=? WHERE intent_id=?",
+                        (intent_state, intent_id),
+                    )
+
+                response = self.service.execute(
+                    self.request(f"pause-browser-{index}", "project.pause")
+                )
+
+                self.assertEqual("REJECTED", response["status"])
+                self.assertEqual(error_code, response["error"]["code"])
+                self.assertEqual(0, self.store.get_project_state("p1")["state_version"])
+                with self.store._connection() as conn:
+                    conn.execute("DELETE FROM outbox WHERE intent_id=?", (intent_id,))
+                    conn.execute("DELETE FROM action_intents WHERE intent_id=?", (intent_id,))
 
     def test_cancel_fences_active_assignments_leases_and_pending_results(self):
         from master_a_dynamic_v4.path_policy import PathPolicy
