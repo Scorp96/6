@@ -1158,12 +1158,10 @@ class ChromeUseActorDriverV3:
                         session,
                         allow_rate_limit_recovery=False,
                     )
-                    await self.cli.run_json(
+                    await self._fill_prompt_text(
                         session,
-                        "fill",
                         recovered_editor_ref,
                         prompt,
-                        timeout_seconds=self.timeout_seconds,
                     )
                     return await self._send_ref(session, expected_prompt=prompt)
                 except SendControlResolutionError as recovered_error:
@@ -1201,7 +1199,9 @@ class ChromeUseActorDriverV3:
                 )
                 raise first_error from exc
             try:
-                if "\n" in prompt or "\r" in prompt:
+                if ("\n" in prompt or "\r" in prompt) and not callable(
+                    getattr(self.cli, "fill_text", None)
+                ):
                     # Key-event typing interprets a newline as Enter in the
                     # ChatGPT composer.  That can submit only the first line
                     # and leave the remainder as a second unsent draft.  The
@@ -1214,7 +1214,7 @@ class ChromeUseActorDriverV3:
                     )
                     if reconciled_send_ref is not None:
                         return reconciled_send_ref
-                else:
+                elif "\n" not in prompt and "\r" not in prompt:
                     await self.cli.run_json(
                         session,
                         "type",
@@ -1223,6 +1223,12 @@ class ChromeUseActorDriverV3:
                         "--key-events",
                         "--clear",
                         timeout_seconds=self.timeout_seconds,
+                    )
+                else:
+                    await self._fill_prompt_text(
+                        session,
+                        repair_editor_ref,
+                        prompt,
                     )
             except Exception as exc:
                 first_error.add_context(
@@ -1277,6 +1283,25 @@ class ChromeUseActorDriverV3:
                     raise
                 raise exc from recovery_error
 
+    async def _fill_prompt_text(self, session, editor_ref, prompt):
+        """Use the CLI's bounded large-text transport when it is available."""
+
+        fill_text = getattr(self.cli, "fill_text", None)
+        if callable(fill_text):
+            return await fill_text(
+                session,
+                editor_ref,
+                prompt,
+                timeout_seconds=self.timeout_seconds,
+            )
+        return await self.cli.run_json(
+            session,
+            "fill",
+            editor_ref,
+            prompt,
+            timeout_seconds=self.timeout_seconds,
+        )
+
     async def _fill_prompt_with_reconciliation(self, session, editor_ref, prompt, target):
         """Fill once, and recover one daemon EOF only after a read-only check.
 
@@ -1288,13 +1313,7 @@ class ChromeUseActorDriverV3:
         """
 
         try:
-            await self.cli.run_json(
-                session,
-                "fill",
-                editor_ref,
-                prompt,
-                timeout_seconds=self.timeout_seconds,
-            )
+            await self._fill_prompt_text(session, editor_ref, prompt)
             return editor_ref
         except RuntimeError as exc:
             if not _chrome_use_daemon_busy_error(exc):
@@ -1304,13 +1323,7 @@ class ChromeUseActorDriverV3:
                 if str(prompt) in observed:
                     return editor_ref
                 fresh_editor_ref = await self._editor_ref(session)
-                await self.cli.run_json(
-                    session,
-                    "fill",
-                    fresh_editor_ref,
-                    prompt,
-                    timeout_seconds=self.timeout_seconds,
-                )
+                await self._fill_prompt_text(session, fresh_editor_ref, prompt)
                 return fresh_editor_ref
             except Exception as recovery_error:
                 raise exc from recovery_error

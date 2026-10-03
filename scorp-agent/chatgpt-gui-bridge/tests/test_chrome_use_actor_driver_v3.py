@@ -31,6 +31,16 @@ class NewTabFakeCli(FakeCli):
         return {'success': True, 'data': {'url': url}}
 
 
+class LargeFillFakeCli(FakeCli):
+    def __init__(self):
+        super().__init__()
+        self.fill_text_calls = []
+
+    async def fill_text(self, session, selector, text, *, timeout_seconds=30):
+        self.fill_text_calls.append((session, selector, text, timeout_seconds))
+        return {'success': True}
+
+
 class ChromeUseActorDriverV3Tests(unittest.TestCase):
     def _driver(self, td, cli):
         return ChromeUseActorDriverV3(cli, pathlib.Path(td) / 'chrome-use-driver-v3.json', sleeper=lambda _: asyncio.sleep(0))
@@ -750,6 +760,26 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 ],
                 fill_calls,
             )
+
+    def test_large_prompt_fill_uses_cli_file_transport_capability(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = LargeFillFakeCli()
+            driver = self._driver(td, cli)
+            prompt = 'SCORP_MASTER_INTEGRATION\n' + ('worker-result\n' * 5000)
+
+            ref = asyncio.run(driver._fill_prompt_with_reconciliation(
+                'master-session',
+                '@e11',
+                prompt,
+                'https://chatgpt.com/c/master',
+            ))
+
+            self.assertEqual('@e11', ref)
+            self.assertEqual(
+                [('master-session', '@e11', prompt, driver.timeout_seconds)],
+                cli.fill_text_calls,
+            )
+            self.assertEqual([], cli.calls)
 
     def test_send_control_accepts_accessibility_aliases_and_shortcut_suffix(self):
         from chrome_use_actor_driver_v3 import _send_ref_from_snapshot

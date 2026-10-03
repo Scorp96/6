@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import pathlib
 import subprocess
 import sys
 import tempfile
@@ -12,6 +14,7 @@ import threading
 _DAEMON_LOCKS: dict[str, threading.Lock] = {}
 _DAEMON_LOCKS_GUARD = threading.Lock()
 _PROCESS_START_RETRY_DELAYS = (0.1, 0.5)
+_INLINE_FILL_MAX_UTF8_BYTES = 4096
 
 
 def _daemon_lock(executable: str) -> threading.Lock:
@@ -142,6 +145,48 @@ class ChromeUseCliV3:
             return json.loads(text)
         except Exception as exc:
             raise ValueError("CHROME_USE_INVALID_JSON") from exc
+
+    async def fill_text(self, session, selector, text, *, timeout_seconds=30):
+        """Fill a control without putting a large prompt in process argv.
+
+        Windows CreateProcess has a bounded command-line length. Master
+        integration prompts can include multiple Worker results and exceed
+        that boundary before ``chrome-use.exe`` starts. Chrome Use supports a
+        UTF-8 file transport for ``fill``; keep the file alive only for the
+        duration of the subprocess and remove it after every outcome.
+        """
+
+        value = str(text)
+        if len(value.encode("utf-8")) <= _INLINE_FILL_MAX_UTF8_BYTES:
+            return await self.run_json(
+                session,
+                "fill",
+                selector,
+                value,
+                timeout_seconds=timeout_seconds,
+            )
+
+        file_descriptor, prompt_path_text = tempfile.mkstemp(
+            prefix="scorp-chrome-fill-",
+            suffix=".txt",
+        )
+        prompt_path = pathlib.Path(prompt_path_text)
+        try:
+            with os.fdopen(file_descriptor, "w", encoding="utf-8", newline="") as prompt_file:
+                prompt_file.write(value)
+            file_descriptor = -1
+            return await self.run_json(
+                session,
+                "fill",
+                selector,
+                "--file",
+                str(prompt_path),
+                timeout_seconds=timeout_seconds,
+            )
+        finally:
+            if file_descriptor >= 0:
+                os.close(file_descriptor)
+            prompt_path.unlink(missing_ok=True)
 
     async def prepare_interactive(self, session, *, timeout_seconds=30):
         """Surface this session before reading controls that depend on visibility.
