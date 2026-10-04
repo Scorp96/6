@@ -103,6 +103,54 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertIsNone(getattr(raised.exception, 'proof', None))
             self.assertTrue(driver.turn_binding('turn-post-submit-failure')['submit_edge_crossed'])
 
+    def test_runtime_failure_before_submit_edge_is_positive_not_attempted_proof(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+
+            async def fail_before_submit_edge(**kwargs):
+                driver._mark_turn_browser_io_started(kwargs['turn_id'])
+                raise RuntimeError('chrome-use fill transport failed')
+
+            driver._submit_prompt_unlocked = fail_before_submit_edge
+            with self.assertRaises(RuntimeError) as raised:
+                asyncio.run(driver.submit_prompt(
+                    prompt='SCORP_SAFE_PRE_SUBMIT_FAILURE',
+                    turn_id='turn-runtime-before-submit',
+                    actor_kind='MASTER',
+                    conversation_url='https://chatgpt.com/c/existing-master',
+                ))
+
+            self.assertEqual('NOT_ATTEMPTED', getattr(raised.exception, 'side_effect', None))
+            self.assertEqual(
+                'CHROME_USE_SUBMIT_EDGE_NOT_CROSSED',
+                getattr(raised.exception, 'proof', None),
+            )
+            binding = driver.turn_binding('turn-runtime-before-submit')
+            self.assertTrue(binding['browser_io_started'])
+            self.assertIsNot(True, binding['submit_edge_crossed'])
+
+    def test_runtime_failure_after_submit_edge_remains_ambiguous(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+
+            async def fail_after_submit_edge(**kwargs):
+                driver._mark_turn_browser_io_started(kwargs['turn_id'])
+                driver._mark_turn_submit_edge_crossed(kwargs['turn_id'], method='click')
+                raise RuntimeError('post-click chrome-use transport failed')
+
+            driver._submit_prompt_unlocked = fail_after_submit_edge
+            with self.assertRaises(RuntimeError) as raised:
+                asyncio.run(driver.submit_prompt(
+                    prompt='SCORP_AMBIGUOUS_POST_SUBMIT_FAILURE',
+                    turn_id='turn-runtime-after-submit',
+                    actor_kind='MASTER',
+                    conversation_url='https://chatgpt.com/c/existing-master',
+                ))
+
+            self.assertIsNone(getattr(raised.exception, 'side_effect', None))
+            self.assertIsNone(getattr(raised.exception, 'proof', None))
+            self.assertTrue(driver.turn_binding('turn-runtime-after-submit')['submit_edge_crossed'])
+
     def test_lifecycle_records_roles_and_migrates_legacy_state(self):
         with tempfile.TemporaryDirectory() as td:
             state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'
@@ -202,7 +250,7 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             driver._mark_turn_submit_edge_crossed("turn-existing", method="click")
             self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
 
-    def test_submit_failure_before_click_is_not_positive_not_submitted_proof(self):
+    def test_submit_failure_before_click_is_positive_submit_edge_proof(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()
             cli.responses = [
@@ -219,7 +267,7 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             ]
             driver = self._driver(td, cli)
 
-            with self.assertRaisesRegex(ValueError, 'CHROME_USE_PROMPT_NOT_CONFIRMED'):
+            with self.assertRaises(RuntimeError) as raised:
                 asyncio.run(driver.submit_prompt(
                     prompt='EXPECTED_VALUE',
                     turn_id='turn-pre-submit-failure',
@@ -227,6 +275,11 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                     conversation_url=None,
                 ))
 
+            self.assertEqual('NOT_ATTEMPTED', getattr(raised.exception, 'side_effect', None))
+            self.assertEqual(
+                'CHROME_USE_SUBMIT_EDGE_NOT_CROSSED',
+                getattr(raised.exception, 'proof', None),
+            )
             self.assertIsNone(driver.prove_turn_not_submitted('turn-pre-submit-failure'))
             self.assertEqual(
                 [],
@@ -453,7 +506,7 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 },
             ]
             driver = self._driver(td, cli)
-            with self.assertRaisesRegex(ValueError, 'CHROME_USE_PROMPT_NOT_CONFIRMED') as raised:
+            with self.assertRaisesRegex(RuntimeError, 'CHROME_USE_PROMPT_NOT_CONFIRMED') as raised:
                 asyncio.run(driver.submit_prompt(
                     prompt='EXPECTED_VALUE',
                     turn_id='turn-mismatched-composer',
@@ -826,7 +879,7 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 {'data': {'refs': {'e21': {'name': 'Stop generating', 'role': 'button'}}}},
             ]
             driver = self._driver(td, cli)
-            with self.assertRaisesRegex(ValueError, 'CHROME_USE_SEND_REF_COUNT_0') as raised:
+            with self.assertRaisesRegex(RuntimeError, 'CHROME_USE_SEND_REF_COUNT_0') as raised:
                 asyncio.run(driver.submit_prompt(
                     prompt='hello', turn_id='turn-context', actor_kind='WORKER', conversation_url=None
                 ))
@@ -905,7 +958,7 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 }}},
             ]
             driver = self._driver(td, cli)
-            with self.assertRaisesRegex(ValueError, 'CHROME_USE_SEND_REF_COUNT_0'):
+            with self.assertRaisesRegex(RuntimeError, 'CHROME_USE_SEND_REF_COUNT_0'):
                 asyncio.run(driver.submit_prompt(
                     prompt='hello', turn_id='turn-stop-visible', actor_kind='WORKER', conversation_url=None
                 ))

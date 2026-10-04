@@ -86,6 +86,17 @@ class ChromeUseSubmissionNotAttempted(FileNotFoundError):
     proof = "CHROME_USE_PROCESS_NOT_STARTED_BEFORE_SUBMIT"
 
 
+class ChromeUseSubmitEdgeNotCrossed(RuntimeError):
+    """Positive durable proof that this driver never attempted message submit."""
+
+    side_effect = "NOT_ATTEMPTED"
+    proof = "CHROME_USE_SUBMIT_EDGE_NOT_CROSSED"
+
+    def __init__(self, message, *, diagnostics=None):
+        super().__init__(message)
+        self.diagnostics = dict(diagnostics) if isinstance(diagnostics, dict) else {}
+
+
 def _state_lock(path: Path) -> threading.RLock:
     key = str(path.resolve())
     with _STATE_LOCKS_GUARD:
@@ -1512,6 +1523,22 @@ class ChromeUseActorDriverV3:
                     and binding.get("submit_edge_crossed") is not True
                 ):
                     raise ChromeUseSubmissionNotAttempted(str(exc)) from exc
+                raise
+            except Exception as exc:
+                # Every actual message submission path marks the durable edge
+                # immediately before click/Enter.  A failure while that edge
+                # is still false may have changed only the local composer; it
+                # cannot have submitted the message through this driver.
+                # Preserve all post-edge failures as ambiguous.
+                binding = self.turn_binding(turn_id)
+                if (
+                    isinstance(binding, dict)
+                    and binding.get("submit_edge_crossed") is not True
+                ):
+                    raise ChromeUseSubmitEdgeNotCrossed(
+                        str(exc),
+                        diagnostics=getattr(exc, "diagnostics", None),
+                    ) from exc
                 raise
         finally:
             self._submission_mutex.release()
