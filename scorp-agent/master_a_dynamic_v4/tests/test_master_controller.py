@@ -1033,6 +1033,47 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual("BLOCKED", second.status)
         self.assertEqual(calls_after_first, gateway.submit_calls)
 
+    def test_verified_not_submitted_active_claim_reuses_assignment_and_intent_once(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        class ActiveClaimGateway(_FakeGateway):
+            def load_worker_claims(self, *, master_epoch):
+                return list(self._claims)
+
+            def claim_workers(self, *, master_epoch, limit=2):
+                raise AssertionError("retry must not mint a new assignment")
+
+        gateway = ActiveClaimGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start(
+            {"objective": "retry existing worker identities"},
+            {"required": ["AC_CONTROLLER"]},
+        )
+        controller.apply_plan(
+            {
+                "project_id": "controller-project",
+                "master_identity": "A",
+                "tasks": [_task("T1", "a" * 64), _task("T2", "b" * 64)],
+            }
+        )
+        expected_assignments = {claim.assignment_id for claim in gateway._claims}
+        expected_intents = {
+            f"worker-intent-{claim.assignment_id}" for claim in gateway._claims
+        }
+        for claim in gateway._claims:
+            row = gateway.prepare_worker_intent(claim, f"complete {claim.task_id}")
+            row["state"] = "VERIFIED_NOT_SUBMITTED"
+
+        step = controller.step(
+            lambda claim: f"complete {claim.task_id}",
+            lambda row: _result_for(row),
+        )
+
+        self.assertEqual("DISPATCHED", step.status)
+        self.assertEqual(expected_assignments, set(step.claims))
+        self.assertEqual(expected_intents, set(gateway.intents))
+        self.assertEqual(2, gateway.submit_calls)
+
     def test_run_cycles_stops_at_a_durable_blocker(self):
         from master_a_dynamic_v4.master_controller import MasterAController
 

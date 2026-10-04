@@ -1159,6 +1159,25 @@ class StateStore:
                 "SELECT COUNT(*) FROM action_intents WHERE project_id=? AND state='CONFIRMED_SUBMITTED'",
                 (project,),
             ).fetchone()[0])
+            retryable_worker_intents = int(conn.execute(
+                """
+                SELECT COUNT(*)
+                FROM action_intents i
+                JOIN assignments a
+                  ON a.project_id=i.project_id
+                 AND i.intent_id=('worker-intent-' || a.assignment_id)
+                JOIN leases l ON l.assignment_id=a.assignment_id
+                WHERE i.project_id=?
+                  AND i.action_kind='CHATGPT_WORKER_SUBMIT'
+                  AND i.state='VERIFIED_NOT_SUBMITTED'
+                  AND i.attempt<2
+                  AND a.state='ACTIVE'
+                  AND a.master_epoch=?
+                  AND l.state='ACTIVE'
+                  AND l.expires_at>?
+                """,
+                (project, int(state["master_epoch"]), now),
+            ).fetchone()[0])
             stale = int(conn.execute(
                 """
                 SELECT COUNT(*) FROM candidate_results r
@@ -1226,6 +1245,7 @@ class StateStore:
                 master_physical_required=bool(physical["required"]),
                 master_physical_bound=bool(physical["bound"]),
                 master_physical_verified=bool(physical["verified"]),
+                retryable_worker_intents=retryable_worker_intents,
             )
 
     def fence_stale_results(

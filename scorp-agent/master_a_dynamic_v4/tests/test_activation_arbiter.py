@@ -92,6 +92,43 @@ class ActivationArbiterTests(unittest.TestCase):
         self.assertEqual("RECONCILE_SUBMITTED", decision.action)
         self.assertEqual("RESPONSE_CAPTURE_PENDING", decision.reason)
 
+    def test_verified_not_submitted_worker_intent_resumes_same_worker(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p",
+                project_status="ACTIVE",
+                master_epoch=4,
+                daemon_epoch=8,
+                master_active=True,
+                active_workers=2,
+                free_slots=0,
+                ready_tasks=0,
+                ambiguous_intents=0,
+                retryable_worker_intents=2,
+            )
+        )
+        self.assertEqual("RESUME_WORKER", decision.action)
+        self.assertEqual("VERIFIED_NOT_SUBMITTED_RETRY_READY", decision.reason)
+        self.assertEqual(2, decision.capacity)
+
+    def test_ambiguous_browser_effect_precedes_verified_not_submitted_retry(self):
+        decision = self.arbiter.decide(
+            ArbiterSnapshot(
+                project_id="p",
+                project_status="ACTIVE",
+                master_epoch=4,
+                daemon_epoch=8,
+                master_active=True,
+                active_workers=1,
+                free_slots=1,
+                ready_tasks=0,
+                ambiguous_intents=1,
+                retryable_worker_intents=1,
+            )
+        )
+        self.assertEqual("RECONCILE_AMBIGUOUS", decision.action)
+        self.assertEqual("AMBIGUOUS_BROWSER_SIDE_EFFECT", decision.reason)
+
     def test_master_resume_precedes_worker_assignment(self):
         decision = self.arbiter.decide(
             ArbiterSnapshot(
@@ -295,6 +332,73 @@ class ActivationArbiterTests(unittest.TestCase):
             self.assertTrue(snapshot.active_worker_lost)
             decision = self.arbiter.decide(snapshot)
             self.assertEqual("RESUME_WORKER", decision.action)
+
+    def test_store_exposes_only_first_verified_not_submitted_retry_for_active_claim(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            worktree = root / "worktree"
+            worktree.mkdir()
+            store = StateStore(root / "state.sqlite3", [root])
+            try:
+                store.create_contract(
+                    "p",
+                    root_contract={"objective": "retry the same browser intent"},
+                    acceptance_contract={"ids": []},
+                )
+                master = store.start_master_session("p", "master-a", ttl_seconds=300)
+                from master_a_dynamic_v4.path_policy import PathPolicy
+                from master_a_dynamic_v4.scheduler import Scheduler
+
+                scheduler = Scheduler(store, "p", PathPolicy([root]), max_workers=2)
+                scheduler.enqueue_graph([
+                    {
+                        "task_id": "T1",
+                        "objective_sha256": "a" * 64,
+                        "resource_scope": [worktree / "a.txt"],
+                        "dependencies": [],
+                    }
+                ])
+                claim = scheduler.claim_runnable(
+                    master_epoch=int(master["master_epoch"]), limit=1
+                )[0]
+                intent_id = f"worker-intent-{claim.assignment_id}"
+                store.prepare_intent(
+                    "p",
+                    intent_id,
+                    actor_id=claim.worker_id,
+                    channel=f"worker/{claim.slot_id}",
+                    action_kind="CHATGPT_WORKER_SUBMIT",
+                    payload={"prompt": "x"},
+                )
+                store.begin_possible_submit(intent_id)
+                store.mark_verified_not_submitted(
+                    intent_id,
+                    proof="NEW_CONVERSATION_URL_NOT_CREATED",
+                    observation={"side_effect": "NOT_ATTEMPTED"},
+                )
+
+                first = store.activation_snapshot("p", daemon_epoch=7)
+                self.assertEqual(1, first.retryable_worker_intents)
+                first_decision = self.arbiter.decide(first)
+                self.assertEqual("RESUME_WORKER", first_decision.action)
+                self.assertEqual(
+                    "VERIFIED_NOT_SUBMITTED_RETRY_READY", first_decision.reason
+                )
+
+                # Starting the permitted retry increments the durable attempt.
+                # If that retry is also positively proven not submitted, the
+                # scheduler must not offer a third browser attempt.
+                store.begin_possible_submit(intent_id)
+                store.mark_verified_not_submitted(
+                    intent_id,
+                    proof="NEW_CONVERSATION_URL_NOT_CREATED",
+                    observation={"side_effect": "NOT_ATTEMPTED"},
+                )
+                exhausted = store.activation_snapshot("p", daemon_epoch=7)
+                self.assertEqual(0, exhausted.retryable_worker_intents)
+                self.assertEqual("HEARTBEAT_IDLE", self.arbiter.decide(exhausted).action)
+            finally:
+                store.close()
 
     def test_missing_operator_control_is_unknown_and_blocks_arbiter(self):
         with tempfile.TemporaryDirectory() as td:

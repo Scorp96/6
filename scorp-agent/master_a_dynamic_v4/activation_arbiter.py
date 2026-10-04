@@ -41,6 +41,7 @@ class ArbiterSnapshot:
     master_physical_required: bool = False
     master_physical_bound: bool = False
     master_physical_verified: bool = False
+    retryable_worker_intents: int = 0
 
     def as_dict(self) -> dict[str, object]:
         return dataclasses.asdict(self)
@@ -86,7 +87,7 @@ class ActivationArbiter:
             raise ValueError("PROJECT_ID_EMPTY")
         if value.master_epoch < 0 or value.daemon_epoch < 0:
             raise ValueError("EPOCH_INVALID")
-        if min(value.active_workers, value.free_slots, value.ready_tasks, value.ambiguous_intents, value.pending_browser_responses, value.stale_results, value.pending_results) < 0:
+        if min(value.active_workers, value.free_slots, value.ready_tasks, value.ambiguous_intents, value.pending_browser_responses, value.stale_results, value.pending_results, value.retryable_worker_intents) < 0:
             raise ValueError("SNAPSHOT_COUNT_INVALID")
 
         raw = json.dumps(value.as_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -115,6 +116,9 @@ class ActivationArbiter:
             action, reason = "REASON_MASTER", "MASTER_PHYSICAL_BOOTSTRAP_REQUIRED"
         elif value.master_physical_required and not value.master_physical_verified:
             action, reason = "VERIFY_MASTER", "MASTER_PHYSICAL_VERIFICATION_REQUIRED"
+        elif value.retryable_worker_intents:
+            action, reason = "RESUME_WORKER", "VERIFIED_NOT_SUBMITTED_RETRY_READY"
+            capacity = min(value.retryable_worker_intents, value.active_workers)
         elif value.pending_results:
             action, reason = "WAKE_MASTER", "PENDING_RESULT_REQUIRES_MASTER_WAKE"
         elif value.active_worker_lost:
