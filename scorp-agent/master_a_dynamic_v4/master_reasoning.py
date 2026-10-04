@@ -423,7 +423,12 @@ class MasterReasoningCoordinator:
         # post-crash accessibility read can find it without submitting again.
         # It is an input prefix only; the model response contract remains one
         # top-level JSON object.
-        prompt = recovery_marker + "\n" + prompt_body
+        # ChatGPT's existing-conversation composer is contenteditable.  Raw
+        # newlines and URL slashes can be normalized into extra line breaks,
+        # causing Chrome Use's exact fill verification to reject a prompt that
+        # was otherwise written before the submit edge.  JSON permits escaped
+        # slashes, and a single space is an unambiguous marker separator.
+        prompt = recovery_marker + " " + prompt_body.replace("/", "\\/")
         return binding, prompt, intent_id
 
     def _prepare(self) -> dict[str, Any]:
@@ -434,7 +439,7 @@ class MasterReasoningCoordinator:
         # would create a race where the prompt describes generation N but the
         # browser target is generation N+1.
         try:
-            prompt_payload = json.loads(prompt.split("\n", 1)[1])
+            prompt_payload = json.loads(prompt.split(" ", 1)[1])
             durable_snapshot = prompt_payload["durable_snapshot"]
         except (IndexError, KeyError, TypeError, ValueError) as exc:
             raise MasterReasoningRejected(

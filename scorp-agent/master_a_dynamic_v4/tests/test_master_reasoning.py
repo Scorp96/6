@@ -137,7 +137,7 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
 
     def test_prompt_requires_top_level_binding_fields_and_reason(self):
         binding, prompt, intent_id = self.coordinator._binding_and_prompt()
-        recovery_marker, prompt_body = prompt.split("\n", 1)
+        recovery_marker, prompt_body = prompt.split(" ", 1)
         payload = json.loads(prompt_body)
         contract = payload["response_contract"]
         self.assertEqual("TOP_LEVEL", contract["binding_field_location"])
@@ -156,7 +156,7 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
 
     def test_prompt_documents_the_exact_authoritative_plan_task_schema(self):
         _binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
-        payload = json.loads(prompt.split("\n", 1)[1])
+        payload = json.loads(prompt.split(" ", 1)[1])
         contract = payload["plan_contract"]
         self.assertEqual(
             [
@@ -180,7 +180,7 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
 
     def test_prompt_requires_json_safe_forward_slash_resource_scopes(self):
         _binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
-        payload = json.loads(prompt.split("\n", 1)[1])
+        payload = json.loads(prompt.split(" ", 1)[1])
         contract = payload["plan_contract"]
         permitted = contract["canonical_permitted_resources"]
         self.assertTrue(permitted)
@@ -191,7 +191,7 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
 
     def test_prompt_makes_apply_plan_nesting_unambiguous(self):
         _binding, prompt, _intent_id = self.coordinator._binding_and_prompt()
-        payload = json.loads(prompt.split("\n", 1)[1])
+        payload = json.loads(prompt.split(" ", 1)[1])
         response = payload["response_contract"]
         contract = payload["plan_contract"]
         self.assertEqual(["plan"], response["action_required_top_level_fields"]["APPLY_PLAN"])
@@ -215,7 +215,9 @@ class MasterReasoningCoordinatorTests(unittest.TestCase):
             self.coordinator._recovery_marker(intent_id),
             payload["recovery_marker"],
         )
-        self.assertTrue(prompt.startswith(payload["recovery_marker"] + "\n"))
+        self.assertTrue(prompt.startswith(payload["recovery_marker"] + " "))
+        self.assertNotIn("\n", prompt)
+        self.assertNotIn("https://", prompt)
 
     def test_wait_is_exactly_once_and_quiesces_unchanged_state(self):
         self.assertTrue(self.coordinator.reasoning_required())
