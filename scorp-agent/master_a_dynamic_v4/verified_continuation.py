@@ -42,6 +42,23 @@ def plan_with_verified_turn(
     def blocked(reason: str) -> VerifiedContinuationResult:
         return VerifiedContinuationResult("BLOCKED", reason)
 
+    if not isinstance(request, ContinuationRequest):
+        raise TypeError("CONTINUATION_REQUEST_REQUIRED")
+    # Terminal, emergency and observation-only decisions must never depend
+    # on availability of a browser or a fresh GPT output. They require no
+    # wake-up, consume zero model tokens, and retain the arbiter's priority.
+    if request.decision_action in {
+        "TERMINAL", "EMERGENCY_STOP", "BLOCKED",
+        "HEARTBEAT_IDLE", "VERIFY_MASTER", "RECONCILE_AMBIGUOUS",
+        "RECONCILE_SUBMITTED", "FENCE_STALE_RESULTS", "RECOVER_STALLED",
+    }:
+        stopped = plan_continuation(
+            request, observation, policy, already_queued=already_queued,
+        )
+        return VerifiedContinuationResult(
+            stopped.status, stopped.reason, stopped.idempotency_key,
+        )
+
     if (
         type(now_monotonic_ms) is not int or now_monotonic_ms < 0
         or type(maximum_observation_age_ms) is not int
