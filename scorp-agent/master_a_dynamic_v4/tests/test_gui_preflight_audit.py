@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import io
+import contextlib
 import pathlib
 import sqlite3
 import tempfile
 import unittest
 
-from master_a_dynamic_v4.gui_preflight_audit import inspect_gui_preflight
+from master_a_dynamic_v4.gui_preflight_audit import inspect_gui_preflight, main
 
 URL="https://chatgpt.com/c/secret-not-to-output"
 ERROR="MASTER_CONVERSATION_ROTATION_REQUIRED"
@@ -64,6 +66,24 @@ class GuiPreflightTests(unittest.TestCase):
             report=inspect_gui_preflight(v3,health,db)
             self.assertEqual("BLOCKED_AMBIGUOUS_INTENT",report["next_action"])
             self.assertEqual("READ_ONLY",report["r1_sqlite_access"])
+
+    def test_cli_redacts_private_identifiers_and_produces_single_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            v3,health,db=self._fixture(pathlib.Path(tmp))
+            out=io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code=main([
+                    "--v3-project-root",str(v3),
+                    "--bridge-health-file",str(health),
+                    "--r1-state-db",str(db),
+                ])
+            self.assertEqual(0,code)
+            output=out.getvalue()
+            self.assertEqual(1,len(output.splitlines()))
+            self.assertEqual("BLOCKED_ROTATION_RECONCILIATION",
+                             json.loads(output)["next_action"])
+            self.assertNotIn(URL,output)
+            self.assertNotIn(ERROR,output)
 
     def test_missing_sqlite_does_not_create_it(self):
         with tempfile.TemporaryDirectory() as tmp:
