@@ -16,6 +16,7 @@ from .continuation_gate import (
 )
 from .session_admission import AdmissionPolicy, SessionObservation
 from .turn_completion_evidence import TurnSample, assess_turn_completion
+from .host_terminal_receipt import HostTerminalReceipt
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,8 @@ def plan_with_verified_turn(
     now_monotonic_ms: int,
     maximum_observation_age_ms: int = 30000,
     already_queued: Collection[str] = (),
+    host_receipts: Sequence[HostTerminalReceipt] | None = None,
+    host_attestation_key: bytes | None = None,
 ) -> VerifiedContinuationResult:
     """Compute a no-send candidate; unknown or stale evidence always blocks."""
     def blocked(reason: str) -> VerifiedContinuationResult:
@@ -80,6 +83,8 @@ def plan_with_verified_turn(
         expected_binding_generation=policy.expected_generation,
         expected_intent_id=expected_intent_id,
         maximum_separation_ms=maximum_observation_age_ms,
+        host_receipts=host_receipts,
+        host_attestation_key=host_attestation_key,
     )
     if state.status != "IDLE_CONFIRMED":
         return blocked("TURN_NOT_COMPLETED:" + state.reason)
