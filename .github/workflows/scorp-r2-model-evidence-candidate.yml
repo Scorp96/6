@@ -42,6 +42,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Parse V3 watchdog before regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scorp-agent/chatgpt-gui-bridge/bridge-watchdog.ps1'),
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            throw 'V3_WATCHDOG_PARSE_FAILED'
+          }
       - name: Run existing Windows candidate validation (no browser I/O)
         shell: pwsh
         env:
