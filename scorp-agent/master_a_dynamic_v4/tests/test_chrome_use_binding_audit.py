@@ -12,10 +12,11 @@ EXECUTABLE = r"C:\Tools\chrome-use.exe"
 
 
 class FakeChromeCli:
-    def __init__(self, sessions=("scorp-a",), focused=MASTER, tabs=None):
+    def __init__(self, sessions=("scorp-a",), focused=MASTER, tabs=None, ownership="adopted"):
         self.sessions = list(sessions)
         self.focused = focused
         self.tabs = [MASTER] if tabs is None else list(tabs)
+        self.ownership = ownership
         self.calls = []
         self.fail_on = None
         self.timeout_on = None
@@ -30,7 +31,7 @@ class FakeChromeCli:
         elif suffix == ["--session", "scorp-a", "--json", "get", "url"]:
             body = {"data": {"url": self.focused}}
         elif suffix == ["--session", "scorp-a", "--json", "tab", "list"]:
-            body = {"tabs": [{"url": url} for url in self.tabs]}
+            body = {"tabs": [{"url": url, "ownership": self.ownership} for url in self.tabs]}
         else:
             raise AssertionError("UNEXPECTED_BROWSER_OPERATION")
         if suffix == self.timeout_on:
@@ -89,6 +90,21 @@ class ChromeUseBindingAuditTests(unittest.TestCase):
         result = inspect(cli)
         self.assertEqual("MASTER_TAB_NOT_CURRENTLY_BOUND", result.reason)
         self.assertFalse(result.browser_adoption_authorized)
+
+    def test_foreign_or_unknown_ownership_does_not_pass_master_review(self):
+        for ownership in ("foreign", None, "UNKNOWN", "external"):
+            with self.subTest(ownership=ownership):
+                cli=FakeChromeCli(ownership=ownership)
+                result=inspect(cli)
+                self.assertEqual("MASTER_TAB_NOT_OWNED_BY_SESSION",result.reason)
+                self.assertFalse(result.browser_send_authorized)
+                self.assertFalse(result.browser_adoption_authorized)
+
+    def test_created_session_owned_tab_may_be_reviewed_but_never_sent(self):
+        cli=FakeChromeCli(ownership="created")
+        result=inspect(cli)
+        self.assertEqual("READONLY_MATCH_REVIEW_REQUIRED",result.status)
+        self.assertFalse(result.browser_send_authorized)
 
     def test_legacy_ambiguous_master_blocks_even_when_url_matches(self):
         cli = FakeChromeCli()
