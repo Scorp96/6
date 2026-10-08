@@ -28,3 +28,19 @@ jobs:
           PYTHONPATH: scorp-agent:scorp-agent/chatgpt-gui-bridge
         run: |
           python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p test_v4_master_controller_runtime.py -v
+
+  full-offline-regression:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run existing Windows candidate validation (no browser I/O)
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          Set-ExecutionPolicy -Scope Process Bypass
+          .\\scripts\\run-candidate-validation.ps1
