@@ -32,6 +32,8 @@ class SessionObservation:
     unresolved_intents: int = 0
     model_label: str | None = None
     model_verification: str = "UNVERIFIED"
+    auth_verification: str = "UNVERIFIED"
+    physical_verification: str = "UNVERIFIED"
 
 
 @dataclass(frozen=True)
@@ -129,8 +131,12 @@ def evaluate_session(
         return blocked("CONVERSATION_BINDING_UNVERIFIED")
     if observation.auth_status != "AUTHENTICATED":
         return blocked("AUTHENTICATION_UNVERIFIED")
+    if observation.auth_verification != "HOST_VERIFIED":
+        return blocked("HOST_AUTH_PROOF_UNVERIFIED")
     if observation.physical_status != "VERIFIED":
         return blocked("PHYSICAL_SESSION_UNVERIFIED")
+    if observation.physical_verification != "HOST_VERIFIED":
+        return blocked("HOST_PHYSICAL_PROOF_UNVERIFIED")
     if type(observation.unresolved_intents) is not int or observation.unresolved_intents < 0:
         return blocked("UNRESOLVED_INTENT_COUNT_INVALID")
     if observation.unresolved_intents:
