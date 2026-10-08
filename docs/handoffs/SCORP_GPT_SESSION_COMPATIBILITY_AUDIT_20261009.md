@@ -477,3 +477,82 @@ the 25-minute acceptance. Do NOT switch intervals on one existing ledger.
 **SAFE RESULT:** token-free deterministic health observation is proven;
 browser reactivation is still unavailable. The production daemon,
 SQLite, GUI Bridge and Watchdog remain unchanged.
+
+## 2026-10-09 07:11+08:00: isolated Windows scheduler candidate (NOT INSTALLED)
+
+### Why
+
+The previously verified \`local_tick_observer.py\` performs exactly one
+no-send observation and remembers 15/25-minute due times in isolated
+SQLite. It DOES NOT keep running after process exit. A separate Windows
+Task Scheduler action is needed to invoke it regularly.
+
+### New candidate files
+
+- \`master_a_dynamic_v4/run_isolated_observer_canary.ps1\`:
+  pinned-checkout launcher. Verifies the EXACT Git SHA of
+  \`C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009\`
+  and refuses a dirty worktree or missing observer state. It invokes
+  only \`master_a_dynamic_v4.local_tick_observer\` and refuses any
+  \`browser_send_authorized\` or \`browser_adoption_authorized\` flag.
+- \`master_a_dynamic_v4/install_isolated_observer_canary.ps1\`:
+  \`Inspect\`, \`DryRun\`, \`InstallDisabled\`, \`Enable\`, \`Disable\`,
+  and \`Remove\` are explicit distinct modes.
+  \`Inspect\` is the default; installation **only registers a disabled**
+  canary Task Scheduler task. Existing task-name collisions fail closed.
+  A separate \`Enable\` is required to start recurring observations.
+  \`Disable\` / \`Remove\` remain available after a repository SHA drift.
+- \`tests/test_observer_canary_task_source.py\`: checks that the launcher
+  cannot start/restart background processes or send browser actions and
+  that the installer has explicit disable/rollback and limited principal.
+- Windows CI syntax-checks BOTH new PowerShell scripts using the native
+  PowerShell AST parser before running the full offline suite.
+
+### Intended Task Scheduler posture
+
+- Task name: \`ScorpR2GPTObserver15mCanary\` or
+  \`ScorpR2GPTObserver25mCanary\`.
+- Account: current user's **Interactive, Limited** token.
+- Scheduler wake cycle: once every FIVE minutes while that interactive
+  user can run tasks. The durable internal SQLite due gate performs a
+  full read-only observation only at/after 15 or 25 minutes, with up to
+  roughly 5 minutes scheduler quantization plus any host delays.
+- No task restart policy; \`MultipleInstances IgnoreNew\`; no model
+  API, no original-GPT send, no UI tab selection, no changes to the
+  existing GUI Watchdog or persistent V4 Runtime.
+- Enabling these isolated tasks is NOT proof of original GPT wake-up.
+
+### No unattended Windows changes in this stage yet
+
+A fresh [read-only scheduler readiness issue
+#2282](https://github.com/Scorp96/scorp-control-plane/issues/2282)
+was submitted to the Windows control queue, but at this writing has no
+host claim or completion receipt. Unlike earlier confirmed [#2278] and
+[#2279], that means no assertion of fresh local availability is justified.
+**Do not leave a modifying install/enable issue queued for delayed execution
+while the host's online/identity state is unknown.** GitHub offline
+candidate code may be tested independently.
+
+### Future operator-gated sequence (not executed)
+
+1. Confirm a NEW Windows Agent read-only claim/result (not only the issue
+   title \`SCORP_EXEC_RUNNING\`).
+2. Ensure the isolated checkout is clean and updated to a specifically
+   tested SHA; verify both previously accepted observer-state directories.
+3. Run the installer \`-Mode Inspect\` and \`-Mode DryRun\`. Never overwrite
+   a task with the same name.
+4. Run \`-Mode InstallDisabled\` for at most ONE canary.
+   Inspect its exact action, principal and disabled state.
+5. Enable only the isolated task by separate, validated action. Observe
+   at least two scheduled invocations through Task Scheduler and SQLite;
+   verify a not-due check does not access the browser, and a due check
+   only reads session/tab metadata.
+6. On any ambiguity/error, \`-Mode Disable\`; do not change V3/R1 or
+   restart the production GUI Bridge. Use \`-Mode Remove\` only after
+   disabling and verifying the exact task identity.
+7. A 24-hour end-to-end soak can be claimed only after observing 24 hours
+   of actual schedule receipts, lease continuity and clean redacted logs,
+   not from a mocked clock or backfilled SQLite rows.
+
+**Status: SCHEDULER CANDIDATE / WINDOWS INSTALL NOT EXECUTED /
+PRODUCTION UNCHANGED / ORIGINAL MASTER STILL BLOCKED.**
