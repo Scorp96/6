@@ -16,7 +16,6 @@ import re
 import subprocess
 from dataclasses import dataclass
 from typing import Any, Callable
-from urllib.parse import urlsplit
 
 from .session_admission import _canonical_conversation_url
 
@@ -47,22 +46,24 @@ def _extract_scalar(value: Any) -> str | None:
     return None
 
 
-def _tab_urls(tree: Any) -> list[str]:
-    urls: list[str] = []
+def _tab_records(tree: Any) -> list[tuple[str, str | None]]:
+    records: list[tuple[str, str | None]] = []
     def walk(value: Any, depth: int) -> None:
-        if depth > 12 or len(urls) >= 128:
+        if depth > 12 or len(records) >= 128:
             return
         if isinstance(value, dict):
-            for key, item in value.items():
-                if key == "url" and isinstance(item, str):
-                    urls.append(item)
-                elif isinstance(item, (dict, list)):
+            url = value.get("url")
+            if isinstance(url, str):
+                own = value.get("ownership")
+                records.append((url, own if isinstance(own, str) else None))
+            for item in value.values():
+                if isinstance(item, (dict, list)):
                     walk(item, depth + 1)
         elif isinstance(value, list):
             for item in value[:128]:
                 walk(item, depth + 1)
     walk(tree, 0)
-    return urls
+    return records
 
 
 def inspect_existing_chrome_use_session(
@@ -120,13 +121,13 @@ def inspect_existing_chrome_use_session(
         return blocked("SESSION_IDENTIFIER_UNVERIFIED", n=1)
     try:
         focused = _extract_scalar(call("--session", name, "--json", "get", "url"))
-        tabs = _tab_urls(call("--session", name, "--json", "tab", "list"))
+        tabs = _tab_records(call("--session", name, "--json", "tab", "list"))
     except (OSError, subprocess.TimeoutExpired, ValueError, RuntimeError):
         return blocked("READ_ONLY_SESSION_OBSERVATION_FAILED", n=1)
 
-    chat = [_canonical_conversation_url(x) for x in tabs]
-    chat = [x for x in chat if x is not None]
-    match_count = sum(x == master for x in chat)
+    chat = [(_canonical_conversation_url(url), ownership) for url, ownership in tabs]
+    chat = [(url, ownership) for url, ownership in chat if url is not None]
+    match_count = sum(url == master for url, _ownership in chat)
     focused_match = _canonical_conversation_url(focused or "") == master
     if rotation_conflict:
         return blocked("MASTER_ROTATION_CONFLICT_UNRESOLVED", n=1, chat=len(chat),
@@ -142,6 +143,10 @@ def inspect_existing_chrome_use_session(
     if not focused_match:
         return blocked("MASTER_TAB_NOT_CURRENTLY_BOUND", n=1, chat=len(chat),
                        matches=match_count)
+    owner = next(ownership for url, ownership in chat if url == master)
+    if owner not in {"created", "adopted"}:
+        return blocked("MASTER_TAB_NOT_OWNED_BY_SESSION", n=1, chat=len(chat),
+                       matches=match_count, selected=focused_match)
     return BrowserBindingAudit(
         "READONLY_MATCH_REVIEW_REQUIRED",
         "CANONICAL_URL_FOUND_BUT_NO_PHYSICAL_ATTESTATION_OR_BIND_PERMISSION",
