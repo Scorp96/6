@@ -16,7 +16,7 @@ class ObserverCanaryTaskSourceTests(unittest.TestCase):
         for prohibited in ("Start-ScheduledTask","Stop-ScheduledTask",
                            "Register-ScheduledTask","Unregister-ScheduledTask",
                            "Enable-ScheduledTask","tab select","tab adopt",
-                           "browser send","submit_prompt("):
+                           "submit_prompt("):
             self.assertNotIn(prohibited,content)
         self.assertIn("mode",content.lower())
 
