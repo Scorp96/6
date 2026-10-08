@@ -71,7 +71,7 @@ def inspect_existing_chrome_use_session(
     *,
     run: Callable[..., Any] = subprocess.run,
     timeout_seconds: float = 10.0,
-    unresolved_master_intents: int = 0,
+    unresolved_master_intents: int | None = None,
 ) -> BrowserBindingAudit:
     """Read-only inventory; a successful result still requires human binding review."""
     def blocked(reason: str, *, n=0, chat=0, matches=0, selected=False):
