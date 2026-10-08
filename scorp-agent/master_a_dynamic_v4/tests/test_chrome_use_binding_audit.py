@@ -56,7 +56,9 @@ class FakeChromeCli:
 
 
 def inspect(cli, **kw):
-    return inspect_existing_chrome_use_session(EXECUTABLE, MASTER, run=cli, **kw)
+    settings={"unresolved_master_intents":0}
+    settings.update(kw)
+    return inspect_existing_chrome_use_session(EXECUTABLE, MASTER, run=cli, **settings)
 
 
 class ChromeUseBindingAuditTests(unittest.TestCase):
@@ -142,6 +144,12 @@ class ChromeUseBindingAuditTests(unittest.TestCase):
         result = inspect(cli)
         self.assertEqual("SESSION_IDENTIFIER_UNVERIFIED", result.reason)
         self.assertEqual(1, len(cli.calls))
+
+    def test_missing_authoritative_intent_count_is_refused(self):
+        cli=FakeChromeCli()
+        result=inspect_existing_chrome_use_session(EXECUTABLE,MASTER,run=cli)
+        self.assertEqual("INTENT_COUNT_UNVERIFIED",result.reason)
+        self.assertEqual([],cli.calls)
 
     def test_invalid_master_url_refused_before_cli(self):
         cli = FakeChromeCli()
