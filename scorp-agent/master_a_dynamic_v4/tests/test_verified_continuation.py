@@ -57,6 +57,22 @@ class VerifiedContinuationTests(unittest.TestCase):
         self.assertEqual(SHA,result.completion_proof_sha256)
         self.assertFalse(result.browser_send_authorized)
 
+    def test_emergency_stop_does_not_need_browser_observations(self):
+        for action, expected in (
+            ("TERMINAL", "STOP"),
+            ("EMERGENCY_STOP", "STOP"),
+            ("HEARTBEAT_IDLE", "OBSERVE_ONLY"),
+            ("RECONCILE_AMBIGUOUS", "OBSERVE_ONLY"),
+        ):
+            with self.subTest(action=action):
+                result=plan_with_verified_turn(
+                    replace(request(), decision_action=action),
+                    observation(), policy(), [], expected_intent_id="intent-current",
+                    now_monotonic_ms=6000,
+                )
+                self.assertEqual(expected,result.status)
+                self.assertFalse(result.browser_send_authorized)
+
     def test_unverified_idle_string_does_not_bypass_proof(self):
         r=plan(samples(finish_event=None))
         self.assertEqual("BLOCKED",r.status)
