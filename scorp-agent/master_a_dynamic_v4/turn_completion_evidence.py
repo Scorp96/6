@@ -49,6 +49,7 @@ def assess_turn_completion(
     expected_binding_generation: int,
     expected_intent_id: str,
     minimum_separation_ms: int = 3000,
+    maximum_separation_ms: int = 30000,
 ) -> CompletionResult:
     """Return IDLE_CONFIRMED only after two scoped, affirmative host proofs.
 
@@ -66,6 +67,8 @@ def assess_turn_completion(
         or expected_binding_generation < 0
         or type(minimum_separation_ms) is not int
         or minimum_separation_ms < 1000
+        or type(maximum_separation_ms) is not int
+        or maximum_separation_ms < minimum_separation_ms
     ):
         return unknown("EXPECTED_BINDING_INVALID")
     canonical_url = _canonical_conversation_url(expected_conversation_url)
@@ -85,6 +88,8 @@ def assess_turn_completion(
         or last.sampled_at_ms - first.sampled_at_ms < minimum_separation_ms
     ):
         return unknown("OBSERVATION_STABILITY_WINDOW_NOT_MET")
+    if last.sampled_at_ms - first.sampled_at_ms > maximum_separation_ms:
+        return unknown("OBSERVATION_PAIR_TOO_OLD")
 
     for sample in (first, last):
         if sample.session_id != expected_session_id:
