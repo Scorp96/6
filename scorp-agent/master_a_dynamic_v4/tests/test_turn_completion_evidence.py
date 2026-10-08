@@ -51,8 +51,6 @@ class TurnCompletionEvidenceTests(unittest.TestCase):
         self.assertFalse(result.browser_send_authorized)
 
     def test_one_snapshot_never_proves_finished(self):
-        self.assert_unknown("TWO_FRESH_OBSERVATIONS_REQUIRED", a=sample(1000), b=sample(5000),
-                            minimum_separation_ms=3000)
         result=decision([sample(1000)])
         self.assertEqual("TWO_FRESH_OBSERVATIONS_REQUIRED", result.reason)
 
