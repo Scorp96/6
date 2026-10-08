@@ -142,6 +142,7 @@ def evaluate_session(
         or type(policy.max_workers) is not int
         or policy.active_workers < 0
         or policy.max_workers < 1
+        or policy.max_workers > 2  # V4 release capacity, not the number of known GPT sessions
     ):
         return blocked("CAPACITY_POLICY_INVALID")
     if observation.role == "WORKER" and policy.active_workers >= policy.max_workers:
