@@ -88,10 +88,14 @@ def verify_host_terminal_receipts(
         return "HOST_RECEIPT_SHAPE_INVALID"
     if a.protocol!=_PROTOCOL or b.protocol!=_PROTOCOL:
         return "HOST_RECEIPT_PROTOCOL_INVALID"
+    if not isinstance(a.event_id,str) or not isinstance(b.event_id,str):
+        return "HOST_TERMINAL_EVENT_ID_INVALID"
     if not _EVENT_ID.fullmatch(a.event_id) or a.event_id!=b.event_id:
         return "HOST_TERMINAL_EVENT_ID_INVALID"
     if type(a.sequence) is not int or type(b.sequence) is not int or a.sequence<0 or b.sequence<=a.sequence:
         return "HOST_RECEIPT_SEQUENCE_REPLAY"
+    if not isinstance(a.conversation_url,str) or not isinstance(b.conversation_url,str):
+        return "HOST_RECEIPT_CONVERSATION_INVALID"
     canonical_a=_canonical_conversation_url(a.conversation_url)
     canonical_b=_canonical_conversation_url(b.conversation_url)
     if not canonical_a or canonical_a!=a.conversation_url or canonical_b!=canonical_a:
@@ -118,7 +122,10 @@ def verify_host_terminal_receipts(
                 return "HOST_RECEIPT_SAMPLE_MISMATCH"
         if not isinstance(receipt.signature,str) or not _SHA256.fullmatch(receipt.signature):
             return "HOST_RECEIPT_SIGNATURE_INVALID"
-        digest=hmac.new(key,_unsigned_payload(receipt),hashlib.sha256).hexdigest()
+        try:
+            digest=hmac.new(key,_unsigned_payload(receipt),hashlib.sha256).hexdigest()
+        except (TypeError,ValueError,OverflowError):
+            return "HOST_RECEIPT_SERIALIZATION_INVALID"
         if not hmac.compare_digest(digest,receipt.signature):
             return "HOST_RECEIPT_SIGNATURE_INVALID"
     if a.response_sha256!=b.response_sha256:
