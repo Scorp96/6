@@ -6,10 +6,12 @@ import unittest
 from master_a_dynamic_v4.continuation_gate import ContinuationRequest
 from master_a_dynamic_v4.session_admission import SessionObservation, AdmissionPolicy
 from master_a_dynamic_v4.turn_completion_evidence import TurnSample
+from master_a_dynamic_v4.host_terminal_receipt import HostTerminalReceipt, seal_test_host_receipt
 from master_a_dynamic_v4.verified_continuation import plan_with_verified_turn
 
 URL="https://chatgpt.com/c/bound-worker"
 SHA="1"*64
+HOST_KEY=b"isolated-host-receipt-only-unit-test-key-20261009-32bytes"
 
 def request():
     return ContinuationRequest(
@@ -46,16 +48,39 @@ def samples(**changes):
     )
     return [row,replace(row,sampled_at_ms=5000,**changes)]
 
+def signed_receipts(rows):
+    receipts=[]
+    for seq,row in enumerate(rows[-2:],start=1):
+        receipt=HostTerminalReceipt(
+            protocol="scorp.browser-terminal-receipt/1",event_id="e"*32,sequence=seq,
+            session_id=row.session_id,conversation_url=row.conversation_url,
+            binding_generation=row.binding_generation,intent_id=row.intent_id,
+            sampled_at_ms=row.sampled_at_ms,response_sha256=row.response_sha256,
+            generating=row.generating,tool_pending=row.tool_pending,
+            terminal_event="TURN_FINAL_CONFIRMED",
+        )
+        receipts.append(seal_test_host_receipt(receipt,HOST_KEY))
+    return receipts
+
+
 def plan(rows=None,**changes):
-    args=dict(expected_intent_id="intent-current",now_monotonic_ms=6000)
+    sample_rows=rows if rows is not None else samples()
+    args=dict(expected_intent_id="intent-current",now_monotonic_ms=6000,
+              host_receipts=signed_receipts(sample_rows),host_attestation_key=HOST_KEY)
     args.update(changes)
-    return plan_with_verified_turn(request(),observation(),policy(),rows or samples(),**args)
+    return plan_with_verified_turn(request(),observation(),policy(),sample_rows,**args)
 
 class VerifiedContinuationTests(unittest.TestCase):
     def test_good_host_proof_allows_candidate_not_send(self):
         result=plan()
         self.assertEqual("READY_FOR_GATED_ADAPTER",result.status)
         self.assertEqual(SHA,result.completion_proof_sha256)
+        self.assertFalse(result.browser_send_authorized)
+
+    def test_missing_host_signature_blocks_positive_reactivation_candidate(self):
+        result=plan(host_receipts=None)
+        self.assertEqual("BLOCKED",result.status)
+        self.assertEqual("TURN_NOT_COMPLETED:TWO_SIGNED_HOST_RECEIPTS_REQUIRED",result.reason)
         self.assertFalse(result.browser_send_authorized)
 
     def test_emergency_stop_does_not_need_browser_observations(self):
@@ -101,6 +126,7 @@ class VerifiedContinuationTests(unittest.TestCase):
         r=plan_with_verified_turn(
             request(),observation(),policy(required_model="GPT-5.6 Sol"),
             samples(),expected_intent_id="intent-current",now_monotonic_ms=6000,
+            host_receipts=signed_receipts(samples()),host_attestation_key=HOST_KEY,
         )
         self.assertEqual("BLOCKED",r.status)
         self.assertEqual("REQUIRED_MODEL_UNVERIFIED",r.reason)
@@ -129,7 +155,8 @@ class VerifiedContinuationTests(unittest.TestCase):
     def test_hard_blocked_operator_prevents_continuation(self):
         r=plan_with_verified_turn(
             request(),observation(),policy(operator_status="PAUSED"),
-            samples(),expected_intent_id="intent-current",now_monotonic_ms=6000
+            samples(),expected_intent_id="intent-current",now_monotonic_ms=6000,
+            host_receipts=signed_receipts(samples()),host_attestation_key=HOST_KEY,
         )
         self.assertEqual("BLOCKED",r.status)
         self.assertEqual("OPERATOR_NOT_RUNNING",r.reason)
