@@ -250,6 +250,22 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             driver._mark_turn_submit_edge_crossed("turn-existing", method="click")
             self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
 
+    def test_legacy_ambiguous_master_turn_has_no_positive_no_submit_proof(self):
+        # Matches the 2026-10-09 read-only production diagnostic:
+        # browser I/O started, submit edge unknown, no conversation URL.
+        # Unknown is not equivalent to False, and must never permit a retry.
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            driver.bind_turn("legacy-master-intent", None, actor_kind="MASTER")
+            driver._mark_turn_browser_io_started("legacy-master-intent")
+            with driver._state_mutex:
+                state = driver._load()
+                row = state["turns"]["legacy-master-intent"]
+                row["submit_edge_crossed"] = None
+                row["conversation_url"] = None
+                driver._save(state)
+            self.assertIsNone(driver.prove_turn_not_submitted("legacy-master-intent"))
+
     def test_submit_failure_before_click_is_positive_submit_edge_proof(self):
         with tempfile.TemporaryDirectory() as td:
             cli = FakeCli()
