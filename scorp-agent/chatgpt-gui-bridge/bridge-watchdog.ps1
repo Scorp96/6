@@ -47,6 +47,75 @@ function Test-BridgeFunctionalHealth {
   }
 }
 
+# A Master conversation URL changed without an approved rotation. This is
+# an identity conflict, not a transient process crash: restarting could replay
+# the same ambiguous browser action. Keep the watchdog observable but idle.
+if (Test-Path -LiteralPath $bridgeHealthPath -PathType Leaf) {
+  try {
+    $savedHealth = Get-Content -LiteralPath $bridgeHealthPath -Raw | ConvertFrom-Json
+    $savedError = [string]$savedHealth.error
+    if (
+      [string]$savedHealth.status -eq 'ERROR' -and
+      $savedError -match '^(?:ValueError:\s*)?MASTER_CONVERSATION_ROTATION_REQUIRED(?:;\s*consecutive_cycle=\d+)?$workers = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction Stop | Where-Object {
+  ([string]$_.CommandLine).Contains($BridgeWorkerPath)
+})
+
+if ($workers.Count -gt 0) {
+  $roots = @()
+  foreach ($worker in $workers) {
+    $parent = $null
+    try { $parent = Get-CimInstance Win32_Process -Filter ("ProcessId = {0}" -f $worker.ParentProcessId) -ErrorAction Stop } catch {}
+    if ($parent -and [string]$parent.Name -eq 'svchost.exe') {
+      $roots += $worker
+    }
+  }
+  if ($workers.Count -gt 0 -and $roots.Count -eq 0) {
+    Write-WatchdogHealth 'WATCHDOG_ORPHAN_BLOCKED' 'bridge processes exist but no scheduler root was identified; refusing to start another process' $workers.Count
+    Write-Output 'WATCHDOG_ORPHAN_NO_SCHEDULER_ROOT'
+    exit 0
+  }
+  if ($roots.Count -eq 1) {
+    $functional = Test-BridgeFunctionalHealth
+    if ($functional.Healthy) {
+      Write-WatchdogHealth 'WATCHDOG_HEALTHY' $functional.Detail $workers.Count
+      Write-Output 'WATCHDOG_HEALTHY'
+      exit 0
+    }
+    Write-WatchdogHealth 'WATCHDOG_STALE_HEALTH' $functional.Detail $workers.Count
+  }
+  elseif ($roots.Count -ne 0) {
+    Write-WatchdogHealth 'WATCHDOG_ORPHAN_BLOCKED' ("bridge processes present without exactly one scheduler root; roots={0}" -f $roots.Count) $workers.Count
+    Write-Output 'WATCHDOG_ORPHAN_BLOCKED'
+    exit 0
+  }
+}
+
+if ([string]$task.State -eq 'Running') {
+  Stop-ScheduledTask -TaskName $TargetTaskName
+  Start-Sleep -Milliseconds 500
+}
+Start-ScheduledTask -TaskName $TargetTaskName
+Start-Sleep -Seconds 2
+$after = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction Stop | Where-Object {
+  ([string]$_.CommandLine).Contains($BridgeWorkerPath)
+})
+if ($after.Count -lt 1) {
+  Write-WatchdogHealth 'WATCHDOG_RESTART_FAILED' 'target task start produced no bridge process' 0
+  throw 'WATCHDOG_RESTART_FAILED'
+}
+Write-WatchdogHealth 'WATCHDOG_RESTARTED' 'bridge process tree was absent and target task was started' $after.Count
+Write-Output 'WATCHDOG_RESTARTED'
+
+    ) {
+      Write-WatchdogHealth 'WATCHDOG_BLOCKED_ROTATION' 'Master rotation requires separate operator-approved reconciliation' 0
+      Write-Output 'WATCHDOG_BLOCKED_ROTATION'
+      exit 0
+    }
+  } catch {
+    # Preserve the existing health-parse behavior for unrelated failures.
+  }
+}
+
 $task = Get-ScheduledTask -TaskName $TargetTaskName -ErrorAction Stop
 $workers = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction Stop | Where-Object {
   ([string]$_.CommandLine).Contains($BridgeWorkerPath)
