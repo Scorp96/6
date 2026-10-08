@@ -74,6 +74,7 @@ def signed_receipts(rows):
             binding_generation=row.binding_generation,intent_id=row.intent_id,
             sampled_at_ms=row.sampled_at_ms,response_sha256=row.response_sha256,
             generating=row.generating,tool_pending=row.tool_pending,
+            response_intent_verified=row.response_intent_verified,
             terminal_event="TURN_FINAL_CONFIRMED",
         )
         receipts.append(seal_test_host_receipt(receipt,HOST_KEY))
