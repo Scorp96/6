@@ -37,7 +37,7 @@ def plan_with_verified_turn(
     expected_intent_id: str,
     now_monotonic_ms: int,
     maximum_observation_age_ms: int = 30000,
-    already_queued: Collection[str] = (),
+    already_queued: Collection[str] | None = None,
     host_receipts: Sequence[HostTerminalReceipt] | None = None,
     host_attestation_key: bytes | None = None,
 ) -> VerifiedContinuationResult:
@@ -56,11 +56,18 @@ def plan_with_verified_turn(
         "RECONCILE_SUBMITTED", "FENCE_STALE_RESULTS", "RECOVER_STALLED",
     }:
         stopped = plan_continuation(
-            request, observation, policy, already_queued=already_queued,
+            request, observation, policy,
+            already_queued=already_queued if already_queued is not None else (),
         )
         return VerifiedContinuationResult(
             stopped.status, stopped.reason, stopped.idempotency_key,
         )
+
+    # A resumable candidate must never infer an empty durable queue from a
+    # missing caller argument. Production must supply its authoritative
+    # persisted idempotency-key snapshot (and atomically insert before I/O).
+    if already_queued is None or isinstance(already_queued,(str,bytes)):
+        return blocked("IDEMPOTENCY_LEDGER_UNVERIFIED")
 
     if (
         type(now_monotonic_ms) is not int or now_monotonic_ms < 0
