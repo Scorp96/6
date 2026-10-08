@@ -215,3 +215,19 @@ NO LIVE BROWSER SEND / NO REPLAY / NO PRODUCTION SQLITE WRITE.
 Run `scripts/run-candidate-validation.ps1` in the isolated candidate
 and check the latest branch-specific GitHub Actions run before reviewing.
 A full offline pass is necessary but insufficient for production.
+
+## Isolated rotation safeguard (not deployed)
+
+- `chatgpt-gui-bridge/bridge-watchdog.ps1` now contains a guarded
+  short-circuit for a known `MASTER_CONVERSATION_ROTATION_REQUIRED` health
+  error. It reports `WATCHDOG_BLOCKED_ROTATION` and does not restart the
+  Bridge task. The production watchdog remains **Disabled**.
+- A Windows-only test runs the PowerShell script with a deliberately
+  nonexistent target task and a mock error health file. The expected result
+  is return code 0 and `WATCHDOG_BLOCKED_ROTATION`, proving that the
+  blocked path never reaches Task Scheduler restart operations.
+- This safety modification does not authorize rotation of the old Master
+  URL or resolve the old V3/R1 browser ambiguity. Only operator-approved,
+  proven physical rebind can address that.
+- GitHub Actions on experimental branch cancel superseded runs. The latest
+  full offline validation must be checked at its actual tested commit SHA.
