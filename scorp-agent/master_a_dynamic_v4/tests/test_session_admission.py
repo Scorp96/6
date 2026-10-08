@@ -135,6 +135,9 @@ class SessionAdmissionTests(unittest.TestCase):
     def test_capacity_is_bounded(self):
         self.assert_blocked("CAPACITY_POLICY_INVALID", settings=policy(max_workers=0))
 
+    def test_unknown_n_model_sessions_do_not_expand_v4_parallel_capacity(self):
+        self.assert_blocked("CAPACITY_POLICY_INVALID", settings=policy(max_workers=8))
+
     def test_master_identity_is_logical_and_not_model_label(self):
         result = evaluate_session(
             session(role="MASTER", model_label="GPT-6"),
