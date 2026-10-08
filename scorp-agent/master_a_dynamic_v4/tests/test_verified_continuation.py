@@ -84,7 +84,8 @@ def signed_receipts(rows):
 def plan(rows=None,**changes):
     sample_rows=rows if rows is not None else samples()
     args=dict(expected_intent_id="intent-current",now_monotonic_ms=6000,
-              host_receipts=signed_receipts(sample_rows),host_attestation_key=HOST_KEY)
+              host_receipts=signed_receipts(sample_rows),host_attestation_key=HOST_KEY,
+              already_queued=())
     args.update(changes)
     return plan_with_verified_turn(request(),observation(),policy(),sample_rows,**args)
 
@@ -94,6 +95,17 @@ class VerifiedContinuationTests(unittest.TestCase):
         self.assertEqual("READY_FOR_GATED_ADAPTER",result.status)
         self.assertEqual(SHA,result.completion_proof_sha256)
         self.assertFalse(result.browser_send_authorized)
+
+    def test_missing_authoritative_queue_snapshot_blocks_even_signed_host(self):
+        result=plan(already_queued=None)
+        self.assertEqual("BLOCKED",result.status)
+        self.assertEqual("IDEMPOTENCY_LEDGER_UNVERIFIED",result.reason)
+        self.assertFalse(result.browser_send_authorized)
+
+    def test_string_queue_is_not_accepted_as_durable_idempotency_ledger(self):
+        result=plan(already_queued="continue-fake")
+        self.assertEqual("BLOCKED",result.status)
+        self.assertEqual("IDEMPOTENCY_LEDGER_UNVERIFIED",result.reason)
 
     def test_missing_host_signature_blocks_positive_reactivation_candidate(self):
         result=plan(host_receipts=None)
@@ -145,6 +157,7 @@ class VerifiedContinuationTests(unittest.TestCase):
             request(),observation(),policy(required_model="GPT-5.6 Sol"),
             samples(),expected_intent_id="intent-current",now_monotonic_ms=6000,
             host_receipts=signed_receipts(samples()),host_attestation_key=HOST_KEY,
+            already_queued=(),
         )
         self.assertEqual("BLOCKED",r.status)
         self.assertEqual("REQUIRED_MODEL_UNVERIFIED",r.reason)
@@ -175,6 +188,7 @@ class VerifiedContinuationTests(unittest.TestCase):
             request(),observation(),policy(operator_status="PAUSED"),
             samples(),expected_intent_id="intent-current",now_monotonic_ms=6000,
             host_receipts=signed_receipts(samples()),host_attestation_key=HOST_KEY,
+            already_queued=(),
         )
         self.assertEqual("BLOCKED",r.status)
         self.assertEqual("OPERATOR_NOT_RUNNING",r.reason)
