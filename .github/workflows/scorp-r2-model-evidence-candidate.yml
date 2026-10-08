@@ -1,0 +1,30 @@
+name: SCORP R2 model evidence candidate
+on:
+  push:
+    branches:
+      - experiment/gpt-session-model-evidence-20261009
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-only-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile candidate Python modules
+        shell: bash
+        run: |
+          python -B -m py_compile scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py
+          python -B -m py_compile scorp-agent/chatgpt-gui-bridge/tests/test_v4_master_controller_runtime.py
+      - name: Run scoped V4 master controller runtime regression
+        shell: bash
+        env:
+          PYTHONPATH: scorp-agent:scorp-agent/chatgpt-gui-bridge
+        run: |
+          python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p test_v4_master_controller_runtime.py -v
