@@ -290,3 +290,58 @@ proof remain unimplemented in the actual Chrome Use adapter. Offline
 simulators do not count as a real host completion event.
 
 **Do not deploy/restart production as part of the candidate.**
+
+## 2026-10-09 01:38–01:44 local isolated Windows test and live binding canary
+
+- [#2266](https://github.com/Scorp96/scorp-control-plane/issues/2266):
+  R1 original project and V3 driver remain unchanged after browser read probes.
+  ACTIVE/BOOTSTRAP, state_version=0, one BLOCKED_AMBIGUOUS intent, no V4
+  browser bindings, zero V3 physical driver sessions; GUI Watchdog Disabled.
+- [#2267](https://github.com/Scorp96/scorp-control-plane/issues/2267):
+  authenticated GH CLI, Git and Python are installed; new isolated staging
+  target was absent.
+- [#2268](https://github.com/Scorp96/scorp-control-plane/issues/2268):
+  first attempted checkout/test wrapper failed because PowerShell treated
+  ordinary `gh repo clone` stderr as a terminating error. This wrapper
+  did not run the tests. Subsequent read-only [#2269](https://github.com/Scorp96/scorp-control-plane/issues/2269)
+  verified clone HEAD precisely
+  `1739d9167f3234cc65edd7e591ae798306d388c1`, clean worktree, in
+  `C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009`.
+- [#2270](https://github.com/Scorp96/scorp-control-plane/issues/2270):
+  local subprocess tests returned zero exit codes, but PowerShell regex
+  summary was broken and misreported counts as zero. **This result is not
+  used for acceptance.**
+- [#2271](https://github.com/Scorp96/scorp-control-plane/issues/2271):
+  corrected Python unittest runner directly obtained `testsRun`, failures,
+  errors and skipped: **111 tests PASS**, 0 failure, 0 error, 0 skip on the
+  isolated Windows host and exact pinned SHA.
+- [#2272](https://github.com/Scorp96/scorp-control-plane/issues/2272):
+  candidate `chrome_use_binding_audit.py` executed against REAL installed
+  Chrome Use and read-only production metadata. Returned `BLOCKED /
+  MASTER_ROTATION_CONFLICT_UNRESOLVED`, with one discoverable Chrome Use
+  session, one ChatGPT conversation, zero canonical original-Master matches,
+  one unresolved R1 intent, rotation conflict true, and both browser-send and
+  adoption permissions false. No browser navigation or production writes.
+- [#2273](https://github.com/Scorp96/scorp-control-plane/issues/2273):
+  the one currently visible ChatGPT tab in Chrome Use has
+  `ownership=adopted`. This ownership is within Chrome Use, **not** within
+  V3 registered physical Master bindings. Subsequent candidate code now
+  rejects `ownership=foreign` or unknown even if a tab URL happens to
+  equal the canonical Master URL. Newly added regression cases cover this.
+
+### Host canary disposition
+
+LOCAL CODE STAGED IN AN **ISOLATED** DIRECTORY ONLY; real Chrome Use
+session/tab identity observed with no-send commands; a forced Master
+rebind remains forbidden. Existing R1 state and V3 rotation conflict are
+not resolved. To advance, explicitly select and authorize an isolated GPT
+conversation and obtain a reliable browser-origin final-turn attestation;
+do not treat model text or a mere absent Stop control as proof.
+
+### Important distinction for reviewers
+
+The Windows 111-test run applies to HEAD `1739d916`. The newest later
+commit adds Chrome Use *ownership* safeguards. Use the most recent GitHub
+Actions full validation for that new HEAD, or explicitly update and re-run
+the isolated local staging test at its new HEAD. Do not claim an older
+local test run validated newer commits.
