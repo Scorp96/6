@@ -56,7 +56,7 @@ class FakeChromeCli:
 
 
 def inspect(cli, **kw):
-    settings={"unresolved_master_intents":0}
+    settings={"unresolved_master_intents":0,"rotation_conflict":False}
     settings.update(kw)
     return inspect_existing_chrome_use_session(EXECUTABLE, MASTER, run=cli, **settings)
 
@@ -95,6 +95,20 @@ class ChromeUseBindingAuditTests(unittest.TestCase):
         result = inspect(cli, unresolved_master_intents=1)
         self.assertEqual("LEGACY_MASTER_INTENT_UNRESOLVED", result.reason)
         self.assertFalse(result.browser_send_authorized)
+
+    def test_known_rotation_conflict_blocks_even_if_current_url_matches(self):
+        cli=FakeChromeCli()
+        result=inspect(cli,rotation_conflict=True)
+        self.assertEqual("MASTER_ROTATION_CONFLICT_UNRESOLVED",result.reason)
+        self.assertFalse(result.browser_send_authorized)
+
+    def test_missing_rotation_status_refused_before_cli(self):
+        cli=FakeChromeCli()
+        result=inspect_existing_chrome_use_session(
+            EXECUTABLE,MASTER,run=cli,unresolved_master_intents=0,
+        )
+        self.assertEqual("ROTATION_STATUS_UNVERIFIED",result.reason)
+        self.assertEqual([],cli.calls)
 
     def test_duplicate_master_tabs_not_safe_to_choose(self):
         cli = FakeChromeCli(tabs=[MASTER, MASTER])
