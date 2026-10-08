@@ -27,6 +27,7 @@ def obs(**kwargs):
         role="MASTER",
         generation=9,
         auth_status="AUTHENTICATED",
+        auth_verification="HOST_VERIFIED", physical_verification="HOST_VERIFIED",
         physical_status="VERIFIED",
         response_status="IDLE_CONFIRMED",
         unresolved_intents=0,
