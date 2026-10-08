@@ -13,6 +13,7 @@ stored under the V3/R1 production runtime path.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import dataclasses
 import hashlib
 import json
@@ -80,7 +81,7 @@ def run_tick(
 
     # Must be pre-existing, never a production DB. The CLI validates the
     # actual Windows isolation boundary; programmatic callers own their path.
-    with sqlite3.connect(db,timeout=4,isolation_level=None) as conn:
+    with contextlib.closing(sqlite3.connect(db,timeout=4,isolation_level=None)) as conn:
         conn.executescript(_SCHEMA)
         conn.execute("BEGIN IMMEDIATE")
         try:
