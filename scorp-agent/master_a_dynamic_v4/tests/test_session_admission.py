@@ -18,6 +18,7 @@ def session(**changes):
         role="WORKER",
         generation=7,
         auth_status="AUTHENTICATED",
+        auth_verification="HOST_VERIFIED", physical_verification="HOST_VERIFIED",
         physical_status="VERIFIED",
         response_status="IDLE_CONFIRMED",
         unresolved_intents=0,
@@ -77,6 +78,16 @@ class SessionAdmissionTests(unittest.TestCase):
             with self.subTest(name=name):
                 result = evaluate_session(session(model_label=name), policy())
                 self.assertEqual("ELIGIBLE_FOR_SCHEDULING", result.status)
+
+    def test_subscription_text_does_not_attest_login_or_physical_session(self):
+        self.assert_blocked(
+            "HOST_AUTH_PROOF_UNVERIFIED",
+            obs=session(model_label="GPT-6", auth_verification="UNVERIFIED"),
+        )
+        self.assert_blocked(
+            "HOST_PHYSICAL_PROOF_UNVERIFIED",
+            obs=session(physical_verification="UNVERIFIED"),
+        )
 
     def test_cannot_resume_non_active_project(self):
         self.assert_blocked("PROJECT_NOT_ACTIVE", settings=policy(project_status="COMPLETE"))
