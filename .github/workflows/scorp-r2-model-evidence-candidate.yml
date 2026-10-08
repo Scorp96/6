@@ -70,6 +70,20 @@ jobs:
               throw ('ISOLATED_OBSERVER_POWERSHELL_PARSE_FAILED:' + $name)
             }
           }
+      - name: Exercise isolated task inspector in zero-mutation mode
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $scriptPath = Resolve-Path 'scorp-agent/master_a_dynamic_v4/install_isolated_observer_canary.ps1'
+          foreach ($minutes in @(15,25)) {
+            $result = & $scriptPath -Mode Inspect -IntervalMinutes $minutes -ExpectedCommit '${{ github.sha }}' | ConvertFrom-Json
+            if ($result.browser_send_authorized -or $result.exists -or $result.identity_verified) {
+              throw 'ISOLATED_SCHEDULER_INSPECT_NOT_SAFE'
+            }
+            if ($result.state -ne 'ABSENT') {
+              throw 'ISOLATED_SCHEDULER_UNEXPECTED_TASK'
+            }
+          }
       - name: Run existing Windows candidate validation (no browser I/O)
         shell: pwsh
         env:
