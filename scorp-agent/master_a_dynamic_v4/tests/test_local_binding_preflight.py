@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import datetime as dt
 import io
 import json
 import pathlib
@@ -45,7 +46,9 @@ class LocalBindingPreflightTests(unittest.TestCase):
         )
         health=root/"health.json"
         health.write_text(
-            json.dumps({"status":health_status,"error":error}),encoding="utf-8"
+            json.dumps({"status":health_status,"error":error,
+                        "heartbeat_at":dt.datetime.now(dt.timezone.utc).isoformat()}),
+            encoding="utf-8"
         )
         db=root/"state.sqlite3"
         with contextlib.closing(sqlite3.connect(db)) as con, con:
@@ -106,6 +109,27 @@ class LocalBindingPreflightTests(unittest.TestCase):
             fake=FakeCli()
             result=self._inspect(v3,h,db,fake)
             self.assertEqual("GUI_HEALTH_STATE_UNVERIFIED",result.reason)
+            self.assertEqual([],fake.calls)
+
+    def test_stale_gui_idle_heartbeat_cannot_pass_auth_or_binding_gate(self):
+        with tempfile.TemporaryDirectory() as t:
+            v3,h,db=self._fixture(pathlib.Path(t))
+            h.write_text(json.dumps({
+                "status":"IDLE",
+                "heartbeat_at":"2026-01-01T00:00:00+00:00",
+            }),encoding="utf-8")
+            fake=FakeCli()
+            result=self._inspect(v3,h,db,fake)
+            self.assertEqual("GUI_HEARTBEAT_STALE",result.reason)
+            self.assertEqual([],fake.calls)
+
+    def test_missing_gui_heartbeat_never_defaults_to_fresh(self):
+        with tempfile.TemporaryDirectory() as t:
+            v3,h,db=self._fixture(pathlib.Path(t))
+            h.write_text(json.dumps({"status":"IDLE"}),encoding="utf-8")
+            fake=FakeCli()
+            result=self._inspect(v3,h,db,fake)
+            self.assertEqual("GUI_HEARTBEAT_UNVERIFIED",result.reason)
             self.assertEqual([],fake.calls)
 
     def test_r1_database_missing_blocks_without_create(self):
