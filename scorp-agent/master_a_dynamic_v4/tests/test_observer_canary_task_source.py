@@ -28,6 +28,7 @@ class ObserverCanaryTaskSourceTests(unittest.TestCase):
         self.assertIn("ISOLATED_TASK_ACTION_MISMATCH",script)
         self.assertIn("ISOLATED_TASK_NAME_COLLISION",script)
         self.assertIn("MultipleInstances IgnoreNew",script)
+        self.assertIn("New-ScheduledTaskSettingsSet -Disable",script)
         self.assertIn("RestartCount 0",script)
         self.assertIn("LogonType Interactive -RunLevel Limited",script)
         self.assertNotIn("ScorpChatGptGuiBridgeWatchdog",script)
