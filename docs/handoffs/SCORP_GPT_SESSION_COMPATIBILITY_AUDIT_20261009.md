@@ -345,3 +345,51 @@ commit adds Chrome Use *ownership* safeguards. Use the most recent GitHub
 Actions full validation for that new HEAD, or explicitly update and re-run
 the isolated local staging test at its new HEAD. Do not claim an older
 local test run validated newer commits.
+
+## 2026-10-09 01:47–01:51: packaged one-command Windows preflight
+
+- `local_binding_preflight.py` uses V3 project-state and canonical Master
+  registry, GUI health and R1 SQLite `mode=ro` / `PRAGMA query_only=ON`
+  before delegating to Chrome Use `session list`, `get url`, `tab list`.
+  Counts `MAY_HAVE_SUBMITTED`, `CONFIRMED_SUBMITTED`,
+  `BLOCKED_AMBIGUOUS` and `FENCED_AMBIGUOUS` as unresolved.
+  Missing data, unknown GUI health, or unverified credentials never become
+  a false zero. Healthy-looking IDLE status now requires a non-stale,
+  timezone-aware heartbeat (at most 120 s old).
+- New `test_local_binding_preflight.py` confirms fail-closed SQLite, URL
+  ownership, unresolved-intent, GUI rotation and stale-heartbeat rules
+  with pure fixtures, no browser I/O.
+- [#2274](https://github.com/Scorp96/scorp-control-plane/issues/2274):
+  after updating ONLY the isolated Windows checkout to pinned SHA
+  `76f0c46491b0ed2916505ab5e6c0b77835d10140`,
+  **122 local scoped tests passed**, 0 failures or errors.
+- [#2275](https://github.com/Scorp96/scorp-control-plane/issues/2275):
+  the PACKAGED one-command Python module was executed on real Windows
+  under the isolated checkout. Result `BLOCKED:
+  MASTER_ROTATION_CONFLICT_UNRESOLVED`, 1 real Chrome Use session,
+  1 ChatGPT tab, 0 matching original Master, 1 unresolved R1 intent.
+  It denied browser send and tab adoption, touched no production files
+  and did not navigate.
+- [GitHub Actions #37819152702](https://github.com/Scorp96/6/actions/runs/37819152702):
+  full validation on that pre-heartbeat-fix SHA passed: 449 V4 tests,
+  625 GUI Bridge, 29 broker = **1,103 tests**, with
+  `CANDIDATE_VALIDATION=PASS`.
+- Stale-heartbeat safeguard was added AFTER that 1,103-test pass.
+  Validate the latest commit with a NEW full Actions run and local isolated
+  test before treating it as release-ready.
+
+### Repeatable manual no-send CLI invocation from isolated clone
+
+```powershell
+$env:PYTHONPATH = 'C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009\scorp-agent'
+& 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe' -B -m master_a_dynamic_v4.local_binding_preflight `
+  --v3-project-root 'C:\ScorpAgent\state-v3\active' `
+  --gui-health-file 'C:\ScorpAgent\chatgpt-gui-bridge-state\health.json' `
+  --r1-state-db 'C:\ScorpAgent\runtime-v4\active\state.sqlite3' `
+  --chrome-use-executable 'C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe'
+```
+
+This executable is a metadata-only tool, NOT a second watchdog and NOT an
+agent/browser wake-up. A BLOCKED result is the correct outcome in the
+current production state. Never schedule or couple it to sending without
+separate host attestation and acceptance.
