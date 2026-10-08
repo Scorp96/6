@@ -9,6 +9,7 @@ No browser navigation/selection/adoption/send, no scheduled tasks or writes.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import pathlib
 import sqlite3
@@ -73,6 +74,21 @@ def inspect_local_binding(
                 return blocked("GUI_HEALTH_ERROR_UNCLASSIFIED")
             rotation = True
         elif health_status in ("IDLE", "HEALTHY", "READY"):
+            # A stale, plausible-looking IDLE record is not live authentication
+            # or proof that a GUI bridge process is currently running.
+            stamp = str(health.get("heartbeat_at") or "")
+            try:
+                seen = dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                if seen.tzinfo is None:
+                    return blocked("GUI_HEARTBEAT_UNVERIFIED")
+                elapsed = (
+                    dt.datetime.now(dt.timezone.utc)
+                    - seen.astimezone(dt.timezone.utc)
+                ).total_seconds()
+            except ValueError:
+                return blocked("GUI_HEARTBEAT_UNVERIFIED")
+            if elapsed < 0 or elapsed > 120:
+                return blocked("GUI_HEARTBEAT_STALE")
             rotation = False
         else:
             return blocked("GUI_HEALTH_STATE_UNVERIFIED")
