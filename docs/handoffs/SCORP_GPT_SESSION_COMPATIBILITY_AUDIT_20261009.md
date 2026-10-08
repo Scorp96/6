@@ -139,3 +139,79 @@ production cutover was performed.
   existing authoritative session will be affected. The legacy production
   ambiguous intent remains BLOCKED pending genuine remote evidence or
   a separately approved operator resolution.
+
+## 2026-10-09 continuation: GUI failure root cause and safe next seam
+
+### Fresh read-only local evidence
+
+- [#2253](https://github.com/Scorp96/scorp-control-plane/issues/2253):
+  bridge worker process count=0, GUI health status ERROR, stale heartbeat
+  since 2026-10-07, task Ready but not running; GUI Watchdog disabled.
+- [#2254](https://github.com/Scorp96/scorp-control-plane/issues/2254):
+  expected bridge_worker.py / chrome-use.exe / Python executables are
+  present; no bridge-worker.lock. The fault is not missing executables.
+- [#2256](https://github.com/Scorp96/scorp-control-plane/issues/2256):
+  sanitized error enum is `MASTER_CONVERSATION_ROTATION_REQUIRED`.
+  Per `session_registry_v3.py`, this triggers when a newly returned
+  Master conversation URL disagrees with the existing canonical Master
+  binding and no explicit, verified rotation has taken place.
+- [#2257](https://github.com/Scorp96/scorp-control-plane/issues/2257):
+  existing V3 Master and two registered session URLs share the same hashed
+  canonical URL; driver has six conversation bindings. The *existing
+  registry* is internally consistent, which does not prove that the
+  browser reply's *new* URL was legitimate.
+- [#2258](https://github.com/Scorp96/scorp-control-plane/issues/2258):
+  V3 relay ledger contains 322 cumulative rows, including 213 GUI_AMBIGUOUS,
+  104 SUPERSEDED, 2 ROUTED, 2 GUI_TIMED_OUT and 1 GUI_SUBMITTED.
+- [#2259](https://github.com/Scorp96/scorp-control-plane/issues/2259):
+  212/213 GUI_AMBIGUOUS are Master rows; one is a Worker.
+  All 213 ambiguous rows lack durable conversation URLs and submitted_at
+  timestamps. These are HISTORICAL rows, not 213 active executions.
+
+### New isolated code, no browser sends
+
+- `turn_completion_evidence.py`: accepts two timestamp-separated samples
+  with the same physical session, canonical URL, generation, intent and
+  structured-response hash. Requires affirmative host-verified final event
+  at both observations. An absent Stop control does NOT prove completion.
+- `physical_progress_probe.py`: calls only
+  `driver.observe_current_binding(channel)` (the existing no-navigation,
+  no-send driver method). A Stop control proves only GENERATING; an
+  idle-looking screen is UNKNOWN, never `IDLE_CONFIRMED`.
+- `verified_continuation.py`: joins host completion evidence with the
+  original Arbiter continuation candidate. Rejects stale/future samples,
+  respects operator/production constraints, and prioritizes STOP and
+  OBSERVE_ONLY without browser work.
+- `session_admission.py`: now requires `auth_verification=HOST_VERIFIED`
+  and `physical_verification=HOST_VERIFIED` in addition to status strings.
+  A model's statement and "ChatGPT Plus" page text are not authentication
+  or physical-binding attestations.
+- `gui_preflight_audit.py`: portable, read-only, redacted CLI for V3
+  registry, ledger, GUI error and R1 blocked-intent metadata. No raw URL,
+  turn ID, task content, token, or message text is included in the output.
+- Candidate GitHub Actions gained branch-specific concurrency to cancel
+  superseded runs rather than waste Windows CI minutes.
+
+### Strong limitations
+
+The current physical Chrome driver does **NOT** expose a trustworthy
+`TURN_FINAL_CONFIRMED` event for an arbitrary original GPT conversation.
+The new modules therefore remain no-send policy and diagnostic code.
+Mock tests using `HOST_VERIFIED` are **not evidence** that the actual
+browser transport can attest that fact. Browser/host integration and
+authorization are separate blockers.
+
+Do not replace, clear, rotate or replay the old V3 Master conversation URL.
+Do not treat any historical `GUI_AMBIGUOUS` row as safe to resubmit.
+Do not re-enable the GUI watchdog or turn on a live reactivation schedule
+until original-thread identity, real browser turn-finalization, auth,
+operator permissions and no-duplicate guarantees are tested independently.
+
+### Validated release posture
+
+ISOLATED CODE ONLY / WINDOWS READ-ONLY DIAGNOSTICS / NO MASTER CUTOVER /
+NO LIVE BROWSER SEND / NO REPLAY / NO PRODUCTION SQLITE WRITE.
+
+Run `scripts/run-candidate-validation.ps1` in the isolated candidate
+and check the latest branch-specific GitHub Actions run before reviewing.
+A full offline pass is necessary but insufficient for production.
