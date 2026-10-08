@@ -51,21 +51,6 @@ def _unsigned_payload(receipt: HostTerminalReceipt) -> bytes:
     return json.dumps(fields,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8")
 
 
-def seal_test_host_receipt(receipt: HostTerminalReceipt, key: bytes) -> HostTerminalReceipt:
-    """Test/isolated-host helper; never call on model-origin evidence.
-
-    A runtime signer must *independently obtain* terminal events from its
-    trusted browser transport; just copying a model field and signing it
-    defeats the whole trust boundary.
-    """
-    if not isinstance(key,bytes) or len(key)<32:
-        raise ValueError("HOST_RECEIPT_KEY_INVALID")
-    return dataclasses.replace(
-        receipt,
-        signature=hmac.new(key,_unsigned_payload(receipt),hashlib.sha256).hexdigest(),
-    )
-
-
 def verify_host_terminal_receipts(
     samples: Sequence[object],
     receipts: Sequence[HostTerminalReceipt] | None,
