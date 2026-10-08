@@ -41,6 +41,7 @@ class HostTerminalReceipt:
     response_sha256: str
     generating: bool
     tool_pending: bool
+    response_intent_verified: bool
     terminal_event: str
     signature: str = ""
 
@@ -92,6 +93,8 @@ def verify_host_terminal_receipts(
             return "HOST_RECEIPT_PROGRESS_INVALID"
         if receipt.generating or receipt.tool_pending or receipt.terminal_event!="TURN_FINAL_CONFIRMED":
             return "HOST_RECEIPT_TERMINAL_NOT_VERIFIED"
+        if receipt.response_intent_verified is not True:
+            return "HOST_RECEIPT_INTENT_OWNERSHIP_UNVERIFIED"
         if not isinstance(receipt.session_id,str) or not receipt.session_id.strip():
             return "HOST_RECEIPT_SCOPE_INVALID"
         if not isinstance(receipt.intent_id,str) or not receipt.intent_id.strip():
@@ -100,7 +103,7 @@ def verify_host_terminal_receipts(
             return "HOST_RECEIPT_RESPONSE_INVALID"
         for field in ("session_id","conversation_url","binding_generation",
                       "intent_id","sampled_at_ms","response_sha256",
-                      "generating","tool_pending"):
+                      "generating","tool_pending","response_intent_verified"):
             observed=getattr(sample,field,None)
             expected=getattr(receipt,field)
             if type(observed)!=type(expected) or observed!=expected:
