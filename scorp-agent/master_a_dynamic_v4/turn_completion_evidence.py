@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from .session_admission import _canonical_conversation_url
+from .host_terminal_receipt import HostTerminalReceipt, verify_host_terminal_receipts
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,8 @@ def assess_turn_completion(
     expected_intent_id: str,
     minimum_separation_ms: int = 3000,
     maximum_separation_ms: int = 30000,
+    host_receipts: Sequence[HostTerminalReceipt] | None = None,
+    host_attestation_key: bytes | None = None,
 ) -> CompletionResult:
     """Return IDLE_CONFIRMED only after two scoped, affirmative host proofs.
 
@@ -119,6 +122,11 @@ def assess_turn_completion(
 
     if first.response_sha256 != last.response_sha256:
         return unknown("RESPONSE_CHANGED_BETWEEN_OBSERVATIONS")
+    signed_failure=verify_host_terminal_receipts(
+        [first,last], host_receipts, key=host_attestation_key,
+    )
+    if signed_failure is not None:
+        return unknown(signed_failure)
     return CompletionResult(
         "IDLE_CONFIRMED",
         "TWO_STABLE_HOST_TERMINAL_PROOFS",
