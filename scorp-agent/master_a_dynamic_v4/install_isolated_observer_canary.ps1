@@ -91,7 +91,7 @@ if ($Mode -eq 'InstallDisabled') {
     New-TimeSpan -Minutes 5
   ) -RepetitionDuration (New-TimeSpan -Days 3650)
   $principal = New-ScheduledTaskPrincipal -UserId $principalName -LogonType Interactive -RunLevel Limited
-  $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (
+  $settings = New-ScheduledTaskSettingsSet -Disable -MultipleInstances IgnoreNew -ExecutionTimeLimit (
     New-TimeSpan -Minutes 2
   ) -RestartCount 0
   $created = $false
