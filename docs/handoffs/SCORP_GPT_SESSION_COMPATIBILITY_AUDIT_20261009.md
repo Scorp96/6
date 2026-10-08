@@ -61,25 +61,35 @@ This is not a request to exceed the proven V4 concurrent Worker capacity of 2.
 
 ## Blockers / release gates
 
-- Current Windows Agent online status: NOT_VERIFIED (latest retrieved remote
-  execution receipts are from 2026-10-01).
+- Current Windows Agent online status: VERIFIED for isolated read-only health and
+  diagnostic tasks on 2026-10-09: [#2246](https://github.com/Scorp96/scorp-control-plane/issues/2246),
+  [#2247](https://github.com/Scorp96/scorp-control-plane/issues/2247).
 - This web ChatGPT session has GitHub repository access, **not** automatic
   Windows shell/Named Pipe access.
 - Trustworthy model metadata for a browser conversation: NOT_VERIFIED.
 - Browser send / real response canary: NOT_RUN for this candidate.
 - Existing repository's GPT-5.6 Sol identity policy: STILL IN EFFECT.
   Changing an evidence field is not authorization to waive it.
-- Full candidate validation and real Windows execution: NOT_RUN.
+- Full candidate OFFLINE validation: PASS on isolated GitHub Windows runner,
+  [run 37811808599](https://github.com/Scorp96/6/actions/runs/37811808599).
+  377 V4 tests, 623 GUI Bridge tests, 29 broker tests, Python compile PASS.
+  Real Windows execution was read-only diagnostic only, never browser send.
 - Production cutover: NOT_AUTHORIZED.
 
 ## This branch changes only
 
 - Truthful model evidence in the V4 one-shot runtime report.
 - Regression check that the report calls the unverified-evidence function.
-- This engineering audit.
+- Pure, model-independent `session_admission`, `continuation_gate`, and
+  `session_selection` modules, with dedicated offline tests.
+- Cross-host Python test portability fixes and isolated GitHub Actions jobs.
+- This engineering audit and a legacy ambiguous-submit safety regression.
 
-No local execution, browser submission, scheduled-task change, SQLite edit,
-release installation, model substitution, or production cutover is performed.
+The only real Windows execution in this phase was user-authorized, read-only
+health and sanitized diagnostic queries; these did not send a browser message
+or write production SQLite. The candidate branch is not installed on Windows.
+No scheduled-task change, release installation, model substitution, or
+production cutover was performed.
 
 ## Recommended next acceptance tests
 
@@ -90,3 +100,42 @@ release installation, model substitution, or production cutover is performed.
   independently, with no speculative prompt resend.
 - Verify all GPT model labels are treated as metadata; only host-verified
   session capability, root contract and permissions control admission.
+
+## Fresh 2026-10-09 read-only Windows facts (more recent than prior handoffs)
+
+- [#2246](https://github.com/Scorp96/scorp-control-plane/issues/2246):
+  GitHub -> Windows Agent `health` acknowledged and returned success.
+- [#2247](https://github.com/Scorp96/scorp-control-plane/issues/2247):
+  ScorpComputerAgent Running; R1 V4 Persistent Runtime Running;
+  `runtime-v4/active/daemon-health.json` HEALTHY with recent heartbeat.
+  GUI Bridge Scheduled Task Ready, not Running; its Watchdog remains Disabled.
+- [#2248](https://github.com/Scorp96/scorp-control-plane/issues/2248):
+  authoritative R1 project `scorp-v4-production` ACTIVE / BOOTSTRAP;
+  operator RUNNING; master sessions 3 STALE; zero task nodes, Worker
+  leases, or browser bindings; one action intent.
+- [#2249](https://github.com/Scorp96/scorp-control-plane/issues/2249):
+  the only R1 action intent is `MASTER_REASONING` /
+  `BLOCKED_AMBIGUOUS`. Twenty-six R2-named directories existed;
+  those with a readable database were test canaries, not a proven live R2
+  replacement. An old canary HEALTHY file is historical, not live.
+- [#2250](https://github.com/Scorp96/scorp-control-plane/issues/2250):
+  ambiguous R1 intent created 2026-09-24; attempt=1; reason
+  `CONVERSATION_URL_INVALID`. URL, remote identity, response are absent.
+- [#2251](https://github.com/Scorp96/scorp-control-plane/issues/2251):
+  driver metadata matches that exact turn; `browser_io_started=true`,
+  `submit_edge_crossed=null`; session exists but no promoted conversation.
+  Treat null as UNKNOWN, not false. No resubmission is permitted without
+  independent evidence satisfying the existing fail-closed reconciliation.
+
+## Current decision
+
+- DO NOT RE-SEND the ambiguous Master intent.
+- DO NOT reactivate or install another Master into the live R1 authority.
+- DO NOT enable the currently disabled GUI Bridge Watchdog by default.
+- Model-neutral admission and the 1..N *candidate session* shortlist have passed
+  offline tests, but physical authority and send permissions remain separate.
+- Safest next intervention: validate a *new isolated browser canary* with fresh
+  unique intent and explicit operator authorization after checking that no
+  existing authoritative session will be affected. The legacy production
+  ambiguous intent remains BLOCKED pending genuine remote evidence or
+  a separately approved operator resolution.
