@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -71,7 +72,7 @@ class RuntimeConnectorCliTests(unittest.TestCase):
             env = os.environ.copy()
             env["PYTHONPATH"] = str(pathlib.Path(__file__).resolve().parents[2])
             env["SCORP_TEST_PIPE_AUTHKEY"] = authkey
-            python = r"C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe"
+            python = sys.executable
             server = subprocess.Popen(
                 [
                     python,
