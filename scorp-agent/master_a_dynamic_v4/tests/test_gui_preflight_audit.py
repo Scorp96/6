@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import io
 import contextlib
+import contextlib
 import pathlib
 import sqlite3
 import tempfile
@@ -33,7 +34,7 @@ class GuiPreflightTests(unittest.TestCase):
                              "conversation_url":URL},
         }),encoding="utf-8")
         health.write_text(json.dumps({"status":"ERROR","error":ERROR}),encoding="utf-8")
-        with sqlite3.connect(db) as c:
+        with contextlib.closing(sqlite3.connect(db)) as c, c:
             c.execute("CREATE TABLE action_intents(state TEXT)")
             c.executemany("INSERT INTO action_intents(state) VALUES(?)",
                           [("BLOCKED_AMBIGUOUS",),("RESPONSE_CAPTURED",)])
@@ -98,7 +99,7 @@ class GuiPreflightTests(unittest.TestCase):
             v3,health,db=self._fixture(pathlib.Path(tmp))
             (v3/"sessions-v3.json").unlink()
             health.write_text(json.dumps({"status":"IDLE"}),encoding="utf-8")
-            with sqlite3.connect(db) as c:
+            with contextlib.closing(sqlite3.connect(db)) as c, c:
                 c.execute("DELETE FROM action_intents")
             report=inspect_gui_preflight(v3,health,db)
             self.assertEqual("REQUIRES_PHYSICAL_BINDING_VERIFICATION",report["next_action"])
