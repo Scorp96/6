@@ -5,6 +5,11 @@ on:
       - experiment/gpt-session-model-evidence-20261009
   workflow_dispatch:
 
+# Superseded candidate commits should not consume extra CI minutes.
+concurrency:
+  group: scorp-r2-model-evidence-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
