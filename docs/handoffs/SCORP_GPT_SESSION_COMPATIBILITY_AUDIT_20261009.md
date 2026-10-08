@@ -556,3 +556,62 @@ candidate code may be tested independently.
 
 **Status: SCHEDULER CANDIDATE / WINDOWS INSTALL NOT EXECUTED /
 PRODUCTION UNCHANGED / ORIGINAL MASTER STILL BLOCKED.**
+
+## 2026-10-09: signed host-terminal integrity boundary (isolation-only)
+
+### Security issue discovered
+
+The previous `TurnSample.finish_event_provenance == "HOST_VERIFIED"`
+was a *string supplied by its caller*. The pure planner was incapable of
+independently authenticating this claim, even though it never returned
+`browser_send_authorized=True`. It could produce a no-send
+`READY_FOR_GATED_ADAPTER` candidate in offline tests with fabricated
+strings. Such strings must NOT be used to approve a real browser send.
+
+### Candidate remedy
+
+- `host_terminal_receipt.py` now contains **verification only**, without
+  an exported signer. The experimental tests contain their own isolated,
+  clearly marked HMAC fixture signer; no production key is in GitHub.
+- `assess_turn_completion()` requires TWO distinct signed receipt samples
+  in addition to the old two-sample, turn-intent, generation, physical URL,
+  progress false/false and positive `TURN_FINAL_CONFIRMED` requirements.
+  Missing key/receipt defaults to `UNKNOWN`; the no-send continuation
+  planner then returns `BLOCKED`.
+- Receipts cover exact session, canonical conversation URL, binding
+  generation, intent ID, monotonic sample timestamp, response digest,
+  terminal event, progress flags, event ID and increasing sequence. HMAC
+  is checked with constant-time comparison; malformed data is rejected.
+  The same event ID must be observed in both samples and the digest stable.
+- Tests include missing keys, omitted receipts, HMAC forgery, change of
+  event ID, altered model/intent/URL, stale timestamps, replay sequences,
+  malformed types, pending tools and generating=true.
+- **This does NOT yet create a trusted terminal-event producer.** An HMAC
+  proves only integrity relative to its local secret; a compromised/miswired
+  signer could still sign fictitious browser events. Before a real send,
+  install a genuinely host-origin finalization event callback into a
+  separately reviewed trusted browser adapter, protect the key with
+  OS-local permissions, enforce monotonic replay state, and run an
+  isolated, explicitly selected conversation acceptance. Chrome Use
+  `read`/snapshot text alone remains insufficient for terminal proof.
+
+### Live Windows isolation precaution
+
+The already enabled 15m read-only Task Scheduler canary is pinned to
+`8da5085f906b4aeeece6fb0ae1f488bc597507b1`, using the existing
+`r2-gpt-session-audit-20261009` folder. **DO NOT update that checkout
+in place** to a new host receipt candidate SHA: the pinned launcher would
+fail its SHA guard, interrupting the proven recurring observer.
+Any new host receipt tests on Windows must use a **distinct isolated**
+experiment directory. Do not enable an additional scheduled observer,
+merge this PR or change R1/V3/GUI production tasks.
+
+### Additional real-host autonomous observation
+
+- [#2298](https://github.com/Scorp96/scorp-control-plane/issues/2298):
+  at **2026-10-09 07:42:47 UTC+8**, the existing 15m observer performed
+  another actual due check independently, persisted `seq=3` to isolated
+  SQLite (`integrity=ok`), `changed=false`, no pending reservation.
+  This verifies two real, distinct 15m due observations; the legacy
+  Master still blocks via `MASTER_ROTATION_CONFLICT_UNRESOLVED`.
+- This is **not** a 24h soak, and doesn't demonstrate original GPT wake.
