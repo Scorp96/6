@@ -63,7 +63,11 @@ if ($Mode -eq 'Inspect') {
   exit 0
 }
 
-Require-Current-Pinned-Checkout
+# Emergency Disable and Remove must remain possible even if a pinned
+# checkout becomes corrupted, missing, or is advanced to another SHA.
+if ($Mode -in @('DryRun','InstallDisabled','Enable')) {
+  Require-Current-Pinned-Checkout
+}
 
 if ($Mode -eq 'DryRun') {
   if ($existing) { throw 'ISOLATED_TASK_NAME_COLLISION' }
