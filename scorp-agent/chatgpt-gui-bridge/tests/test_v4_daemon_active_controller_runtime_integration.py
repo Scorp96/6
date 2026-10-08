@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,9 +41,13 @@ class V4DaemonActiveControllerRuntimeIntegrationTests(unittest.TestCase):
                 '--active-controller',
                 '--driver-state-path', str(driver),
             ])
-            with mock.patch.object(runtime, 'LocalDaemon', CapturingDaemon):
-                with contextlib.redirect_stdout(io.StringIO()):
-                    runtime.run_runtime(args)
+            # A hosted CI runner does not install the user's Chrome Use CLI.
+            # Patch only the executable-presence prerequisite; the test
+            # asserts offline action-handler wiring, never browser sends.
+            with mock.patch.object(runtime, 'DEFAULT_EXECUTABLE', sys.executable):
+                with mock.patch.object(runtime, 'LocalDaemon', CapturingDaemon):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        runtime.run_runtime(args)
         required = {
             'RECONCILE_AMBIGUOUS',
             'RECONCILE_SUBMITTED',
