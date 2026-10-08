@@ -231,3 +231,62 @@ A full offline pass is necessary but insufficient for production.
   proven physical rebind can address that.
 - GitHub Actions on experimental branch cancel superseded runs. The latest
   full offline validation must be checked at its actual tested commit SHA.
+
+## 2026-10-09 01:27–01:34 China Standard Time: live Chrome Use read-only discovery
+
+The controlling Windows Agent still accepts and completes scoped read-only
+diagnostics via GitHub issues, with result hashes and zero exit codes.
+
+- [#2261](https://github.com/Scorp96/scorp-control-plane/issues/2261):
+  V3 `chrome-use-driver-v3.json` contains **0** session records, so the
+  driver cannot resolve one ACTIVE physical Master session even though it
+  retains historical conversation entries.
+- [#2262](https://github.com/Scorp96/scorp-control-plane/issues/2262):
+  `chrome-use --json session list` succeeds in 192 ms, returning **1**
+  live Chrome Use session; none was registered as an active V3 Master.
+- [#2263](https://github.com/Scorp96/scorp-control-plane/issues/2263):
+  a read-only `get url` for exactly that existing Chrome Use session
+  returns a URL classified as OTHER, not the canonical V3 Master thread.
+  No browser focus, navigation or input was requested.
+- [#2264](https://github.com/Scorp96/scorp-control-plane/issues/2264):
+  `tab list` discovers **1** ChatGPT conversation among existing session
+  tab metadata, but **0** match the registered canonical Master URL.
+- [#2265](https://github.com/Scorp96/scorp-control-plane/issues/2265):
+  that ChatGPT conversation matches **0** of the V3 driver's six saved
+  conversation records. It is *new/unregistered*, not recoverable proof
+  for the original Master and not a safe target for automatic sends.
+
+### Resulting boundary
+
+**NO ORIGINAL MASTER IS PHYSICALLY BOUND.** There is a Chrome Use
+session and a distinct ChatGPT tab, but these do NOT establish that the
+original Master conversation or its pending reasoning response is live.
+Do not select, adopt, rotate, or send to the discovered tab automatically.
+The R1 `BLOCKED_AMBIGUOUS` Master intent and the V3
+`MASTER_CONVERSATION_ROTATION_REQUIRED` conflict remain independent blockers.
+
+### Isolated code added in this continuation
+
+- `chrome_use_binding_audit.py` implements metadata-only `session list`,
+  `get url`, and `tab list` with a strict command allowlist. It redacts
+  private URLs and session names from public result objects and fails closed
+  for zero/multiple sessions, missing/duplicate target tabs, focused target
+  mismatch, or tool errors. It never selects/adopts/navigates/sends.
+- **Both** unresolved Master intent count and rotation-conflict status
+  must be supplied explicitly. Missing proof is not equivalent to zero.
+- `turn_completion_evidence.py` now rejects two terminal observations
+  separated by more than the allowed window (default 30 s); the second
+  proof cannot reuse a stale initial sample.
+- `verified_continuation.py` propagates that upper bound and continues
+  to return a candidate with `browser_send_authorized=False`.
+
+### Next safe acceptance gate
+
+Only an explicitly selected, physically verified and host-authenticated
+conversation can become a new isolated canary. The currently discovered
+ChatGPT tab is not the previously registered Master. Even if a new tab
+were operator-selected, normal session verification and reply-finalization
+proof remain unimplemented in the actual Chrome Use adapter. Offline
+simulators do not count as a real host completion event.
+
+**Do not deploy/restart production as part of the candidate.**
