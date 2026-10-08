@@ -14,6 +14,7 @@ def worker(i: int, **kw):
         role="WORKER",
         generation=3,
         auth_status="AUTHENTICATED",
+        auth_verification="HOST_VERIFIED", physical_verification="HOST_VERIFIED",
         physical_status="VERIFIED",
         response_status="IDLE_CONFIRMED",
         unresolved_intents=0,
