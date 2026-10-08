@@ -79,6 +79,15 @@ class VerifiedContinuationTests(unittest.TestCase):
         self.assertEqual("BLOCKED",r.status)
         self.assertIn("HOST_TERMINAL_EVENT_MISSING",r.reason)
 
+    def test_stale_first_observation_does_not_reuse_terminal_proof(self):
+        rows=samples()
+        from dataclasses import replace as _replace
+        rows=[_replace(rows[0],sampled_at_ms=1000),
+              _replace(rows[1],sampled_at_ms=62000)]
+        r=plan(rows,now_monotonic_ms=63000)
+        self.assertEqual("BLOCKED",r.status)
+        self.assertIn("OBSERVATION_PAIR_TOO_OLD",r.reason)
+
     def test_too_old_observation_fails_closed(self):
         r=plan(now_monotonic_ms=60000)
         self.assertEqual("BLOCKED",r.status)
