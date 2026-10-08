@@ -195,12 +195,24 @@ class LocalTickObserverTests(unittest.TestCase):
 
     def test_event_history_retention_bounded(self):
         db,_=self.fixture()
-        for step in range(505):
-            out=run_tick(db,interval_minutes=15,now_ms=step*900000,inspect=blocked)
-            self.assertEqual("OBSERVED",out.status)
+        first=run_tick(db,interval_minutes=15,now_ms=0,inspect=blocked)
+        self.assertEqual("OBSERVED",first.status)
+        # Seed the durable *test* ledger in one transaction, rather than
+        # opening/committing 505 separate SQLite connections on Windows CI.
+        with contextlib.closing(sqlite3.connect(db)) as c,c:
+            c.executemany(
+                "INSERT INTO observer_events(seq,observed_ms,status,reason,fingerprint,changed) "
+                "VALUES(?,?,?,?,?,?)",
+                [(i, 0, "BLOCKED", "TEST_SEEDED", "a"*64, 0) for i in range(2,506)],
+            )
+            c.execute("UPDATE observer_schedule SET next_seq=506 WHERE id=1")
+        out=run_tick(db,interval_minutes=15,now_ms=900000,inspect=blocked)
+        self.assertEqual("OBSERVED",out.status)
         with contextlib.closing(sqlite3.connect(db)) as c:
-            count=c.execute("SELECT COUNT(*) FROM observer_events").fetchone()[0]
-        self.assertEqual(500,count)
+            n,oldest,newest=c.execute(
+                "SELECT COUNT(*),MIN(seq),MAX(seq) FROM observer_events"
+            ).fetchone()
+        self.assertEqual((500,7,506),(n,oldest,newest))
 
 
 if __name__=="__main__":
