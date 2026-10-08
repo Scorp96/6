@@ -393,3 +393,87 @@ This executable is a metadata-only tool, NOT a second watchdog and NOT an
 agent/browser wake-up. A BLOCKED result is the correct outcome in the
 current production state. Never schedule or couple it to sending without
 separate host attestation and acceptance.
+
+## 2026-10-09 02:00–02:04 CST: deterministic zero-model-token observer accepted locally
+
+The next safe execution milestone is a **read-only monitor**, NOT original-
+conversation GPT automatic reactivation. It is implemented separately from
+the production V4 daemon and cannot send browser messages.
+
+### Candidate implementation
+
+- `master_a_dynamic_v4/local_tick_observer.py`: a one-shot
+  `--interval-minutes 15|25` CLI with no model or network API call for
+  reasoning. It checks whether observation is due using a durable isolated
+  SQLite schedule and runs the already verified `local_binding_preflight`
+  only when due.
+- `observer_schedule` persists `last_reserved_ms`, `next_due_ms`,
+  `pending_seq`, `next_seq` and last sanitized status fingerprint.
+  `BEGIN IMMEDIATE` atomically reserves a due check before invoking
+  the browser metadata reader, preventing concurrent duplicate checks.
+  If the process is interrupted after reservation, the next invocation
+  returns `INCOMPLETE_PREVIOUS_TICK` and does not blindly replay.
+- `observer_events` stores only local timestamp, status/reason enum,
+  SHA-256 fingerprint and change flag. Private URL, GPT text, prompt, login,
+  cookie, session IDs and page contents are never recorded.
+  History is bounded to 500 events.
+- A repeated immediate invocation returns `SKIPPED/NOT_DUE`. Changing
+  interval for an existing workspace requires a new isolated workspace.
+  Clock rollback is blocked, and no-send/browser-adoption fields remain
+  false in every returned `TickOutcome`.
+- A Windows Task Scheduler invocation is **NOT INSTALLED**.
+  The one-shot function is suitable for a later explicitly authorized
+  scheduling layer; the 15/25-minute cadence is not proof that a GPT can
+  be reactivated after completion.
+
+### Verified evidence
+
+- [#2278](https://github.com/Scorp96/scorp-control-plane/issues/2278):
+  **17/17 observer tests pass on actual Windows** at candidate commit
+  `c0eafd28c0406259be813759babece4cf5b1764a`.
+  Real 15-minute isolated observer first tick `OBSERVED` and
+  `MASTER_ROTATION_CONFLICT_UNRESOLVED`; immediate next tick `SKIPPED/NOT_DUE`.
+  Model calls 0; browser send 0; no scheduled task.
+- [#2279](https://github.com/Scorp96/scorp-control-plane/issues/2279):
+  separate 25-minute isolated workspace first tick `OBSERVED`,
+  next immediate tick `SKIPPED/NOT_DUE`. Model calls 0; no send.
+- [#2280](https://github.com/Scorp96/scorp-control-plane/issues/2280):
+  read-only SQLite integrity is `ok` for BOTH isolated 15m and 25m
+  ledgers. Both have exactly one persisted event, no pending reservation
+  and correctly persisted due delta (15.0 / 25.0 minutes).
+- [GitHub Windows CI #37820901872](https://github.com/Scorp96/6/actions/runs/37820901872):
+  **SUCCESS on the exact HEAD `c0eafd28...`**.
+  468 V4 core + 625 GUI Bridge + 29 broker = **1,122 offline tests pass**,
+  `CANDIDATE_VALIDATION=PASS`.
+
+### Safe operational command (manual one-shot, already real-host tested)
+
+```powershell
+$env:PYTHONPATH = 'C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009\scorp-agent'
+& 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe' -B -m master_a_dynamic_v4.local_tick_observer `
+  --workspace 'C:\ScorpAgent\experiments\r2-observer-state-20261009' `
+  --interval-minutes 15 `
+  --v3-project-root 'C:\ScorpAgent\state-v3\active' `
+  --gui-health-file 'C:\ScorpAgent\chatgpt-gui-bridge-state\health.json' `
+  --r1-state-db 'C:\ScorpAgent\runtime-v4\active\state.sqlite3' `
+  --chrome-use-executable 'C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe'
+```
+
+A separate `r2-observer-state-25m-20261009` workspace was created for
+the 25-minute acceptance. Do NOT switch intervals on one existing ledger.
+
+### Not yet accepted
+
+1. There is no configured **continuous** Windows Scheduled Task running
+   this CLI unattended. An explicit scheduling action would be a separate
+   scope/change gate.
+2. No physical original GPT Master session has been proven bound.
+   Historical R1 `BLOCKED_AMBIGUOUS` remains unresolved and V3
+   `MASTER_CONVERSATION_ROTATION_REQUIRED` is present.
+3. No host-attested terminal event currently proves an original GPT
+   reply is complete. Therefore no browser wake/send path is authorized.
+4. No long soak/24-hour reliability run has occurred.
+
+**SAFE RESULT:** token-free deterministic health observation is proven;
+browser reactivation is still unavailable. The production daemon,
+SQLite, GUI Bridge and Watchdog remain unchanged.
