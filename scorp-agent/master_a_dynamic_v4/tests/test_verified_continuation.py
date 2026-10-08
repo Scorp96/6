@@ -22,7 +22,8 @@ def request():
 def observation(**changes):
     row=SessionObservation(
         session_id="host-worker-01",conversation_url=URL,role="WORKER",
-        generation=6,auth_status="AUTHENTICATED",physical_status="VERIFIED",
+        generation=6,auth_status="AUTHENTICATED",
+        auth_verification="HOST_VERIFIED", physical_verification="HOST_VERIFIED",physical_status="VERIFIED",
         response_status="IDLE_CONFIRMED",unresolved_intents=0,model_label="GPT-6",
     )
     return replace(row,**changes)
