@@ -52,6 +52,7 @@ def make_receipt(sample: TurnSample, seq: int, *, key=KEY):
         response_sha256=sample.response_sha256,
         generating=sample.generating,
         tool_pending=sample.tool_pending,
+        response_intent_verified=sample.response_intent_verified,
         terminal_event="TURN_FINAL_CONFIRMED",
     )
     return seal_test_host_receipt(HostTerminalReceipt(**fields),key)
@@ -116,6 +117,11 @@ class HostTerminalReceiptTests(unittest.TestCase):
     def test_attempt_to_flip_generating_bool_blocks(self):
         bad=replace(self.receipts[1],generating=True)
         self.assertEqual("HOST_RECEIPT_TERMINAL_NOT_VERIFIED",evaluate(self.samples,[self.receipts[0],bad]).reason)
+
+    def test_host_signer_must_attest_response_intent_ownership(self):
+        changed=replace(self.receipts[1],response_intent_verified=False)
+        self.assertEqual("HOST_RECEIPT_INTENT_OWNERSHIP_UNVERIFIED",
+                         evaluate(self.samples,[self.receipts[0],changed]).reason)
 
     def test_attempt_to_flip_tool_pending_blocks(self):
         bad=replace(self.receipts[1],tool_pending=True)
