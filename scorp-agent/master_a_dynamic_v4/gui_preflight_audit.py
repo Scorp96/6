@@ -109,3 +109,20 @@ def inspect_gui_preflight(
     else:
         report["next_action"]="OBSERVE_ONLY_UNVERIFIED"
     return report
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Read-only local diagnostic CLI; no browser access and no output files."""
+    import argparse
+    parser=argparse.ArgumentParser(description="Redacted SCORP GUI preflight; read-only")
+    parser.add_argument("--v3-project-root",required=True,type=pathlib.Path)
+    parser.add_argument("--bridge-health-file",required=True,type=pathlib.Path)
+    parser.add_argument("--r1-state-db",required=True,type=pathlib.Path)
+    args=parser.parse_args(argv)
+    report=inspect_gui_preflight(args.v3_project_root,args.bridge_health_file,args.r1_state_db)
+    print(json.dumps(report,ensure_ascii=False,sort_keys=True,separators=(",",":")))
+    return 0
+
+
+if __name__=="__main__":
+    raise SystemExit(main())
