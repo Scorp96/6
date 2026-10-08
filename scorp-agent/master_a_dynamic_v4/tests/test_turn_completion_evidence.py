@@ -61,6 +61,10 @@ class TurnCompletionEvidenceTests(unittest.TestCase):
         self.assert_unknown("OBSERVATION_STABILITY_WINDOW_NOT_MET", b=sample(500))
         self.assert_unknown("HOST_SAMPLE_TIME_INVALID", b=sample(True))
 
+    def test_one_very_old_sample_cannot_pair_with_fresh_terminal_observation(self):
+        self.assert_unknown("OBSERVATION_PAIR_TOO_OLD", b=sample(180000))
+        self.assert_unknown("EXPECTED_BINDING_INVALID", maximum_separation_ms=0)
+
     def test_last_two_must_both_be_host_verified(self):
         self.assert_unknown("HOST_TERMINAL_PROVENANCE_UNVERIFIED",
                             a=sample(1000, finish_event_provenance="MODEL_ASSERTED"))
