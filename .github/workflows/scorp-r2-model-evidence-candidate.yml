@@ -57,6 +57,19 @@ jobs:
             $parseErrors | ForEach-Object { Write-Error $_.Message }
             throw 'V3_WATCHDOG_PARSE_FAILED'
           }
+          foreach ($name in @('install_isolated_observer_canary.ps1','run_isolated_observer_canary.ps1')) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path "scorp-agent/master_a_dynamic_v4/$name"),
+              [ref]$tokens,
+              [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_.Message }
+              throw ('ISOLATED_OBSERVER_POWERSHELL_PARSE_FAILED:' + $name)
+            }
+          }
       - name: Run existing Windows candidate validation (no browser I/O)
         shell: pwsh
         env:
