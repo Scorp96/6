@@ -5,8 +5,25 @@ import unittest
 
 from master_a_dynamic_v4.turn_completion_evidence import TurnSample, assess_turn_completion
 from master_a_dynamic_v4.host_terminal_receipt import (
-    HostTerminalReceipt, seal_test_host_receipt, verify_host_terminal_receipts,
+    HostTerminalReceipt, verify_host_terminal_receipts,
 )
+
+import dataclasses
+import hashlib
+import hmac
+import json
+
+
+def seal_test_host_receipt(receipt, key):
+    # TEST FIXTURE ONLY: no runtime signer is exported.
+    if not isinstance(key,bytes) or len(key)<32:
+        raise ValueError("HOST_RECEIPT_KEY_INVALID")
+    d=dataclasses.asdict(receipt)
+    d.pop("signature")
+    payload=json.dumps(d,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode("utf-8")
+    sig=hmac.new(key,payload,hashlib.sha256).hexdigest()
+    return dataclasses.replace(receipt,signature=sig)
+
 
 URL="https://chatgpt.com/c/host-attested-test"
 KEY=b"isolated-test-host-terminal-secret-32-bytes-long-20261009"
