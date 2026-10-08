@@ -79,6 +79,7 @@ def plan_with_verified_turn(
         expected_conversation_url=policy.expected_conversation_url,
         expected_binding_generation=policy.expected_generation,
         expected_intent_id=expected_intent_id,
+        maximum_separation_ms=maximum_observation_age_ms,
     )
     if state.status != "IDLE_CONFIRMED":
         return blocked("TURN_NOT_COMPLETED:" + state.reason)
