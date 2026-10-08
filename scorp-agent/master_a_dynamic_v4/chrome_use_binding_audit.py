@@ -72,6 +72,7 @@ def inspect_existing_chrome_use_session(
     run: Callable[..., Any] = subprocess.run,
     timeout_seconds: float = 10.0,
     unresolved_master_intents: int | None = None,
+    rotation_conflict: bool | None = None,
 ) -> BrowserBindingAudit:
     """Read-only inventory; a successful result still requires human binding review."""
     def blocked(reason: str, *, n=0, chat=0, matches=0, selected=False):
@@ -83,6 +84,8 @@ def inspect_existing_chrome_use_session(
         return blocked("CLI_EXECUTABLE_MISSING")
     if type(unresolved_master_intents) is not int or unresolved_master_intents < 0:
         return blocked("INTENT_COUNT_UNVERIFIED")
+    if type(rotation_conflict) is not bool:
+        return blocked("ROTATION_STATUS_UNVERIFIED")
     if type(timeout_seconds) not in (int, float) or not 0 < timeout_seconds <= 30:
         return blocked("CLI_TIMEOUT_INVALID")
     def call(*args: str) -> Any:
@@ -125,6 +128,9 @@ def inspect_existing_chrome_use_session(
     chat = [x for x in chat if x is not None]
     match_count = sum(x == master for x in chat)
     focused_match = _canonical_conversation_url(focused or "") == master
+    if rotation_conflict:
+        return blocked("MASTER_ROTATION_CONFLICT_UNRESOLVED", n=1, chat=len(chat),
+                       matches=match_count, selected=focused_match)
     if unresolved_master_intents:
         return blocked("LEGACY_MASTER_INTENT_UNRESOLVED", n=1, chat=len(chat),
                        matches=match_count, selected=focused_match)
