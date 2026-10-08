@@ -8,13 +8,12 @@ $ErrorActionPreference = 'Stop'
 $repo = 'C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009'
 $root = 'C:\ScorpAgent\experiments'
 $taskName = 'ScorpR2GPTObserver' + $IntervalMinutes + 'mCanary'
-$workspace = Join-Path $root (
-  if ($IntervalMinutes -eq 15) {
-    'r2-observer-state-20261009'
-  } else {
-    'r2-observer-state-25m-20261009'
-  }
-)
+$stateName = if ($IntervalMinutes -eq 15) {
+  'r2-observer-state-20261009'
+} else {
+  'r2-observer-state-25m-20261009'
+}
+$workspace = Join-Path $root $stateName
 $runner = Join-Path $repo 'scorp-agent\master_a_dynamic_v4\run_isolated_observer_canary.ps1'
 $scriptInstaller = Join-Path $repo 'scorp-agent\master_a_dynamic_v4\install_isolated_observer_canary.ps1'
 $python = 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe'
