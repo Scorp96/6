@@ -4,9 +4,11 @@ import dataclasses
 import unittest
 
 from master_a_dynamic_v4.turn_completion_evidence import TurnSample, assess_turn_completion
+from master_a_dynamic_v4.host_terminal_receipt import HostTerminalReceipt, seal_test_host_receipt
 
 URL = "https://chatgpt.com/c/turn-finish-example"
 HASH = "a" * 64
+HOST_KEY = b"isolated-host-receipt-only-unit-test-key-20261009-32bytes"
 
 
 def sample(time_ms, **kw):
@@ -26,12 +28,30 @@ def sample(time_ms, **kw):
     return dataclasses.replace(s, **kw)
 
 
+def signed_receipts(samples):
+    result=[]
+    for seq,row in enumerate(samples[-2:],start=1):
+        receipt=HostTerminalReceipt(
+            protocol="scorp.browser-terminal-receipt/1",
+            event_id="f"*32,sequence=seq,
+            session_id=row.session_id,conversation_url=row.conversation_url,
+            binding_generation=row.binding_generation,intent_id=row.intent_id,
+            sampled_at_ms=row.sampled_at_ms,response_sha256=row.response_sha256,
+            generating=row.generating,tool_pending=row.tool_pending,
+            terminal_event="TURN_FINAL_CONFIRMED",
+        )
+        result.append(seal_test_host_receipt(receipt,HOST_KEY))
+    return result
+
+
 def decision(samples, **kwargs):
     args=dict(
         expected_session_id="master-physical-1",
         expected_conversation_url=URL,
         expected_binding_generation=4,
         expected_intent_id="master-intent-2",
+        host_receipts=signed_receipts(samples),
+        host_attestation_key=HOST_KEY,
     )
     args.update(kwargs)
     return assess_turn_completion(samples, **args)
@@ -48,6 +68,12 @@ class TurnCompletionEvidenceTests(unittest.TestCase):
         result=decision([sample(1000),sample(5000)])
         self.assertEqual("IDLE_CONFIRMED", result.status)
         self.assertEqual(HASH, result.proof)
+        self.assertFalse(result.browser_send_authorized)
+
+    def test_model_asserted_host_verified_strings_cannot_bypass_missing_receipts(self):
+        result=decision([sample(1000),sample(5000)],host_receipts=None)
+        self.assertEqual("UNKNOWN",result.status)
+        self.assertEqual("TWO_SIGNED_HOST_RECEIPTS_REQUIRED",result.reason)
         self.assertFalse(result.browser_send_authorized)
 
     def test_one_snapshot_never_proves_finished(self):
