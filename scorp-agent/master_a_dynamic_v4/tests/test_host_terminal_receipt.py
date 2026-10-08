@@ -119,6 +119,17 @@ class HostTerminalReceiptTests(unittest.TestCase):
         bad=seal_test_host_receipt(replace(self.receipts[1],sequence=10,signature=""),KEY)
         self.assertEqual("HOST_RECEIPT_SEQUENCE_REPLAY",evaluate(self.samples,[self.receipts[0],bad]).reason)
 
+    def test_nonstring_event_id_fails_closed_without_exception(self):
+        malformed=replace(self.receipts[1],event_id=None)
+        self.assertEqual("HOST_TERMINAL_EVENT_ID_INVALID",evaluate(self.samples,[self.receipts[0],malformed]).reason)
+
+    def test_nonstring_conversation_url_fails_closed_without_exception(self):
+        malformed=replace(self.receipts[1],conversation_url={"url":"fake"})
+        self.assertEqual("HOST_RECEIPT_CONVERSATION_INVALID",evaluate(self.samples,[self.receipts[0],malformed]).reason)
+
+    def test_host_receipt_unknown_shape_rejected(self):
+        self.assertEqual("HOST_RECEIPT_SHAPE_INVALID",evaluate(self.samples,[self.receipts[0],object()]).reason)
+
     def test_secret_key_validation_no_weak_hmac(self):
         with self.assertRaisesRegex(ValueError,"HOST_RECEIPT_KEY_INVALID"):
             seal_test_host_receipt(self.receipts[0],b"short")
