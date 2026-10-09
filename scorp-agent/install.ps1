@@ -79,7 +79,7 @@ $actionArgs = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle H
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $actionArgs
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Days 3650)
+$settings = New-ScheduledTaskSettingsSet -Disable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Days 3650)
 
 # -Force is deliberately forbidden: racing task creation must not overwrite
 # an existing scheduler item. Do NOT Start-ScheduledTask or send a GPT prompt.
@@ -87,9 +87,10 @@ Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Pr
 $installed = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 if ([string]$installed.Principal.RunLevel -cne 'Limited' -or
     [string]$installed.Principal.LogonType -cne 'Interactive' -or
-    [string]$installed.Principal.UserId -cne $userId) {
+    [string]$installed.Principal.UserId -cne $userId -or
+    [string]$installed.State -cne 'Disabled') {
     throw 'P0_FRESH_INSTALL_PRINCIPAL_REVIEW_REQUIRED: task not started; inspect Task Scheduler'
 }
-Write-Output 'P0_FRESH_LIMITED_TASK_REGISTERED_NOT_STARTED'
+Write-Output 'P0_FRESH_LIMITED_TASK_REGISTERED_DISABLED_NOT_STARTED'
 Write-Output 'P0_OPERATOR_MUST_VERIFY_ACLS_AND_AUTHORITY_BEFORE_MANUAL_START'
 Write-Output 'P0_UNATTENDED_BEFORE_INTERACTIVE_LOGON_NOT_PROVEN'
