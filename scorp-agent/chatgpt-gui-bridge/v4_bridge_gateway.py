@@ -257,6 +257,12 @@ class V4BridgeGateway:
         text = str(prompt or "")
         if not text:
             raise ValueError("PROMPT_EMPTY")
+        # Direct callers must obey the same browser prompt secret fence.
+        lease_secret = str(claim.lease_token or "")
+        if not lease_secret:
+            raise WorkerFenceError("WORKER_LEASE_TOKEN_MISSING")
+        if lease_secret in text:
+            raise WorkerFenceError("WORKER_PROMPT_LEAKS_LEASE_TOKEN")
         with self.store._connection() as conn:
             row = conn.execute(
                 """
@@ -279,6 +285,18 @@ class V4BridgeGateway:
             or str(row["expires_at"]) <= utc_now()
         ):
             raise WorkerFenceError("WORKER_FENCED")
+        # Only the originally issued generations may create a new Worker
+        # browser intent. A later operator generation is not a replacement
+        # grant for a stale assignment.
+        control = self.store.get_operator_control(self.project_id)
+        if (
+            int(row["operator_generation"]) != int(claim.operator_generation)
+            or int(row["objective_generation"]) != int(claim.objective_generation)
+            or int(control["operator_generation"]) != int(claim.operator_generation)
+            or int(control["objective_generation"]) != int(claim.objective_generation)
+            or str(control["operator_state"]) not in {"ACTIVE", "RUNNING"}
+        ):
+            raise WorkerFenceError("WORKER_GENERATION_FENCED")
         intent_id = f"worker-intent-{claim.assignment_id}"
         try:
             existing_intent = self.store.get_intent(intent_id)
@@ -302,6 +320,8 @@ class V4BridgeGateway:
                 "master_epoch": claim.master_epoch,
                 "base_state_version": claim.base_state_version,
                 "lease_token": claim.lease_token,
+                "operator_generation": claim.operator_generation,
+                "objective_generation": claim.objective_generation,
                 "expires_at": claim.expires_at,
                 "objective_sha256": claim.objective_sha256,
                 "resource_scope": list(claim.resource_scope),
