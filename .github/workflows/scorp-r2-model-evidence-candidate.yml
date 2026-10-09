@@ -1,0 +1,108 @@
+name: SCORP R2 model evidence candidate
+on:
+  push:
+    branches:
+      - experiment/gpt-session-model-evidence-20261009
+  workflow_dispatch:
+
+# Superseded candidate commits should not consume extra CI minutes.
+concurrency:
+  group: scorp-r2-model-evidence-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-only-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile candidate Python modules
+        shell: bash
+        run: |
+          python -B -m py_compile scorp-agent/chatgpt-gui-bridge/tools/v4_master_controller_runtime.py
+          python -B -m py_compile scorp-agent/chatgpt-gui-bridge/tests/test_v4_master_controller_runtime.py
+      - name: Run scoped V4 master controller runtime regression
+        shell: bash
+        env:
+          PYTHONPATH: scorp-agent:scorp-agent/chatgpt-gui-bridge
+        run: |
+          python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p test_v4_master_controller_runtime.py -v
+
+  full-offline-regression:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Parse V3 watchdog before regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scorp-agent/chatgpt-gui-bridge/bridge-watchdog.ps1'),
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            throw 'V3_WATCHDOG_PARSE_FAILED'
+          }
+          foreach ($name in @('install_isolated_observer_canary.ps1','run_isolated_observer_canary.ps1')) {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path "scorp-agent/master_a_dynamic_v4/$name"),
+              [ref]$tokens,
+              [ref]$parseErrors
+            ) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              $parseErrors | ForEach-Object { Write-Error $_.Message }
+              throw ('ISOLATED_OBSERVER_POWERSHELL_PARSE_FAILED:' + $name)
+            }
+          }
+      - name: Parse Windows Agent isolated regression runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/run-candidate-validation-windows-agent.ps1'),
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            throw 'WINDOWS_AGENT_VALIDATION_RUNNER_PARSE_FAILED'
+          }
+      - name: Exercise isolated task inspector in zero-mutation mode
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $scriptPath = Resolve-Path 'scorp-agent/master_a_dynamic_v4/install_isolated_observer_canary.ps1'
+          foreach ($minutes in @(15,25)) {
+            $result = & $scriptPath -Mode Inspect -IntervalMinutes $minutes -ExpectedCommit '${{ github.sha }}' | ConvertFrom-Json
+            if ($result.browser_send_authorized -or $result.exists -or $result.identity_verified) {
+              throw 'ISOLATED_SCHEDULER_INSPECT_NOT_SAFE'
+            }
+            if ($result.state -ne 'ABSENT') {
+              throw 'ISOLATED_SCHEDULER_UNEXPECTED_TASK'
+            }
+          }
+      - name: Run existing Windows candidate validation (no browser I/O)
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          Set-ExecutionPolicy -Scope Process Bypass
+          .\\scripts\\run-candidate-validation.ps1

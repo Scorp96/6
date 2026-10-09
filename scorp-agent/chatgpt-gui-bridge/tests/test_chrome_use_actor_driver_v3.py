@@ -151,6 +151,143 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertIsNone(getattr(raised.exception, 'proof', None))
             self.assertTrue(driver.turn_binding('turn-runtime-after-submit')['submit_edge_crossed'])
 
+    def test_unknown_legacy_submit_edge_is_not_false_on_file_error(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            async def legacy_error(**kwargs):
+                driver._mark_turn_browser_io_started(kwargs['turn_id'])
+                with driver._state_mutex:
+                    state = driver._load()
+                    state['turns'][kwargs['turn_id']]['submit_edge_crossed'] = None
+                    driver._save(state)
+                raise FileNotFoundError('legacy browser failure after unknown edge')
+            driver._submit_prompt_unlocked = legacy_error
+            with self.assertRaises(FileNotFoundError) as caught:
+                asyncio.run(driver.submit_prompt(
+                    prompt='NO_REPLAY', turn_id='unknown-legacy-file',
+                    actor_kind='MASTER',
+                    conversation_url='https://chatgpt.com/c/known-master',
+                ))
+            self.assertIsNone(getattr(caught.exception, 'side_effect', None))
+            self.assertIsNone(getattr(caught.exception, 'proof', None))
+            self.assertIsNone(driver.turn_binding('unknown-legacy-file')['submit_edge_crossed'])
+
+    def test_unknown_legacy_submit_edge_is_not_false_on_runtime_error(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            async def legacy_error(**kwargs):
+                driver._mark_turn_browser_io_started(kwargs['turn_id'])
+                with driver._state_mutex:
+                    state = driver._load()
+                    state['turns'][kwargs['turn_id']]['submit_edge_crossed'] = None
+                    driver._save(state)
+                raise RuntimeError('unknown edge after browser IO')
+            driver._submit_prompt_unlocked = legacy_error
+            with self.assertRaises(RuntimeError) as caught:
+                asyncio.run(driver.submit_prompt(
+                    prompt='NO_REPLAY', turn_id='unknown-legacy-runtime',
+                    actor_kind='MASTER',
+                    conversation_url='https://chatgpt.com/c/known-master',
+                ))
+            self.assertIsNone(getattr(caught.exception, 'side_effect', None))
+            self.assertIsNone(getattr(caught.exception, 'proof', None))
+
+    def test_preexisting_unknown_legacy_turn_is_fenced_before_io(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            driver = self._driver(td, cli)
+            turn = 'legacy-ambiguous-turn'
+            driver.bind_turn(turn, None, actor_kind='MASTER')
+            driver._mark_turn_browser_io_started(turn)
+            with driver._state_mutex:
+                state = driver._load()
+                state['turns'][turn].pop('submit_edge_crossed', None)
+                driver._save(state)
+            with self.assertRaisesRegex(ValueError, 'EXISTING_TURN_SUBMISSION_UNVERIFIED'):
+                asyncio.run(driver.submit_prompt(
+                    prompt='NEVER_REPLAY', turn_id=turn,
+                    actor_kind='MASTER', conversation_url=None,
+                ))
+            self.assertEqual([], cli.calls)
+            self.assertIsNone(driver.turn_binding(turn).get('submit_edge_crossed'))
+
+    def test_already_crossed_submit_edge_cannot_resend_same_turn(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            driver = self._driver(td, cli)
+            dispatched = []
+            async def simulated_send(**kwargs):
+                dispatched.append(kwargs['turn_id'])
+                driver._mark_turn_browser_io_started(kwargs['turn_id'])
+                driver._mark_turn_submit_edge_crossed(kwargs['turn_id'], method='click')
+                return {'status': 'SIMULATED_SUBMIT'}
+            driver._submit_prompt_unlocked = simulated_send
+            args = dict(prompt='SAFE', turn_id='exact-once-turn',
+                        actor_kind='MASTER',
+                        conversation_url='https://chatgpt.com/c/known-master')
+            self.assertEqual('SIMULATED_SUBMIT',
+                             asyncio.run(driver.submit_prompt(**args))['status'])
+            with self.assertRaisesRegex(ValueError, 'EXISTING_TURN_SUBMISSION_UNVERIFIED'):
+                asyncio.run(driver.submit_prompt(**args))
+            self.assertEqual(['exact-once-turn'], dispatched)
+            self.assertEqual([], cli.calls)
+
+    def test_mutex_wait_rechecks_concurrent_submit_edge(self):
+        with tempfile.TemporaryDirectory() as td:
+            cli = FakeCli()
+            driver = self._driver(td, cli)
+            turn = 'racing-submit-turn'
+            class EdgeCrossingLock:
+                def acquire(self, *_args, **_kwargs):
+                    driver._mark_turn_browser_io_started(turn)
+                    driver._mark_turn_submit_edge_crossed(turn, method='click')
+                    return True
+                def release(self):
+                    pass
+            driver._submission_mutex = EdgeCrossingLock()
+            with self.assertRaisesRegex(ValueError, 'EXISTING_TURN_SUBMISSION_UNVERIFIED'):
+                asyncio.run(driver.submit_prompt(
+                    prompt='DO_NOT_REPEAT', turn_id=turn,
+                    actor_kind='MASTER',
+                    conversation_url='https://chatgpt.com/c/known-master',
+                ))
+            self.assertEqual([], cli.calls)
+
+    def test_existing_turn_cannot_be_rebound_to_another_conversation(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            url = 'https://chatgpt.com/c/original-conversation'
+            driver.bind_turn('immutable-turn', url, actor_kind='MASTER')
+            with self.assertRaisesRegex(ValueError, 'TURN_CONVERSATION_REBIND_DENIED'):
+                driver.bind_turn(
+                    'immutable-turn', 'https://chatgpt.com/c/different-conversation',
+                    actor_kind='MASTER',
+                )
+            self.assertEqual(url, driver.turn_binding('immutable-turn')['conversation_url'])
+
+    def test_bound_conversation_cannot_revert_to_root_with_same_turn(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            url = 'https://chatgpt.com/c/original-conversation'
+            driver.bind_turn('known-turn', url, actor_kind='MASTER')
+            with self.assertRaisesRegex(ValueError, 'TURN_CONVERSATION_REBIND_DENIED'):
+                driver.bind_turn('known-turn', None, actor_kind='MASTER')
+            self.assertEqual(url, driver.turn_binding('known-turn')['conversation_url'])
+
+    def test_started_root_turn_cannot_be_promoted_by_rebinding(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            turn = 'started-root-turn'
+            driver.bind_turn(turn, None, actor_kind='MASTER')
+            driver._mark_turn_browser_io_started(turn)
+            with self.assertRaisesRegex(ValueError, 'TURN_BROWSER_IO_REBIND_DENIED'):
+                driver.bind_turn(
+                    turn, 'https://chatgpt.com/c/arbitrary-conversation',
+                    actor_kind='MASTER',
+                )
+            self.assertIsNone(driver.turn_binding(turn)['conversation_url'])
+            self.assertTrue(driver.turn_binding(turn)['browser_io_started'])
+
     def test_lifecycle_records_roles_and_migrates_legacy_state(self):
         with tempfile.TemporaryDirectory() as td:
             state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'
@@ -249,6 +386,22 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
             self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
             driver._mark_turn_submit_edge_crossed("turn-existing", method="click")
             self.assertIsNone(driver.prove_turn_not_submitted("turn-existing"))
+
+    def test_legacy_ambiguous_master_turn_has_no_positive_no_submit_proof(self):
+        # Matches the 2026-10-09 read-only production diagnostic:
+        # browser I/O started, submit edge unknown, no conversation URL.
+        # Unknown is not equivalent to False, and must never permit a retry.
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            driver.bind_turn("legacy-master-intent", None, actor_kind="MASTER")
+            driver._mark_turn_browser_io_started("legacy-master-intent")
+            with driver._state_mutex:
+                state = driver._load()
+                row = state["turns"]["legacy-master-intent"]
+                row["submit_edge_crossed"] = None
+                row["conversation_url"] = None
+                driver._save(state)
+            self.assertIsNone(driver.prove_turn_not_submitted("legacy-master-intent"))
 
     def test_submit_failure_before_click_is_positive_submit_edge_proof(self):
         with tempfile.TemporaryDirectory() as td:

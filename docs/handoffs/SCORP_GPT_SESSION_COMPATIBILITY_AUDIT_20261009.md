@@ -1,0 +1,617 @@
+# SCORP GPT session compatibility audit — 2026-10-09
+
+Status: ISOLATED_CANDIDATE / NOT_PRODUCTION / LIVE_BROWSER_NOT_RUN
+
+## User goal
+
+Support GPT conversation sessions 1..N as interchangeable participants in an
+existing SCORP project, without requiring the same named model for every turn.
+This is not a request to exceed the proven V4 concurrent Worker capacity of 2.
+
+## Evidence inspected
+
+- This candidate branches from `0f1db544ee2afda86f0b4b24ba946e5edeec5b11`
+  (`fix/scorp-v4-r2-runtime-keepalive-20261001`), not from the older
+  `main` branch.
+- `master_a_dynamic_v4/master_controller.py` has no model inference and
+  uses logical `master_identity=A`.
+- `master_a_dynamic_v4/activation_arbiter.py` already includes
+  `HEARTBEAT_IDLE`, `RESUME_MASTER`, `WAKE_MASTER`,
+  `RECONCILE_AMBIGUOUS`, and `TERMINAL` actions.
+- `master_a_dynamic_v4/master_watchdog.py` is SQLite-backed; it does not
+  itself open a browser or send prompts.
+- V3's `WorkerConversationPoolV3` allows 1..8 configured slots; V4's
+  runtime and status endpoints currently use a 2-Worker limit.
+- The V4 browser engine requires structured response capture; ambiguous
+  browser effects are not an invitation to resend blindly.
+- The V4 CLI summary previously reported a hard-coded `GPT-5.6 Sol`
+  `reasoning_model` without proving the model selected in the browser.
+  This candidate changes that unverified evidence to `null` and marks
+  the verification status `UNVERIFIED`.
+
+## Distinguish identities
+
+1. Logical roles: one Master A, zero or more scheduled Worker assignments.
+2. Physical sessions: authenticated browser channels bound to exact conversation
+   identities with leases, epochs and unique intents.
+3. Model metadata: the model label for a conversation, *if* obtained from a
+   trustworthy host-side attestation. Browser login, subscriptions, and
+   assistant-generated text do not attest the model.
+4. Authority: root contract, operator generation, physical binding, and
+   exact browser send/acceptance gates. Model labels never grant authority.
+
+## Migration sequence (not implemented in this change)
+
+1. Verify current local runtime and active control queue. Do not infer the
+   queue from historical docs: earlier execution evidence used the private
+   control plane, while later AGENTS.md names `Scorp96/666`.
+2. Reconcile isolated local R2 candidates newer than the remote branch.
+   No assumption that `0f1db54` is the newest on the Windows machine.
+3. Define a versioned, host-attested SessionCapability record. Unknown
+   model identity must remain unknown rather than being guessed.
+4. Register GPT conversations as logical Worker candidates independently of
+   any model name; allocate at most two active slots until separate capacity
+   and browser-load testing has passed.
+5. Reuse existing ActivationArbiter and watchdog; add only missing verified
+   physical-session end-of-turn observation and operator-authorized continuation.
+6. Test zero duplicate browser sends through crash/restart, token/rate limits,
+   unknown auth state, ambiguous side effects, and completion.
+7. Require isolated 24-hour canary and explicit operator approval before
+   production changes or widening the Worker limit.
+
+## Blockers / release gates
+
+- Current Windows Agent online status: VERIFIED for isolated read-only health and
+  diagnostic tasks on 2026-10-09: [#2246](https://github.com/Scorp96/scorp-control-plane/issues/2246),
+  [#2247](https://github.com/Scorp96/scorp-control-plane/issues/2247).
+- This web ChatGPT session has GitHub repository access, **not** automatic
+  Windows shell/Named Pipe access.
+- Trustworthy model metadata for a browser conversation: NOT_VERIFIED.
+- Browser send / real response canary: NOT_RUN for this candidate.
+- Existing repository's GPT-5.6 Sol identity policy: STILL IN EFFECT.
+  Changing an evidence field is not authorization to waive it.
+- Full candidate OFFLINE validation: PASS on isolated GitHub Windows runner,
+  [run 37811808599](https://github.com/Scorp96/6/actions/runs/37811808599).
+  377 V4 tests, 623 GUI Bridge tests, 29 broker tests, Python compile PASS.
+  Real Windows execution was read-only diagnostic only, never browser send.
+- Production cutover: NOT_AUTHORIZED.
+
+## This branch changes only
+
+- Truthful model evidence in the V4 one-shot runtime report.
+- Regression check that the report calls the unverified-evidence function.
+- Pure, model-independent `session_admission`, `continuation_gate`, and
+  `session_selection` modules, with dedicated offline tests.
+- Cross-host Python test portability fixes and isolated GitHub Actions jobs.
+- This engineering audit and a legacy ambiguous-submit safety regression.
+
+The only real Windows execution in this phase was user-authorized, read-only
+health and sanitized diagnostic queries; these did not send a browser message
+or write production SQLite. The candidate branch is not installed on Windows.
+No scheduled-task change, release installation, model substitution, or
+production cutover was performed.
+
+## Recommended next acceptance tests
+
+- Confirm `runtime.status`, `master.status`, `worker.status` and
+  `evidence.query` via authorized read-only pipe on the current Windows host.
+- Verify `reasoning_model` remains null without trustworthy host attestation.
+- Verify the V4 GUI bridge identifies the *original conversation* and completion
+  independently, with no speculative prompt resend.
+- Verify all GPT model labels are treated as metadata; only host-verified
+  session capability, root contract and permissions control admission.
+
+## Fresh 2026-10-09 read-only Windows facts (more recent than prior handoffs)
+
+- [#2246](https://github.com/Scorp96/scorp-control-plane/issues/2246):
+  GitHub -> Windows Agent `health` acknowledged and returned success.
+- [#2247](https://github.com/Scorp96/scorp-control-plane/issues/2247):
+  ScorpComputerAgent Running; R1 V4 Persistent Runtime Running;
+  `runtime-v4/active/daemon-health.json` HEALTHY with recent heartbeat.
+  GUI Bridge Scheduled Task Ready, not Running; its Watchdog remains Disabled.
+- [#2248](https://github.com/Scorp96/scorp-control-plane/issues/2248):
+  authoritative R1 project `scorp-v4-production` ACTIVE / BOOTSTRAP;
+  operator RUNNING; master sessions 3 STALE; zero task nodes, Worker
+  leases, or browser bindings; one action intent.
+- [#2249](https://github.com/Scorp96/scorp-control-plane/issues/2249):
+  the only R1 action intent is `MASTER_REASONING` /
+  `BLOCKED_AMBIGUOUS`. Twenty-six R2-named directories existed;
+  those with a readable database were test canaries, not a proven live R2
+  replacement. An old canary HEALTHY file is historical, not live.
+- [#2250](https://github.com/Scorp96/scorp-control-plane/issues/2250):
+  ambiguous R1 intent created 2026-09-24; attempt=1; reason
+  `CONVERSATION_URL_INVALID`. URL, remote identity, response are absent.
+- [#2251](https://github.com/Scorp96/scorp-control-plane/issues/2251):
+  driver metadata matches that exact turn; `browser_io_started=true`,
+  `submit_edge_crossed=null`; session exists but no promoted conversation.
+  Treat null as UNKNOWN, not false. No resubmission is permitted without
+  independent evidence satisfying the existing fail-closed reconciliation.
+
+## Current decision
+
+- DO NOT RE-SEND the ambiguous Master intent.
+- DO NOT reactivate or install another Master into the live R1 authority.
+- DO NOT enable the currently disabled GUI Bridge Watchdog by default.
+- Model-neutral admission and the 1..N *candidate session* shortlist have passed
+  offline tests, but physical authority and send permissions remain separate.
+- Safest next intervention: validate a *new isolated browser canary* with fresh
+  unique intent and explicit operator authorization after checking that no
+  existing authoritative session will be affected. The legacy production
+  ambiguous intent remains BLOCKED pending genuine remote evidence or
+  a separately approved operator resolution.
+
+## 2026-10-09 continuation: GUI failure root cause and safe next seam
+
+### Fresh read-only local evidence
+
+- [#2253](https://github.com/Scorp96/scorp-control-plane/issues/2253):
+  bridge worker process count=0, GUI health status ERROR, stale heartbeat
+  since 2026-10-07, task Ready but not running; GUI Watchdog disabled.
+- [#2254](https://github.com/Scorp96/scorp-control-plane/issues/2254):
+  expected bridge_worker.py / chrome-use.exe / Python executables are
+  present; no bridge-worker.lock. The fault is not missing executables.
+- [#2256](https://github.com/Scorp96/scorp-control-plane/issues/2256):
+  sanitized error enum is `MASTER_CONVERSATION_ROTATION_REQUIRED`.
+  Per `session_registry_v3.py`, this triggers when a newly returned
+  Master conversation URL disagrees with the existing canonical Master
+  binding and no explicit, verified rotation has taken place.
+- [#2257](https://github.com/Scorp96/scorp-control-plane/issues/2257):
+  existing V3 Master and two registered session URLs share the same hashed
+  canonical URL; driver has six conversation bindings. The *existing
+  registry* is internally consistent, which does not prove that the
+  browser reply's *new* URL was legitimate.
+- [#2258](https://github.com/Scorp96/scorp-control-plane/issues/2258):
+  V3 relay ledger contains 322 cumulative rows, including 213 GUI_AMBIGUOUS,
+  104 SUPERSEDED, 2 ROUTED, 2 GUI_TIMED_OUT and 1 GUI_SUBMITTED.
+- [#2259](https://github.com/Scorp96/scorp-control-plane/issues/2259):
+  212/213 GUI_AMBIGUOUS are Master rows; one is a Worker.
+  All 213 ambiguous rows lack durable conversation URLs and submitted_at
+  timestamps. These are HISTORICAL rows, not 213 active executions.
+
+### New isolated code, no browser sends
+
+- `turn_completion_evidence.py`: accepts two timestamp-separated samples
+  with the same physical session, canonical URL, generation, intent and
+  structured-response hash. Requires affirmative host-verified final event
+  at both observations. An absent Stop control does NOT prove completion.
+- `physical_progress_probe.py`: calls only
+  `driver.observe_current_binding(channel)` (the existing no-navigation,
+  no-send driver method). A Stop control proves only GENERATING; an
+  idle-looking screen is UNKNOWN, never `IDLE_CONFIRMED`.
+- `verified_continuation.py`: joins host completion evidence with the
+  original Arbiter continuation candidate. Rejects stale/future samples,
+  respects operator/production constraints, and prioritizes STOP and
+  OBSERVE_ONLY without browser work.
+- `session_admission.py`: now requires `auth_verification=HOST_VERIFIED`
+  and `physical_verification=HOST_VERIFIED` in addition to status strings.
+  A model's statement and "ChatGPT Plus" page text are not authentication
+  or physical-binding attestations.
+- `gui_preflight_audit.py`: portable, read-only, redacted CLI for V3
+  registry, ledger, GUI error and R1 blocked-intent metadata. No raw URL,
+  turn ID, task content, token, or message text is included in the output.
+- Candidate GitHub Actions gained branch-specific concurrency to cancel
+  superseded runs rather than waste Windows CI minutes.
+
+### Strong limitations
+
+The current physical Chrome driver does **NOT** expose a trustworthy
+`TURN_FINAL_CONFIRMED` event for an arbitrary original GPT conversation.
+The new modules therefore remain no-send policy and diagnostic code.
+Mock tests using `HOST_VERIFIED` are **not evidence** that the actual
+browser transport can attest that fact. Browser/host integration and
+authorization are separate blockers.
+
+Do not replace, clear, rotate or replay the old V3 Master conversation URL.
+Do not treat any historical `GUI_AMBIGUOUS` row as safe to resubmit.
+Do not re-enable the GUI watchdog or turn on a live reactivation schedule
+until original-thread identity, real browser turn-finalization, auth,
+operator permissions and no-duplicate guarantees are tested independently.
+
+### Validated release posture
+
+ISOLATED CODE ONLY / WINDOWS READ-ONLY DIAGNOSTICS / NO MASTER CUTOVER /
+NO LIVE BROWSER SEND / NO REPLAY / NO PRODUCTION SQLITE WRITE.
+
+Run `scripts/run-candidate-validation.ps1` in the isolated candidate
+and check the latest branch-specific GitHub Actions run before reviewing.
+A full offline pass is necessary but insufficient for production.
+
+## Isolated rotation safeguard (not deployed)
+
+- `chatgpt-gui-bridge/bridge-watchdog.ps1` now contains a guarded
+  short-circuit for a known `MASTER_CONVERSATION_ROTATION_REQUIRED` health
+  error. It reports `WATCHDOG_BLOCKED_ROTATION` and does not restart the
+  Bridge task. The production watchdog remains **Disabled**.
+- A Windows-only test runs the PowerShell script with a deliberately
+  nonexistent target task and a mock error health file. The expected result
+  is return code 0 and `WATCHDOG_BLOCKED_ROTATION`, proving that the
+  blocked path never reaches Task Scheduler restart operations.
+- This safety modification does not authorize rotation of the old Master
+  URL or resolve the old V3/R1 browser ambiguity. Only operator-approved,
+  proven physical rebind can address that.
+- GitHub Actions on experimental branch cancel superseded runs. The latest
+  full offline validation must be checked at its actual tested commit SHA.
+
+## 2026-10-09 01:27–01:34 China Standard Time: live Chrome Use read-only discovery
+
+The controlling Windows Agent still accepts and completes scoped read-only
+diagnostics via GitHub issues, with result hashes and zero exit codes.
+
+- [#2261](https://github.com/Scorp96/scorp-control-plane/issues/2261):
+  V3 `chrome-use-driver-v3.json` contains **0** session records, so the
+  driver cannot resolve one ACTIVE physical Master session even though it
+  retains historical conversation entries.
+- [#2262](https://github.com/Scorp96/scorp-control-plane/issues/2262):
+  `chrome-use --json session list` succeeds in 192 ms, returning **1**
+  live Chrome Use session; none was registered as an active V3 Master.
+- [#2263](https://github.com/Scorp96/scorp-control-plane/issues/2263):
+  a read-only `get url` for exactly that existing Chrome Use session
+  returns a URL classified as OTHER, not the canonical V3 Master thread.
+  No browser focus, navigation or input was requested.
+- [#2264](https://github.com/Scorp96/scorp-control-plane/issues/2264):
+  `tab list` discovers **1** ChatGPT conversation among existing session
+  tab metadata, but **0** match the registered canonical Master URL.
+- [#2265](https://github.com/Scorp96/scorp-control-plane/issues/2265):
+  that ChatGPT conversation matches **0** of the V3 driver's six saved
+  conversation records. It is *new/unregistered*, not recoverable proof
+  for the original Master and not a safe target for automatic sends.
+
+### Resulting boundary
+
+**NO ORIGINAL MASTER IS PHYSICALLY BOUND.** There is a Chrome Use
+session and a distinct ChatGPT tab, but these do NOT establish that the
+original Master conversation or its pending reasoning response is live.
+Do not select, adopt, rotate, or send to the discovered tab automatically.
+The R1 `BLOCKED_AMBIGUOUS` Master intent and the V3
+`MASTER_CONVERSATION_ROTATION_REQUIRED` conflict remain independent blockers.
+
+### Isolated code added in this continuation
+
+- `chrome_use_binding_audit.py` implements metadata-only `session list`,
+  `get url`, and `tab list` with a strict command allowlist. It redacts
+  private URLs and session names from public result objects and fails closed
+  for zero/multiple sessions, missing/duplicate target tabs, focused target
+  mismatch, or tool errors. It never selects/adopts/navigates/sends.
+- **Both** unresolved Master intent count and rotation-conflict status
+  must be supplied explicitly. Missing proof is not equivalent to zero.
+- `turn_completion_evidence.py` now rejects two terminal observations
+  separated by more than the allowed window (default 30 s); the second
+  proof cannot reuse a stale initial sample.
+- `verified_continuation.py` propagates that upper bound and continues
+  to return a candidate with `browser_send_authorized=False`.
+
+### Next safe acceptance gate
+
+Only an explicitly selected, physically verified and host-authenticated
+conversation can become a new isolated canary. The currently discovered
+ChatGPT tab is not the previously registered Master. Even if a new tab
+were operator-selected, normal session verification and reply-finalization
+proof remain unimplemented in the actual Chrome Use adapter. Offline
+simulators do not count as a real host completion event.
+
+**Do not deploy/restart production as part of the candidate.**
+
+## 2026-10-09 01:38–01:44 local isolated Windows test and live binding canary
+
+- [#2266](https://github.com/Scorp96/scorp-control-plane/issues/2266):
+  R1 original project and V3 driver remain unchanged after browser read probes.
+  ACTIVE/BOOTSTRAP, state_version=0, one BLOCKED_AMBIGUOUS intent, no V4
+  browser bindings, zero V3 physical driver sessions; GUI Watchdog Disabled.
+- [#2267](https://github.com/Scorp96/scorp-control-plane/issues/2267):
+  authenticated GH CLI, Git and Python are installed; new isolated staging
+  target was absent.
+- [#2268](https://github.com/Scorp96/scorp-control-plane/issues/2268):
+  first attempted checkout/test wrapper failed because PowerShell treated
+  ordinary `gh repo clone` stderr as a terminating error. This wrapper
+  did not run the tests. Subsequent read-only [#2269](https://github.com/Scorp96/scorp-control-plane/issues/2269)
+  verified clone HEAD precisely
+  `1739d9167f3234cc65edd7e591ae798306d388c1`, clean worktree, in
+  `C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009`.
+- [#2270](https://github.com/Scorp96/scorp-control-plane/issues/2270):
+  local subprocess tests returned zero exit codes, but PowerShell regex
+  summary was broken and misreported counts as zero. **This result is not
+  used for acceptance.**
+- [#2271](https://github.com/Scorp96/scorp-control-plane/issues/2271):
+  corrected Python unittest runner directly obtained `testsRun`, failures,
+  errors and skipped: **111 tests PASS**, 0 failure, 0 error, 0 skip on the
+  isolated Windows host and exact pinned SHA.
+- [#2272](https://github.com/Scorp96/scorp-control-plane/issues/2272):
+  candidate `chrome_use_binding_audit.py` executed against REAL installed
+  Chrome Use and read-only production metadata. Returned `BLOCKED /
+  MASTER_ROTATION_CONFLICT_UNRESOLVED`, with one discoverable Chrome Use
+  session, one ChatGPT conversation, zero canonical original-Master matches,
+  one unresolved R1 intent, rotation conflict true, and both browser-send and
+  adoption permissions false. No browser navigation or production writes.
+- [#2273](https://github.com/Scorp96/scorp-control-plane/issues/2273):
+  the one currently visible ChatGPT tab in Chrome Use has
+  `ownership=adopted`. This ownership is within Chrome Use, **not** within
+  V3 registered physical Master bindings. Subsequent candidate code now
+  rejects `ownership=foreign` or unknown even if a tab URL happens to
+  equal the canonical Master URL. Newly added regression cases cover this.
+
+### Host canary disposition
+
+LOCAL CODE STAGED IN AN **ISOLATED** DIRECTORY ONLY; real Chrome Use
+session/tab identity observed with no-send commands; a forced Master
+rebind remains forbidden. Existing R1 state and V3 rotation conflict are
+not resolved. To advance, explicitly select and authorize an isolated GPT
+conversation and obtain a reliable browser-origin final-turn attestation;
+do not treat model text or a mere absent Stop control as proof.
+
+### Important distinction for reviewers
+
+The Windows 111-test run applies to HEAD `1739d916`. The newest later
+commit adds Chrome Use *ownership* safeguards. Use the most recent GitHub
+Actions full validation for that new HEAD, or explicitly update and re-run
+the isolated local staging test at its new HEAD. Do not claim an older
+local test run validated newer commits.
+
+## 2026-10-09 01:47–01:51: packaged one-command Windows preflight
+
+- `local_binding_preflight.py` uses V3 project-state and canonical Master
+  registry, GUI health and R1 SQLite `mode=ro` / `PRAGMA query_only=ON`
+  before delegating to Chrome Use `session list`, `get url`, `tab list`.
+  Counts `MAY_HAVE_SUBMITTED`, `CONFIRMED_SUBMITTED`,
+  `BLOCKED_AMBIGUOUS` and `FENCED_AMBIGUOUS` as unresolved.
+  Missing data, unknown GUI health, or unverified credentials never become
+  a false zero. Healthy-looking IDLE status now requires a non-stale,
+  timezone-aware heartbeat (at most 120 s old).
+- New `test_local_binding_preflight.py` confirms fail-closed SQLite, URL
+  ownership, unresolved-intent, GUI rotation and stale-heartbeat rules
+  with pure fixtures, no browser I/O.
+- [#2274](https://github.com/Scorp96/scorp-control-plane/issues/2274):
+  after updating ONLY the isolated Windows checkout to pinned SHA
+  `76f0c46491b0ed2916505ab5e6c0b77835d10140`,
+  **122 local scoped tests passed**, 0 failures or errors.
+- [#2275](https://github.com/Scorp96/scorp-control-plane/issues/2275):
+  the PACKAGED one-command Python module was executed on real Windows
+  under the isolated checkout. Result `BLOCKED:
+  MASTER_ROTATION_CONFLICT_UNRESOLVED`, 1 real Chrome Use session,
+  1 ChatGPT tab, 0 matching original Master, 1 unresolved R1 intent.
+  It denied browser send and tab adoption, touched no production files
+  and did not navigate.
+- [GitHub Actions #37819152702](https://github.com/Scorp96/6/actions/runs/37819152702):
+  full validation on that pre-heartbeat-fix SHA passed: 449 V4 tests,
+  625 GUI Bridge, 29 broker = **1,103 tests**, with
+  `CANDIDATE_VALIDATION=PASS`.
+- Stale-heartbeat safeguard was added AFTER that 1,103-test pass.
+  Validate the latest commit with a NEW full Actions run and local isolated
+  test before treating it as release-ready.
+
+### Repeatable manual no-send CLI invocation from isolated clone
+
+```powershell
+$env:PYTHONPATH = 'C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009\scorp-agent'
+& 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe' -B -m master_a_dynamic_v4.local_binding_preflight `
+  --v3-project-root 'C:\ScorpAgent\state-v3\active' `
+  --gui-health-file 'C:\ScorpAgent\chatgpt-gui-bridge-state\health.json' `
+  --r1-state-db 'C:\ScorpAgent\runtime-v4\active\state.sqlite3' `
+  --chrome-use-executable 'C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe'
+```
+
+This executable is a metadata-only tool, NOT a second watchdog and NOT an
+agent/browser wake-up. A BLOCKED result is the correct outcome in the
+current production state. Never schedule or couple it to sending without
+separate host attestation and acceptance.
+
+## 2026-10-09 02:00–02:04 CST: deterministic zero-model-token observer accepted locally
+
+The next safe execution milestone is a **read-only monitor**, NOT original-
+conversation GPT automatic reactivation. It is implemented separately from
+the production V4 daemon and cannot send browser messages.
+
+### Candidate implementation
+
+- `master_a_dynamic_v4/local_tick_observer.py`: a one-shot
+  `--interval-minutes 15|25` CLI with no model or network API call for
+  reasoning. It checks whether observation is due using a durable isolated
+  SQLite schedule and runs the already verified `local_binding_preflight`
+  only when due.
+- `observer_schedule` persists `last_reserved_ms`, `next_due_ms`,
+  `pending_seq`, `next_seq` and last sanitized status fingerprint.
+  `BEGIN IMMEDIATE` atomically reserves a due check before invoking
+  the browser metadata reader, preventing concurrent duplicate checks.
+  If the process is interrupted after reservation, the next invocation
+  returns `INCOMPLETE_PREVIOUS_TICK` and does not blindly replay.
+- `observer_events` stores only local timestamp, status/reason enum,
+  SHA-256 fingerprint and change flag. Private URL, GPT text, prompt, login,
+  cookie, session IDs and page contents are never recorded.
+  History is bounded to 500 events.
+- A repeated immediate invocation returns `SKIPPED/NOT_DUE`. Changing
+  interval for an existing workspace requires a new isolated workspace.
+  Clock rollback is blocked, and no-send/browser-adoption fields remain
+  false in every returned `TickOutcome`.
+- A Windows Task Scheduler invocation is **NOT INSTALLED**.
+  The one-shot function is suitable for a later explicitly authorized
+  scheduling layer; the 15/25-minute cadence is not proof that a GPT can
+  be reactivated after completion.
+
+### Verified evidence
+
+- [#2278](https://github.com/Scorp96/scorp-control-plane/issues/2278):
+  **17/17 observer tests pass on actual Windows** at candidate commit
+  `c0eafd28c0406259be813759babece4cf5b1764a`.
+  Real 15-minute isolated observer first tick `OBSERVED` and
+  `MASTER_ROTATION_CONFLICT_UNRESOLVED`; immediate next tick `SKIPPED/NOT_DUE`.
+  Model calls 0; browser send 0; no scheduled task.
+- [#2279](https://github.com/Scorp96/scorp-control-plane/issues/2279):
+  separate 25-minute isolated workspace first tick `OBSERVED`,
+  next immediate tick `SKIPPED/NOT_DUE`. Model calls 0; no send.
+- [#2280](https://github.com/Scorp96/scorp-control-plane/issues/2280):
+  read-only SQLite integrity is `ok` for BOTH isolated 15m and 25m
+  ledgers. Both have exactly one persisted event, no pending reservation
+  and correctly persisted due delta (15.0 / 25.0 minutes).
+- [GitHub Windows CI #37820901872](https://github.com/Scorp96/6/actions/runs/37820901872):
+  **SUCCESS on the exact HEAD `c0eafd28...`**.
+  468 V4 core + 625 GUI Bridge + 29 broker = **1,122 offline tests pass**,
+  `CANDIDATE_VALIDATION=PASS`.
+
+### Safe operational command (manual one-shot, already real-host tested)
+
+```powershell
+$env:PYTHONPATH = 'C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009\scorp-agent'
+& 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe' -B -m master_a_dynamic_v4.local_tick_observer `
+  --workspace 'C:\ScorpAgent\experiments\r2-observer-state-20261009' `
+  --interval-minutes 15 `
+  --v3-project-root 'C:\ScorpAgent\state-v3\active' `
+  --gui-health-file 'C:\ScorpAgent\chatgpt-gui-bridge-state\health.json' `
+  --r1-state-db 'C:\ScorpAgent\runtime-v4\active\state.sqlite3' `
+  --chrome-use-executable 'C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe'
+```
+
+A separate `r2-observer-state-25m-20261009` workspace was created for
+the 25-minute acceptance. Do NOT switch intervals on one existing ledger.
+
+### Not yet accepted
+
+1. There is no configured **continuous** Windows Scheduled Task running
+   this CLI unattended. An explicit scheduling action would be a separate
+   scope/change gate.
+2. No physical original GPT Master session has been proven bound.
+   Historical R1 `BLOCKED_AMBIGUOUS` remains unresolved and V3
+   `MASTER_CONVERSATION_ROTATION_REQUIRED` is present.
+3. No host-attested terminal event currently proves an original GPT
+   reply is complete. Therefore no browser wake/send path is authorized.
+4. No long soak/24-hour reliability run has occurred.
+
+**SAFE RESULT:** token-free deterministic health observation is proven;
+browser reactivation is still unavailable. The production daemon,
+SQLite, GUI Bridge and Watchdog remain unchanged.
+
+## 2026-10-09 07:11+08:00: isolated Windows scheduler candidate (NOT INSTALLED)
+
+### Why
+
+The previously verified \`local_tick_observer.py\` performs exactly one
+no-send observation and remembers 15/25-minute due times in isolated
+SQLite. It DOES NOT keep running after process exit. A separate Windows
+Task Scheduler action is needed to invoke it regularly.
+
+### New candidate files
+
+- \`master_a_dynamic_v4/run_isolated_observer_canary.ps1\`:
+  pinned-checkout launcher. Verifies the EXACT Git SHA of
+  \`C:\ScorpAgent\experiments\r2-gpt-session-audit-20261009\`
+  and refuses a dirty worktree or missing observer state. It invokes
+  only \`master_a_dynamic_v4.local_tick_observer\` and refuses any
+  \`browser_send_authorized\` or \`browser_adoption_authorized\` flag.
+- \`master_a_dynamic_v4/install_isolated_observer_canary.ps1\`:
+  \`Inspect\`, \`DryRun\`, \`InstallDisabled\`, \`Enable\`, \`Disable\`,
+  and \`Remove\` are explicit distinct modes.
+  \`Inspect\` is the default; installation **only registers a disabled**
+  canary Task Scheduler task. Existing task-name collisions fail closed.
+  A separate \`Enable\` is required to start recurring observations.
+  \`Disable\` / \`Remove\` remain available after a repository SHA drift.
+- \`tests/test_observer_canary_task_source.py\`: checks that the launcher
+  cannot start/restart background processes or send browser actions and
+  that the installer has explicit disable/rollback and limited principal.
+- Windows CI syntax-checks BOTH new PowerShell scripts using the native
+  PowerShell AST parser before running the full offline suite.
+
+### Intended Task Scheduler posture
+
+- Task name: \`ScorpR2GPTObserver15mCanary\` or
+  \`ScorpR2GPTObserver25mCanary\`.
+- Account: current user's **Interactive, Limited** token.
+- Scheduler wake cycle: once every FIVE minutes while that interactive
+  user can run tasks. The durable internal SQLite due gate performs a
+  full read-only observation only at/after 15 or 25 minutes, with up to
+  roughly 5 minutes scheduler quantization plus any host delays.
+- No task restart policy; \`MultipleInstances IgnoreNew\`; no model
+  API, no original-GPT send, no UI tab selection, no changes to the
+  existing GUI Watchdog or persistent V4 Runtime.
+- Enabling these isolated tasks is NOT proof of original GPT wake-up.
+
+### No unattended Windows changes in this stage yet
+
+A fresh [read-only scheduler readiness issue
+#2282](https://github.com/Scorp96/scorp-control-plane/issues/2282)
+was submitted to the Windows control queue, but at this writing has no
+host claim or completion receipt. Unlike earlier confirmed [#2278] and
+[#2279], that means no assertion of fresh local availability is justified.
+**Do not leave a modifying install/enable issue queued for delayed execution
+while the host's online/identity state is unknown.** GitHub offline
+candidate code may be tested independently.
+
+### Future operator-gated sequence (not executed)
+
+1. Confirm a NEW Windows Agent read-only claim/result (not only the issue
+   title \`SCORP_EXEC_RUNNING\`).
+2. Ensure the isolated checkout is clean and updated to a specifically
+   tested SHA; verify both previously accepted observer-state directories.
+3. Run the installer \`-Mode Inspect\` and \`-Mode DryRun\`. Never overwrite
+   a task with the same name.
+4. Run \`-Mode InstallDisabled\` for at most ONE canary.
+   Inspect its exact action, principal and disabled state.
+5. Enable only the isolated task by separate, validated action. Observe
+   at least two scheduled invocations through Task Scheduler and SQLite;
+   verify a not-due check does not access the browser, and a due check
+   only reads session/tab metadata.
+6. On any ambiguity/error, \`-Mode Disable\`; do not change V3/R1 or
+   restart the production GUI Bridge. Use \`-Mode Remove\` only after
+   disabling and verifying the exact task identity.
+7. A 24-hour end-to-end soak can be claimed only after observing 24 hours
+   of actual schedule receipts, lease continuity and clean redacted logs,
+   not from a mocked clock or backfilled SQLite rows.
+
+**Status: SCHEDULER CANDIDATE / WINDOWS INSTALL NOT EXECUTED /
+PRODUCTION UNCHANGED / ORIGINAL MASTER STILL BLOCKED.**
+
+## 2026-10-09: signed host-terminal integrity boundary (isolation-only)
+
+### Security issue discovered
+
+The previous `TurnSample.finish_event_provenance == "HOST_VERIFIED"`
+was a *string supplied by its caller*. The pure planner was incapable of
+independently authenticating this claim, even though it never returned
+`browser_send_authorized=True`. It could produce a no-send
+`READY_FOR_GATED_ADAPTER` candidate in offline tests with fabricated
+strings. Such strings must NOT be used to approve a real browser send.
+
+### Candidate remedy
+
+- `host_terminal_receipt.py` now contains **verification only**, without
+  an exported signer. The experimental tests contain their own isolated,
+  clearly marked HMAC fixture signer; no production key is in GitHub.
+- `assess_turn_completion()` requires TWO distinct signed receipt samples
+  in addition to the old two-sample, turn-intent, generation, physical URL,
+  progress false/false and positive `TURN_FINAL_CONFIRMED` requirements.
+  Missing key/receipt defaults to `UNKNOWN`; the no-send continuation
+  planner then returns `BLOCKED`.
+- Receipts cover exact session, canonical conversation URL, binding
+  generation, intent ID, monotonic sample timestamp, response digest,
+  terminal event, progress flags, event ID and increasing sequence. HMAC
+  is checked with constant-time comparison; malformed data is rejected.
+  The same event ID must be observed in both samples and the digest stable.
+- Tests include missing keys, omitted receipts, HMAC forgery, change of
+  event ID, altered model/intent/URL, stale timestamps, replay sequences,
+  malformed types, pending tools and generating=true.
+- **This does NOT yet create a trusted terminal-event producer.** An HMAC
+  proves only integrity relative to its local secret; a compromised/miswired
+  signer could still sign fictitious browser events. Before a real send,
+  install a genuinely host-origin finalization event callback into a
+  separately reviewed trusted browser adapter, protect the key with
+  OS-local permissions, enforce monotonic replay state, and run an
+  isolated, explicitly selected conversation acceptance. Chrome Use
+  `read`/snapshot text alone remains insufficient for terminal proof.
+
+### Live Windows isolation precaution
+
+The already enabled 15m read-only Task Scheduler canary is pinned to
+`8da5085f906b4aeeece6fb0ae1f488bc597507b1`, using the existing
+`r2-gpt-session-audit-20261009` folder. **DO NOT update that checkout
+in place** to a new host receipt candidate SHA: the pinned launcher would
+fail its SHA guard, interrupting the proven recurring observer.
+Any new host receipt tests on Windows must use a **distinct isolated**
+experiment directory. Do not enable an additional scheduled observer,
+merge this PR or change R1/V3/GUI production tasks.
+
+### Additional real-host autonomous observation
+
+- [#2298](https://github.com/Scorp96/scorp-control-plane/issues/2298):
+  at **2026-10-09 07:42:47 UTC+8**, the existing 15m observer performed
+  another actual due check independently, persisted `seq=3` to isolated
+  SQLite (`integrity=ok`), `changed=false`, no pending reservation.
+  This verifies two real, distinct 15m due observations; the legacy
+  Master still blocks via `MASTER_ROTATION_CONFLICT_UNRESOLVED`.
+- This is **not** a 24h soak, and doesn't demonstrate original GPT wake.

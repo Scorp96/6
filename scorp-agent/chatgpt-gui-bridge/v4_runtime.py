@@ -23,7 +23,8 @@ from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError  # n
 
 
 WORKER_CAPACITY = 2
-REASONING_MODEL = "GPT-5.6 Sol"
+# Policy requirement is NOT host attestation of a selected browser model.
+REQUIRED_REASONING_MODEL = "GPT-5.6 Sol"
 
 
 def describe(*, database_path: pathlib.Path, project_id: str, allowed_roots: list[pathlib.Path]) -> dict[str, Any]:
@@ -37,7 +38,10 @@ def describe(*, database_path: pathlib.Path, project_id: str, allowed_roots: lis
             state = None
         payload: dict[str, Any] = {
             "runtime": "SCORP_V4_CANDIDATE",
-            "reasoning_model": REASONING_MODEL,
+            "reasoning_model": None,
+            "reasoning_model_verification": "UNVERIFIED",
+            "required_reasoning_model": REQUIRED_REASONING_MODEL,
+            "model_policy_gate": "NOT_RUN",
             "project_id": project_id,
             "database_path": str(store.path),
             "queue_authority": "sqlite",

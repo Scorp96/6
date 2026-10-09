@@ -200,5 +200,106 @@ class ReadOnlyPhysicalRebindTests(unittest.TestCase):
                 store.close()
 
 
+    def test_mismatched_private_conversation_urls_are_not_logged(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        from v4_physical_rebind import ReadOnlyBrowserRebinder
+
+        private_sqlite = "https://chatgpt.com/c/secret-existing-sqlite"
+        private_driver = "https://chatgpt.com/c/secret-different-physical"
+
+        class Driver:
+            async def observe_current_binding(self, _channel):
+                return {
+                    "driver_url": private_driver,
+                    "physical_url": private_driver,
+                    "snapshot": private_driver,
+                }
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = self._store(root)
+            try:
+                adapter = BrowserAdapter(store, object())
+                adapter.rebind(
+                    "rebind-project", "master", actor_id="A",
+                    conversation_url=private_sqlite, predecessor_url=None,
+                    reason="INITIAL_BINDING", evidence={"source": "fixture"},
+                )
+                rebinder = ReadOnlyBrowserRebinder(
+                    store=store, browser_adapter=adapter, driver=Driver(),
+                    auth_probe=lambda _: {"status": "AUTHENTICATED"},
+                    project_id="rebind-project",
+                )
+                result = rebinder.health_probe()
+                self.assertEqual("PHYSICAL_UNAVAILABLE", result["status"])
+                self.assertEqual("RECONCILE_REQUIRED:PHYSICAL_URL_MISMATCH", result["reason"])
+                self.assertNotIn(private_sqlite, str(result))
+                self.assertNotIn(private_driver, str(result))
+            finally:
+                store.close()
+
+    def test_untrusted_auth_status_never_leaks_secret_in_health(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        from v4_physical_rebind import ReadOnlyBrowserRebinder
+
+        leak = "private-bearer-value https://chatgpt.com/c/hidden"
+        class Driver:
+            async def observe_current_binding(self, _channel):
+                raise AssertionError("physical observation must be gated by auth")
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = self._store(root)
+            try:
+                adapter = BrowserAdapter(store, object())
+                adapter.rebind(
+                    "rebind-project", "master", actor_id="A",
+                    conversation_url="https://chatgpt.com/c/existing",
+                    predecessor_url=None, reason="INITIAL_BINDING",
+                    evidence={"source": "fixture"},
+                )
+                rebinder = ReadOnlyBrowserRebinder(
+                    store=store, browser_adapter=adapter, driver=Driver(),
+                    auth_probe=lambda _: {"status": leak},
+                    project_id="rebind-project",
+                )
+                result = rebinder.health_probe()
+                self.assertEqual("AUTH_BLOCKED:UNVERIFIED", result["reason"])
+                self.assertNotIn(leak, str(result))
+            finally:
+                store.close()
+
+    def test_browser_observation_exception_only_reports_exception_class(self):
+        from master_a_dynamic_v4.browser_adapter import BrowserAdapter
+        from v4_physical_rebind import ReadOnlyBrowserRebinder
+
+        leak = "token-secret https://chatgpt.com/c/hidden"
+        class Driver:
+            async def observe_current_binding(self, _channel):
+                raise RuntimeError(leak)
+
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            store = self._store(root)
+            try:
+                adapter = BrowserAdapter(store, object())
+                adapter.rebind(
+                    "rebind-project", "master", actor_id="A",
+                    conversation_url="https://chatgpt.com/c/existing",
+                    predecessor_url=None, reason="INITIAL_BINDING",
+                    evidence={"source": "fixture"},
+                )
+                rebinder = ReadOnlyBrowserRebinder(
+                    store=store, browser_adapter=adapter, driver=Driver(),
+                    auth_probe=lambda _: {"status": "AUTHENTICATED"},
+                    project_id="rebind-project",
+                )
+                result = rebinder.health_probe()
+                self.assertEqual("BROWSER_OBSERVATION_FAILED:RuntimeError", result["reason"])
+                self.assertNotIn(leak, str(result))
+            finally:
+                store.close()
+
+
 if __name__ == "__main__":
     unittest.main()

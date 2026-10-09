@@ -47,6 +47,25 @@ function Test-BridgeFunctionalHealth {
   }
 }
 
+# An unapproved Master URL rotation is an identity conflict, not a
+# transient crash. Do not restart the task or replay ambiguous browser work.
+if (Test-Path -LiteralPath $bridgeHealthPath -PathType Leaf) {
+  try {
+    $savedHealth = Get-Content -LiteralPath $bridgeHealthPath -Raw | ConvertFrom-Json
+    $savedError = [string]$savedHealth.error
+    if (
+      [string]$savedHealth.status -eq 'ERROR' -and
+      $savedError -match '^(?:ValueError:\s*)?MASTER_CONVERSATION_ROTATION_REQUIRED(?:;\s*consecutive_cycle=\d+)?$'
+    ) {
+      Write-WatchdogHealth 'WATCHDOG_BLOCKED_ROTATION' 'Master rotation requires operator-approved reconciliation' 0
+      Write-Output 'WATCHDOG_BLOCKED_ROTATION'
+      exit 0
+    }
+  } catch {
+    # Preserve the original path for unrelated errors.
+  }
+}
+
 $task = Get-ScheduledTask -TaskName $TargetTaskName -ErrorAction Stop
 $workers = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction Stop | Where-Object {
   ([string]$_.CommandLine).Contains($BridgeWorkerPath)

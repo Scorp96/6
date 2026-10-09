@@ -20,6 +20,21 @@ def load_runtime():
 
 
 class MasterControllerRuntimeTests(unittest.TestCase):
+    def test_model_provenance_is_not_inferred_from_chatgpt_login(self):
+        runtime = load_runtime()
+        self.assertEqual(
+            {
+                "reasoning_model": None,
+                "reasoning_model_verification": "UNVERIFIED",
+            },
+            runtime.unverified_model_evidence(),
+        )
+        # Regression: the runtime report must call the provenance helper.
+        self.assertIn(
+            "**unverified_model_evidence(),",
+            SCRIPT.read_text(encoding="utf-8"),
+        )
+
     def test_parser_accepts_only_structured_work_result_json(self):
         runtime = load_runtime()
         value = {

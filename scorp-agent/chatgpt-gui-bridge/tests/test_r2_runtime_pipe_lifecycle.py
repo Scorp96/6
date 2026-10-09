@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -54,7 +55,7 @@ class R2RuntimePipeLifecycleTests(unittest.TestCase):
             bridge_root = pathlib.Path(__file__).resolve().parents[1]
             agent_root = bridge_root.parent
             script = bridge_root / "tools" / "v4_daemon_runtime.py"
-            python = r"C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe"
+            python = sys.executable
             env = os.environ.copy()
             env["PYTHONPATH"] = os.pathsep.join(
                 [str(agent_root), str(bridge_root)]

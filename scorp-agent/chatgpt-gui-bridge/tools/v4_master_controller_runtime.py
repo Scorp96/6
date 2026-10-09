@@ -247,6 +247,19 @@ def validate_candidate_binding(
     }
 
 
+def unverified_model_evidence() -> dict[str, object]:
+    """Record model provenance truthfully when no host attestation exists.
+
+    Browser authentication is not evidence of which GPT model served a turn.
+    This function is reporting-only: it grants no Master/Worker role, browser
+    send permission, or exemption from the repository's legacy model policy.
+    """
+    return {
+        "reasoning_model": None,
+        "reasoning_model_verification": "UNVERIFIED",
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run one gated SCORP V4 Master A plan")
     parser.add_argument("--send", action="store_true", help="required before opening ChatGPT or creating state")
@@ -484,7 +497,7 @@ def run_runtime(args: argparse.Namespace) -> int:
             "plan": admitted,
             "cycles": [dataclasses.asdict(item) for item in history],
             "browser_io": "ATTEMPTED",
-            "reasoning_model": "GPT-5.6 Sol",
+            **unverified_model_evidence(),
             "worker_capacity": 2,
             "candidate_binding": candidate_binding,
         }
