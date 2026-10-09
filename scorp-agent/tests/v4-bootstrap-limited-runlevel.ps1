@@ -11,6 +11,9 @@ $backup=$source.IndexOf('    $priorXml=Export-ScheduledTask',[StringComparison]:
 $enforce=$source.IndexOf('if($runLevel-cne"Limited")',[StringComparison]::Ordinal)
 $verify=$source.IndexOf('if([string]$after.Principal.RunLevel-cne"Limited")',[StringComparison]::Ordinal)
 if($pre-lt0 -or $stop-lt0 -or $pre-ge$stop -or $pre-ge$backup){throw 'UNSAFE_RUNLEVEL_PRECHECK_NOT_BEFORE_MUTATION'}
+$uac=$source.IndexOf('EnableLUA -ErrorAction Stop',[StringComparison]::Ordinal)
+$sidGuard=$source.IndexOf('P0_UNSAFE_RUNLEVEL: built-in privileged account',[StringComparison]::Ordinal)
+if($uac-lt$pre -or $uac-ge$stop -or $sidGuard-lt$pre -or $sidGuard-ge$stop){throw 'UAC_OR_ACCOUNT_SECURITY_CONTEXT_NOT_CHECKED_BEFORE_MUTATION'}
 if($enforce-lt$stop -or $verify-lt$enforce){throw 'UNSAFE_RUNLEVEL_POST_SWITCH_NOT_VERIFIED'}
 if($source -match '\$runLevel-notin@\("Highest","Limited"\)'){throw 'OLD_HIGHEST_ALLOWED'}
 Write-Output 'P0_BOOTSTRAP_LIMITED_RUNLEVEL_FENCE_PASS'
