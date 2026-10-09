@@ -50,7 +50,7 @@ class ReplayReservation:
 def _safe_db_path(path: pathlib.Path, root: pathlib.Path) -> bool:
     if not isinstance(path, pathlib.Path) or not isinstance(root, pathlib.Path):
         return False
-    if root.name != "experiments" or not root.is_dir():
+    if root.name != "experiments" or not root.is_dir() or root.is_symlink():
         return False
     if path.name != _DATABASE_NAME or path.is_symlink():
         return False
