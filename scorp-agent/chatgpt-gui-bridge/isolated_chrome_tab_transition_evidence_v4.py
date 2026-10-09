@@ -130,6 +130,14 @@ def compare_created_blank_to_homepage(
         return result("STABLE_TARGET_SESSION_LOCAL_ALIAS_CHANGED")
     if missing:
         return result("PREVIOUS_TABS_NO_LONGER_LISTED")
+    if any(
+        (t["targetId"], t["tabId"]) in prior_pairs
+        and (t.get("url") != "about:blank"
+             or t.get("ownership") != "created"
+             or t.get("relayAttached") is not True)
+        for t in post
+    ):
+        return result("PRIOR_TAB_URL_OR_OWNERSHIP_CHANGED")
     if not home_tabs:
         return result("EXPECTED_HOME_TAB_NOT_OBSERVED")
     if len(home_tabs) != 1 or novel != 1 or len(post) != len(prior) + 1:
@@ -141,14 +149,6 @@ def compare_created_blank_to_homepage(
                 and newly_created.get("tabId") != expected_new_tab_id
             )):
         return result("EXPECTED_NEW_TAB_IDENTITY_MISMATCH")
-    if any(
-        (t["targetId"], t["tabId"]) in prior_pairs
-        and (t.get("url") != "about:blank"
-             or t.get("ownership") != "created"
-             or t.get("relayAttached") is not True)
-        for t in post
-    ):
-        return result("PRIOR_TAB_URL_OR_OWNERSHIP_CHANGED")
     return result(
         "ONE_NEW_CREATED_HOME_TARGET_OLD_TABS_PRESERVED_NO_SEND_AUTHORITY",
         state="HOME_INVENTORY_CANDIDATE_UNATTESTED",
