@@ -14,7 +14,9 @@ import json
 from dataclasses import dataclass
 from typing import Collection
 
-from .session_admission import AdmissionPolicy, SessionObservation, evaluate_session
+from .session_admission import (
+    AdmissionPolicy, SessionObservation, _canonical_conversation_url, evaluate_session,
+)
 
 
 _MASTER_ACTIONS = frozenset({"WAKE_MASTER", "REASON_MASTER", "RESUME_MASTER"})
@@ -91,7 +93,9 @@ def plan_continuation(
         "master_epoch": request.master_epoch,
         "daemon_epoch": request.daemon_epoch,
         "physical_session_id": observation.session_id,
-        "conversation_url": observation.conversation_url,
+        # Session admission already compared canonical URLs. Use that SAME
+        # canonical identity for durable continuation deduplication.
+        "conversation_url": _canonical_conversation_url(observation.conversation_url),
         "binding_generation": observation.generation,
     }
     key = "continue-" + hashlib.sha256(
