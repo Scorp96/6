@@ -264,6 +264,44 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         self.assertEqual("EXPERIMENT_SCOPE_INVALID", denied.reason)
         self.assertFalse(file.exists())
 
+    def test_untrusted_server_record_cannot_mint_host_receipts(self):
+        from master_a_dynamic_v4.untrusted_turn_record_inspector import (
+            inspect_untrusted_conversation_record,
+        )
+        message = {"author": {"role": "assistant"}, "end_turn": True,
+                   "metadata": {"finish_details": {"type": "stop"}},
+                   "content": {"parts": ["Finished fixture"]}}
+        record = {"conversation_id": "mock-server-conversation", "current_node": "assistant",
+                  "mapping": {
+                      "assistant": {"parent": "user", "message": message},
+                      "user": {"parent": None, "message": {"author": {"role": "user"}}},
+                  }}
+        observed = inspect_untrusted_conversation_record(
+            record, expected_conversation_id="mock-server-conversation",
+            expected_user_node_id="user",
+        )
+        self.assertEqual("FINISHED_UNATTESTED", observed.status)
+        self.assertFalse(observed.host_terminal_event_verified)
+        rows, _ = evidence()
+        attempted = reserve_verified_continuation_for_review(
+            self.db, allowed_experiments_root=self.root,
+            request=request(), observation=obs(), policy=policy(),
+            samples=rows, receipts=None, host_attestation_key=KEY,
+            expected_intent_id="safe-intent-1", now_monotonic_ms=6000,
+        )
+        self.assertEqual("TWO_TERMINAL_RECEIPTS_REQUIRED", attempted.reason)
+        self.assertFalse(self.db.exists())
+
+    def test_protected_observer_folder_cannot_get_ledger_write(self):
+        for name in ("r2-gpt-session-audit-20261009", "r2-observer-state-20261009"):
+            with self.subTest(name=name):
+                folder = self.root / name
+                folder.mkdir()
+                path = folder / "host-terminal-replay-ledger.sqlite3"
+                denied = self.reserve(database=path)
+                self.assertEqual("EXPERIMENT_SCOPE_INVALID", denied.reason)
+                self.assertFalse(path.exists())
+
     def test_existing_replay_only_reservation_blocks_escalation(self):
         from master_a_dynamic_v4.isolated_host_replay_ledger import (
             reserve_terminal_receipt_for_review,
