@@ -189,6 +189,25 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         self.assertEqual(2, self.rows("host_continuation_candidates"))
         self.assertFalse(second.browser_send_authorized)
 
+    def test_distinct_worker_receipts_commit_concurrently_in_one_ledger(self):
+        # Tests SQLite atomic replay coexistence, NOT live two-worker GPT I/O.
+        actions = (
+            dict(session="isolated-worker-1", event="a"*32,
+                 intent="safe-intent-1", decision="a"*32),
+            dict(session="isolated-worker-2", event="b"*32,
+                 intent="safe-intent-2", decision="b"*32),
+        )
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            outcomes = list(workers.map(lambda kwargs: self.reserve(**kwargs), actions))
+        self.assertEqual(
+            ["RESERVED_FOR_REVIEW", "RESERVED_FOR_REVIEW"],
+            sorted(r.status for r in outcomes),
+        )
+        self.assertEqual(2, self.rows("host_terminal_events"))
+        self.assertEqual(2, self.rows("host_terminal_scope_cursors"))
+        self.assertEqual(2, self.rows("host_continuation_candidates"))
+        self.assertTrue(all(not r.browser_send_authorized for r in outcomes))
+
     def test_two_simultaneous_same_decision_writes_only_once(self):
         with ThreadPoolExecutor(max_workers=2) as workers:
             outcomes = list(workers.map(lambda _: self.reserve(), (1, 2)))
