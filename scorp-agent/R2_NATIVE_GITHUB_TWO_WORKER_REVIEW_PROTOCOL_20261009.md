@@ -101,10 +101,16 @@ and `local_execution_authorized=false`.
 3. **Native `gh` auth status and private GET**: Windows #2436 independently
    confirmed `gh` present, already authenticated, and able to GET the
    pinned private synthetic comment without printing any raw data.
-4. **Native end-to-end staging with `gh`**: require its own SCORP_EXEC_RESULT
-   evidence, exact checked-out commit, two real REST GETs, isolated
-   SQLite and replay barrier. Mark as PASSED only after receiving that
-   result, never on CLAIMED.
+4. **Native end-to-end staging with `gh` — VERIFIED FOR SYNTHETIC WORK**:
+   SCORP #2438 successfully ran the checked-in Windows native reader against
+   two actual GitHub REST comments #6075069271 and #6075112964, independently
+   fetched BY THE WINDOWS HOST (not by ChatGPT connector forwarding). After
+   slot 1: AWAITING_SECOND_WORKER. After slot 2:
+   BOTH_ARTIFACTS_FOR_REVIEW. Repeated comment: BLOCKED. Exactly two
+   SQLite rows, quick_check PASS, no model calls, GPT sends or production
+   writes. **These were synthetic comments posted as an integration fixture,
+   not genuine Worker output, real GPT terminal events, or authorization
+   to automatically wake anyone.**
 5. **Real Worker result**: NOT YET TESTED. Must ensure the worker actually
    authors the result from its own assigned session and posts **after**
    its task artifact has been durably completed. GitHub author identity
@@ -141,3 +147,22 @@ and `local_execution_authorized=false`.
 
 **Safety invariant:** WORK_ARTIFACT_RECEIVED != GPT_TURN_FINAL_CONFIRMED
 != BROWSER_SEND_AUTHORIZED.
+
+## Source regression and failure transparency
+
+- Draft PR #1 first native reader candidate at SHA
+  `b2ca84bc77a859df20b5a41ec84a9526f63f16cb` DID NOT PASS:
+  Windows #2437 returned 6 test failures and 1 test error. Root cause:
+  one new test helper constructed a tuple containing a reader callback
+  instead of a callable; one incomplete REST response test expected a
+  narrower error reason than the fail-closed implementation returned.
+- Corrected SHA `52efe5420007fc39d0a1bde83bf6f4b7304dc7ce`
+  passed Windows #2439 exact-head **1471/1471**, V4 641,
+  GUI Bridge 801, Broker 29, 0 failures/errors/skips,
+  browser_send NOT_ATTEMPTED and production_writes NONE.
+- Running native `gh` needs existing local GitHub login; the code
+  neither collects a Token nor performs login. A subsequent run on
+  a different Windows machine without this authorization must fail closed.
+- No scheduled autonomous GitHub issue polling job was installed or
+  enabled by these tests. The previous 15m original frozen observer task
+  must remain untouched.
