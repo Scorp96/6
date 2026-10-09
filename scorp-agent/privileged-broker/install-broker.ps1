@@ -3,9 +3,23 @@ param(
   [string]$InstallDir = 'C:\ScorpAgent\privileged-broker',
   [string]$RuntimeDir = 'C:\ScorpAgent\privileged-broker-runtime',
   [string]$StateDir = 'C:\ProgramData\ScorpAgent\privileged-broker',
-  [string]$ServiceName = 'ScorpPrivilegedBroker'
+  [string]$ServiceName = 'ScorpPrivilegedBroker',
+  [switch]$InstallFreshIsolated,
+  [string]$OperatorAcknowledgement = '',
+  [string]$CoreSha256 = '',
+  [string]$OpsSha256 = '',
+  [string]$ServiceSha256 = '',
+  [string]$ClientSha256 = ''
 )
 $ErrorActionPreference = 'Stop'
+# No implicit install/upgrade. Opt-in is only for a new, empty isolated
+# service identity, NEVER the existing R1/production privileged broker.
+if (-not $InstallFreshIsolated) {
+  throw 'P0_BROKER_INSTALL_DEFAULT_DENY_USE_READONLY_AUDIT'
+}
+if ($OperatorAcknowledgement -cne 'FRESH_ISOLATED_BROKER_NO_PRIOR_STATE') {
+  throw 'P0_BROKER_INSTALL_EXPLICIT_HUMAN_REVIEW_REQUIRED'
+}
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupRoot = 'C:\ScorpAgent\backups'
 $uv = 'C:\Users\scorp\AppData\Local\Microsoft\WinGet\Links\uv.exe'
@@ -79,6 +93,39 @@ function Set-SecretAcl([string]$Path, [string]$Sid) {
 }$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
   throw 'ADMIN_REQUIRED'
+}
+# Every security and source check below occurs BEFORE the first filesystem,
+# service, ACL, Python installation or state mutation.
+if ([string]$userSid -eq 'S-1-5-18' -or [string]$userSid -match '\-500$') {
+  throw 'P0_BROKER_INSTALL_PRIVILEGED_BUILTIN_ACCOUNT_REFUSED'
+}
+$existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($existingService -or
+    (Test-Path -LiteralPath $InstallDir) -or
+    (Test-Path -LiteralPath $RuntimeDir) -or
+    (Test-Path -LiteralPath $StateDir) -or
+    (Test-Path -LiteralPath $secretPath)) {
+  throw 'P0_BROKER_INSTALL_EXISTING_SERVICE_OR_STATE_REFUSED'
+}
+$pinned = [ordered]@{
+  'broker_core.py' = $CoreSha256
+  'broker_ops.py' = $OpsSha256
+  'broker_service.py' = $ServiceSha256
+  'broker_client.py' = $ClientSha256
+}
+foreach ($name in $pinned.Keys) {
+  $expected = [string]$pinned[$name]
+  if ($expected -notmatch '^[0-9a-fA-F]{64}$') {
+    throw 'P0_BROKER_INSTALL_ALL_FOUR_SOURCE_SHA256_REQUIRED'
+  }
+  $source = Join-Path $SourceDir $name
+  if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+    throw 'P0_BROKER_INSTALL_SOURCE_NOT_FOUND'
+  }
+  $actual = (Get-FileHash -LiteralPath $source -Algorithm SHA256 -ErrorAction Stop).Hash
+  if ($actual -cne $expected.ToUpperInvariant()) {
+    throw 'P0_BROKER_INSTALL_SOURCE_SHA256_MISMATCH'
+  }
 }
 if (-not (Test-Path -LiteralPath $uv -PathType Leaf)) { throw 'UV_MISSING' }
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
