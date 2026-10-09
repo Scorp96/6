@@ -67,6 +67,20 @@ class ContinuationGateTests(unittest.TestCase):
         self.assertNotEqual(original.idempotency_key, new_event.idempotency_key)
         self.assertNotEqual(original.idempotency_key, new_generation.idempotency_key)
 
+    def test_canonical_url_alias_cannot_make_duplicate_continuation(self):
+        first = plan_continuation(req(), obs(), pol())
+        padded = plan_continuation(
+            req(), obs(conversation_url="  " + URL + "  "),
+            pol(expected_conversation_url=" " + URL),
+        )
+        self.assertEqual("READY_FOR_GATED_ADAPTER", padded.status)
+        self.assertEqual(first.idempotency_key, padded.idempotency_key)
+        repeated = plan_continuation(
+            req(), obs(conversation_url=" " + URL),
+            pol(), already_queued={first.idempotency_key},
+        )
+        self.assertEqual("ALREADY_QUEUED", repeated.status)
+
     def test_terminal_and_emergency_stop_never_wake(self):
         for action in ("TERMINAL", "EMERGENCY_STOP", "BLOCKED"):
             with self.subTest(action=action):
