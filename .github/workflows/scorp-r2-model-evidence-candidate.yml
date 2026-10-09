@@ -70,6 +70,21 @@ jobs:
               throw ('ISOLATED_OBSERVER_POWERSHELL_PARSE_FAILED:' + $name)
             }
           }
+      - name: Parse Windows Agent isolated regression runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'scripts/run-candidate-validation-windows-agent.ps1'),
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            throw 'WINDOWS_AGENT_VALIDATION_RUNNER_PARSE_FAILED'
+          }
       - name: Exercise isolated task inspector in zero-mutation mode
         shell: pwsh
         run: |
