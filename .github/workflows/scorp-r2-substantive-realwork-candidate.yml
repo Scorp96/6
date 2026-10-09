@@ -5,6 +5,7 @@ on:
       - experiment/r2-substantive-worker-artifacts-20261009
       - experiment/r2-atomic-existing-review-fence-20261009
       - experiment/r2-worker-session-historical-preflight-20261009
+      - experiment/r2-worker2-fresh-launch-reconciliation-20261009
   workflow_dispatch:
 
 concurrency:
