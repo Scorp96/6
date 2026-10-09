@@ -8,11 +8,16 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
+from types import SimpleNamespace
+from unittest import mock
 
 from master_a_dynamic_v4.isolated_worker_session_readiness_v4 import (
     inspect_legacy_worker_readiness,
     inspect_legacy_worker_readiness_file,
     main,
+    inspect_chrome_use_session_inventory,
+    BrowserSessionInventory,
 )
 
 SECRET_URL = "https://chatgpt.com/c/SHOULD-NEVER-PRINT"
@@ -152,6 +157,85 @@ class LegacyReadinessTests(unittest.TestCase):
             self.skipTest("symlink unavailable")
         v=inspect_legacy_worker_readiness_file(self.path)
         self.assertEqual("STATE_FILE_MISSING_OR_SYMLINKED",v.reason)
+
+    def test_live_cli_count_one_is_not_a_worker_identity(self):
+        self.path.write_text("fake binary",encoding="utf-8")
+        runner=lambda *args,**kwargs:SimpleNamespace(returncode=0,stdout=json.dumps({
+            "sessions":["PRIVATE_SESSION_DO_NOT_PRINT"]
+        }))
+        value=inspect_chrome_use_session_inventory(self.path,runner=runner)
+        self.assertEqual("OBSERVED_SESSION_OBJECTS_ONLY",value.status)
+        self.assertEqual(1,value.observed_session_objects)
+        self.assertFalse(value.distinct_gpt_workers_host_authenticated)
+        self.assertFalse(value.browser_send_authorized)
+        self.assertNotIn("PRIVATE_SESSION_DO_NOT_PRINT",repr(value))
+
+    def test_live_two_named_cli_session_objects_are_still_not_gpt_authentication(self):
+        self.path.write_bytes(b"x")
+        r=inspect_chrome_use_session_inventory(self.path,runner=lambda *a,**kw:
+            SimpleNamespace(returncode=0,stdout=json.dumps({
+                "sessions":{"SECRET_A":{},"SECRET_B":{}}
+            })))
+        self.assertEqual(2,r.observed_session_objects)
+        self.assertFalse(r.distinct_gpt_workers_host_authenticated)
+
+    def test_live_missing_sessions_field_must_not_be_counted_as_one(self):
+        self.path.write_bytes(b"x")
+        for fake in ({"success":True}, {"sessions":None}, {"data":{"status":"ok"}}):
+            v=inspect_chrome_use_session_inventory(self.path,runner=lambda *a,**kw:
+                SimpleNamespace(returncode=0,stdout=json.dumps(fake)))
+            self.assertIsNone(v.observed_session_objects)
+            self.assertEqual("SESSION_COUNT_UNPROVEN",v.reason)
+
+    def test_live_nested_data_sessions_is_accepted_as_count_only(self):
+        self.path.write_bytes(b"x")
+        result=inspect_chrome_use_session_inventory(self.path,runner=lambda *a,**kw:
+            SimpleNamespace(returncode=0,stdout=json.dumps({"data":{"sessions":[1,2,3]}})))
+        self.assertEqual(3,result.observed_session_objects)
+        self.assertFalse(result.distinct_gpt_workers_host_authenticated)
+
+    def test_live_cli_failure_or_malformed_json_is_unavailable(self):
+        self.path.write_bytes(b"x")
+        for result in (SimpleNamespace(returncode=2,stdout="private"),
+                       SimpleNamespace(returncode=0,stdout="{BROKEN"),
+                       SimpleNamespace(returncode=0,stdout='{"success":false,"sessions":[1]}')):
+            value=inspect_chrome_use_session_inventory(self.path,runner=lambda *a,**kw:result)
+            self.assertEqual("UNAVAILABLE",value.status)
+            self.assertIsNone(value.observed_session_objects)
+
+    def test_live_cli_timeout_is_bounded_and_fail_closed(self):
+        self.path.write_bytes(b"x")
+        def timeout(*a,**kw):
+            self.assertLessEqual(kw["timeout"],20)
+            raise subprocess.TimeoutExpired("chrome-use",kw["timeout"])
+        v=inspect_chrome_use_session_inventory(self.path,runner=timeout)
+        self.assertEqual("SESSION_LIST_UNAVAILABLE",v.reason)
+        self.assertFalse(v.browser_send_authorized)
+
+    def test_live_absent_executable_does_not_launch_any_runner(self):
+        v=inspect_chrome_use_session_inventory(self.path,runner=lambda *a,**kw:self.fail("called"))
+        self.assertEqual("CLI_BINARY_MISSING_OR_SYMLINKED",v.reason)
+
+    def test_live_cli_timeout_validation_and_no_network_side_effect(self):
+        self.path.write_bytes(b"x")
+        v=inspect_chrome_use_session_inventory(self.path,timeout_seconds=0,
+            runner=lambda *a,**kw:self.fail("called"))
+        self.assertEqual("BOUND_TIMEOUT_INVALID",v.reason)
+
+    def test_cli_with_live_count_remains_redacted_and_no_send(self):
+        self.path.write_text(json.dumps(fixture()),encoding="utf-8")
+        stream=io.StringIO()
+        mockresult=BrowserSessionInventory("OBSERVED_SESSION_OBJECTS_ONLY",
+                        "CLI_OBJECT_COUNT_NOT_GPT_IDENTITY_PROOF",1)
+        with mock.patch("master_a_dynamic_v4.isolated_worker_session_readiness_v4.inspect_chrome_use_session_inventory",return_value=mockresult):
+            with contextlib.redirect_stdout(stream):
+                self.assertEqual(0,main(["--state-file",str(self.path),"--include-live-cli-sessions",
+                                    "--chrome-use-exe",str(self.path)]))
+        value=json.loads(stream.getvalue())
+        self.assertEqual(1,value["live_cli_sessions"]["observed_session_objects"])
+        self.assertFalse(value["live_cli_sessions"]["distinct_gpt_workers_host_authenticated"])
+        self.assertFalse(value["browser_send_authorized"])
+        self.assertNotIn(SECRET_URL,stream.getvalue())
 
     def test_oversize_state_rejected_before_json_load(self):
         self.path.write_bytes(b"x"*(2*1024*1024+1))
