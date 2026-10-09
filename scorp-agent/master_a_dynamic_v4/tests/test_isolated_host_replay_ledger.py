@@ -5,6 +5,7 @@ import contextlib
 import hashlib
 import hmac
 import json
+import os
 import pathlib
 import sqlite3
 import tempfile
@@ -148,6 +149,32 @@ class ReplayLedgerTests(unittest.TestCase):
             self.assertEqual("ok",db.execute("PRAGMA integrity_check").fetchone()[0])
         repeated=self.call()
         self.assertEqual("ALREADY_RESERVED",repeated.status)
+
+    def test_hardlinked_existing_sqlite_cannot_alias_production(self):
+        # Only a temporary *fixture* represents the protected production DB.
+        production=pathlib.Path(self.tmp.name)/"fake-authoritative.sqlite3"
+        with contextlib.closing(sqlite3.connect(production)) as db:
+            db.execute("CREATE TABLE sentinel (id INTEGER PRIMARY KEY)")
+            db.execute("INSERT INTO sentinel(id) VALUES(42)")
+            db.commit()
+        try:
+            os.link(production, self.path)
+        except (OSError, NotImplementedError):
+            self.skipTest("hardlinks unavailable on this platform")
+        original=production.read_bytes()
+        result=self.call()
+        self.assertEqual("EXPERIMENT_SCOPE_INVALID", result.reason)
+        self.assertEqual(original, production.read_bytes())
+
+    def test_pinned_active_observer_directories_never_change(self):
+        for name in ("r2-gpt-session-audit-20261009", "r2-observer-state-20261009"):
+            with self.subTest(name=name):
+                folder=self.root/name
+                folder.mkdir()
+                db=folder/"host-terminal-replay-ledger.sqlite3"
+                result=self.call(database=db)
+                self.assertEqual("EXPERIMENT_SCOPE_INVALID", result.reason)
+                self.assertFalse(db.exists())
 
     def test_symlinked_isolation_folder_rejected(self):
         source=self.root/"r2-source"
