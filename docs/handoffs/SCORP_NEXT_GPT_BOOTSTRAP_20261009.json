@@ -1,0 +1,114 @@
+{
+  "protocol_version": "scorp.next-gpt-bootstrap/1",
+  "snapshot_created_date": "2026-10-09",
+  "timestamp_policy": "Static historical snapshot; re-query current GitHub and live Windows Issue before any new action.",
+  "model_policy": {
+    "actual_assistant": "GPT-6",
+    "legacy_repository_required_model": "GPT-5.6 Sol",
+    "operational_production_model_override_authorized": false,
+    "gpt1_n_means": "arbitrary GPT session participants, not model versions",
+    "v4_concurrent_worker_limit": 2
+  },
+  "source": {
+    "repo": "Scorp96/6",
+    "branch": "experiment/gpt-session-model-evidence-20261009",
+    "pr_url": "https://github.com/Scorp96/6/pull/1",
+    "pr_draft_expected": true,
+    "base_sha_historical": "0f1db544ee2afda86f0b4b24ba946e5b11",
+    "approved_prior_green_sha": "b090e971258e45df4c5ba6ea075691f4357e7e6e",
+    "current_sha_instruction": "Always retrieve live pull request HEAD and compare with exact CI head SHA; this JSON's git commit will be newer than the historical green SHA."
+  },
+  "handoff_docs": [
+    "AGENTS.md",
+    "GPT_START_HERE.md",
+    "docs/handoffs/SCORP_NEXT_GPT_FULL_HANDOFF_20261009.md",
+    "docs/handoffs/SCORP_GPT_SESSION_COMPATIBILITY_AUDIT_20261009.md"
+  ],
+  "windows_control": {
+    "current_verified_legacy_queue_repo": "Scorp96/scorp-control-plane",
+    "default_queue_mentioned_by_agents": "Scorp96/666",
+    "do_not_double_dispatch": true,
+    "issue_title_prefix": "[SCORP_EXEC]",
+    "protocol": "scorp.exec/v4",
+    "control_flow": [
+      "GitHub create_issue with JSON body",
+      "Wait for host SCORP_EXEC_CLAIMED",
+      "Verify SCORP_EXEC_RESULT Status/ExitCode/sha256/sanitized stdout",
+      "Issue CLAIMED alone is not success"
+    ],
+    "sample_readonly_action": {
+      "protocol_version": "scorp.exec/v4",
+      "task_id": "REPLACE_WITH_UNIQUE_ID",
+      "action_id": "REPLACE_WITH_UNIQUE_ID",
+      "action_kind": "powershell",
+      "working_directory": "C:\\ScorpAgent",
+      "timeout_seconds": 45,
+      "safety_class": "standard",
+      "authorization": "user-authorized-readonly-audit",
+      "expected_preconditions": {
+        "read_only": true,
+        "no_browser_submit": true
+      },
+      "payload": {
+        "script": "$ErrorActionPreference='Stop'; Write-Output 'SCORP_READONLY_AGENT_REACHABLE'"
+      },
+      "evidence_requirements": [
+        "stdout_tail",
+        "stderr_tail"
+      ],
+      "continuation_hint": "Read-only; no browser, no production writes."
+    },
+    "connected_app_actions": [
+      "mcp__GitHub__create_issue",
+      "mcp__GitHub__fetch_issue_comments",
+      "mcp__GitHub__fetch_file",
+      "mcp__GitHub__fetch"
+    ]
+  },
+  "paths": {
+    "original_r1_sqlite": "C:\\ScorpAgent\\runtime-v4\\active\\state.sqlite3",
+    "original_daemon_health": "C:\\ScorpAgent\\runtime-v4\\active\\daemon-health.json",
+    "gui_health": "C:\\ScorpAgent\\chatgpt-gui-bridge-state\\health.json",
+    "v3_driver": "C:\\ScorpAgent\\state-v3\\active\\chrome-use-driver-v3.json",
+    "python": "C:\\ScorpAgent\\chatgpt-gui-bridge-runtime\\Scripts\\python.exe",
+    "active_15m_checkout": "C:\\ScorpAgent\\experiments\\r2-gpt-session-audit-20261009",
+    "active_15m_pinned_sha": "8da5085f906b4aeeece6fb0ae1f488bc597507b1",
+    "observer_db": "C:\\ScorpAgent\\experiments\\r2-observer-state-20261009\\scorp-readonly-observer.sqlite3",
+    "separate_host_security_checkout": "C:\\ScorpAgent\\experiments\\r2-host-terminal-security-20261009"
+  },
+  "acceptance": {
+    "last_verified_local_issue": 2316,
+    "last_verified_local_time": "2026-10-09T08:19:18+08:00",
+    "observer_events": 5,
+    "observer_latest_event_local": "2026-10-09T08:17:47+08:00",
+    "r1_project": "ACTIVE/BOOTSTRAP/0",
+    "master_ambiguous_intents": 1,
+    "v4_browser_bindings": 0,
+    "daemon_epoch": 44,
+    "daemon_lease": "ACTIVE",
+    "gui_bridge": "ERROR / MASTER_CONVERSATION_ROTATION_REQUIRED",
+    "real_gpt_autowake": "BLOCKED",
+    "trusted_terminal_emitter": "NOT_IMPLEMENTED",
+    "live_24h_soak": "NOT_VERIFIED",
+    "candidate_offline_1151_tests": "PASS on prior b090e97 only",
+    "new_handoff_probe": "STAGED / require exact-head CI and Windows independent proof",
+    "new_isolated_replay_ledger": "STAGED / require exact-head CI and Windows independent proof"
+  },
+  "critical_forbidden_actions": [
+    "No blind replay of MASTER_REASONING after TimeoutError.",
+    "No overwrite of old GUI/V3 Master URL.",
+    "No modification of active observer checkout SHA.",
+    "No browser send from streaming state or HMAC test fixtures.",
+    "No production cutover or merge from Draft without verified acceptance.",
+    "No secrets, cookies, session URLs or prompts in GitHub Issue bodies."
+  ],
+  "next_roadmap": [
+    "Validate exact HEAD CI after handoff probe and replay-ledger commits.",
+    "Run host-side isolated 9 probe tests and replay ledger tests, inspect sanitized CLI result.",
+    "Read-only Windows check scheduled 15m observer and active R1 unchanged.",
+    "Investigate R1 lease expiry/sleep root cause read-only.",
+    "Design an actual trusted browser terminal-event producer; never treat ws connected as terminal.",
+    "Run separate explicit isolated GPT browser canary only with auth and user permission.",
+    "Prove 24h no-duplicate soak and two physical Worker sessions before cutover."
+  ]
+}
