@@ -110,6 +110,10 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         )
 
     def rows(self, table):
+        # Rejected proof must not even create a ledger file. A missing DB
+        # therefore means exactly zero rows, not a SQLite schema error.
+        if not self.db.exists():
+            return 0
         with contextlib.closing(sqlite3.connect(self.db)) as db:
             return db.execute("SELECT COUNT(*) FROM " + table).fetchone()[0]
 
@@ -224,17 +228,20 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         self.assertEqual("BLOCKED", denied.status)
         self.assertFalse(denied.committed_for_review)
         self.assertEqual(0, self.rows("host_terminal_events"))
+        self.assertFalse(self.db.exists())
 
     def test_paused_operator_never_reserves(self):
         denied = self.reserve(operator="PAUSED")
         self.assertEqual("BLOCKED", denied.status)
         self.assertFalse(denied.browser_send_authorized)
         self.assertEqual(0, self.rows("host_continuation_candidates"))
+        self.assertFalse(self.db.exists())
 
     def test_worker_capacity_fence_applies(self):
         denied = self.reserve(active=2)
         self.assertEqual("BLOCKED", denied.status)
         self.assertEqual(0, self.rows("host_terminal_events"))
+        self.assertFalse(self.db.exists())
 
     def test_terminal_or_reconcile_action_does_not_create_ledger(self):
         for action in ("TERMINAL", "RECONCILE_AMBIGUOUS", "EMERGENCY_STOP"):
@@ -247,6 +254,7 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         stale = self.reserve(now=60000)
         self.assertEqual("BLOCKED", stale.status)
         self.assertEqual(0, self.rows("host_continuation_candidates"))
+        self.assertFalse(self.db.exists())
 
     def test_production_path_not_accepted_or_created(self):
         production = self.root.parent / "runtime-v4" / "active"
