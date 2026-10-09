@@ -159,6 +159,20 @@ class BlankTabCanaryTests(unittest.TestCase):
         self.assertEqual("ISOLATED_LEDGER_PATH_UNSAFE",
                          self.run_canary(FakeCLI()).reason)
 
+    def test_frozen_observer_directory_refuses_new_sqlite_file(self):
+        for folder in (
+            "r2-gpt-session-audit-20261009",
+            "r2-observer-state-20261009",
+            "r2-host-terminal-security-20261009",
+        ):
+            with self.subTest(folder=folder):
+                f = self.root / folder
+                f.mkdir()
+                target = f / "blank-tab-attempts.sqlite3"
+                result = self.run_canary(FakeCLI(), db=target)
+                self.assertEqual("ISOLATED_LEDGER_PATH_UNSAFE", result.reason)
+                self.assertFalse(target.exists())
+
     def test_symlink_directory_escape_refused(self):
         outsider = self.root / "outsider"
         outsider.mkdir()
