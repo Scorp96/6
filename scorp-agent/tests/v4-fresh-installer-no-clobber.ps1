@@ -25,7 +25,7 @@ if ($defaultDeny -lt 0 -or $ack -le $defaultDeny -or
 }
 if ($s -notmatch 'P0_FRESH_INSTALL_UAC_REQUIRED') { throw 'P0_FRESH_INSTALLER_UAC_GUARD_MISSING' }
 $disabled = $s.IndexOf('New-ScheduledTaskSettingsSet -Disable ',[StringComparison]::Ordinal)
-$verifiedDisabled = $s.IndexOf("$installed.State -cne 'Disabled'",[StringComparison]::Ordinal)
+$verifiedDisabled = $s.IndexOf('$installed.State -cne',[StringComparison]::Ordinal)
 if ($disabled -lt $againExisting -or $disabled -ge $register -or $verifiedDisabled -lt $register) {
     throw 'P0_FRESH_INSTALLER_MUST_REGISTER_DISABLED'
 }
