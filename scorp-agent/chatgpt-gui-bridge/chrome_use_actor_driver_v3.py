@@ -464,10 +464,12 @@ class ChromeUseActorDriverV3:
                 if isinstance(old, dict) and "browser_io_started" in old
                 else False
             )
+            # A genuinely new turn has a proven pre-submit state. Legacy
+            # bindings with missing/None markers remain UNKNOWN, never False.
             prior_submit_edge = (
                 old.get("submit_edge_crossed")
-                if isinstance(old, dict) and "submit_edge_crossed" in old
-                else None
+                if isinstance(old, dict)
+                else False
             )
             state["turns"][turn_id] = {
                 "session": session,
@@ -1496,6 +1498,18 @@ class ChromeUseActorDriverV3:
         actor_kind = str(actor_kind or "").strip().upper()
         if actor_kind not in _ALLOWED_ACTORS:
             raise ValueError("ACTOR_GUI_ACTOR_KIND_INVALID")
+        # Refuse to replay an existing turn when the click/Enter boundary was
+        # crossed or when historical browser I/O has an unknown edge. An
+        # opaque legacy None marker is never positive non-submission proof.
+        def assert_safe_to_begin():
+            prior = self.turn_binding(turn_id)
+            if isinstance(prior, dict) and (
+                prior.get("submit_edge_crossed") is True
+                or (prior.get("browser_io_started") is True
+                    and prior.get("submit_edge_crossed") is not False)
+            ):
+                raise ValueError("ACTOR_GUI_EXISTING_TURN_SUBMISSION_UNVERIFIED")
+        assert_safe_to_begin()
         self.bind_turn(turn_id, conversation_url, actor_kind=actor_kind)
         acquired = await asyncio.to_thread(
             self._submission_mutex.acquire,
@@ -1505,6 +1519,9 @@ class ChromeUseActorDriverV3:
         if not acquired:
             raise TimeoutError("CHROME_USE_SUBMISSION_BUSY")
         try:
+            # Recheck under the submission mutex: a concurrent caller may
+            # have crossed the edge while this one waited for the lock.
+            assert_safe_to_begin()
             try:
                 return await self._submit_prompt_unlocked(
                     prompt=prompt,
@@ -1520,7 +1537,7 @@ class ChromeUseActorDriverV3:
                 binding = self.turn_binding(turn_id)
                 if (
                     isinstance(binding, dict)
-                    and binding.get("submit_edge_crossed") is not True
+                    and binding.get("submit_edge_crossed") is False
                 ):
                     raise ChromeUseSubmissionNotAttempted(str(exc)) from exc
                 raise
@@ -1533,7 +1550,7 @@ class ChromeUseActorDriverV3:
                 binding = self.turn_binding(turn_id)
                 if (
                     isinstance(binding, dict)
-                    and binding.get("submit_edge_crossed") is not True
+                    and binding.get("submit_edge_crossed") is False
                 ):
                     raise ChromeUseSubmitEdgeNotCrossed(
                         str(exc),
