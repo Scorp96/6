@@ -42,6 +42,11 @@ CREATE TABLE IF NOT EXISTS host_terminal_scope_cursors(
   scope_key TEXT PRIMARY KEY,
   high_sequence INTEGER NOT NULL CHECK(high_sequence >= 0)
 );
+CREATE TABLE IF NOT EXISTS host_terminal_global_ids(
+  event_id_sha256 TEXT PRIMARY KEY,
+  event_key TEXT NOT NULL UNIQUE,
+  reserved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -149,6 +154,10 @@ def reserve_terminal_receipt_for_review(
         "intent_id": expected_intent_id,
     })
     receipt_digest = _sha_json(dataclasses.asdict(b))
+    # Event UUIDs are global across all physical Worker/Master sessions.
+    # Scope-only hashes are insufficient when the same signed event is
+    # misattributed to a second host session during recovery.
+    event_id_sha256 = hashlib.sha256(b.event_id.encode("ascii")).hexdigest()
     try:
         # No production DB can be reached unless a caller explicitly
         # violates the experiments-root check above. Never open a browser.
@@ -156,6 +165,18 @@ def reserve_terminal_receipt_for_review(
             db.executescript(_SCHEMA)
             db.execute("BEGIN IMMEDIATE")
             try:
+                # Legacy R2 experimental ledgers cannot reconstruct raw event
+                # UUIDs from one-way event_key hashes. Reject mixed migrations
+                # until an operator explicitly discards that isolated fixture.
+                prior_count = db.execute(
+                    "SELECT COUNT(*) FROM host_terminal_events"
+                ).fetchone()[0]
+                global_count = db.execute(
+                    "SELECT COUNT(*) FROM host_terminal_global_ids"
+                ).fetchone()[0]
+                if prior_count != global_count:
+                    db.rollback()
+                    return fail("LEGACY_EVENT_GLOBAL_INDEX_UNVERIFIED")
                 exists = db.execute(
                     "SELECT receipt_sha256 FROM host_terminal_events WHERE event_key=?",
                     (event_key,),
@@ -163,6 +184,13 @@ def reserve_terminal_receipt_for_review(
                 if exists is not None:
                     db.rollback()
                     return ReplayReservation("ALREADY_RESERVED", "TERMINAL_EVENT_REPLAY")
+                globally_seen = db.execute(
+                    "SELECT 1 FROM host_terminal_global_ids WHERE event_id_sha256=?",
+                    (event_id_sha256,),
+                ).fetchone()
+                if globally_seen is not None:
+                    db.rollback()
+                    return fail("TERMINAL_EVENT_ID_SCOPE_REPLAY")
                 current = db.execute(
                     "SELECT high_sequence FROM host_terminal_scope_cursors WHERE scope_key=?",
                     (scope_key,),
@@ -174,6 +202,10 @@ def reserve_terminal_receipt_for_review(
                     "INSERT INTO host_terminal_events(event_key,scope_key,event_sequence,receipt_sha256)"
                     " VALUES(?,?,?,?)",
                     (event_key, scope_key, b.sequence, receipt_digest),
+                )
+                db.execute(
+                    "INSERT INTO host_terminal_global_ids(event_id_sha256,event_key) VALUES(?,?)",
+                    (event_id_sha256, event_key),
                 )
                 db.execute(
                     "INSERT INTO host_terminal_scope_cursors(scope_key,high_sequence) VALUES(?,?)"
