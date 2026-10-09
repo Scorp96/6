@@ -110,14 +110,24 @@ def claim_candidate_for_no_send_review(
                 # Both event reservation and global UUID fence MUST exist,
                 # preventing a legacy or partial ledger row from being claimed.
                 event = db.execute(
-                    "SELECT 1 FROM host_terminal_events WHERE event_key=?",
+                    "SELECT scope_key,event_sequence FROM host_terminal_events "
+                    "WHERE event_key=?",
                     (event_key,),
                 ).fetchone()
                 global_event = db.execute(
                     "SELECT 1 FROM host_terminal_global_ids WHERE event_key=?",
                     (event_key,),
                 ).fetchone()
-                if event is None or global_event is None:
+                cursor = (
+                    db.execute(
+                        "SELECT high_sequence FROM host_terminal_scope_cursors "
+                        "WHERE scope_key=?",
+                        (event[0],),
+                    ).fetchone()
+                    if event is not None else None
+                )
+                if (event is None or global_event is None or cursor is None
+                        or cursor[0] < event[1]):
                     db.rollback()
                     return result("BLOCKED", "TERMINAL_EVENT_LEDGER_INCOMPLETE")
 
@@ -172,6 +182,16 @@ def block_claimed_candidate_without_send(
         )) as db:
             db.execute("BEGIN IMMEDIATE")
             try:
+                # An absent review table positively proves there has not been
+                # any prior claim. Avoid conflating it with DB corruption,
+                # and never create the table in this monotonic block path.
+                table_present = db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='host_continuation_review_fences'"
+                ).fetchone()
+                if table_present is None:
+                    db.rollback()
+                    return result("BLOCKED", "REVIEW_CLAIM_NOT_VERIFIED")
                 row = db.execute(
                     "SELECT project_id,status FROM host_continuation_review_fences "
                     "WHERE idempotency_key=?",
