@@ -28,7 +28,7 @@ class HandoffProbeTests(unittest.TestCase):
     def build_files(self, *, reason="MASTER_ROTATION_CONFLICT_UNRESOLVED"):
         obs = self.root / "experiments/r2-observer-state-20261009/scorp-readonly-observer.sqlite3"
         obs.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(obs) as c:
+        with contextlib.closing(sqlite3.connect(obs)) as c, c:
             c.executescript("""
                 CREATE TABLE observer_schedule (
                   id INTEGER, interval_minutes INTEGER,
@@ -42,7 +42,7 @@ class HandoffProbeTests(unittest.TestCase):
             c.execute("INSERT INTO observer_events VALUES(1,100000,'BLOCKED',?,1)",(reason,))
         r1 = self.root / "runtime-v4/active/state.sqlite3"
         r1.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(r1) as c:
+        with contextlib.closing(sqlite3.connect(r1)) as c, c:
             c.executescript("""
                 CREATE TABLE project_state(status TEXT,phase TEXT,state_version INTEGER);
                 CREATE TABLE daemon_leases(
