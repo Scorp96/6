@@ -76,6 +76,37 @@ class HandoffProbeTests(unittest.TestCase):
         }), encoding="utf-8")
         return obs, r1, gui, driver
 
+    def test_no_host_terminal_issuer_is_a_non_overridable_blocker(self):
+        from unittest.mock import patch
+        self.build_files()
+        with patch.dict("os.environ", {
+            "SCORP_HOST_TERMINAL_SOURCE": "HOST_VERIFIED",
+            "SCORP_REASONING_MODEL": "GPT-6",
+        }):
+            result = observe(self.root, now_utc=NOW)
+        self.assertIn("HOST_TERMINAL_ISSUER_UNAVAILABLE", result["blockers"])
+        source = result["host_terminal_source"]
+        self.assertEqual("NOT_IMPLEMENTED", source["status"])
+        self.assertFalse(source["issuer_independently_attested"])
+        self.assertFalse(source["native_turn_final_event_supported"])
+        self.assertFalse(source["signed_fixture_is_live_evidence"])
+        self.assertFalse(source["send_authorized"])
+        self.assertFalse(result["browser_send_authorized"])
+
+    def test_even_clean_physical_and_observer_json_cannot_claim_terminal_source(self):
+        self.build_files()
+        gui = self.root / "chatgpt-gui-bridge-state/health.json"
+        gui.write_text(json.dumps({"status": "HEALTHY"}), encoding="utf-8")
+        driver = self.root / "state-v3/active/chrome-use-driver-v3.json"
+        driver.write_text(json.dumps({
+            "sessions": {"fixture-active-master": {"status": "ACTIVE"}},
+        }), encoding="utf-8")
+        result = observe(self.root, now_utc=NOW)
+        self.assertEqual("HEALTHY", result["gui_bridge"]["status"])
+        self.assertIn("HOST_TERMINAL_ISSUER_UNAVAILABLE", result["blockers"])
+        self.assertFalse(result["v3_driver"]["live_session_verified"])
+        self.assertFalse(result["host_terminal_source"]["send_authorized"])
+
     def test_missing_files_fail_closed_and_do_not_create_databases(self):
         result = observe(self.root, now_utc=NOW)
         self.assertEqual("MISSING", result["r1"]["status"])
