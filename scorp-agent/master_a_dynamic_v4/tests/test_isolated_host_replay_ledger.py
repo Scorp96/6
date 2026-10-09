@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, replace
+import contextlib
 import hashlib
 import hmac
 import json
@@ -80,7 +81,7 @@ class ReplayLedgerTests(unittest.TestCase):
     def test_same_event_after_process_restart_is_deduplicated(self):
         self.assertEqual("RESERVED_FOR_REVIEW",self.call().status)
         self.assertEqual("ALREADY_RESERVED",self.call().status)
-        with sqlite3.connect(self.path) as db:
+        with contextlib.closing(sqlite3.connect(self.path)) as db:
             self.assertEqual(1,db.execute("SELECT COUNT(*) FROM host_terminal_events").fetchone()[0])
 
     def test_new_event_with_stale_sequence_is_rejected(self):
@@ -94,7 +95,7 @@ class ReplayLedgerTests(unittest.TestCase):
         nxt=self.call(event="2"*32,seq1=3,seq2=4,intent="intent-y")
         self.assertEqual("RESERVED_FOR_REVIEW",nxt.status)
         self.assertFalse(nxt.browser_send_authorized)
-        with sqlite3.connect(self.path) as db:
+        with contextlib.closing(sqlite3.connect(self.path)) as db:
             self.assertEqual(2,db.execute("SELECT COUNT(*) FROM host_terminal_events").fetchone()[0])
 
     def test_separate_session_scope_has_independent_sequence(self):
@@ -124,7 +125,7 @@ class ReplayLedgerTests(unittest.TestCase):
 
     def test_recovery_after_previous_transaction_blocks_exact_replay(self):
         self.call()
-        with sqlite3.connect(self.path) as db:
+        with contextlib.closing(sqlite3.connect(self.path)) as db:
             self.assertEqual("ok",db.execute("PRAGMA integrity_check").fetchone()[0])
         repeated=self.call()
         self.assertEqual("ALREADY_RESERVED",repeated.status)
