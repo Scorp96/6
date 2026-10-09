@@ -41,4 +41,36 @@ $registrationLine = ($s.Split([char]10) | Where-Object { $_ -match '^\s*Register
 if (@($registrationLine).Count -ne 1 -or [string]$registrationLine -match '\-Force\b') {
     throw 'P0_FRESH_INSTALLER_TASK_OVERWRITE_ENABLED'
 }
+# Execute only two strictly harmless *denial* paths on this isolated runner.
+# Neither invocation supplies the explicit fresh-install authorization.
+$winPs = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+if (-not (Test-Path -LiteralPath $winPs -PathType Leaf)) { throw 'WINDOWS_POWERSHELL_51_MISSING' }
+$rootExistedBefore = Test-Path -LiteralPath 'C:\ScorpAgent'
+function Assert-DeniedWithoutSideEffect([string]$ArgsText,[string]$ExpectedMarker) {
+    $start = New-Object System.Diagnostics.ProcessStartInfo
+    $start.FileName = $winPs
+    $start.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $path + '" ' + $ArgsText
+    $start.UseShellExecute = $false
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $start.CreateNoWindow = $true
+    $proc = [Diagnostics.Process]::Start($start)
+    try {
+        if (-not $proc.WaitForExit(10000)) {
+            try { $proc.Kill() } catch {}
+            throw 'INSTALLER_DENIAL_NOT_BOUNDED'
+        }
+        $output = $proc.StandardOutput.ReadToEnd() + $proc.StandardError.ReadToEnd()
+        if ($proc.ExitCode -eq 0 -or $output -notmatch [regex]::Escape($ExpectedMarker)) {
+            throw 'INSTALLER_DENIAL_CONTRACT_FAILED'
+        }
+    } finally {
+        $proc.Dispose()
+    }
+}
+Assert-DeniedWithoutSideEffect '' 'P0_LEGACY_INSTALLER_BLOCKED'
+Assert-DeniedWithoutSideEffect '-InstallFreshLimited' 'P0_FRESH_INSTALL_OPERATOR_AND_RELAY_PIN_REQUIRED'
+if (-not $rootExistedBefore -and (Test-Path -LiteralPath 'C:\ScorpAgent')) {
+    throw 'INSTALLER_DENIAL_CREATED_ROOT'
+}
 Write-Output 'P0_FRESH_INSTALLER_NO_EXISTING_TASK_NO_ELEVATED_AUTOSTART_PASS'
