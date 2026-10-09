@@ -34,6 +34,7 @@ $backupService = Join-Path $backupRoot "privileged-broker-service-$stamp.json"
 $files = @('broker_core.py','broker_ops.py','broker_service.py','broker_client.py')
 $userSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $createdService = $false
+$installMoved = $false
 $priorService = $null
 $wasRunning = $false
 function Invoke-Sc([string[]]$ScArgs) {
@@ -65,6 +66,8 @@ function Remove-ServiceIfPresent([string]$Name) {
 }function New-BrokerService([string]$Name, [string]$BinaryPath) {
   Invoke-Sc @('create', $Name, 'binPath=', $BinaryPath, 'start=', 'auto',
               'obj=', 'LocalSystem', 'DisplayName=', 'Scorp Privileged Broker') | Out-Null
+  # Only after sc create succeeds may our rollback delete this service.
+  $script:createdService = $true
   Invoke-Sc @('description', $Name,
               'LocalSystem allowlisted privilege broker for Scorp Agent.') | Out-Null
 }
@@ -139,16 +142,9 @@ foreach ($name in $files) {
 }
 $priorCim = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
 if ($priorCim) {
-  if ($priorCim.StartName -notin @('LocalSystem','NT AUTHORITY\LocalService','NT AUTHORITY\NetworkService')) {
-    throw 'BROKER_EXISTING_SERVICE_OWNER_UNEXPECTED'
-  }
-  $priorService = [ordered]@{
-    Name=$priorCim.Name; DisplayName=$priorCim.DisplayName; Description=$priorCim.Description
-    PathName=$priorCim.PathName; StartMode=$priorCim.StartMode; StartName=$priorCim.StartName; State=$priorCim.State
-  }
-  $wasRunning = ($priorCim.State -eq 'Running')
-  [IO.File]::WriteAllText($backupService, ($priorService | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding($false)))
-}if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+  throw 'P0_BROKER_INSTALL_SERVICE_APPEARED_DURING_STAGING'
+}
+if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
   & $uv venv --python 3.14 $RuntimeDir
   if ($LASTEXITCODE -ne 0) { throw 'BROKER_RUNTIME_CREATE_FAILED' }
 }
@@ -174,14 +170,15 @@ $config = [ordered]@{
 Set-StateAcl $StateDir $userSid
 Set-SecretAcl $secretPath $userSid
 try {
-  if (Test-Path -LiteralPath $InstallDir -PathType Container) {
-    New-Item -ItemType Directory -Path $backupInstall -Force | Out-Null
-    Get-ChildItem -LiteralPath $InstallDir -Force | Copy-Item -Destination $backupInstall -Recurse -Force
+  # Time-of-check/to-use defense: do not replace a service or install path
+  # that appeared after the initial read-only preflight.
+  if ((Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) -or
+      (Test-Path -LiteralPath $InstallDir)) {
+    throw 'P0_BROKER_INSTALL_TARGET_APPEARED_BEFORE_COMMIT'
   }
-  Remove-ServiceIfPresent $ServiceName
-  if (-not $priorService) { $createdService = $true }
-  if (Test-Path -LiteralPath $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
+  # Never call Remove-ServiceIfPresent on this fresh-only path.
   Move-Item -LiteralPath $candidateDir -Destination $InstallDir
+  $installMoved = $true
 
   $serviceScript = Join-Path $InstallDir 'broker_service.py'
   $clientScript = Join-Path $InstallDir 'broker_client.py'
@@ -219,9 +216,12 @@ try {
 }
 catch {
   $installError = $_
-  try { Remove-ServiceIfPresent $ServiceName } catch {}
+  # No service created by this run: never delete another owner's service.
+  if ($createdService) { try { Remove-ServiceIfPresent $ServiceName } catch {} }
   try {
-    if (Test-Path -LiteralPath $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
+    if ($installMoved -and (Test-Path -LiteralPath $InstallDir)) {
+      Remove-Item $InstallDir -Recurse -Force
+    }
     if (Test-Path -LiteralPath $backupInstall -PathType Container) {
       New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
       Get-ChildItem -LiteralPath $backupInstall -Force | Copy-Item -Destination $InstallDir -Recurse -Force
