@@ -317,7 +317,7 @@ function Validate-Envelope {
     if([string]$Envelope.protocol_version-cne$ProtocolVersion){throw "unsupported protocol_version"}
     if([string]::IsNullOrWhiteSpace([string]$Envelope.task_id)){throw "task_id missing"}
     if([string]$Envelope.action_id-notmatch'^[A-Za-z0-9._:-]{8,160}$'){throw "invalid action_id"}
-    if([string]$Envelope.action_kind-notin@("powershell","process","file_read","file_write","file_replace_exact","git","health","privileged_broker")){throw "unsupported action_kind"}
+    if([string]$Envelope.action_kind-notin@("powershell","process","file_read","file_write","file_replace_exact","git","health","diagnostic_readonly","privileged_broker")){throw "unsupported action_kind"}
     $t=[int]$Envelope.timeout_seconds
     if($t-lt1-or$t-gt1800){throw "timeout_seconds invalid"}
     if([string]$Envelope.safety_class-notin@("standard","approved_admin")){throw "safety_class invalid"}
@@ -334,6 +334,12 @@ function Validate-Envelope {
         if([string]$Envelope.payload.operation-notin$allowedBrokerOperations){throw "privileged_broker operation not allowed"}
     }
     Assert-ExpectedPreconditionContract -Envelope $Envelope
+    if([string]$Envelope.action_kind-ceq"diagnostic_readonly"){
+        $diagNames=@($Envelope.payload.PSObject.Properties|ForEach-Object{[string]$_.Name})
+        if($diagNames.Count-ne1-or-not($diagNames-ccontains"probe")){throw "diagnostic_readonly payload must contain only probe"}
+        $allowed=@("chrome_resource_summary","broker_service_status","executor_task_status")
+        if([string]$Envelope.payload.probe-notin$allowed){throw "diagnostic_readonly probe not allowed"}
+    }
     if($null-ne$Envelope.issue_number-and[int]$Envelope.issue_number-ne$IssueNumber){throw "issue_number mismatch"}
 }
 function Copy-EnvelopeForExecution {

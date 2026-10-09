@@ -2130,6 +2130,10 @@ class StateStore:
         payload = json.loads(str(row["payload_json"]))
         if not isinstance(payload, Mapping):
             raise StoreInvariantError("INTENT_PAYLOAD_INVALID")
+        if str(row["action_kind"]) == "LOCAL_EXECUTION" and (
+            "operator_generation" not in payload or "objective_generation" not in payload
+        ):
+            raise StoreInvariantError("OPERATOR_GENERATION_BINDING_REQUIRED")
         if "operator_generation" not in payload and "objective_generation" not in payload:
             return
         if "operator_generation" not in payload or "objective_generation" not in payload:
@@ -2300,7 +2304,8 @@ class StateStore:
             SELECT a.*, l.lease_token AS durable_lease_token, l.state AS lease_state,
                    l.expires_at, l.master_epoch AS lease_epoch,
                    p.master_epoch AS project_epoch, p.status AS project_status,
-                   o.operator_state
+                   o.operator_state, o.operator_generation AS active_operator_generation,
+                   o.objective_generation AS active_objective_generation
             FROM assignments a
             JOIN leases l ON l.assignment_id=a.assignment_id
             JOIN project_state p ON p.project_id=a.project_id
@@ -2348,6 +2353,27 @@ class StateStore:
             raise StoreInvariantError("WORKER_AUTHORITY_BINDING_INVALID") from exc
         if declared_scope != durable_scope or str(assignment["access_mode"]) != str(current["access_mode"]):
             raise StoreInvariantError("WORKER_AUTHORITY_FENCED")
+        # The issuer's original operator/objective generations are part of the
+        # Worker capability.  Fresh root intent generations cannot reauthorize
+        # a stale claim after a pause/resume or objective replacement.
+        # Restrict this stricter schema to new local execution side effects;
+        # historical browser/result intents retain their reconciliation path.
+        if str(row["action_kind"]) == "LOCAL_EXECUTION":
+            if "operator_generation" not in assignment or "objective_generation" not in assignment:
+                raise StoreInvariantError("WORKER_EXECUTION_GENERATION_BINDING_MISSING")
+            if (isinstance(assignment["operator_generation"], bool)
+                    or isinstance(assignment["objective_generation"], bool)):
+                raise StoreInvariantError("WORKER_EXECUTION_GENERATION_BINDING_INVALID")
+            try:
+                issued_operator = int(assignment["operator_generation"])
+                issued_objective = int(assignment["objective_generation"])
+            except (TypeError, ValueError) as exc:
+                raise StoreInvariantError("WORKER_EXECUTION_GENERATION_BINDING_INVALID") from exc
+            if (issued_operator != int(current["operator_generation"])
+                    or issued_objective != int(current["objective_generation"])
+                    or issued_operator != int(current["active_operator_generation"])
+                    or issued_objective != int(current["active_objective_generation"])):
+                raise StoreInvariantError("WORKER_EXECUTION_GENERATION_FENCED")
 
     def assert_intent_generation(self, intent_id: str) -> None:
         with self._connection() as conn:
