@@ -53,6 +53,10 @@ if (-not (Test-Administrator)) {
 }
 # Re-check on the elevated identity; elevation must not permit a race with an
 # administrator creating the same task while UAC was pending.
+$elevatedSid = [string][Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if ($elevatedSid -eq 'S-1-5-18' -or $elevatedSid -match '\-500$') {
+    throw 'P0_FRESH_INSTALL_ELEVATED_BUILTIN_ACCOUNT_REFUSED'
+}
 if ($null -ne (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue)) {
     throw 'P0_FRESH_ONLY_TASK_APPEARED_DURING_ELEVATION'
 }
@@ -64,10 +68,10 @@ if (-not (Get-Command gh.exe -ErrorAction SilentlyContinue)) {
 }
 & gh.exe auth status --hostname github.com | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'P0_FRESH_INSTALL_GH_NOT_AUTHENTICATED' }
-if (-not (Get-Command codex.exe -ErrorAction SilentlyContinue)) {
+if (-not (Get-Command codex -ErrorAction SilentlyContinue)) {
     throw 'P0_FRESH_INSTALL_CODEX_NOT_INSTALLED: no auto npm installation'
 }
-& codex.exe login status | Out-Null
+& codex login status | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'P0_FRESH_INSTALL_CODEX_NOT_AUTHENTICATED: no automatic browser login' }
 
 $userId = [string][Security.Principal.WindowsIdentity]::GetCurrent().Name
