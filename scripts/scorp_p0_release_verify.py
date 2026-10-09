@@ -85,7 +85,11 @@ def evaluate_manifest(
         source = source.resolve(strict=True)
         if not source.is_relative_to(root) or not source.is_file():
             raise ReleaseManifestRejected("MANIFEST_OUTSIDE_REPOSITORY")
-        raw = source.read_text(encoding="utf-8")
+        if source_mode == "git":
+            manifest_path = source.relative_to(root).as_posix()
+            raw = _git_committed_bytes(root, manifest_path).decode("utf-8")
+        else:
+            raw = source.read_text(encoding="utf-8")
         info = json.loads(raw, object_pairs_hook=_unique_pairs)
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ReleaseManifestRejected("MANIFEST_NOT_READABLE") from exc
