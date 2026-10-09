@@ -105,6 +105,7 @@ def stage_explicit_github_worker_artifact_for_review(
     expected_worker_slot: str,
     expected_assignment_sha256: str,
     expected_state_version: int,
+    validate_only: bool = False,
 ) -> WorkArtifactReview:
     """Strictly parse provider-supplied comment metadata and stage once."""
     def reject(reason: str, *, staged=False) -> WorkArtifactReview:
@@ -114,6 +115,8 @@ def stage_explicit_github_worker_artifact_for_review(
             staged_for_review=staged,
         )
 
+    if type(validate_only) is not bool:
+        return reject("VALIDATE_ONLY_TYPE_INVALID")
     if not _safe_db(database, allowed_experiments_root):
         return reject("ISOLATED_EXPERIMENT_DB_REQUIRED")
     if (
@@ -209,6 +212,12 @@ def stage_explicit_github_worker_artifact_for_review(
         (expected_project_id + ":" + expected_assignment_id).encode("ascii")
     ).hexdigest()
     body_hash = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    if validate_only:
+        # Validation-only is used by the isolated atomic blob+comment
+        # intake. No SQLite connection, DDL or review claim here.
+        return WorkArtifactReview(
+            "VALIDATED_NO_WRITE", "SCOPED_COMMENT_VALID_NO_PERSISTENCE"
+        )
     try:
         with contextlib.closing(sqlite3.connect(
             database, isolation_level=None, timeout=4,
