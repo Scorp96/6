@@ -105,6 +105,16 @@ class UntrustedTurnRecordInspectorTests(unittest.TestCase):
                 self.assertEqual("ASSISTANT_FINISH_REASON_UNVERIFIED",
                                  inspect(record(finish=mode)).reason)
 
+    def test_active_async_work_blocks_even_if_text_has_end_turn(self):
+        for state in ("running", {"status": "pending"}, "unknown"):
+            with self.subTest(state=state):
+                value = record()
+                value["async_status"] = state
+                result = inspect(value)
+                self.assertEqual("INCOMPLETE", result.status)
+                self.assertEqual("ASYNC_WORK_NOT_CLEARED", result.reason)
+                self.assertFalse(result.host_terminal_event_verified)
+
     def test_empty_reply_never_becomes_finished(self):
         self.assertEqual("ASSISTANT_CONTENT_UNAVAILABLE",
                          inspect(record(answer=" ")).reason)
