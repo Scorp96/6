@@ -183,3 +183,19 @@ Kernel-Power 41 事件的安全数值字段为 BugcheckCode=0、PowerButtonTimes
 ## 十三、最新隔离新增的 HMAC Replay Ledger 与预检测试注意事项
 
 完整手册新增 next_gpt_status_probe.py（只读）和 isolated_host_replay_ledger.py（仅在 experiments/r2-* 内写独立数据库）及其测试。后者状态为 RESERVED_FOR_REVIEW、ALREADY_RESERVED 或 BLOCKED，**绝不授权浏览器发送**。首次 Windows CI 曾暴露测试 SQLite 连接未显式关闭导致的 WinError 32，已经修正；不得把失败的 workflow 当成 PASS。继任者以 PR **最终 SHA** 对应的最新 CI + 本机隔离测试为准，具体测试数应从 CI 日志读取而不是沿用 1,151 的旧版本统计。
+
+
+## 十四、2026-10-09 08:35–08:38 最后实机验收与错误审计纠正
+
+1. 实验源代码与交接说明在 SHA dc5a3b293bfa50a0beb5d7e06c55ef36321b3565 达成 GitHub Actions #37865467874 精确 SHA 的 SUCCESS：
+   - V4 核心 516 项通过；
+   - GUI Bridge 625 项通过；
+   - Broker 29 项通过；
+   - 总计 1,170 项通过，CANDIDATE_VALIDATION=PASS。
+2. Windows 本机 Issue #2319 使用同一代码 SHA，在独立 r2-host-terminal-security-20261009 检出执行 516/516 项 V4 核心测试，0 failures/0 errors/0 skipped，且直接调用 next_gpt_status_probe.py 检查其 no-send 输出。观察器已到 seq=6；生产原 R1 仍 1 条模糊意图，GUI 仍 ERROR；旧活跃观察器工作树未改动。
+3. 一次额外 TaskScheduler 查询 Issue #2320 曾返回 OLD_OBSERVER_TASK_IDENTITY_UNVERIFIED（FAILED）。**已确认为该额外审核脚本没有正确解析安装器 Inspect 的 JSON 输出**，不能据此判断任务遭到改写。
+4. Issue #2321 改用原安装器自带 Inspect 并正确解析 JSON，证实旧活跃观察器代码精确 SHA 8da5085f906b4aeeece6fb0ae1f488bc597507b1、Git clean、Inspect identity_verified=true；任务 Ready，08:37:46 最近自动运行 ExitCode=0，下次调度 08:42:45，权限仍 Interactive/Limited。没有重装/重启/启停任务。
+
+这个小插曲再次强调：新的 GPT 必须把 **审计脚本自身的错误** 与 **生产状态真实异常** 分开；不要看到一个单独探针 FAILED 就立即修改生产。旧任务的身份应以原安装器的可重复 Inspect、自身准确 SHA 和真实最近运行回执共同核查。
+
+本文件自身更新为文档提交后，PR HEAD 将再次改变；**准确 HEAD 的最终 CI 必须重新核验**，不能把旧 dc5a SHA 的通过冒充新文档提交 SHA 的成功。安全代码不应再为纯状态记录盲目修改。
