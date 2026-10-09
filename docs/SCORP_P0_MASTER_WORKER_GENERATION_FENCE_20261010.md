@@ -14,7 +14,7 @@
 1. Persist the scheduler-issued `operator_generation` and `objective_generation` in the controller's `worker_assignment` sub-envelope. Do not send a Windows elevation credential to GPT.
 2. For `LOCAL_EXECUTION` intents only, the store rejects missing, boolean, malformed, or stale issued generations. Compare them with **both** persisted assignment generations and the current operator controls. The previous lease, actor, resource, access-mode and project epoch checks remain mandatory.
 3. Reject before any local adapter invocation; keep read-only legacy/browser intent reconciliation separate.
-4. Add 10 isolated SQLite tests for active valid lease, forged/expired token, actor mismatch, stale operator/objective generations, missing/boolean fields and root-generation spoofing.
+4. Reject incomplete root operator/objective generation binding for any new LOCAL_EXECUTION side effect.\n5. Refuse a browser Worker prompt that contains its raw local bearer lease token, **before preparing or submitting an intent**.\n6. Add 11 isolated SQLite tests for active valid lease, forged/expired token, actor mismatch, stale operator/objective generations, missing/boolean fields and root-generation spoofing, plus a browser-prompt regression.
 
 ## Boundaries and required follow-up
 
