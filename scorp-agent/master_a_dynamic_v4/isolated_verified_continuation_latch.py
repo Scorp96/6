@@ -114,6 +114,8 @@ def reserve_verified_continuation_for_review(
     )
     if preliminary.status != "READY_FOR_GATED_ADAPTER":
         return reject("CONTINUATION_NOT_VERIFIED:" + preliminary.reason)
+    if not preliminary.idempotency_key or not preliminary.completion_proof_sha256:
+        return reject("CONTINUATION_IDENTITY_MISSING")
     receipt_digest = _sha_json(dataclasses.asdict(b))
 
     try:
@@ -124,27 +126,20 @@ def reserve_verified_continuation_for_review(
             db.executescript(_SCHEMA + _EXTRA_SCHEMA)
             db.execute("BEGIN IMMEDIATE")
             try:
-                # The persisted queue, not the model or caller, decides replay.
-                keys = {row[0] for row in db.execute(
-                    "SELECT idempotency_key FROM host_continuation_candidates"
-                )}
-                candidate = plan_with_verified_turn(
-                    request, observation, policy, samples,
-                    expected_intent_id=expected_intent_id,
-                    now_monotonic_ms=now_monotonic_ms,
-                    already_queued=keys,
-                    host_receipts=receipts,
-                    host_attestation_key=host_attestation_key,
-                )
-                if candidate.status == "ALREADY_QUEUED":
+                # Indexed authoritative lookup, fenced by BEGIN IMMEDIATE:
+                # do not load the full queue into memory on every 15m check.
+                # The pure proof was already validated before SQLite I/O.
+                candidate = preliminary
+                prior_key = db.execute(
+                    "SELECT 1 FROM host_continuation_candidates WHERE idempotency_key=?",
+                    (candidate.idempotency_key,),
+                ).fetchone()
+                if prior_key is not None:
                     db.rollback()
-                    return reject("IDEMPOTENCY_KEY_EXISTS", "ALREADY_QUEUED", candidate.idempotency_key)
-                if candidate.status != "READY_FOR_GATED_ADAPTER":
-                    db.rollback()
-                    return reject("CONTINUATION_NOT_VERIFIED:" + candidate.reason)
-                if not candidate.idempotency_key or not candidate.completion_proof_sha256:
-                    db.rollback()
-                    return reject("CONTINUATION_IDENTITY_MISSING")
+                    return reject(
+                        "IDEMPOTENCY_KEY_EXISTS", "ALREADY_QUEUED",
+                        candidate.idempotency_key,
+                    )
                 if db.execute(
                     "SELECT 1 FROM host_terminal_events WHERE event_key=?",
                     (event_key,),
