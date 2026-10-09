@@ -2,154 +2,112 @@ from __future__ import annotations
 
 import asyncio
 import unittest
-
 from isolated_chrome_namespace_admission_v4 import (
     attempt_isolated_namespace_resume_without_tabs,
+    inspect_fresh_namespace_without_tabs,
 )
 
 NAME = "scorp-r2-isolated-canary-fixture-20261009"
 
 
 class FakeCLI:
-    def __init__(self, *, initial=(), create=False, accepted=True,
-                 failure=None, post_invalid=False, concurrent=False):
-        self.sessions = set(initial)
-        self.create = create
-        self.accepted = accepted
-        self.failure = failure
-        self.post_invalid = post_invalid
-        self.concurrent = concurrent
+    def __init__(self, *, entries=None, error=None, valid=True):
+        self.entries = entries if entries is not None else [{"name": "prod-master"}]
+        self.error = error
+        self.valid = valid
         self.calls = []
-        self.list_count = 0
 
     async def list_sessions_readonly(self, *, timeout_seconds=10):
         self.calls.append(("session", "list"))
-        self.list_count += 1
-        if self.post_invalid and self.list_count > 1:
-            return {"ok": False, "sessions": []}
-        return {
-            "ok": True,
-            "sessions": [{"name": name, "owner": "no-attestation"} for name in sorted(self.sessions)],
-        }
+        if self.error:
+            raise self.error
+        return {"ok": self.valid, "sessions": self.entries}
 
-    async def run_json(self, namespace, *args, timeout_seconds=10):
-        self.calls.append((namespace, *args))
-        if self.failure:
-            raise RuntimeError("SECRET https://chatgpt.com/c/private")
-        if self.create:
-            self.sessions.add(namespace)
-        if self.concurrent:
-            self.sessions.add("unrelated-live-session")
-        return {"success": self.accepted}
+    async def run_json(self, *args, **kwargs):
+        raise AssertionError("UNSAFE_SESSION_RESUME_MUST_NEVER_RUN")
 
 
 def run(cli=None, *, namespace=NAME, timeout_seconds=10):
-    return asyncio.run(attempt_isolated_namespace_resume_without_tabs(
-        cli if cli is not None else FakeCLI(),
-        namespace=namespace, timeout_seconds=timeout_seconds,
+    return asyncio.run(inspect_fresh_namespace_without_tabs(
+        cli or FakeCLI(), namespace=namespace,
+        timeout_seconds=timeout_seconds,
     ))
 
 
 class IsolatedChromeNamespaceAdmissionTests(unittest.TestCase):
-    def test_windows_observed_resume_success_but_no_new_session_blocks(self):
-        cli = FakeCLI(create=False, accepted=True)
+    def test_new_name_only_yields_unattested_preflight(self):
+        cli = FakeCLI()
         result = run(cli)
-        self.assertEqual("BLOCKED", result.status)
-        self.assertEqual("RESUME_DID_NOT_CREATE_NAMESPACE", result.reason)
-        self.assertTrue(result.resume_command_accepted)
-        self.assertEqual(0, result.before_session_count)
-        self.assertEqual(0, result.after_session_count)
-        self.assertFalse(result.newly_observed_namespace)
-        self.assertFalse(result.tab_navigation_authorized)
-        self.assertFalse(result.browser_send_authorized)
-        self.assertEqual([
-            ("session", "list"), (NAME, "session", "resume"), ("session", "list")
-        ], cli.calls)
-
-    def test_newly_observed_namespace_still_unattested_and_no_send(self):
-        cli = FakeCLI(initial=("existing-prod",), create=True)
-        result = run(cli)
-        self.assertEqual("ISOLATED_NAMESPACE_CANDIDATE_UNATTESTED", result.status)
-        self.assertTrue(result.newly_observed_namespace)
+        self.assertEqual("NAMESPACE_NAME_AVAILABLE_UNATTESTED", result.status)
+        self.assertEqual("NEW_NAMESPACE_NAME_AVAILABLE_NOT_PHYSICAL_OWNERSHIP_PROOF", result.reason)
         self.assertEqual(1, result.before_session_count)
-        self.assertEqual(2, result.after_session_count)
-        self.assertFalse(result.physical_isolation_attested)
+        self.assertEqual([("session", "list")], cli.calls)
         self.assertFalse(result.tab_navigation_authorized)
         self.assertFalse(result.browser_send_authorized)
-        self.assertEqual(0, result.model_calls)
 
-    def test_existing_namespace_is_never_resumed_or_adopted(self):
-        cli = FakeCLI(initial=(NAME,))
-        result = run(cli)
-        self.assertEqual("ISOLATED_NAMESPACE_ALREADY_EXISTS", result.reason)
+    def test_existing_namespace_cannot_be_adopted(self):
+        cli = FakeCLI(entries=[{"name": NAME}])
+        self.assertEqual("ISOLATED_NAMESPACE_ALREADY_EXISTS", run(cli).reason)
         self.assertEqual([("session", "list")], cli.calls)
 
-    def test_missing_namespace_or_improper_name_rejected_before_browser(self):
+    def test_legacy_resume_creation_function_is_permanently_blocked(self):
         cli = FakeCLI()
-        for item in ("", "master", "worker-1", "scorp-r2-isolated-abcd", None):
-            with self.subTest(item=item):
+        result = asyncio.run(attempt_isolated_namespace_resume_without_tabs(
+            cli, namespace=NAME,
+        ))
+        self.assertEqual("SESSION_RESUME_HANDOFF_ONLY_NOT_SESSION_CREATION", result.reason)
+        self.assertEqual([], cli.calls)
+        self.assertFalse(result.browser_send_authorized)
+
+    def test_bad_names_block_without_calling_chrome(self):
+        cli = FakeCLI()
+        for name in (None, "", "master", "worker-1", "scorp-r2-isolated-x",
+                     "scorp-r2-isolated-" + "a" * 70):
+            with self.subTest(name=name):
                 self.assertEqual(
                     "ISOLATED_NAMESPACE_OR_TIMEOUT_INVALID",
-                    run(cli, namespace=item).reason,
+                    run(cli, namespace=name).reason,
                 )
         self.assertEqual([], cli.calls)
 
-    def test_invalid_timeout_rejected_before_browser(self):
+    def test_bad_timeouts_block_without_calling_chrome(self):
         cli = FakeCLI()
-        for timeout in (0, -1, 31, True, 1.5):
-            with self.subTest(timeout=timeout):
+        for val in (0, -1, True, 31, 0.4):
+            with self.subTest(val=val):
                 self.assertEqual(
                     "ISOLATED_NAMESPACE_OR_TIMEOUT_INVALID",
-                    run(cli, timeout_seconds=timeout).reason,
+                    run(cli, timeout_seconds=val).reason,
                 )
         self.assertEqual([], cli.calls)
 
-    def test_resume_exception_is_ambiguous_and_never_retried(self):
-        cli = FakeCLI(failure=True)
-        result = run(cli)
-        self.assertEqual("RESUME_EFFECT_UNKNOWN", result.reason)
-        self.assertEqual(2, len(cli.calls))
-        self.assertNotIn("SECRET", str(result))
-        self.assertFalse(result.browser_send_authorized)
+    def test_duplicate_session_names_fail_closed(self):
+        cli = FakeCLI(entries=[{"name": "prod"}, {"name": "prod"}])
+        self.assertEqual("PRE_CREATION_INVENTORY_INVALID", run(cli).reason)
 
-    def test_post_resume_inventory_failure_is_unknown_not_created(self):
-        cli = FakeCLI(create=True, post_invalid=True)
+    def test_invalid_session_type_fails_closed(self):
+        cli = FakeCLI(entries=["prod"])
+        self.assertEqual("PRE_CREATION_INVENTORY_INVALID", run(cli).reason)
+
+    def test_inventory_error_is_redacted(self):
+        secret = "token-super-secret https://chatgpt.com/c/private"
+        cli = FakeCLI(error=RuntimeError(secret))
         result = run(cli)
-        self.assertEqual("POST_RESUME_INVENTORY_INVALID", result.reason)
-        self.assertFalse(result.newly_observed_namespace)
+        self.assertEqual("PRE_CREATION_INVENTORY_UNAVAILABLE", result.reason)
+        self.assertNotIn(secret, str(result))
+
+    def test_invalid_inventory_state_fails_closed(self):
+        cli = FakeCLI(valid=False)
+        self.assertEqual("PRE_CREATION_INVENTORY_INVALID", run(cli).reason)
+
+    def test_no_cli_capability_is_blocked(self):
+        self.assertEqual("READONLY_SESSION_CAPABILITY_UNAVAILABLE", run(object()).reason)
+
+    def test_empty_existing_inventory_still_does_not_authorize_tabs(self):
+        result = run(FakeCLI(entries=[]))
+        self.assertEqual(0, result.before_session_count)
         self.assertFalse(result.tab_navigation_authorized)
-
-    def test_post_resume_new_name_with_failed_return_stays_unverified(self):
-        cli = FakeCLI(create=True, accepted=False)
-        result = run(cli)
-        self.assertEqual("RESUME_RETURN_INDETERMINATE", result.reason)
-        self.assertTrue(result.newly_observed_namespace)
-        self.assertFalse(result.tab_navigation_authorized)
-
-    def test_unrelated_concurrent_namespace_addition_blocks(self):
-        cli = FakeCLI(create=True, concurrent=True)
-        result = run(cli)
-        self.assertEqual("UNEXPECTED_CONCURRENT_SESSION_MUTATION", result.reason)
-        self.assertFalse(result.browser_send_authorized)
-
-    def test_duplicate_session_rows_are_invalid(self):
-        class Duplicate(FakeCLI):
-            async def list_sessions_readonly(self, *, timeout_seconds=10):
-                self.calls.append(("session", "list"))
-                return {"ok": True, "sessions": [
-                    {"name": "old"}, {"name": "old"},
-                ]}
-        result = run(Duplicate())
-        self.assertEqual("PRE_RESUME_INVENTORY_INVALID", result.reason)
-
-    def test_no_execution_capability_implied_by_valid_namespace(self):
-        result = run(FakeCLI(create=True))
-        for flag in (
-            result.browser_send_authorized,
-            result.tab_navigation_authorized,
-            result.physical_isolation_attested,
-        ):
-            self.assertFalse(flag)
+        self.assertFalse(result.physical_isolation_attested)
+        self.assertEqual(0, result.model_calls)
 
 
 if __name__ == "__main__":
