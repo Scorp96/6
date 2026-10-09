@@ -169,6 +169,34 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         self.assertEqual("TERMINAL_EVENT_ALREADY_RESERVED", attempted.reason)
         self.assertEqual(1, self.rows("host_continuation_candidates"))
 
+    def test_global_event_id_cannot_cross_worker_even_with_valid_signature(self):
+        self.assertEqual("RESERVED_FOR_REVIEW", self.reserve().status)
+        second = self.reserve(
+            event="e"*32, session="isolated-worker-2",
+            intent="different-worker-intent", decision="b"*32,
+        )
+        self.assertEqual("BLOCKED", second.status)
+        self.assertEqual("TERMINAL_EVENT_ID_SCOPE_REPLAY", second.reason)
+        self.assertEqual(1, self.rows("host_terminal_global_ids"))
+        self.assertEqual(1, self.rows("host_continuation_candidates"))
+
+    def test_legacy_event_rows_without_global_index_do_not_migrate(self):
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.executescript("""
+                CREATE TABLE host_terminal_events(
+                    event_key TEXT PRIMARY KEY, scope_key TEXT NOT NULL,
+                    event_sequence INTEGER NOT NULL, receipt_sha256 TEXT NOT NULL,
+                    reserved_at TEXT DEFAULT CURRENT_TIMESTAMP
+                );
+                INSERT INTO host_terminal_events VALUES(
+                    'legacy-key','legacy-scope',2,'hash',CURRENT_TIMESTAMP
+                );
+            """)
+        denied = self.reserve(event="f"*32)
+        self.assertEqual("LEGACY_EVENT_GLOBAL_INDEX_UNVERIFIED", denied.reason)
+        self.assertEqual(1, self.rows("host_terminal_events"))
+        self.assertEqual(0, self.rows("host_continuation_candidates"))
+
     def test_stale_sequence_cannot_create_another_continuation(self):
         self.reserve()
         blocked = self.reserve(event="b"*32, first_seq=0, decision="b"*32)
@@ -286,7 +314,7 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         self.assertEqual("BLOCKED", denied.status)
         self.assertEqual("EXPERIMENT_CONTINUATION_LEDGER_UNAVAILABLE", denied.reason)
         for table in ("host_terminal_events", "host_terminal_scope_cursors",
-                      "host_continuation_candidates"):
+                      "host_terminal_global_ids", "host_continuation_candidates"):
             self.assertEqual(0, self.rows(table))
         with contextlib.closing(sqlite3.connect(self.db)) as db:
             db.execute("DROP TRIGGER reject_candidate")
