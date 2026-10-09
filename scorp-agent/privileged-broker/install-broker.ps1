@@ -3,9 +3,23 @@ param(
   [string]$InstallDir = 'C:\ScorpAgent\privileged-broker',
   [string]$RuntimeDir = 'C:\ScorpAgent\privileged-broker-runtime',
   [string]$StateDir = 'C:\ProgramData\ScorpAgent\privileged-broker',
-  [string]$ServiceName = 'ScorpPrivilegedBroker'
+  [string]$ServiceName = 'ScorpPrivilegedBroker',
+  [switch]$InstallFreshIsolated,
+  [string]$OperatorAcknowledgement = '',
+  [string]$CoreSha256 = '',
+  [string]$OpsSha256 = '',
+  [string]$ServiceSha256 = '',
+  [string]$ClientSha256 = ''
 )
 $ErrorActionPreference = 'Stop'
+# No implicit install/upgrade. Opt-in is only for a new, empty isolated
+# service identity, NEVER the existing R1/production privileged broker.
+if (-not $InstallFreshIsolated) {
+  throw 'P0_BROKER_INSTALL_DEFAULT_DENY_USE_READONLY_AUDIT'
+}
+if ($OperatorAcknowledgement -cne 'FRESH_ISOLATED_BROKER_NO_PRIOR_STATE') {
+  throw 'P0_BROKER_INSTALL_EXPLICIT_HUMAN_REVIEW_REQUIRED'
+}
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupRoot = 'C:\ScorpAgent\backups'
 $uv = 'C:\Users\scorp\AppData\Local\Microsoft\WinGet\Links\uv.exe'
@@ -20,6 +34,7 @@ $backupService = Join-Path $backupRoot "privileged-broker-service-$stamp.json"
 $files = @('broker_core.py','broker_ops.py','broker_service.py','broker_client.py')
 $userSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $createdService = $false
+$installMoved = $false
 $priorService = $null
 $wasRunning = $false
 function Invoke-Sc([string[]]$ScArgs) {
@@ -51,6 +66,8 @@ function Remove-ServiceIfPresent([string]$Name) {
 }function New-BrokerService([string]$Name, [string]$BinaryPath) {
   Invoke-Sc @('create', $Name, 'binPath=', $BinaryPath, 'start=', 'auto',
               'obj=', 'LocalSystem', 'DisplayName=', 'Scorp Privileged Broker') | Out-Null
+  # Only after sc create succeeds may our rollback delete this service.
+  $script:createdService = $true
   Invoke-Sc @('description', $Name,
               'LocalSystem allowlisted privilege broker for Scorp Agent.') | Out-Null
 }
@@ -80,6 +97,39 @@ function Set-SecretAcl([string]$Path, [string]$Sid) {
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
   throw 'ADMIN_REQUIRED'
 }
+# Every security and source check below occurs BEFORE the first filesystem,
+# service, ACL, Python installation or state mutation.
+if ([string]$userSid -eq 'S-1-5-18' -or [string]$userSid -match '\-500$') {
+  throw 'P0_BROKER_INSTALL_PRIVILEGED_BUILTIN_ACCOUNT_REFUSED'
+}
+$existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($existingService -or
+    (Test-Path -LiteralPath $InstallDir) -or
+    (Test-Path -LiteralPath $RuntimeDir) -or
+    (Test-Path -LiteralPath $StateDir) -or
+    (Test-Path -LiteralPath $secretPath)) {
+  throw 'P0_BROKER_INSTALL_EXISTING_SERVICE_OR_STATE_REFUSED'
+}
+$pinned = [ordered]@{
+  'broker_core.py' = $CoreSha256
+  'broker_ops.py' = $OpsSha256
+  'broker_service.py' = $ServiceSha256
+  'broker_client.py' = $ClientSha256
+}
+foreach ($name in $pinned.Keys) {
+  $expected = [string]$pinned[$name]
+  if ($expected -notmatch '^[0-9a-fA-F]{64}$') {
+    throw 'P0_BROKER_INSTALL_ALL_FOUR_SOURCE_SHA256_REQUIRED'
+  }
+  $source = Join-Path $SourceDir $name
+  if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+    throw 'P0_BROKER_INSTALL_SOURCE_NOT_FOUND'
+  }
+  $actual = (Get-FileHash -LiteralPath $source -Algorithm SHA256 -ErrorAction Stop).Hash
+  if ($actual -cne $expected.ToUpperInvariant()) {
+    throw 'P0_BROKER_INSTALL_SOURCE_SHA256_MISMATCH'
+  }
+}
 if (-not (Test-Path -LiteralPath $uv -PathType Leaf)) { throw 'UV_MISSING' }
 New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $StateDir -Force | Out-Null
@@ -92,16 +142,9 @@ foreach ($name in $files) {
 }
 $priorCim = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
 if ($priorCim) {
-  if ($priorCim.StartName -notin @('LocalSystem','NT AUTHORITY\LocalService','NT AUTHORITY\NetworkService')) {
-    throw 'BROKER_EXISTING_SERVICE_OWNER_UNEXPECTED'
-  }
-  $priorService = [ordered]@{
-    Name=$priorCim.Name; DisplayName=$priorCim.DisplayName; Description=$priorCim.Description
-    PathName=$priorCim.PathName; StartMode=$priorCim.StartMode; StartName=$priorCim.StartName; State=$priorCim.State
-  }
-  $wasRunning = ($priorCim.State -eq 'Running')
-  [IO.File]::WriteAllText($backupService, ($priorService | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding($false)))
-}if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+  throw 'P0_BROKER_INSTALL_SERVICE_APPEARED_DURING_STAGING'
+}
+if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
   & $uv venv --python 3.14 $RuntimeDir
   if ($LASTEXITCODE -ne 0) { throw 'BROKER_RUNTIME_CREATE_FAILED' }
 }
@@ -127,14 +170,15 @@ $config = [ordered]@{
 Set-StateAcl $StateDir $userSid
 Set-SecretAcl $secretPath $userSid
 try {
-  if (Test-Path -LiteralPath $InstallDir -PathType Container) {
-    New-Item -ItemType Directory -Path $backupInstall -Force | Out-Null
-    Get-ChildItem -LiteralPath $InstallDir -Force | Copy-Item -Destination $backupInstall -Recurse -Force
+  # Time-of-check/to-use defense: do not replace a service or install path
+  # that appeared after the initial read-only preflight.
+  if ((Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) -or
+      (Test-Path -LiteralPath $InstallDir)) {
+    throw 'P0_BROKER_INSTALL_TARGET_APPEARED_BEFORE_COMMIT'
   }
-  Remove-ServiceIfPresent $ServiceName
-  if (-not $priorService) { $createdService = $true }
-  if (Test-Path -LiteralPath $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
+  # Never call Remove-ServiceIfPresent on this fresh-only path.
   Move-Item -LiteralPath $candidateDir -Destination $InstallDir
+  $installMoved = $true
 
   $serviceScript = Join-Path $InstallDir 'broker_service.py'
   $clientScript = Join-Path $InstallDir 'broker_client.py'
@@ -172,9 +216,12 @@ try {
 }
 catch {
   $installError = $_
-  try { Remove-ServiceIfPresent $ServiceName } catch {}
+  # No service created by this run: never delete another owner's service.
+  if ($createdService) { try { Remove-ServiceIfPresent $ServiceName } catch {} }
   try {
-    if (Test-Path -LiteralPath $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
+    if ($installMoved -and (Test-Path -LiteralPath $InstallDir)) {
+      Remove-Item $InstallDir -Recurse -Force
+    }
     if (Test-Path -LiteralPath $backupInstall -PathType Container) {
       New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
       Get-ChildItem -LiteralPath $backupInstall -Force | Copy-Item -Destination $InstallDir -Recurse -Force

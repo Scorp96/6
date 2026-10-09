@@ -486,6 +486,108 @@ class V4GatewayTests(unittest.TestCase):
             finally:
                 gateway.close()
 
+    def _gateway_with_one_claim_for_authority_fence(self, root, project_id):
+        worktree = root / 'worktree'
+        worktree.mkdir()
+        engine = FakeEngine()
+        gateway = V4BridgeGateway(root / 'state.sqlite3', project_id, [worktree], engine)
+        gateway.ensure_contract({'objective': 'boundary test'}, {'required': []})
+        gateway.enqueue_graph([{
+            'task_id': 'T1',
+            'objective_sha256': 'a' * 64,
+            'resource_scope': [worktree / 'a.txt'],
+            'access_mode': 'read',
+            'dependencies': [],
+        }])
+        claim = gateway.claim_workers(master_epoch=0, limit=1)[0]
+        return gateway, claim, engine
+
+    def test_direct_gateway_fences_browser_prompt_containing_raw_worker_lease(self):
+        from master_a_dynamic_v4.scheduler import WorkerFenceError
+        with tempfile.TemporaryDirectory() as td:
+            gateway, claim, engine = self._gateway_with_one_claim_for_authority_fence(
+                pathlib.Path(td), 'gateway-lease-prompt'
+            )
+            try:
+                with self.assertRaisesRegex(WorkerFenceError, 'WORKER_PROMPT_LEAKS_LEASE_TOKEN'):
+                    gateway.prepare_worker_intent(claim, 'public task ' + claim.lease_token)
+                self.assertEqual(0, engine.submits)
+                with gateway.store._connection() as conn:
+                    self.assertEqual(
+                        0, conn.execute('SELECT COUNT(*) FROM action_intents').fetchone()[0]
+                    )
+            finally:
+                gateway.close()
+
+    def test_direct_gateway_cannot_mint_fresh_objective_gen_for_stale_worker(self):
+        from master_a_dynamic_v4.scheduler import WorkerFenceError
+        with tempfile.TemporaryDirectory() as td:
+            gateway, claim, engine = self._gateway_with_one_claim_for_authority_fence(
+                pathlib.Path(td), 'gateway-stale-objective'
+            )
+            try:
+                with gateway.store._transaction() as conn:
+                    conn.execute(
+                        'UPDATE operator_controls SET objective_generation=objective_generation+1 '
+                        'WHERE project_id=?', (gateway.project_id,)
+                    )
+                with self.assertRaisesRegex(WorkerFenceError, 'WORKER_GENERATION_FENCED'):
+                    gateway.submit_worker_intent(claim, 'safe bounded Worker prompt')
+                self.assertEqual(0, engine.submits)
+                with gateway.store._connection() as conn:
+                    self.assertEqual(
+                        0, conn.execute('SELECT COUNT(*) FROM action_intents').fetchone()[0]
+                    )
+            finally:
+                gateway.close()
+
+    def test_direct_gateway_cannot_mint_fresh_operator_gen_for_stale_worker(self):
+        from master_a_dynamic_v4.scheduler import WorkerFenceError
+        with tempfile.TemporaryDirectory() as td:
+            gateway, claim, engine = self._gateway_with_one_claim_for_authority_fence(
+                pathlib.Path(td), 'gateway-stale-operator'
+            )
+            try:
+                with gateway.store._transaction() as conn:
+                    conn.execute(
+                        'UPDATE operator_controls SET operator_generation=operator_generation+1 '
+                        'WHERE project_id=?', (gateway.project_id,)
+                    )
+                with self.assertRaisesRegex(WorkerFenceError, 'WORKER_GENERATION_FENCED'):
+                    gateway.submit_worker_intent(claim, 'safe bounded Worker prompt')
+                self.assertEqual(0, engine.submits)
+            finally:
+                gateway.close()
+
+    def test_worker_browser_intent_does_not_refresh_generation_on_concurrent_revision(self):
+        from unittest.mock import patch
+        from master_a_dynamic_v4.state_store import StoreInvariantError
+
+        with tempfile.TemporaryDirectory() as td:
+            gateway, claim, engine = self._gateway_with_one_claim_for_authority_fence(
+                pathlib.Path(td), 'gateway-concurrent-gen-change'
+            )
+            original_prepare = gateway.store.prepare_intent
+            try:
+                def revise_operator_just_before_durable_intent(*args, **kwargs):
+                    with gateway.store._transaction() as conn:
+                        conn.execute(
+                            'UPDATE operator_controls SET operator_generation=operator_generation+1 '
+                            'WHERE project_id=?', (gateway.project_id,)
+                        )
+                    return original_prepare(*args, **kwargs)
+
+                with patch.object(gateway.store, 'prepare_intent', side_effect=revise_operator_just_before_durable_intent):
+                    intent = gateway.prepare_worker_intent(claim, 'safe bounded work')
+                binding = json.loads(intent['payload_json'])
+                self.assertEqual(claim.operator_generation, binding['operator_generation'])
+                self.assertEqual(claim.operator_generation, binding['worker_assignment']['operator_generation'])
+                with self.assertRaisesRegex(StoreInvariantError, 'OPERATOR_GENERATION_FENCED'):
+                    gateway.store.assert_intent_generation(intent['intent_id'])
+                self.assertEqual(0, engine.submits)
+            finally:
+                gateway.close()
+
     def test_two_claims_prepare_distinct_worker_browser_intents(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
