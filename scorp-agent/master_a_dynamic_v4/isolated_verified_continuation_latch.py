@@ -117,6 +117,7 @@ def reserve_verified_continuation_for_review(
     if not preliminary.idempotency_key or not preliminary.completion_proof_sha256:
         return reject("CONTINUATION_IDENTITY_MISSING")
     receipt_digest = _sha_json(dataclasses.asdict(b))
+    event_id_sha256 = _sha_json({"global_event_id": b.event_id})
 
     try:
         with contextlib.closing(sqlite3.connect(
@@ -126,6 +127,18 @@ def reserve_verified_continuation_for_review(
             db.executescript(_SCHEMA + _EXTRA_SCHEMA)
             db.execute("BEGIN IMMEDIATE")
             try:
+                # A previously populated experimental legacy ledger has no
+                # globally unique event-ID index. Its hash-only event_key
+                # cannot be reverse-migrated safely; refuse implicit adoption.
+                previous_count = db.execute(
+                    "SELECT COUNT(*) FROM host_terminal_events"
+                ).fetchone()[0]
+                unique_count = db.execute(
+                    "SELECT COUNT(*) FROM host_terminal_global_ids"
+                ).fetchone()[0]
+                if previous_count != unique_count:
+                    db.rollback()
+                    return reject("LEGACY_EVENT_GLOBAL_INDEX_UNVERIFIED")
                 # Indexed authoritative lookup, fenced by BEGIN IMMEDIATE:
                 # do not load the full queue into memory on every 15m check.
                 # The pure proof was already validated before SQLite I/O.
@@ -146,6 +159,13 @@ def reserve_verified_continuation_for_review(
                 ).fetchone():
                     db.rollback()
                     return reject("TERMINAL_EVENT_ALREADY_RESERVED")
+                globally_seen = db.execute(
+                    "SELECT 1 FROM host_terminal_global_ids WHERE event_id_sha256=?",
+                    (event_id_sha256,),
+                ).fetchone()
+                if globally_seen is not None:
+                    db.rollback()
+                    return reject("TERMINAL_EVENT_ID_SCOPE_REPLAY")
                 high = db.execute(
                     "SELECT high_sequence FROM host_terminal_scope_cursors WHERE scope_key=?",
                     (scope_key,),
@@ -159,6 +179,11 @@ def reserve_verified_continuation_for_review(
                     "event_key,scope_key,event_sequence,receipt_sha256"
                     ") VALUES(?,?,?,?)",
                     (event_key, scope_key, b.sequence, receipt_digest),
+                )
+                db.execute(
+                    "INSERT INTO host_terminal_global_ids(event_id_sha256,event_key)"
+                    " VALUES(?,?)",
+                    (event_id_sha256, event_key),
                 )
                 db.execute(
                     "INSERT INTO host_terminal_scope_cursors(scope_key,high_sequence)"
