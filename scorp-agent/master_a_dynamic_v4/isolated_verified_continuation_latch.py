@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import hashlib
 import pathlib
 import sqlite3
 from typing import Sequence
@@ -117,7 +118,8 @@ def reserve_verified_continuation_for_review(
     if not preliminary.idempotency_key or not preliminary.completion_proof_sha256:
         return reject("CONTINUATION_IDENTITY_MISSING")
     receipt_digest = _sha_json(dataclasses.asdict(b))
-    event_id_sha256 = _sha_json({"global_event_id": b.event_id})
+    # Must use the identical raw-event UUID digest as the standalone ledger.
+    event_id_sha256 = hashlib.sha256(b.event_id.encode("ascii")).hexdigest()
 
     try:
         with contextlib.closing(sqlite3.connect(
