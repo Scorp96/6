@@ -80,12 +80,12 @@ group_counts = {
     group: sum(row["tests"] for row in results if row["group"] == group)
     for group in ("v4", "bridge", "broker")
 }
-# Lower bounds from verified 2026-10-09 isolated release HEAD f29f64f5.
+# Suite floors for this isolated candidate; changes require fresh full CI.
 # Fail if an entire module/test suite silently vanishes. Future deliberate
 # test removals require an explicit baseline change and new acceptance.
-minimums = {"v4": 567, "bridge": 634, "broker": 29}
+minimums = {"v4": 567, "bridge": 656, "broker": 29}
 passed = (
-    compiled and total >= 1230
+    compiled and total >= 1252
     and all(group_counts[name] >= count for name, count in minimums.items())
     and all(row["pass"] and not row["skipped"] for row in results)
 )
