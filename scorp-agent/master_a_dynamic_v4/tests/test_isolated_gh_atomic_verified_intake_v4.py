@@ -221,6 +221,21 @@ class AtomicVerifiedIntakeTests(unittest.TestCase):
         self.assertEqual("PROJECT_WORKER_SLOT_ALREADY_FILLED",result.reason)
         self.assertEqual(before,self.rows())
 
+    def test_preexisting_identical_malformed_base_and_blob_hashes_block_second(self):
+        # Equality alone is insufficient if both legacy digest fields were
+        # corrupted to the SAME non-SHA256 string.
+        self.intake(0)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute("UPDATE r2_github_review_artifacts "
+                       "SET artifact_sha256=? WHERE comment_id=?",("not-a-sha",CID[0]))
+            db.execute("UPDATE r2_immutable_artifact_attestations "
+                       "SET artifact_sha256=? WHERE comment_id=?",("not-a-sha",CID[0]))
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE",result.reason)
+        self.assertEqual(before,self.rows())
+
     def test_preexisting_corrupt_text_digest_blocks_other_worker(self):
         self.intake(0)
         with contextlib.closing(sqlite3.connect(self.database)) as db:
