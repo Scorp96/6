@@ -83,9 +83,9 @@ group_counts = {
 # Suite floors for this isolated candidate; changes require fresh full CI.
 # Fail if an entire module/test suite silently vanishes. Future deliberate
 # test removals require an explicit baseline change and new acceptance.
-minimums = {"v4": 584, "bridge": 764, "broker": 29}
+minimums = {"v4": 584, "bridge": 779, "broker": 29}
 passed = (
-    compiled and total >= 1377
+    compiled and total >= 1392
     and all(group_counts[name] >= count for name, count in minimums.items())
     and all(row["pass"] and not row["skipped"] for row in results)
 )
