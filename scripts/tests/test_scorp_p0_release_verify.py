@@ -106,12 +106,45 @@ class ReleaseManifestTests(unittest.TestCase):
         with self.assertRaisesRegex(verify.ReleaseManifestRejected, "MANIFEST_SOURCE_SYMLINK"):
             self.check()
 
+    def test_git_blob_mode_reads_committed_bytes_not_windows_crlf_checkout(self):
+        # Prove the release gate is anchored to pinned Git objects, not
+        # Windows worktree autocrlf or an uncommitted manifest mutation.
+        def git(*args):
+            return subprocess.run(
+                ["git", "-C", str(self.root), *args],
+                capture_output=True, check=True, timeout=20, text=True,
+            ).stdout.strip()
+
+        try:
+            git("init", "-q")
+            git("config", "user.name", "SCORP Isolated Test")
+            git("config", "user.email", "scorp-fixture@example.invalid")
+            git("add", "scorp-agent")
+            git("commit", "-qm", "isolated release source fixture")
+        except (OSError, subprocess.CalledProcessError):
+            self.skipTest("git binary unavailable for offline Git blob fixture")
+
+        name = sorted(verify.REQUIRED_PATHS)[0]
+        target = self.root / name
+        target.write_bytes(target.read_bytes().replace(b"\n", b"\r\n"))
+        self.assertEqual("BLOCKED", self.check()["result"])
+        git_report = verify.evaluate_manifest(self.root, self.manifest, source_mode="git")
+        self.assertEqual("READY_FOR_MANUAL_RELEASE_REVIEW", git_report["result"])
+        self.assertEqual("git", git_report["source_mode"])
+        self.assertFalse(git_report["release_authorized"])
+
+        # An uncommitted edit to the manifest cannot update authorized hashes.
+        self.manifest_obj["files"][name]["git_blob_sha"] = "0" * 40
+        self.save_manifest()
+        git_report = verify.evaluate_manifest(self.root, self.manifest, source_mode="git")
+        self.assertEqual("READY_FOR_MANUAL_RELEASE_REVIEW", git_report["result"])
+
     def test_cli_exit_code_2_and_machine_readable_block(self):
         first = sorted(verify.REQUIRED_PATHS)[0]
         self.manifest_obj["files"][first]["git_blob_sha"] = "0" * 40
         self.save_manifest()
         run = subprocess.run(
-            [sys.executable, str(SOURCE), "--repo-root", str(self.root)],
+            [sys.executable, str(SOURCE), "--repo-root", str(self.root), "--source-mode", "filesystem"],
             capture_output=True, text=True, timeout=20, check=False,
         )
         self.assertEqual(2, run.returncode, run.stderr)
