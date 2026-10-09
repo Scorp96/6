@@ -51,8 +51,8 @@ class V4RuntimeEntrypointTests(unittest.TestCase):
         import os
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
-            os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
             env = os.environ.copy()
+            env["PYTHONDONTWRITEBYTECODE"] = "1"
             env["SCORP_REASONING_MODEL"] = "GPT-6"
             result = subprocess.run(
                 [
