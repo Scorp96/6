@@ -101,6 +101,19 @@ def reserve_verified_continuation_for_review(
         "scope_key": scope_key, "event_id": b.event_id,
         "intent_id": expected_intent_id,
     })
+    # Reject forged/stale/unusable completion before even creating the
+    # isolated SQLite file. This is a preliminary integrity gate ONLY.
+    # Queue membership is rechecked authoritatively under BEGIN IMMEDIATE.
+    preliminary = plan_with_verified_turn(
+        request, observation, policy, samples,
+        expected_intent_id=expected_intent_id,
+        now_monotonic_ms=now_monotonic_ms,
+        already_queued=(),
+        host_receipts=receipts,
+        host_attestation_key=host_attestation_key,
+    )
+    if preliminary.status != "READY_FOR_GATED_ADAPTER":
+        return reject("CONTINUATION_NOT_VERIFIED:" + preliminary.reason)
     receipt_digest = _sha_json(dataclasses.asdict(b))
 
     try:
