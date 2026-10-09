@@ -131,6 +131,47 @@ class HandoffProbeTests(unittest.TestCase):
         self.assertEqual("UNAVAILABLE",result["v3_driver"]["status"])
         self.assertIn("PHYSICAL_GPT_SESSION_UNVERIFIED",result["blockers"])
 
+    def test_legacy_v3_turns_and_conversations_are_readable_not_live(self):
+        self.build_files()
+        driver = self.root / "state-v3/active/chrome-use-driver-v3.json"
+        driver.write_text(json.dumps({
+            "protocol_version": "legacy-driver/1",
+            "turns": {"turn-hidden": {"url": SECRET}},
+            "conversations": {SECRET: {"token": BEARER}},
+        }), encoding="utf-8")
+        result = observe(self.root, now_utc=NOW)
+        self.assertEqual("LEGACY_STATE_READABLE", result["v3_driver"]["status"])
+        self.assertEqual(1, result["v3_driver"]["legacy_turn_count"])
+        self.assertEqual(1, result["v3_driver"]["legacy_conversation_count"])
+        self.assertIsNone(result["v3_driver"]["physical_sessions_count"])
+        self.assertFalse(result["v3_driver"]["live_session_verified"])
+        self.assertIn("PHYSICAL_GPT_SESSION_UNVERIFIED", result["blockers"])
+        self.assertNotIn(SECRET, json.dumps(result))
+        self.assertNotIn(BEARER, json.dumps(result))
+        self.assertFalse(result["browser_send_authorized"])
+
+    def test_serialized_sessions_never_claim_live_authentication(self):
+        self.build_files()
+        driver = self.root / "state-v3/active/chrome-use-driver-v3.json"
+        driver.write_text(json.dumps({
+            "sessions": {"hidden-session": {"url": SECRET, "token": BEARER}}
+        }), encoding="utf-8")
+        result = observe(self.root, now_utc=NOW)
+        self.assertEqual("READ_ONLY_OK", result["v3_driver"]["status"])
+        self.assertEqual(1, result["v3_driver"]["physical_sessions_count"])
+        self.assertFalse(result["v3_driver"]["live_session_verified"])
+        self.assertIn("PHYSICAL_GPT_SESSION_UNVERIFIED", result["blockers"])
+        self.assertNotIn(SECRET, json.dumps(result))
+
+    def test_unrecognized_v3_layout_remains_unverified(self):
+        self.build_files()
+        driver = self.root / "state-v3/active/chrome-use-driver-v3.json"
+        driver.write_text(json.dumps({"unknown": BEARER}), encoding="utf-8")
+        result = observe(self.root, now_utc=NOW)
+        self.assertEqual("UNRECOGNIZED_LAYOUT", result["v3_driver"]["status"])
+        self.assertIn("PHYSICAL_GPT_SESSION_UNVERIFIED", result["blockers"])
+        self.assertNotIn(BEARER, json.dumps(result))
+
     def test_cli_prints_one_json_record_and_no_browser_authority(self):
         self.build_files()
         stream=io.StringIO()
