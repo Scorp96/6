@@ -158,6 +158,27 @@ def stage_atomic_pinned_substantive_artifact_for_review(
                 if prior is not None:
                     db.rollback()
                     return reply("BLOCKED", "EXISTING_OR_ORPHANED_COMMENT_REVIEW_NO_REPLAY")
+                # Legacy ledgers could also have a blob/text receipt
+                # without ANY base comment row. Since this scratch ledger
+                # holds one review project, an unscoped orphan is unsafe
+                # evidence; refuse all further project intake, never delete
+                # or implicitly heal it.
+                orphan = db.execute(
+                    "SELECT 1 FROM r2_immutable_artifact_attestations e "
+                    "LEFT JOIN r2_github_review_artifacts r "
+                    "ON r.comment_id=e.comment_id "
+                    "WHERE r.comment_id IS NULL LIMIT 1"
+                ).fetchone()
+                if orphan is None:
+                    orphan = db.execute(
+                        "SELECT 1 FROM r2_substantive_work_receipts t "
+                        "LEFT JOIN r2_github_review_artifacts r "
+                        "ON r.comment_id=t.comment_id "
+                        "WHERE r.comment_id IS NULL LIMIT 1"
+                    ).fetchone()
+                if orphan is not None:
+                    db.rollback()
+                    return reply("BLOCKED", "UNSCOPED_LEGACY_REVIEW_ORPHAN_PRESENT")
                 # The old two-stage route can leave a base comment row
                 # without its Git blob/text receipt. Never append another
                 # worker result to a project with pre-existing partial or
