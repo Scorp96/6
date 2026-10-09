@@ -16,6 +16,7 @@ from collections import Counter
 from dataclasses import dataclass, asdict
 import datetime as dt
 import json
+import subprocess
 from pathlib import Path
 
 
@@ -127,6 +128,69 @@ def inspect_legacy_worker_readiness_file(path: Path) -> LegacyWorkerReadiness:
         return LegacyWorkerReadiness(status="UNAVAILABLE", reason="STATE_FILE_UNREADABLE")
 
 
+@dataclass(frozen=True)
+class BrowserSessionInventory:
+    status: str
+    reason: str
+    observed_session_objects: int | None = None
+    distinct_gpt_workers_host_authenticated: bool = False
+    browser_send_authorized: bool = False
+    browser_io_performed: bool = False
+    production_writes: bool = False
+
+
+def inspect_chrome_use_session_inventory(
+    executable: Path,
+    *,
+    runner=None,
+    timeout_seconds: float = 15.0,
+) -> BrowserSessionInventory:
+    """Bounded, read-only native CLI session list; no identity inference.
+
+    Local CLI may return session labels, URLs and metadata. Only the count
+    from an ACTUAL JSON list/dict is emitted. Missing JSON field != one
+    session (PowerShell @($null) is a known false-positive footgun).
+    """
+    def unavailable(reason: str) -> BrowserSessionInventory:
+        return BrowserSessionInventory("UNAVAILABLE", reason)
+    if (not isinstance(executable, Path)
+        or executable.is_symlink()
+        or not executable.is_file()):
+        return unavailable("CLI_BINARY_MISSING_OR_SYMLINKED")
+    if (type(timeout_seconds) not in (int, float)
+        or timeout_seconds <= 0 or timeout_seconds > 20):
+        return unavailable("BOUND_TIMEOUT_INVALID")
+    run = runner if runner is not None else subprocess.run
+    try:
+        result = run(
+            [str(executable), "--json", "session", "list"],
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+        if result.returncode != 0:
+            return unavailable("SESSION_LIST_FAILED")
+        payload = json.loads(result.stdout)
+        if not isinstance(payload, dict) or payload.get("success") is False:
+            return unavailable("SESSION_LIST_SCHEMA_INVALID")
+        sessions = payload.get("sessions")
+        if not isinstance(sessions, (dict, list)):
+            data = payload.get("data")
+            if isinstance(data, dict):
+                sessions = data.get("sessions")
+            elif isinstance(data, list):
+                sessions = data
+        if not isinstance(sessions, (dict, list)):
+            return unavailable("SESSION_COUNT_UNPROVEN")
+        return BrowserSessionInventory(
+            "OBSERVED_SESSION_OBJECTS_ONLY",
+            "CLI_OBJECT_COUNT_NOT_GPT_IDENTITY_PROOF",
+            len(sessions),
+        )
+    except (OSError, ValueError, TypeError, subprocess.TimeoutExpired):
+        return unavailable("SESSION_LIST_UNAVAILABLE")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="No-send V3 historical Worker 2 admission preflight")
     parser.add_argument(
@@ -134,9 +198,19 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=Path(r"C:\ScorpAgent\state-v3\active\chrome-use-driver-v3.json"),
     )
+    parser.add_argument("--include-live-cli-sessions", action="store_true")
+    parser.add_argument(
+        "--chrome-use-exe",
+        type=Path,
+        default=Path(r"C:\ScorpAgent\p0-transport-bakeoff\chrome-use\bin\chrome-use.exe"),
+    )
     opts = parser.parse_args(argv)
     value = asdict(inspect_legacy_worker_readiness_file(opts.state_file))
     value["observed_utc"] = dt.datetime.now(dt.timezone.utc).isoformat()
+    if opts.include_live_cli_sessions:
+        value["live_cli_sessions"] = asdict(
+            inspect_chrome_use_session_inventory(opts.chrome_use_exe)
+        )
     print(json.dumps(value, sort_keys=True, separators=(",", ":")))
     return 0
 
