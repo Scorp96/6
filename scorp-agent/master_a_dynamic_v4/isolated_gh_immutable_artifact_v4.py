@@ -40,8 +40,6 @@ class ImmutableArtifactProof:
     local_execution_authorized: bool = False
 
 def _native_gh_pinned_file(path: str, commit: str) -> object | None:
-    if type(require_substantive_work_product) is not bool:
-        return answer("BLOCKED", "SUBSTANTIVE_REQUIREMENT_INVALID")
     if (not isinstance(path, str) or not _PATH.fullmatch(path)
         or not isinstance(commit, str) or not _COMMIT.fullmatch(commit)):
         return None
@@ -93,6 +91,8 @@ def verify_immutable_github_artifact_for_review(
             substantive_work_product_present=substantive,
             work_product_sha256=digest,
         )
+    if type(require_substantive_work_product) is not bool:
+        return answer("BLOCKED", "SUBSTANTIVE_REQUIREMENT_INVALID")
     if (not isinstance(path, str) or not _PATH.fullmatch(path)
         or not isinstance(commit_sha, str) or not _COMMIT.fullmatch(commit_sha)
         or not isinstance(expected_artifact_sha256, str)
