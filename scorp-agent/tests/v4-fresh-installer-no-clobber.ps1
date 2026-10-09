@@ -15,7 +15,7 @@ $againSid = $s.IndexOf('P0_FRESH_INSTALL_ELEVATED_BUILTIN_ACCOUNT_REFUSED',[Stri
 $limited = $s.IndexOf('-LogonType Interactive -RunLevel Limited',[StringComparison]::Ordinal)
 $register = $s.IndexOf('Register-ScheduledTask -TaskName $TaskName',[StringComparison]::Ordinal)
 $verified = $s.IndexOf('$installed.Principal.RunLevel',[StringComparison]::Ordinal)
-$manual = $s.IndexOf('P0_FRESH_LIMITED_TASK_REGISTERED_NOT_STARTED',[StringComparison]::Ordinal)
+$manual = $s.IndexOf('P0_FRESH_LIMITED_TASK_REGISTERED_DISABLED_NOT_STARTED',[StringComparison]::Ordinal)
 if ($defaultDeny -lt 0 -or $ack -le $defaultDeny -or
     $firstExisting -le $ack -or $firstPin -le $firstExisting -or
     $firstElevate -le $firstPin -or $againExisting -le $firstElevate -or
@@ -24,6 +24,11 @@ if ($defaultDeny -lt 0 -or $ack -le $defaultDeny -or
     throw 'P0_FRESH_INSTALLER_AUTHORITY_ORDER_INVALID'
 }
 if ($s -notmatch 'P0_FRESH_INSTALL_UAC_REQUIRED') { throw 'P0_FRESH_INSTALLER_UAC_GUARD_MISSING' }
+$disabled = $s.IndexOf('New-ScheduledTaskSettingsSet -Disable ',[StringComparison]::Ordinal)
+$verifiedDisabled = $s.IndexOf("$installed.State -cne 'Disabled'",[StringComparison]::Ordinal)
+if ($disabled -lt $againExisting -or $disabled -ge $register -or $verifiedDisabled -lt $register) {
+    throw 'P0_FRESH_INSTALLER_MUST_REGISTER_DISABLED'
+}
 if ($s -notmatch 'P0_FRESH_INSTALL_RELAY_HASH_MISMATCH') { throw 'P0_FRESH_INSTALLER_PIN_REQUIRED' }
 if ($s -match '(?m)^\s*(Unregister-ScheduledTask|Stop-ScheduledTask|Start-ScheduledTask)\b') {
     throw 'P0_FRESH_INSTALLER_PRODUCTION_TASK_MUTATION_DETECTED'
