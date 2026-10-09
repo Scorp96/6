@@ -14,6 +14,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import subprocess
+import sys
+import tempfile
+from types import SimpleNamespace
 from typing import Any
 import urllib.error
 import urllib.request
@@ -43,6 +46,48 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def _bounded_native_status_runner(
+    argv, *, capture_output=True, text=True,
+    encoding="utf-8", errors="replace", timeout=8,
+):
+    """Do not use PIPE: a descendant keeping stdout open can hang communicate.
+
+    Bound ONLY the direct chrome-use process wait; terminal output is kept in
+    temporary files, not inherited pipes. Return a private, sanitized result.
+    """
+    options = {
+        "stdin": subprocess.DEVNULL,
+        "stdout": None,
+        "stderr": None,
+    }
+    if sys.platform == "win32":
+        startup = subprocess.STARTUPINFO()
+        startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startup.wShowWindow = subprocess.SW_HIDE
+        options["startupinfo"] = startup
+        options["creationflags"] = subprocess.CREATE_NO_WINDOW
+    with tempfile.TemporaryFile(mode="w+b") as output, tempfile.TemporaryFile(mode="w+b") as error:
+        options["stdout"] = output
+        options["stderr"] = error
+        proc = subprocess.Popen(argv, **options)
+        try:
+            exit_code = proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                pass
+            return SimpleNamespace(returncode=124, stdout="")
+        if exit_code != 0:
+            return SimpleNamespace(returncode=int(exit_code), stdout="")
+        output.seek(0)
+        data = output.read(16_385)
+        if len(data) > 16_384:
+            return SimpleNamespace(returncode=70, stdout="")
+        return SimpleNamespace(returncode=0, stdout=data.decode("utf-8",errors="replace"))
+
+
 def _native_stream_port(
     executable: str, namespace: str, *, runner=None,
 ) -> int | None:
@@ -55,7 +100,7 @@ def _native_stream_port(
         "--json", "stream", "status",
     ]
     try:
-        process = (runner or subprocess.run)(
+        process = (runner or _bounded_native_status_runner)(
             argv, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=8,
         )
