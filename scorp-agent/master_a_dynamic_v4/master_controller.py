@@ -751,6 +751,8 @@ class MasterAController:
                 "master_epoch": claim.master_epoch,
                 "base_state_version": claim.base_state_version,
                 "lease_token": claim.lease_token,
+                "operator_generation": int(getattr(claim, "operator_generation", 0)),
+                "objective_generation": int(getattr(claim, "objective_generation", 0)),
                 "resource_scope": list(claim.resource_scope),
                 "access_mode": claim.access_mode,
             },
