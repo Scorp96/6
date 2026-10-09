@@ -148,12 +148,11 @@ class ReadOnlyBrowserRebinder:
                     )
                 )
             except Exception as restore_exc:
+                # Never propagate transport diagnostics into health logs:
+                # they can contain private ChatGPT URLs or session tokens.
                 raise PhysicalRebindError(
-                    "BROWSER_RESTORE_FAILED:"
-                    + type(restore_exc).__name__
-                    + ":"
-                    + str(restore_exc)
-                ) from restore_exc
+                    "BROWSER_RESTORE_FAILED:" + type(restore_exc).__name__
+                ) from None
             if not isinstance(observed, Mapping):
                 raise PhysicalRebindError(
                     "BROWSER_RESTORE_OBSERVATION_INVALID"
@@ -163,14 +162,7 @@ class ReadOnlyBrowserRebinder:
                 not isinstance(auth, Mapping)
                 or str(auth.get("status") or "") != "AUTHENTICATED"
             ):
-                status = str(
-                    auth.get("status")
-                    if isinstance(auth, Mapping)
-                    else "INVALID"
-                )
-                raise PhysicalRebindError(
-                    f"AUTH_BLOCKED:{status}"
-                )
+                raise PhysicalRebindError("AUTH_BLOCKED:UNVERIFIED")
             try:
                 driver_url = validate_conversation_url(
                     str(observed.get("driver_url") or "")
@@ -188,8 +180,7 @@ class ReadOnlyBrowserRebinder:
                 or driver_url != physical_url
             ):
                 raise PhysicalRebindError(
-                    "RECONCILE_REQUIRED:"
-                    f"sqlite={url};driver={driver_url};physical={physical_url}"
+                    "RECONCILE_REQUIRED:PHYSICAL_URL_MISMATCH"
                 )
             snapshot = str(observed.get("snapshot") or "")
             if url not in snapshot:
@@ -285,8 +276,9 @@ class ReadOnlyBrowserRebinder:
 
         auth = _run_sync(self.auth_probe(self.channel))
         if not isinstance(auth, Mapping) or str(auth.get("status") or "") != "AUTHENTICATED":
-            status = str(auth.get("status") if isinstance(auth, Mapping) else "INVALID")
-            raise PhysicalRebindError(f"AUTH_BLOCKED:{status}")
+            # The supplied status is outside our trust boundary and could
+            # include URLs, bearer tokens or PII. Return only a fixed reason.
+            raise PhysicalRebindError("AUTH_BLOCKED:UNVERIFIED")
 
         observe = getattr(self.driver, "observe_current_binding", None)
         if not callable(observe):
@@ -309,8 +301,7 @@ class ReadOnlyBrowserRebinder:
             raise PhysicalRebindError("BROWSER_OBSERVED_URL_INVALID") from exc
         if driver_url != url or physical_url != url or driver_url != physical_url:
             raise PhysicalRebindError(
-                "RECONCILE_REQUIRED:"
-                f"sqlite={url};driver={driver_url};physical={physical_url}"
+                "RECONCILE_REQUIRED:PHYSICAL_URL_MISMATCH"
             )
         text = str(observed.get("snapshot") or "")
         if url not in text:
