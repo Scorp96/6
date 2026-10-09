@@ -1,0 +1,38 @@
+name: SCORP P0 host authority read-only observer candidate
+on:
+  push:
+    branches:
+      - audit/p0-host-authority-readonly-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse-and-isolated-probe:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Parse PowerShell and observe deliberately absent sandbox paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = (Resolve-Path 'scorp-agent/privileged-broker/audit-host-authority-readonly.ps1').Path
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) { $errors | ForEach-Object { Write-Error $_ }; throw 'OBSERVER_PARSE_FAILED' }
+          $root = Join-Path $env:TEMP ('scorp-absent-' + [guid]::NewGuid().ToString('N'))
+          $state = Join-Path $root 'state'
+          $out = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -AgentRoot $root -StateRoot $state -ServiceName ScorpNonexistentAuditService -TaskName ScorpNonexistentAuditTask
+          if ($LASTEXITCODE -ne 0) { throw 'OBSERVER_EXEC_FAILED' }
+          $obj = ($out | Select-Object -Last 1) | ConvertFrom-Json
+          if ($obj.mode -ne 'READ_ONLY' -or $obj.conclusion -ne 'REVIEW_REQUIRED_NOT_A_CERTIFICATION') { throw 'OBSERVER_CONTRACT_FAILED' }
+          if (Test-Path -LiteralPath $root) { throw 'OBSERVER_MUTATED_HOST' }
+          if (@($obj.findings | Where-Object { $_ -like 'MISSING:*' }).Count -lt 4) { throw 'OBSERVER_MISSING_PATHS_UNREPORTED' }
+          Write-Host 'P0_HOST_READONLY_OBSERVER_PASS'
+      - name: Diff hygiene
+        shell: bash
+        run: git diff --check HEAD^ HEAD
