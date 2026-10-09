@@ -151,7 +151,7 @@ class AtomicVerifiedIntakeTests(unittest.TestCase):
         self.assertEqual((1,0,0),self.rows())
 
     def test_wrong_issue_is_refused_before_database_exists(self):
-        r=self.intake(expected_issue_number=2450)
+        r=self.intake(expected_issue_number=2451)
         self.assertEqual("SCOPED_COMMENT_VALIDATION_FAILED",r.reason)
         self.assertFalse(self.database.exists())
 
