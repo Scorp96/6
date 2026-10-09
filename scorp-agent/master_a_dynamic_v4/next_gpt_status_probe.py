@@ -214,8 +214,22 @@ def observe(root: pathlib.Path, *, now_utc: dt.datetime | None = None) -> dict[s
         blockers.append("MASTER_CONVERSATION_ROTATION_REQUIRED")
     if observer.get("status") != "OBSERVED":
         blockers.append("ISOLATED_OBSERVER_STATE_UNVERIFIED")
+    # A native Chrome Use tab and signed *fixture* receipts never prove that
+    # a real host event issuer exists. No code path currently attests origin.
+    # This cannot be switched on by caller-provided JSON or an env variable.
+    # Future integration must supply a separately audited issuer and update
+    # this probe only after genuine live event provenance is demonstrated.
+    terminal_source = {
+        "status": "NOT_IMPLEMENTED",
+        "issuer_independently_attested": False,
+        "native_turn_final_event_supported": False,
+        "signed_fixture_is_live_evidence": False,
+        "send_authorized": False,
+    }
+    blockers.append("HOST_TERMINAL_ISSUER_UNAVAILABLE")
     return {
         "protocol_version": _VERSION,
+        "host_terminal_source": terminal_source,
         "observed_utc": now.astimezone(dt.timezone.utc).isoformat(),
         "r1": r1,
         "observer_15m": observer,
