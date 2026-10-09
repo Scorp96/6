@@ -19,6 +19,7 @@ import sqlite3
 from typing import Sequence
 
 from .host_terminal_receipt import HostTerminalReceipt
+from .session_admission import _canonical_conversation_url
 from .turn_completion_evidence import TurnSample, assess_turn_completion
 
 
@@ -110,9 +111,15 @@ def reserve_terminal_receipt_for_review(
     if not isinstance(b.event_id, str) or not _EVENT.fullmatch(b.event_id):
         return fail("TERMINAL_EVENT_ID_INVALID")
 
+    # assess_turn_completion compares canonical URLs. The durable replay
+    # scope MUST use that same canonical identity, not caller-supplied URL
+    # whitespace/aliases, or one signed event could receive two scope keys.
+    canonical_url = _canonical_conversation_url(expected_conversation_url)
+    if not canonical_url:
+        return fail("EXPECTED_CONVERSATION_URL_INVALID")
     scope_key = _sha_json({
         "session_id": expected_session_id,
-        "conversation_url": expected_conversation_url,
+        "conversation_url": canonical_url,
         "binding_generation": expected_binding_generation,
     })
     event_key = _sha_json({
