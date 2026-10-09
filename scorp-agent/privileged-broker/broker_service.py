@@ -93,13 +93,19 @@ class BrokerHandler:
         request_id = request.get('request_id') if isinstance(request, dict) else None
         try:
             validated = validate_request_identity(request, self.secret)
-            validate_operation(validated['operation'], validated['params'])
+            # Ledger lookup is pure read-only. It must precede the operation
+            # fence only to preserve exact historical DONE receipts and to
+            # retain inflight/ambiguous crash fencing without re-execution.
             cached = self.ledger.lookup(validated)
             if cached is not None:
                 self._audit(validated, 'REPLAY', result=cached)
                 return self._response(request_id, 'OK', result=cached, replayed=True)
+            # The positive capability gate is enforced BEFORE calling an
+            # operation validator, so adding a future backend operation
+            # cannot accidentally run code with LocalSystem authority.
             if validated['operation'] not in _READ_ONLY_OPERATIONS:
                 raise ValueError('BROKER_MUTATION_DISABLED_PENDING_TASK_APPROVAL')
+            validate_operation(validated['operation'], validated['params'])
             validated = validate_request_freshness(validated, now=now)
             self.ledger.mark_inflight(validated)
         except Exception as exc:

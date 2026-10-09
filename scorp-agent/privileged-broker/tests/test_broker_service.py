@@ -171,9 +171,10 @@ class BrokerServiceTests(unittest.TestCase):
             request = build_signed_request(
                 'future.power.manage', {'scope': 'host'}, SECRET,
                 request_id='future-unknown-op', now=NOW)
-            with patch('broker_service.validate_operation', return_value={'scope': 'host'}):
+            with patch('broker_service.validate_operation', return_value={'scope': 'host'}) as validate:
                 with patch('broker_service.dispatch_operation') as dispatch:
                     reply = handler.handle(request, now=NOW)
+                    validate.assert_not_called()
                     dispatch.assert_not_called()
             self.assertEqual('ERROR', reply['status'])
             self.assertEqual(
