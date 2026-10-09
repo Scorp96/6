@@ -95,3 +95,20 @@ Browser sends this run: NONE
 Production edits this run: NONE
 Next safe action: Run Worker 2 in a genuinely separate user-authorized ChatGPT conversation, then real immutable review intake.
 ```
+
+
+## 7. Verified real Chrome Use tab and relay status (2026-10-09 ~17:47 UTC+8)
+
+Further independent read-only Windows evidence after the initial handoff:
+
+- [#2477](https://github.com/Scorp96/scorp-control-plane/issues/2477): pinned code + actual V3 historical state and bounded live CLI preflight; 732/732 V4 tests PASS; 219 UNKNOWN submit edges, NO persisted `sessions` registry, current native CLI list count 1, no browser send/production edit.
+- [#2478](https://github.com/Scorp96/scorp-control-plane/issues/2478): native `chrome-use --json session list` then **read-only** `tab list` for the one known session returned **1 CLI session object, 1 tab object, 0 recognized chatgpt.com tabs**, no navigation or switching.
+- [#2479](https://github.com/Scorp96/scorp-control-plane/issues/2479): independent verification of the tab JSON field schema (`active,targetId,title,type,url`) confirmed an actual URL field on the only tab, parsed successfully, and classified its scheme as **INTERNAL**, not a ChatGPT page. No tab ID, URL or title was printed.
+- [#2480](https://github.com/Scorp96/scorp-control-plane/issues/2480): native `--json status` returned a structured root `success` field but no whitelisted relay/extension boolean in the parsed `data` object. Therefore **current extension mode/connectivity is UNKNOWN from that invocation**; a generic status result cannot certify independent GPT physical sessions. An older isolated stream listener check #2307 found a loopback-only connected transport, not a GPT session proof.
+
+**Decision:** As of these checks, the SCORP-controlled CLI session does **not** have a ChatGPT tab that can be safely adopted as a new independent Worker. Do NOT repurpose the internal existing tab, silently navigate the old Master, or infer physical GPT Worker proof from 4 historical Session aliases.
+
+A **separate, explicitly isolated browser namespace and ChatGPT work tab** must be provisioned before any host-side real Worker binding is possible. First verify extension-based isolation vs plain CDP; the latter may target another agent's tab. The real user must authorize browser navigation and independently initiate the additional ChatGPT conversation. New namespace creation alone is NOT Worker task completion and not host terminal provenance. No such namespace, browser navigation, prompt send, login, or session adoption occurred in this engineering turn.
+
+Verified upstream general chrome-use docs describe distinct `--session` namespaces, `session list` and `tab list`; this installed Windows version must still be validated independently for behavior. Source: https://github.com/leeguooooo/chrome-use and https://chrome-use.leeguoo.com/sessions.html.
+
