@@ -232,6 +232,36 @@ class AtomicVerifiedIntakeTests(unittest.TestCase):
         self.assertEqual("PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE",result.reason)
         self.assertEqual(before,self.rows())
 
+    def test_unscoped_legacy_blob_receipt_refuses_new_worker_intake(self):
+        self.intake(0)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute(
+                "INSERT INTO r2_immutable_artifact_attestations "
+                "(comment_id,artifact_commit_sha,artifact_path_digest,"
+                "artifact_sha256,status) VALUES(?,?,?,?,?)",
+                (9999999,"a"*40,"b"*64,"c"*64,
+                 "GIT_BLOB_VERIFIED_FOR_HUMAN_REVIEW"),
+            )
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("UNSCOPED_LEGACY_REVIEW_ORPHAN_PRESENT",result.reason)
+        self.assertEqual(before,self.rows())
+
+    def test_unscoped_legacy_work_text_receipt_refuses_new_worker_intake(self):
+        self.intake(0)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute(
+                "INSERT INTO r2_substantive_work_receipts "
+                "(comment_id,deliverable_sha256,status) VALUES(?,?,?)",
+                (9999998,"d"*64,"SUBSTANTIVE_TEXT_PRESENT_UNREVIEWED"),
+            )
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("UNSCOPED_LEGACY_REVIEW_ORPHAN_PRESENT",result.reason)
+        self.assertEqual(before,self.rows())
+
     def test_database_scope_restricts_legacy_production_path(self):
         production=pathlib.Path(self.root.parent)/"runtime-v4"/"active"
         production.mkdir(parents=True)
