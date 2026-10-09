@@ -143,6 +143,25 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         self.assertEqual("ALREADY_QUEUED", changed.status)
         self.assertEqual(1, self.rows("host_terminal_events"))
 
+    def test_new_event_with_alias_url_cannot_repeat_existing_decision(self):
+        initial = self.reserve()
+        self.assertEqual("RESERVED_FOR_REVIEW", initial.status)
+        rows, receipts = evidence(event="f"*32, first_seq=3)
+        second = reserve_verified_continuation_for_review(
+            self.db, allowed_experiments_root=self.root,
+            request=request(),
+            observation=replace(obs(), conversation_url="  " + URL + "  "),
+            policy=policy(url=" " + URL),
+            samples=rows, receipts=receipts,
+            host_attestation_key=KEY,
+            expected_intent_id="safe-intent-1",
+            now_monotonic_ms=6000,
+        )
+        self.assertEqual("ALREADY_QUEUED", second.status)
+        self.assertEqual(initial.idempotency_key, second.idempotency_key)
+        self.assertEqual(1, self.rows("host_terminal_events"))
+        self.assertEqual(1, self.rows("host_continuation_candidates"))
+
     def test_same_signed_event_cannot_generate_new_decision(self):
         self.reserve()
         attempted = self.reserve(decision="b"*32)
