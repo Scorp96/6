@@ -1,0 +1,81 @@
+name: SCORP P0 Worker lease generation gate candidate
+on:
+  push:
+    branches:
+      - audit/p0-worker-generation-bound-lease-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-p0-worker-generation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-offline-integration:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test-only Windows Broker Python dependency
+        run: python -m pip install pywin32==312
+      - name: Reject unsafe read-only claims before executor side effects
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-readonly-envelope-contract.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'READONLY_ENVELOPE_CONTRACT_FAILED' }
+      - name: Broker deny-by-default and idempotency regression
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path 'scorp-agent/privileged-broker').Path
+          python -m unittest discover -s scorp-agent/privileged-broker/tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'BROKER_OFFLINE_TESTS_FAILED' }
+      - name: Host inspector parse and no-write TEMP fixture
+        shell: pwsh
+        run: |
+          $script = (Resolve-Path 'scorp-agent/privileged-broker/audit-host-authority-readonly.ps1').Path
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) { $errors | ForEach-Object { Write-Error $_ }; throw 'INSPECTOR_PARSE_FAILED' }
+          $root = Join-Path $env:TEMP ('scorp-absent-' + [guid]::NewGuid().ToString('N'))
+          $out = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -AgentRoot $root -StateRoot (Join-Path $root 'state') -ServiceName ScorpAbsentInspectorService -TaskName ScorpAbsentInspectorTask
+          if ($LASTEXITCODE -ne 0) { throw 'INSPECTOR_EXEC_FAILED' }
+          $obj = ($out | Select-Object -Last 1) | ConvertFrom-Json
+          if ($obj.mode -ne 'READ_ONLY' -or $obj.conclusion -ne 'REVIEW_REQUIRED_NOT_A_CERTIFICATION') { throw 'INSPECTOR_NOT_FAIL_CLOSED' }
+          if (Test-Path -LiteralPath $root) { throw 'INSPECTOR_MUTATED_FILESYSTEM' }
+          Write-Host 'P0_HOST_READONLY_OBSERVER_PASS'
+      - name: Typed read-only observation contract and parent/runner checks
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-typed-readonly-diagnostics.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'TYPED_READONLY_PROBES_FAILED' }
+      - name: Bootstrap fail-closed Limited task principal gate
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-limited-runlevel.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'LIMITED_BOOTSTRAP_GATE_FAILED' }
+      - name: Master-issued Worker generation and lease negative proof
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path 'scorp-agent').Path
+          python -m unittest discover -s scorp-agent/master_a_dynamic_v4/tests -p 'test_worker_execution_generation_gate.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'WORKER_GENERATION_FENCE_FAILED' }
+      - name: Full R2 Windows candidate offline validation
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          Set-ExecutionPolicy -Scope Process Bypass
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'FULL_R2_OFFLINE_VALIDATION_FAILED' }
+      - name: Changed file hygiene
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin audit/p0-consolidated-authority-gates-20261010
+          git diff --check FETCH_HEAD HEAD
