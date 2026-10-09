@@ -26,6 +26,8 @@ class HandoffProbeTests(unittest.TestCase):
         self.root = pathlib.Path(self.tmp.name)
 
     def build_files(self, *, reason="MASTER_ROTATION_CONFLICT_UNRESOLVED"):
+        recent_ms = int((NOW - dt.timedelta(minutes=5)).timestamp() * 1000)
+        next_due_ms = int((NOW + dt.timedelta(minutes=10)).timestamp() * 1000)
         obs = self.root / "experiments/r2-observer-state-20261009/scorp-readonly-observer.sqlite3"
         obs.parent.mkdir(parents=True, exist_ok=True)
         with contextlib.closing(sqlite3.connect(obs)) as c, c:
@@ -38,8 +40,8 @@ class HandoffProbeTests(unittest.TestCase):
                   seq INTEGER, observed_ms INTEGER, status TEXT, reason TEXT,
                   changed INTEGER);
             """)
-            c.execute("INSERT INTO observer_schedule VALUES(1,15,100000,1000000,NULL)")
-            c.execute("INSERT INTO observer_events VALUES(1,100000,'BLOCKED',?,1)",(reason,))
+            c.execute("INSERT INTO observer_schedule VALUES(1,15,?,?,NULL)",(recent_ms,next_due_ms))
+            c.execute("INSERT INTO observer_events VALUES(1,?,'BLOCKED',?,1)",(recent_ms,reason))
         r1 = self.root / "runtime-v4/active/state.sqlite3"
         r1.parent.mkdir(parents=True, exist_ok=True)
         with contextlib.closing(sqlite3.connect(r1)) as c, c:
@@ -90,6 +92,7 @@ class HandoffProbeTests(unittest.TestCase):
         self.assertEqual(1,result["r1"]["ambiguous_intents"])
         self.assertEqual(44,result["r1"]["daemon_epoch"])
         self.assertEqual(41,result["r1"]["daemon_recovery_count"])
+        self.assertTrue(result["r1"]["daemon_lease_current"])
         self.assertEqual("OBSERVED",result["observer_15m"]["status"])
         self.assertEqual("ok",result["observer_15m"]["db_integrity"])
         self.assertEqual(1,result["observer_15m"]["event_count"])
@@ -171,6 +174,32 @@ class HandoffProbeTests(unittest.TestCase):
         self.assertEqual("UNRECOGNIZED_LAYOUT", result["v3_driver"]["status"])
         self.assertIn("PHYSICAL_GPT_SESSION_UNVERIFIED", result["blockers"])
         self.assertNotIn(BEARER, json.dumps(result))
+
+    def test_stale_observer_is_detected_even_with_integrity_ok(self):
+        self.build_files()
+        result = observe(self.root, now_utc=NOW + dt.timedelta(minutes=45))
+        self.assertEqual("ok", result["observer_15m"]["db_integrity"])
+        self.assertEqual("STALE", result["observer_15m"]["status"])
+        self.assertIn("ISOLATED_OBSERVER_STATE_UNVERIFIED", result["blockers"])
+        self.assertFalse(result["browser_send_authorized"])
+
+    def test_future_dated_observer_event_is_not_trusted(self):
+        paths = self.build_files()
+        with contextlib.closing(sqlite3.connect(paths[0])) as conn, conn:
+            conn.execute("UPDATE observer_events SET observed_ms=?",
+                         (int((NOW + dt.timedelta(minutes=8)).timestamp()*1000),))
+        result = observe(self.root, now_utc=NOW)
+        self.assertEqual("CLOCK_SKEW", result["observer_15m"]["status"])
+        self.assertIn("ISOLATED_OBSERVER_STATE_UNVERIFIED", result["blockers"])
+
+    def test_expired_daemon_lease_does_not_look_active(self):
+        self.build_files()
+        result = observe(self.root, now_utc=NOW + dt.timedelta(minutes=5))
+        self.assertEqual("READ_ONLY_OK", result["r1"]["status"])
+        self.assertEqual("ACTIVE", result["r1"]["daemon_lease_status"])
+        self.assertFalse(result["r1"]["daemon_lease_current"])
+        self.assertIn("R1_DAEMON_LEASE_UNVERIFIED", result["blockers"])
+        self.assertFalse(result["local_execution_authorized"])
 
     def test_cli_prints_one_json_record_and_no_browser_authority(self):
         self.build_files()
