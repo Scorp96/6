@@ -29,6 +29,22 @@ $sourceHash=$text.IndexOf('P0_BROKER_INSTALL_SOURCE_SHA256_MISMATCH',[StringComp
 if($firstWrite-lt0 -or $firstWrite-le$sourceHash){
     throw 'P0_BROKER_INSTALL_FIRST_WRITE_BEFORE_AUTHORITY'
 }
+# A concurrent service creation must not trigger upgrade/deletion.
+$raceMarker=$text.IndexOf('P0_BROKER_INSTALL_TARGET_APPEARED_BEFORE_COMMIT',[StringComparison]::Ordinal)
+$moveMarker=$text.IndexOf('Move-Item -LiteralPath $candidateDir -Destination $InstallDir',[StringComparison]::Ordinal)
+$createMarker=$text.IndexOf('New-BrokerService $ServiceName $binPath',[StringComparison]::Ordinal)
+$serviceOwnedMarker=$text.IndexOf('$script:createdService = $true',[StringComparison]::Ordinal)
+$rollbackGuard=$text.IndexOf('if ($createdService) { try { Remove-ServiceIfPresent $ServiceName } catch {} }',[StringComparison]::Ordinal)
+if ($raceMarker -lt 0 -or $moveMarker -le $raceMarker -or
+    $createMarker -le $moveMarker -or $serviceOwnedMarker -le 0 -or
+    $rollbackGuard -le $createMarker) {
+    throw 'P0_BROKER_FRESH_INSTALL_RACE_GUARD_MISSING'
+}
+$commitSection = $text.Substring($raceMarker,$createMarker-$raceMarker)
+if ($commitSection.Contains('Remove-ServiceIfPresent') -or
+    $commitSection.Contains('Remove-Item $InstallDir')) {
+    throw 'P0_BROKER_FRESH_INSTALL_CAN_DELETE_EXISTING_SERVICE'
+}
 $invocations=@(
     @{arguments=''; reason='P0_BROKER_INSTALL_DEFAULT_DENY_USE_READONLY_AUDIT'},
     @{arguments='-InstallFreshIsolated'; reason='P0_BROKER_INSTALL_EXPLICIT_HUMAN_REVIEW_REQUIRED'}
