@@ -25,6 +25,11 @@ from .turn_completion_evidence import TurnSample, assess_turn_completion
 
 _EVENT = re.compile(r"^[0-9a-f]{32}$")
 _DATABASE_NAME = "host-terminal-replay-ledger.sqlite3"
+# Existing R2 task/state directories must stay bit-for-bit untouched.
+_PROTECTED_R2_FOLDERS = frozenset({
+    "r2-gpt-session-audit-20261009",
+    "r2-observer-state-20261009",
+})
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS host_terminal_events(
   event_key TEXT PRIMARY KEY,
@@ -51,17 +56,33 @@ class ReplayReservation:
 def _safe_db_path(path: pathlib.Path, root: pathlib.Path) -> bool:
     if not isinstance(path, pathlib.Path) or not isinstance(root, pathlib.Path):
         return False
-    if root.name != "experiments" or not root.is_dir() or root.is_symlink():
+    try:
+        if root.name != "experiments" or not root.is_dir() or root.is_symlink():
+            return False
+        if getattr(root, "is_junction", lambda: False)():
+            return False
+        if path.name != _DATABASE_NAME or path.is_symlink():
+            return False
+        parent = path.parent
+        if (
+            not parent.name.startswith("r2-")
+            or parent.name.lower() in _PROTECTED_R2_FOLDERS
+            or not parent.is_dir()
+            or parent.is_symlink()
+            or getattr(parent, "is_junction", lambda: False)()
+        ):
+            return False
+        if path.exists():
+            # A hard link to R1 SQLite passes resolve()/is_symlink().
+            # Never write through such an existing on-disk alias.
+            if not path.is_file() or path.stat().st_nlink != 1:
+                return False
+        root_resolved = root.resolve()
+        if parent.resolve().parent != root_resolved:
+            return False
+        return path.resolve().parent == parent.resolve()
+    except (OSError, RuntimeError, ValueError):
         return False
-    if path.name != _DATABASE_NAME or path.is_symlink():
-        return False
-    root_resolved = root.resolve()
-    parent = path.parent
-    if parent.name[:3] != "r2-" or not parent.is_dir() or parent.is_symlink():
-        return False
-    if parent.resolve().parent != root_resolved:
-        return False
-    return path.resolve().parent == parent.resolve()
 
 
 def _sha_json(value: object) -> str:
