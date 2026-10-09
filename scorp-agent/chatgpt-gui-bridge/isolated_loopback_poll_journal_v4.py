@@ -137,7 +137,7 @@ def commit_one_nonterminal_local_sample(
                     )
                 """)
                 previous = db.execute(
-                    "SELECT observed_epoch,session_count,tab_count "
+                    "SELECT observed_epoch,session_count,tab_count,cadence_minutes "
                     "FROM local_poll_sample WHERE session_digest=? "
                     "ORDER BY observed_epoch DESC LIMIT 1",
                     (fingerprint,),
@@ -145,7 +145,7 @@ def commit_one_nonterminal_local_sample(
                 if previous is not None and epoch <= previous[0]:
                     db.rollback()
                     return result("BLOCKED", "CLOCK_REWIND_OR_DUPLICATE")
-                if previous is not None and epoch - previous[0] < cadence_minutes * 60:
+                if previous is not None and epoch - previous[0] < max(cadence_minutes, previous[3]) * 60:
                     db.rollback()
                     return result("BLOCKED", "POLL_CADENCE_NOT_ELAPSED")
                 if previous is None:
