@@ -178,6 +178,60 @@ class AtomicVerifiedIntakeTests(unittest.TestCase):
         self.assertEqual("PINNED_SUBSTANTIVE_BLOB_NOT_VERIFIED",r.reason)
         self.assertFalse(self.database.exists())
 
+    def test_preexisting_missing_blob_blocks_other_worker_without_ledger_change(self):
+        self.assertTrue(self.intake(0).atomic_evidence_recorded)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute("DELETE FROM r2_immutable_artifact_attestations WHERE comment_id=?",(CID[0],))
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("BLOCKED",result.status)
+        self.assertEqual("PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE",result.reason)
+        self.assertEqual(before,self.rows())
+
+    def test_preexisting_missing_work_text_blocks_other_worker(self):
+        self.intake(0)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute("DELETE FROM r2_substantive_work_receipts WHERE comment_id=?",(CID[0],))
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE",result.reason)
+        self.assertEqual(before,self.rows())
+
+    def test_preexisting_blob_content_mismatch_blocks_other_worker(self):
+        self.intake(0)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute("UPDATE r2_immutable_artifact_attestations "
+                       "SET artifact_sha256=? WHERE comment_id=?",("f"*64,CID[0]))
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE",result.reason)
+        self.assertEqual(before,self.rows())
+
+    def test_preexisting_slot_2_occupancy_blocks_new_slot_2_even_if_assignment_differs(self):
+        self.intake(0)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute("UPDATE r2_github_review_artifacts SET worker_slot=? "
+                       "WHERE comment_id=?",("worker-slot-2",CID[0]))
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("PROJECT_WORKER_SLOT_ALREADY_FILLED",result.reason)
+        self.assertEqual(before,self.rows())
+
+    def test_preexisting_corrupt_text_digest_blocks_other_worker(self):
+        self.intake(0)
+        with contextlib.closing(sqlite3.connect(self.database)) as db:
+            db.execute("UPDATE r2_substantive_work_receipts "
+                       "SET deliverable_sha256=? WHERE comment_id=?",("invalid",CID[0]))
+            db.commit()
+        before=self.rows()
+        result=self.intake(1)
+        self.assertEqual("PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE",result.reason)
+        self.assertEqual(before,self.rows())
+
     def test_database_scope_restricts_legacy_production_path(self):
         production=pathlib.Path(self.root.parent)/"runtime-v4"/"active"
         production.mkdir(parents=True)
