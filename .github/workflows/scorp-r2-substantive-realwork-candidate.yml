@@ -1,0 +1,42 @@
+name: SCORP R2 substantive worker artifact candidate
+on:
+  push:
+    branches:
+      - experiment/r2-substantive-worker-artifacts-20261009
+  workflow_dispatch:
+
+concurrency:
+  group: scorp-r2-substantive-realwork-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile isolated V4 source and tests
+        shell: bash
+        run: python -B -m compileall -q scorp-agent/master_a_dynamic_v4
+
+  full-windows-regression:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Full SCORP candidate offline validation, no browser or production
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          Set-ExecutionPolicy -Scope Process Bypass
+          .\scripts\run-candidate-validation.ps1

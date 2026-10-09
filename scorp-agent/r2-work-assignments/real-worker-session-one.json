@@ -1,0 +1,28 @@
+{
+  "protocol": "scorp.r2.work-assignment/1",
+  "project_id": "project-scorp-r2-genuine-workers",
+  "assignment_id": "assignment-genuine-worker-one",
+  "task_id": "task-session-binding-audit",
+  "worker_slot": "worker-slot-1",
+  "state_version": 1,
+  "execution_policy": "INDEPENDENT_GPT_SESSION_REQUIRED",
+  "objective": "Review SCORP R2 browser physical identity binding, original R1 submission ambiguity and the no-send transition to a safe artifact-based handoff. Produce a substantive engineering review, not a schema-only acknowledgement.",
+  "source_paths": [
+    "scorp-agent/master_a_dynamic_v4/session_admission.py",
+    "scorp-agent/master_a_dynamic_v4/browser_adapter.py",
+    "scorp-agent/master_a_dynamic_v4/isolated_gh_immutable_artifact_v4.py"
+  ],
+  "expected_deliverable_path": "scorp-agent/r2-work-artifacts/real-worker-session-one.json",
+  "required_review_checks": [
+    "Cite exact code paths and GitHub immutable refs for at least three concrete assertions.",
+    "Describe a safe deterministic way to prevent adopting the original ambiguous Master.",
+    "Document what proof is still missing to attest a distinct live GPT browser session.",
+    "State in the artifact that GitHub author identity is not GPT session provenance."
+  ],
+  "prohibitions": [
+    "DO NOT modify original R1 state, Chrome Use tabs, Windows Task Scheduler or production GUI.",
+    "DO NOT claim TURN_FINAL_CONFIRMED or send authorization.",
+    "DO NOT use any synthetic-worker file as output."
+  ],
+  "status": "NOT_ASSIGNED_TO_VERIFIED_GPT_SESSION"
+}

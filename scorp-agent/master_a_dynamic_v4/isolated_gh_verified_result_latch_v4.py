@@ -33,6 +33,13 @@ CREATE TABLE IF NOT EXISTS r2_immutable_artifact_attestations (
   status TEXT NOT NULL CHECK(status='GIT_BLOB_VERIFIED_FOR_HUMAN_REVIEW')
 );
 """
+_SUBSTANTIVE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS r2_substantive_work_receipts (
+  comment_id INTEGER PRIMARY KEY,
+  deliverable_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status='SUBSTANTIVE_TEXT_PRESENT_UNREVIEWED')
+);
+"""
 
 @dataclass(frozen=True)
 class VerifiedWorkArtifactIntake:
@@ -57,12 +64,15 @@ def stage_pinned_github_blob_comment_for_review(
     expected_artifact_sha256: str,
     artifact_commit_sha: str, artifact_path: str,
     comment_reader=None, blob_reader=None,
+    require_substantive_work_product: bool = False,
 ) -> VerifiedWorkArtifactIntake:
     def result(status, reason, checked=False, persisted=False):
         return VerifiedWorkArtifactIntake(
             status,reason,comment_and_blob_verified=checked,
             evidence_recorded=persisted,
         )
+    if type(require_substantive_work_product) is not bool:
+        return result("BLOCKED", "SUBSTANTIVE_REQUIREMENT_INVALID")
     if (not _safe_db(database,allowed_experiments_root)
         or type(comment_id) is not int or comment_id < 1
         or not isinstance(expected_artifact_sha256,str)
@@ -96,6 +106,7 @@ def stage_pinned_github_blob_comment_for_review(
         expected_worker_slot=expected_worker_slot,
         expected_state_version=expected_state_version,
         reader=blob_reader,
+        require_substantive_work_product=require_substantive_work_product,
     )
     if not proof.content_digest_verified or not proof.scope_verified:
         return result("BLOCKED","REAL_IMMUTABLE_BLOB_PROOF_REQUIRED")
@@ -119,6 +130,7 @@ def stage_pinned_github_blob_comment_for_review(
             database,isolation_level=None,timeout=4,
         )) as db:
             db.executescript(_SCHEMA)
+            db.executescript(_SUBSTANTIVE_SCHEMA)
             db.execute("BEGIN IMMEDIATE")
             try:
                 if db.execute(
@@ -145,6 +157,16 @@ def stage_pinned_github_blob_comment_for_review(
                      expected_artifact_sha256,
                      "GIT_BLOB_VERIFIED_FOR_HUMAN_REVIEW"),
                 )
+                if proof.substantive_work_product_present:
+                    if not proof.work_product_sha256:
+                        db.rollback()
+                        return result("BLOCKED", "WORK_PRODUCT_DIGEST_MISSING")
+                    db.execute(
+                        "INSERT INTO r2_substantive_work_receipts"
+                        "(comment_id, deliverable_sha256, status) VALUES(?,?,?)",
+                        (comment_id, proof.work_product_sha256,
+                         "SUBSTANTIVE_TEXT_PRESENT_UNREVIEWED"),
+                    )
                 db.commit()
                 return result(
                     "BLOB_AND_COMMENT_STAGED_FOR_REVIEW",

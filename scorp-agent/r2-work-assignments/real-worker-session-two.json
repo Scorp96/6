@@ -1,0 +1,28 @@
+{
+  "protocol": "scorp.r2.work-assignment/1",
+  "project_id": "project-scorp-r2-genuine-workers",
+  "assignment_id": "assignment-genuine-worker-two",
+  "task_id": "task-blob-atomicity-audit",
+  "worker_slot": "worker-slot-2",
+  "state_version": 1,
+  "execution_policy": "SECOND_INDEPENDENT_GPT_SESSION_REQUIRED",
+  "objective": "Independently audit crash safety between the base GitHub comment review row and pinned Git blob attestation, with an executable proposal for safe one-shot recovery and a negative-test matrix.",
+  "source_paths": [
+    "scorp-agent/master_a_dynamic_v4/isolated_gh_verified_result_latch_v4.py",
+    "scorp-agent/master_a_dynamic_v4/isolated_two_verified_blobs_review_v4.py",
+    "scorp-agent/master_a_dynamic_v4/isolated_github_work_result_inbox_v4.py"
+  ],
+  "expected_deliverable_path": "scorp-agent/r2-work-artifacts/real-worker-session-two.json",
+  "required_review_checks": [
+    "Identify the exact two-transaction crash window and why the barrier currently fails closed.",
+    "Compare at least two remedies (transaction merge vs verified recovery) and their idempotency constraints.",
+    "Provide tests proving no double commit and no browser send despite crashes/retries.",
+    "Describe why authorship cannot be established solely from a shared GitHub account."
+  ],
+  "prohibitions": [
+    "No original Master replay, no production SQLite/Browser/TaskScheduler changes.",
+    "No fabricated browser host final event, no private user data in public artifacts.",
+    "Do not copy Worker-1 text or self-report two independent GPT sessions."
+  ],
+  "status": "NOT_ASSIGNED_TO_VERIFIED_GPT_SESSION"
+}

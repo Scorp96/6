@@ -34,9 +34,12 @@ def inspect_two_git_verified_worker_results(
     *, barrier_kwargs: dict,
     first_commit_sha: str, first_artifact_path: str,
     second_commit_sha: str, second_artifact_path: str,
+    require_substantive_work_product: bool = False,
 ) -> TwoVerifiedArtifacts:
     def output(status,reason,count=0,ok=False):
         return TwoVerifiedArtifacts(status,reason,count,ok)
+    if type(require_substantive_work_product) is not bool:
+        return output("BLOCKED","SUBSTANTIVE_REQUIREMENT_INVALID")
     if not isinstance(barrier_kwargs,dict):
         return output("BLOCKED","BARRIER_SCOPE_REQUIRED")
     for name in ("first_commit_sha","second_commit_sha"):
@@ -102,6 +105,16 @@ def inspect_two_git_verified_worker_results(
                 "WHERE r.project_digest=?",
                 (digest,),
             ).fetchall()
+            substantive_rows = None
+            if require_substantive_work_product:
+                substantive_rows = conn.execute(
+                    "SELECT r.assignment_digest, s.deliverable_sha256, s.status "
+                    "FROM r2_github_review_artifacts r JOIN "
+                    "r2_substantive_work_receipts s "
+                    "ON s.comment_id=r.comment_id "
+                    "WHERE r.project_digest=?",
+                    (digest,),
+                ).fetchall()
     except (sqlite3.Error,OSError,ValueError,TypeError):
         return output("AWAITING_GIT_BLOB_EVIDENCE",
                       "IMMUTABLE_BLOB_RECEIPT_MISSING_OR_UNREADABLE")
@@ -115,6 +128,20 @@ def inspect_two_git_verified_worker_results(
     if len(rows)!=2:
         return output("AWAITING_GIT_BLOB_EVIDENCE",
                       "TWO_DISTINCT_BLOB_RECEIPTS_REQUIRED",len(rows))
+    if require_substantive_work_product:
+        if substantive_rows is None or len(substantive_rows)!=2:
+            return output("AWAITING_SUBSTANTIVE_WORK_PRODUCT",
+                          "TWO_WORK_PRODUCT_TEXT_RECEIPTS_REQUIRED",len(rows))
+        expected_ids=set(expected)
+        if (set(row[0] for row in substantive_rows)!=expected_ids
+            or any(len(row[1])!=64 or row[2]!="SUBSTANTIVE_TEXT_PRESENT_UNREVIEWED"
+                   for row in substantive_rows)):
+            return output("BLOCKED","SUBSTANTIVE_WORK_PRODUCT_SCOPE_MISMATCH")
+        return output(
+            "BOTH_SUBSTANTIVE_WORK_PRODUCTS_FOR_HUMAN_REVIEW",
+            "TWO_PINNED_TEXT_RESULTS_NOT_GPT_IDENTITY_OR_FINAL",
+            2,True,
+        )
     return output(
         "BOTH_IMMUTABLE_BLOBS_FOR_HUMAN_REVIEW",
         "TWO_PINNED_ARTIFACTS_NOT_GPT_TERMINAL_EVENTS",
