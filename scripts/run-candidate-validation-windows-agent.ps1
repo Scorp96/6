@@ -76,8 +76,17 @@ compiled = all(compileall.compile_dir(str(path), quiet=1) for path in (
     agent / "privileged-broker",
 ))
 total = sum(row["tests"] for row in results)
+group_counts = {
+    group: sum(row["tests"] for row in results if row["group"] == group)
+    for group in ("v4", "bridge", "broker")
+}
+# Lower bounds from verified 2026-10-09 isolated release HEAD f29f64f5.
+# Fail if an entire module/test suite silently vanishes. Future deliberate
+# test removals require an explicit baseline change and new acceptance.
+minimums = {"v4": 567, "bridge": 634, "broker": 29}
 passed = (
-    compiled and total >= 1186
+    compiled and total >= 1230
+    and all(group_counts[name] >= count for name, count in minimums.items())
     and all(row["pass"] and not row["skipped"] for row in results)
 )
 record = {
@@ -85,6 +94,8 @@ record = {
     "sha": os.environ["SCORP_EXPECTED_SHA"],
     "groups": results,
     "test_count": total,
+    "test_group_counts": group_counts,
+    "minimum_group_counts": minimums,
     "compile_pass": compiled,
     "pass": passed,
     "seconds": round(time.monotonic() - start, 1),
