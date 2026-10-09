@@ -1,0 +1,41 @@
+name: SCORP P0 bootstrap Limited-token gate candidate
+on:
+  push:
+    branches:
+      - audit/p0-bootstrap-limited-token-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-p0-limited-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-offline:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Parse bootstrap and test fail-closed Limited token fence ordering
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-limited-runlevel.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_RUNLEVEL_CHECK_FAILED' }
+      - name: Full offline R2 source candidate validation
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          Set-ExecutionPolicy -Scope Process Bypass
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_CANDIDATE_REGRESSION_FAILED' }
+      - name: Diff hygiene
+        shell: bash
+        run: git diff --check HEAD^ HEAD

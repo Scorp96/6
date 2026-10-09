@@ -253,6 +253,16 @@ try {
 
     $task=Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
     $principal=Assert-InteractivePrincipal $task
+    if([string]$task.Principal.RunLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: refusing bootstrap from non-Limited executor task"}
+    # Microsoft: RunLevel is ignored for built-in Administrator / SYSTEM and
+    # service principals and when UAC is disabled. Refuse these before mutation.
+    $taskIdentity=[Security.Principal.WindowsIdentity]::GetCurrent()
+    $sid=[string]$taskIdentity.User.Value
+    if($sid -eq "S-1-5-18" -or $sid -match "\-500$"){
+        throw "P0_UNSAFE_RUNLEVEL: built-in privileged account cannot be certified Limited"
+    }
+    $uac=(Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -ErrorAction Stop).EnableLUA
+    if([int]$uac -ne 1){throw "P0_UNSAFE_RUNLEVEL: UAC disabled or invalid"}
     $priorXml=Export-ScheduledTask -TaskName $TaskName
     Write-Utf8NoBom $PriorTaskXmlPath $priorXml
     $priorState=[string]$task.State
@@ -280,7 +290,7 @@ try {
     $installedExecutor=Join-Path $InstallDir "executor-v4.1.ps1"
     $action=New-ScheduledTaskAction -Execute $WindowsPowerShell -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Repo "{1}"' -f $installedExecutor,$ControlRepo) -WorkingDirectory $InstallDir
     $runLevel=[string]$task.Principal.RunLevel
-    if($runLevel-notin@("Highest","Limited")){throw "unsupported Scheduled Task RunLevel: $runLevel"}
+    if($runLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: executor run level must remain Limited"}
     $normalizedPrincipal=New-ScheduledTaskPrincipal -UserId $principal.user_name -LogonType Interactive -RunLevel $runLevel
     $logonTrigger=New-ScheduledTaskTrigger -AtLogOn -User $principal.user_name
     $startupTrigger=New-ScheduledTaskTrigger -AtStartup
@@ -292,6 +302,7 @@ try {
 
     $after=Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
     $afterPrincipal=Assert-InteractivePrincipal $after
+    if([string]$after.Principal.RunLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: installed executor changed elevation level"}
     if([string]$after.State-cne"Running"){throw "Scheduled Task is not Running after V4 switch: $($after.State)"}
     $afterActions=@($after.Actions)
     if($afterActions.Count-ne1 -or [string]$afterActions[0].Execute-cne$WindowsPowerShell -or [string]$afterActions[0].Arguments-notlike"*$installedExecutor*"){throw "Scheduled Task action verification failed"}
