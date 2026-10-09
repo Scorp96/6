@@ -208,6 +208,50 @@ class IsolatedAtomicContinuationTests(unittest.TestCase):
         self.assertEqual(2, self.rows("host_continuation_candidates"))
         self.assertTrue(all(not r.browser_send_authorized for r in outcomes))
 
+    def test_two_workers_then_master_review_handoff_survives_restart(self):
+        # Synthetic signed receipts, not a live GPT browser test. This
+        # exercises durable Worker1 + Worker2 -> Master no-send composition.
+        first = self.reserve(
+            session="isolated-worker-1", intent="worker-intent-a",
+            event="1"*32, decision="a"*32,
+        )
+        second = self.reserve(
+            session="isolated-worker-2", intent="worker-intent-b",
+            event="2"*32, decision="b"*32,
+        )
+        self.assertEqual(["RESERVED_FOR_REVIEW"] * 2,
+                         [first.status, second.status])
+        master_url = "https://chatgpt.com/c/isolated-master-handoff"
+        master_session = "isolated-master-a"
+        samples, signed_receipts = evidence(
+            url=master_url, session=master_session,
+            intent="master-intent", event="3"*32, first_seq=1,
+        )
+        kwargs = dict(
+            database=self.db, allowed_experiments_root=self.root,
+            request=request(decision="c"*32, action="WAKE_MASTER"),
+            observation=replace(
+                obs(url=master_url, session=master_session), role="MASTER",
+            ),
+            policy=replace(
+                policy(url=master_url, active=2), required_role="MASTER",
+            ),
+            samples=samples, receipts=signed_receipts,
+            host_attestation_key=KEY, expected_intent_id="master-intent",
+            now_monotonic_ms=6000,
+        )
+        master = reserve_verified_continuation_for_review(**kwargs)
+        self.assertEqual("RESERVED_FOR_REVIEW", master.status)
+        self.assertNotIn(master.idempotency_key,
+                         (first.idempotency_key, second.idempotency_key))
+        self.assertFalse(master.browser_send_authorized)
+        self.assertFalse(master.local_execution_authorized)
+        after_restart = reserve_verified_continuation_for_review(**kwargs)
+        self.assertEqual("ALREADY_QUEUED", after_restart.status)
+        self.assertEqual(master.idempotency_key, after_restart.idempotency_key)
+        self.assertEqual(3, self.rows("host_terminal_events"))
+        self.assertEqual(3, self.rows("host_continuation_candidates"))
+
     def test_two_simultaneous_same_decision_writes_only_once(self):
         with ThreadPoolExecutor(max_workers=2) as workers:
             outcomes = list(workers.map(lambda _: self.reserve(), (1, 2)))
