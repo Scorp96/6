@@ -39,7 +39,39 @@ try{
     Assert ($bad.message-match'unsupported diagnostic probe') 'unknown probe accepted'
     $bad=Invoke-Probe @{probe='chrome_resource_summary';path='C:\Windows\System32\config'} 3 'PRECONDITION_FAILED'
     Assert ($bad.message-match'only probe') 'path injection accepted'
-    Write-Host ("P0_TYPED_READONLY_DIAGNOSTICS_PASS cases={0}" -f $case)
+    # Parent must reject bad probe payload BEFORE reserving a GitHub action.
+    # Extract only two pure validators; never dot-source the live executor loop.
+    $parentPath=(Resolve-Path (Join-Path $PSScriptRoot '..\executor-v4.1.ps1')).Path
+    $parent=[IO.File]::ReadAllText($parentPath)
+    $start=$parent.IndexOf('function Assert-ExpectedPreconditionContract {',[StringComparison]::Ordinal)
+    $stop=$parent.IndexOf('function Copy-EnvelopeForExecution {',[StringComparison]::Ordinal)
+    Assert ($start-ge0-and$stop-gt$start) 'parent validator extraction'
+    $defs=$parent.Substring($start,$stop-$start)
+    . ([ScriptBlock]::Create($defs))
+    $ProtocolVersion='scorp.exec/v4'
+    $parentEnvelope=[pscustomobject]@{
+        protocol_version=$ProtocolVersion;task_id='typed-parent-fixture'
+        action_id='typed-parent-action-0001';action_kind='diagnostic_readonly'
+        timeout_seconds=20;safety_class='standard'
+        expected_preconditions=[pscustomobject]@{read_only=$true;no_production_writes=$true}
+        payload=[pscustomobject]@{probe='chrome_resource_summary'}
+    }
+    Validate-Envelope -Envelope $parentEnvelope -IssueNumber 1
+    $parentEnvelope.payload.probe='fake_process_command'
+    $rejected=$false
+    try{Validate-Envelope -Envelope $parentEnvelope -IssueNumber 1}catch{
+        $rejected=([string]$_.Exception.Message-match'diagnostic_readonly probe not allowed')
+    }
+    Assert ($rejected) 'parent permitted an unauthorized diagnostic probe'
+    $parentEnvelope.payload=[pscustomobject]@{
+        probe='chrome_resource_summary';executable='powershell.exe'
+    }
+    $rejected=$false
+    try{Validate-Envelope -Envelope $parentEnvelope -IssueNumber 1}catch{
+        $rejected=([string]$_.Exception.Message-match'only probe')
+    }
+    Assert ($rejected) 'parent permitted an extra executable field'
+    Write-Host ("P0_TYPED_READONLY_DIAGNOSTICS_PASS cases={0} parent_checks=3" -f $case)
 }finally{
     Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
 }
