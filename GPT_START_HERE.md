@@ -1,5 +1,11 @@
 # GPT startup and execution handoff
 
+> **最新接手入口（2026-10-09）**：先读
+> [SCORP_NEXT_GPT_FULL_HANDOFF_20261009.md](docs/handoffs/SCORP_NEXT_GPT_FULL_HANDOFF_20261009.md)
+> 和 [SCORP_GPT_SESSION_COMPATIBILITY_AUDIT_20261009.md](docs/handoffs/SCORP_GPT_SESSION_COMPATIBILITY_AUDIT_20261009.md)；
+> 它们更新了旧文中的候选 SHA 与 Windows 实机观察证据。旧有生产模型身份和浏览器安全门禁**仍生效**；
+> 本链接不授权生产 Master 模型替换、原模糊提交重发或新浏览器发送。
+
 This is the first file an ordinary GPT should read when opening repository
 `Scorp96/6`. It explains the complete action sequence and the boundary between
 offline code validation, a real browser canary, and production operation.
