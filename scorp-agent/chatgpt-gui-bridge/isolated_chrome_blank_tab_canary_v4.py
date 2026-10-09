@@ -50,7 +50,10 @@ def _safe_ledger_path(ledger: Path, allowed_experiments_root: Path) -> bool:
         parent = ledger.parent.resolve(strict=True)
         if (
             parent == root or root not in parent.parents
-            or not parent.name.startswith("r2-")
+            # Dedicated canary scratch folder ONLY. Never let a syntactically
+            # valid r2-* directory include a frozen production observer,
+            # earlier isolated source worktree or other preexisting project.
+            or not parent.name.startswith("r2-one-shot-blank-tab-")
             or ledger.name != "blank-tab-attempts.sqlite3"
             or ledger.is_symlink()
         ):
