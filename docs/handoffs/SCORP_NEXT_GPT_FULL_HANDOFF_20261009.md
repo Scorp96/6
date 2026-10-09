@@ -146,3 +146,15 @@ Unfinished blockers:
 NEXT SINGLE SAFE ACTION:
 ~~~
 新 GPT 必须以新 GitHub/Windows 回执更新本报告，不能照抄历史“通过”。
+
+
+## 十一、本次新增的隔离宿主完成事件 Replay Ledger
+
+新源码：scorp-agent/master_a_dynamic_v4/isolated_host_replay_ledger.py
+新测试：scorp-agent/master_a_dynamic_v4/tests/test_isolated_host_replay_ledger.py
+
+这不是对原生产 R1 增加浏览器消息发送能力。它只在显式传入、**真实存在且非符号链接**的 experiments/r2-* 隔离目录，允许创建名为 host-terminal-replay-ledger.sqlite3 的独立库。先走原有两份 HMAC 宿主收据校验；核对同一物理会话/URL/代际/intent/响应摘要；通过后原子记录 receipt 的 event_id 与递增 sequence。相同 event 会变为 ALREADY_RESERVED；旧 sequence 被拒绝；不同会话有独立 highwater。返回的 browser_send_authorized 永远为 false，所谓 RESERVED_FOR_REVIEW 仅表示“本地审查用去重预留成功”。
+
+**安全边界：** 当前 Chrome Use 没有真实可信的 GPT terminal-event 签发器，也没有证据证明 HMAC key 的生产隔离保管。因此不能把测试签名器制造的演示 receipt 写成真实 GPT 事件；本模块没有和现有 Task Scheduler、原 Master 提交适配器连接。若未完成本模块最新 SHA 的全部 CI/Windows 本机测试，状态应记 NOT_RUN，不能称 production accepted。
+
+下一 GPT 必须分离验证：1) event 原产地受信任；2) HMAC 真正持有本机密钥；3) replay ledger 跨崩溃有效；4) 独立续作意图在发送前持久化；5) 单独用户授权的 browser-send adapter。缺任一条件都保持 BLOCKED。
