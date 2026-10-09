@@ -254,116 +254,15 @@ try {
     $task=Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
     $principal=Assert-InteractivePrincipal $task
     if([string]$task.Principal.RunLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: refusing bootstrap from non-Limited executor task"}
-    # Microsoft Task Scheduler ignores RunLevel for built-in Administrator /
-    # service principals and when UAC is disabled. Enforce these conditions
-    # before altering the currently-installed Scheduled Task.
+    # Microsoft: RunLevel is ignored for built-in Administrator / SYSTEM and
+    # service principals and when UAC is disabled. Refuse these before mutation.
     $taskIdentity=[Security.Principal.WindowsIdentity]::GetCurrent()
     $sid=[string]$taskIdentity.User.Value
-    if($sid-eq"S-1-5-18" -or $sid-match'-500
-    $priorXml=Export-ScheduledTask -TaskName $TaskName
-    Write-Utf8NoBom $PriorTaskXmlPath $priorXml
-    $priorState=[string]$task.State
-    $priorActions=@($task.Actions|ForEach-Object{[ordered]@{execute=$_.Execute;arguments=$_.Arguments;working_directory=$_.WorkingDirectory}})
-
-    $preEvidence=[ordered]@{
-        protocol_version="scorp.exec/v4-bootstrap-evidence";commit_sha=$CommitSha.ToLowerInvariant();repo=$Repo;control_repo=$ControlRepo;task_name=$TaskName
-        started_at=(Get-Date -Format o);phase="PRE_SWITCH_VERIFIED";principal=$principal;prior_state=$priorState;prior_actions=$priorActions
-        manifest_git_blob_sha=$manifestObj.git_blob_sha;artifacts=$artifacts;self_test=$selfText;critical_test=$criticalText;production_test=$productionText;selfheal_test=$selfhealText
-        runner_health=$healthParsed;rollback_performed=$false;rollback_error=$null
-    }
-    Write-Utf8NoBom $EvidencePath ($preEvidence|ConvertTo-Json -Depth 20)
-
-    Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-    $taskMutated=$true
-    Wait-V4Quiescent -Root $InstallDir -Seconds 15
-
-    if(Test-Path -LiteralPath $InstallDir -PathType Container){
-        $priorInstallExisted=$true
-        Move-Item -LiteralPath $InstallDir -Destination $BackupDir
-    }
-    Move-Item -LiteralPath $StagingDir -Destination $InstallDir
-    $installMoved=$true
-
-    $installedExecutor=Join-Path $InstallDir "executor-v4.1.ps1"
-    $action=New-ScheduledTaskAction -Execute $WindowsPowerShell -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Repo "{1}"' -f $installedExecutor,$ControlRepo) -WorkingDirectory $InstallDir
-    $runLevel=[string]$task.Principal.RunLevel
-    if($runLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: executor run level must remain Limited"}
-    $normalizedPrincipal=New-ScheduledTaskPrincipal -UserId $principal.user_name -LogonType Interactive -RunLevel $runLevel
-    $logonTrigger=New-ScheduledTaskTrigger -AtLogOn -User $principal.user_name
-    $startupTrigger=New-ScheduledTaskTrigger -AtStartup
-    $repeatTrigger=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
-    $runtimeSettings=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Days 3650) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
-    Set-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($logonTrigger,$startupTrigger,$repeatTrigger) -Settings $runtimeSettings -Principal $normalizedPrincipal|Out-Null
-    Start-ScheduledTask -TaskName $TaskName
-    Start-Sleep -Seconds 3
-
-    $after=Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
-    $afterPrincipal=Assert-InteractivePrincipal $after
-    if([string]$after.Principal.RunLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: installed executor changed elevation level"}
-    if([string]$after.State-cne"Running"){throw "Scheduled Task is not Running after V4 switch: $($after.State)"}
-    $afterActions=@($after.Actions)
-    if($afterActions.Count-ne1 -or [string]$afterActions[0].Execute-cne$WindowsPowerShell -or [string]$afterActions[0].Arguments-notlike"*$installedExecutor*"){throw "Scheduled Task action verification failed"}
-    $afterTriggerTypes=@($after.Triggers|ForEach-Object{$_.CimClass.CimClassName})
-    foreach($requiredTrigger in @("MSFT_TaskLogonTrigger","MSFT_TaskBootTrigger","MSFT_TaskTimeTrigger")){if($afterTriggerTypes-notcontains$requiredTrigger){throw "Scheduled Task self-heal trigger missing: $requiredTrigger"}}
-    if([string]$after.Settings.MultipleInstances-cne"IgnoreNew"){throw "Scheduled Task MultipleInstances is not IgnoreNew: $($after.Settings.MultipleInstances)"}
-    if([int]$after.Settings.RestartCount-lt3){throw "Scheduled Task RestartCount is below 3: $($after.Settings.RestartCount)"}
-
-    $probe=& $WindowsPowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $installedExecutor -MutexProbe 2>&1
-    $probeText=$probe-join"`n"
-    if($LASTEXITCODE-ne0 -or $probeText-notmatch'MUTEX_DENIED' -or $probeText-match'MUTEX_ACQUIRED'){throw "production mutex verification failed: $probeText"}
-    Assert-NoNewCodexProcess $codexBefore
-
-    $final=Get-Content -LiteralPath $EvidencePath -Raw|ConvertFrom-Json
-    $final.phase="SWITCH_VERIFIED"
-    $final|Add-Member -NotePropertyName deployed_at -NotePropertyValue (Get-Date -Format o) -Force
-    $final|Add-Member -NotePropertyName deployed_action -NotePropertyValue ([ordered]@{execute=$afterActions[0].Execute;arguments=$afterActions[0].Arguments;working_directory=$afterActions[0].WorkingDirectory}) -Force
-    $final|Add-Member -NotePropertyName deployed_principal -NotePropertyValue $afterPrincipal -Force
-    $final|Add-Member -NotePropertyName deployed_trigger_types -NotePropertyValue $afterTriggerTypes -Force
-    $final|Add-Member -NotePropertyName deployed_settings -NotePropertyValue ([ordered]@{multiple_instances=[string]$after.Settings.MultipleInstances;restart_count=[int]$after.Settings.RestartCount;restart_interval=[string]$after.Settings.RestartInterval;start_when_available=[bool]$after.Settings.StartWhenAvailable}) -Force
-    $final|Add-Member -NotePropertyName mutex_probe -NotePropertyValue $probeText -Force
-    $rollbackDirValue=$null
-    if($priorInstallExisted){$rollbackDirValue=$BackupDir}
-    $final|Add-Member -NotePropertyName rollback_dir -NotePropertyValue $rollbackDirValue -Force
-    Write-Utf8NoBom $EvidencePath ($final|ConvertTo-Json -Depth 20)
-
-    Write-Output "GPT_NATIVE_V4_BOOTSTRAP_PASS"
-    Write-Output "Commit: $CommitSha"
-    Write-Output "Executor: $installedExecutor"
-    Write-Output "Evidence: $EvidencePath"
-}
-catch {
-    $failure=$_.Exception.Message
-    $rollbackError=$null
-    if($taskMutated){
-        try{
-            Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-            if($priorXml){Register-ScheduledTask -TaskName $TaskName -Xml $priorXml -Force|Out-Null}
-            if($installMoved -and (Test-Path -LiteralPath $InstallDir -PathType Container)){Remove-Item -LiteralPath $InstallDir -Recurse -Force}
-            if($priorInstallExisted -and (Test-Path -LiteralPath $BackupDir -PathType Container)){Move-Item -LiteralPath $BackupDir -Destination $InstallDir}
-            if($priorState-ceq"Running"){Start-ScheduledTask -TaskName $TaskName}
-        }catch{$rollbackError=$_.Exception.Message}
-    }
-    try{
-        if(Test-Path -LiteralPath $StagingDir -PathType Container){Remove-Item -LiteralPath $StagingDir -Recurse -Force}
-        $evidence=if(Test-Path -LiteralPath $EvidencePath -PathType Leaf){Get-Content -LiteralPath $EvidencePath -Raw|ConvertFrom-Json}else{[pscustomobject][ordered]@{protocol_version="scorp.exec/v4-bootstrap-evidence";commit_sha=$CommitSha.ToLowerInvariant();repo=$Repo;control_repo=$ControlRepo;task_name=$TaskName;started_at=(Get-Date -Format o)}}
-        $evidence|Add-Member -NotePropertyName phase -NotePropertyValue "FAILED_ROLLED_BACK" -Force
-        $evidence|Add-Member -NotePropertyName failed_at -NotePropertyValue (Get-Date -Format o) -Force
-        $evidence|Add-Member -NotePropertyName failure -NotePropertyValue $failure -Force
-        $evidence|Add-Member -NotePropertyName rollback_performed -NotePropertyValue ([bool]$taskMutated) -Force
-        $evidence|Add-Member -NotePropertyName rollback_error -NotePropertyValue $rollbackError -Force
-        Write-Utf8NoBom $EvidencePath ($evidence|ConvertTo-Json -Depth 20)
-    }catch{}
-    if($rollbackError){throw "V4 bootstrap failed: $failure; ROLLBACK ALSO FAILED: $rollbackError"}
-    throw "V4 bootstrap failed and rollback completed: $failure"
-}
-finally {
-    if(Test-Path -LiteralPath $StagingDir -PathType Container){Remove-Item -LiteralPath $StagingDir -Recurse -Force -ErrorAction SilentlyContinue}
-}){
+    if($sid -eq "S-1-5-18" -or $sid -match "\-500$"){
         throw "P0_UNSAFE_RUNLEVEL: built-in privileged account cannot be certified Limited"
     }
     $uac=(Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -ErrorAction Stop).EnableLUA
-    if([int]$uac-ne1){throw "P0_UNSAFE_RUNLEVEL: UAC disabled or invalid"}
-
+    if([int]$uac -ne 1){throw "P0_UNSAFE_RUNLEVEL: UAC disabled or invalid"}
     $priorXml=Export-ScheduledTask -TaskName $TaskName
     Write-Utf8NoBom $PriorTaskXmlPath $priorXml
     $priorState=[string]$task.State
