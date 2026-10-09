@@ -112,3 +112,19 @@ A **separate, explicitly isolated browser namespace and ChatGPT work tab** must 
 
 Verified upstream general chrome-use docs describe distinct `--session` namespaces, `session list` and `tab list`; this installed Windows version must still be validated independently for behavior. Source: https://github.com/leeguooooo/chrome-use and https://chrome-use.leeguoo.com/sessions.html.
 
+
+## 8. Chrome Use local HTTP API physically responds — transport is NOT the missing GPT identity
+
+[Windows #2481](https://github.com/Scorp96/scorp-control-plane/issues/2481) additionally called the installed Chrome Use binary's known `session list` and `stream status` read-only APIs, then **HTTP GET only** against the CLI-provided, validated numeric port on literal `127.0.0.1`.
+
+Results:
+- `stream enabled=true` and `connected=true`;
+- `GET /api/v1/status` returned a JSON object;
+- `GET /api/v1/sessions` returned a JSON array of **one** current session;
+- the local HTTP status body exposed no recognized safe boolean fields for independently identifying the extension/relay mode, so do **not** invent a verified extension-isolation claim;
+- no HTTP POST, no tab switch, no tab creation, no navigation, no browser sends, no local or production writes.
+
+This independent live result agrees with #2475 and #2476 native CLI inventory: exactly one Chrome Use Session object exists. Combined with #2479's one INTERNAL tab and zero chatgpt.com tabs, the immediate missing capability is not ordinary loopback connectivity: it is the **fresh isolated physical ChatGPT Worker conversation and trusted host binding**.
+
+**Never** interpret a connected stream, HTTP GET success or an existing internal tab as a signed, finished GPT reply. The next real browser creation step requires isolation-mode proof and operator-authorized new named session/tab. It must be separate from the original ambiguous Master and can neither re-send nor claim an independently authenticated Worker until physical verification is implemented.
+
