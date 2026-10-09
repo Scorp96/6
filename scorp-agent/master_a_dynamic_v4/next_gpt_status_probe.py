@@ -147,17 +147,40 @@ def observe(root: pathlib.Path, *, now_utc: dt.datetime | None = None) -> dict[s
         "status": str(gui.get("status")) if gui and gui.get("status") in ("HEALTHY", "ERROR", "BLOCKED") else "UNAVAILABLE",
         "master_rotation_conflict": bool(gui and "MASTER_CONVERSATION_ROTATION_REQUIRED" in str(gui.get("error") or "")),
     }
-    sessions = driver.get("sessions") if driver else None
-    driver_result = {
-        "status": "READ_ONLY_OK" if isinstance(sessions, dict) else "UNAVAILABLE",
-        "physical_sessions_count": len(sessions) if isinstance(sessions, dict) else None,
-    }
+    # The V3 driver also has legacy, valid JSON without a "sessions" key.
+    # Its "turns" and "conversations" are historical records, NOT proof of
+    # a currently authenticated physical browser session.
+    sessions = driver.get("sessions") if driver is not None else None
+    turns = driver.get("turns") if driver is not None else None
+    conversations = driver.get("conversations") if driver is not None else None
+    if isinstance(sessions, dict):
+        driver_result = {
+            "status": "READ_ONLY_OK",
+            "physical_sessions_count": len(sessions),
+            "live_session_verified": False,
+        }
+    elif isinstance(turns, dict) and isinstance(conversations, dict):
+        driver_result = {
+            "status": "LEGACY_STATE_READABLE",
+            "physical_sessions_count": None,
+            "legacy_turn_count": len(turns),
+            "legacy_conversation_count": len(conversations),
+            "live_session_verified": False,
+        }
+    else:
+        driver_result = {
+            "status": "UNAVAILABLE" if driver is None else "UNRECOGNIZED_LAYOUT",
+            "physical_sessions_count": None,
+            "live_session_verified": False,
+        }
     blockers = []
     if r1.get("status") != "READ_ONLY_OK":
         blockers.append("R1_AUTHORITY_UNAVAILABLE")
     elif r1["ambiguous_intents"]:
         blockers.append("AMBIGUOUS_SUBMIT_UNRESOLVED")
-    if driver_result["status"] != "READ_ONLY_OK" or driver_result["physical_sessions_count"] == 0:
+    # A JSON snapshot, including a non-empty "sessions" mapping, can never
+    # independently attest an active physical browser connection.
+    if not driver_result["live_session_verified"]:
         blockers.append("PHYSICAL_GPT_SESSION_UNVERIFIED")
     if gui_result["status"] != "HEALTHY":
         blockers.append("GUI_BRIDGE_NOT_HEALTHY")
