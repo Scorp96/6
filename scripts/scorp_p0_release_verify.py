@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import pathlib
+import subprocess
 import sys
 from typing import Any
 
@@ -48,9 +49,33 @@ def _git_blob_sha1(content: bytes) -> str:
     return hashlib.sha1(b"blob " + str(len(content)).encode("ascii") + b"\x00" + content).hexdigest()
 
 
-def evaluate_manifest(repo_root: str | pathlib.Path, manifest: str | pathlib.Path) -> dict[str, Any]:
+def _git_committed_bytes(root: pathlib.Path, relative: str) -> bytes:
+    """Read the immutable HEAD Git blob bytes without checkout CRLF filters.
+
+    Do not use Git status/index or network. Fail closed if git is unavailable.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "cat-file", "blob", f"HEAD:{relative}"],
+            stdin=subprocess.DEVNULL, capture_output=True, check=False, timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ReleaseManifestRejected("GIT_BLOB_READ_UNAVAILABLE") from exc
+    if result.returncode != 0:
+        raise ReleaseManifestRejected("GIT_BLOB_READ_UNAVAILABLE")
+    return result.stdout
+
+
+def evaluate_manifest(
+    repo_root: str | pathlib.Path,
+    manifest: str | pathlib.Path,
+    *,
+    source_mode: str = "filesystem",
+) -> dict[str, Any]:
     """Return bounded audit facts; this operation never writes any path."""
     root = pathlib.Path(repo_root).resolve(strict=True)
+    if source_mode not in {"filesystem", "git"}:
+        raise ReleaseManifestRejected("SOURCE_MODE_INVALID")
     if not root.is_dir():
         raise ReleaseManifestRejected("REPOSITORY_ROOT_NOT_DIRECTORY")
     source = pathlib.Path(manifest)
@@ -85,7 +110,7 @@ def evaluate_manifest(repo_root: str | pathlib.Path, manifest: str | pathlib.Pat
                 raise ReleaseManifestRejected("MANIFEST_SOURCE_PATH_INVALID")
             if any(x.is_symlink() for x in [file_path, *file_path.parents] if x != root and root in x.parents):
                 raise ReleaseManifestRejected("MANIFEST_SOURCE_SYMLINK")
-            data = resolved.read_bytes()
+            data = resolved.read_bytes() if source_mode == "filesystem" else _git_committed_bytes(root, relative)
         except (OSError, UnicodeError) as exc:
             raise ReleaseManifestRejected("MANIFEST_SOURCE_NOT_READABLE") from exc
         expected_git = expected.get("git_blob_sha")
@@ -103,6 +128,7 @@ def evaluate_manifest(repo_root: str | pathlib.Path, manifest: str | pathlib.Pat
     return {
         "protocol": "scorp.p0-release-preflight/1",
         "result": "READY_FOR_MANUAL_RELEASE_REVIEW" if blocked == 0 else "BLOCKED",
+        "source_mode": source_mode,
         "total_files": len(results),
         "blocked_files": blocked,
         "checks": results,
@@ -117,9 +143,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--manifest", default="scorp-agent/release-manifest-v4.json")
+    parser.add_argument("--source-mode", choices=("git", "filesystem"), default="git",
+                        help="git=read HEAD blobs (release-safe on Windows); filesystem=isolated fixture tests")
     args = parser.parse_args(argv)
     try:
-        result = evaluate_manifest(args.repo_root, args.manifest)
+        result = evaluate_manifest(args.repo_root, args.manifest, source_mode=args.source_mode)
     except (ReleaseManifestRejected, FileNotFoundError, NotADirectoryError) as exc:
         print(json.dumps({"protocol": "scorp.p0-release-preflight/1",
                           "result": "BLOCKED", "reason": str(exc),
