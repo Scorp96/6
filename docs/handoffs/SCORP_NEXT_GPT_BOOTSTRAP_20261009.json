@@ -1,7 +1,7 @@
 {
   "protocol_version": "scorp.next-gpt-bootstrap/1",
   "snapshot_created_date": "2026-10-09",
-  "timestamp_policy": "Static historical snapshot; re-query current GitHub and live Windows Issue before any new action.",
+  "timestamp_policy": "Latest known local state around 2026-10-09 08:38 UTC+8. Re-query GitHub exact SHA/CI and Windows Issue for fresh data.",
   "model_policy": {
     "actual_assistant": "GPT-6",
     "legacy_repository_required_model": "GPT-5.6 Sol",
@@ -77,7 +77,7 @@
     "separate_host_security_checkout": "C:\\ScorpAgent\\experiments\\r2-host-terminal-security-20261009"
   },
   "acceptance": {
-    "last_verified_local_issue": 2316,
+    "last_verified_local_issue": 2321,
     "last_verified_local_time": "2026-10-09T08:19:18+08:00",
     "observer_events": 5,
     "observer_latest_event_local": "2026-10-09T08:17:47+08:00",
@@ -91,8 +91,31 @@
     "trusted_terminal_emitter": "NOT_IMPLEMENTED",
     "live_24h_soak": "NOT_VERIFIED",
     "candidate_offline_1151_tests": "PASS on prior b090e97 only",
-    "new_handoff_probe": "STAGED / require exact-head CI and Windows independent proof",
-    "new_isolated_replay_ledger": "EXPERIMENTAL, NO TERMINAL SIGNER OR BROWSER SEND; require final exact SHA CI and separate Windows tests"
+    "new_handoff_probe": "ISOLATED WINDOWS TESTS PASS at dc5a3b2; PR latest commit must be revalidated after documentation-only updates.",
+    "new_isolated_replay_ledger": "ISOLATED V4 TESTS PASS; no real browser terminal issuer, no model/browser send permitted.",
+    "latest_local_observer_task_verified_issue": 2321,
+    "latest_local_observer_last_auto_run": "2026-10-09T08:37:46+08:00",
+    "latest_local_observer_task_status": "Ready / identity_verified=true / LastTaskResult=0 / pinned SHA 8da5085f...",
+    "windows_full_v4_tests": {
+      "issue": 2319,
+      "code_sha": "dc5a3b293bfa50a0beb5d7e06c55ef36321b3565",
+      "tests": 516,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "status_probe_safe": true,
+      "observer_last_seq": 6
+    },
+    "latest_exact_head_ci_before_handoff_append": {
+      "run_id": 37865467874,
+      "sha": "dc5a3b293bfa50a0beb5d7e06c55ef36321b3565",
+      "status": "SUCCESS",
+      "v4": 516,
+      "gui": 625,
+      "broker": 29,
+      "total": 1170,
+      "candidate_validation": "PASS"
+    }
   },
   "critical_forbidden_actions": [
     "No blind replay of MASTER_REASONING after TimeoutError.",
@@ -128,5 +151,10 @@
   "new_isolated_candidate_modules": [
     "scorp-agent/master_a_dynamic_v4/next_gpt_status_probe.py",
     "scorp-agent/master_a_dynamic_v4/isolated_host_replay_ledger.py"
-  ]
+  ],
+  "audit_warning": {
+    "failed_diagnostic_issue": 2320,
+    "reconciled_issue": 2321,
+    "interpretation": "Additional read-only inspection script mishandled Inspect JSON; independent native installer Inspect reports identity_verified=true and real TaskScheduler remains Ready/last exit 0. Never reboot/reinstall based on one audit failure."
+  }
 }
