@@ -73,4 +73,3 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 origin audit/p0-integrated-containment-20261010
           git diff --check FETCH_HEAD HEAD
-
