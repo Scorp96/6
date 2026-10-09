@@ -228,7 +228,7 @@ function Invoke-TypedReadOnlyProbe {
             # failure to query throws rather than being reported as zero.
             $chrome=@(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" -ErrorAction Stop)
             [int64]$total=0
-            foreach($proc in$chrome){$total+=[int64]$proc.WorkingSetSize}
+            foreach($proc in $chrome){$total+=[int64]$proc.WorkingSetSize}
             return [pscustomobject][ordered]@{
                 probe=$probe;process_count=[int]$chrome.Count
                 working_set_bytes=$total;process_owner_attested=$false
