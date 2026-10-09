@@ -435,6 +435,9 @@ class ChromeUseActorDriverV3:
             state = self._load()
             old = state["turns"].get(turn_id)
             if conversation_url is None:
+                if (isinstance(old, dict)
+                    and old.get("conversation_url") is not None):
+                    raise ValueError("ACTOR_GUI_TURN_CONVERSATION_REBIND_DENIED")
                 if isinstance(old, dict) and old.get("session"):
                     self._touch_session(state, old["session"], role=role, turn_id=turn_id)
                     old["role"] = role if role != "UNKNOWN" else old.get("role", "UNKNOWN")
@@ -454,6 +457,15 @@ class ChromeUseActorDriverV3:
                 self._save(state)
                 return session
             url = _canonical_url(conversation_url)
+            if isinstance(old, dict):
+                prior_url = old.get("conversation_url")
+                if prior_url is not None and prior_url != url:
+                    raise ValueError("ACTOR_GUI_TURN_CONVERSATION_REBIND_DENIED")
+                if prior_url is None and old.get("browser_io_started") is True:
+                    # Root -> /c/<id> promotion is owned exclusively by the
+                    # internal _promote() seam after exact URL observation.
+                    # bind_turn may not rewrite a started turn's provenance.
+                    raise ValueError("ACTOR_GUI_TURN_BROWSER_IO_REBIND_DENIED")
             entry = state["conversations"].get(url)
             session = entry.get("session") if isinstance(entry, dict) else None
             if not session:
