@@ -207,6 +207,36 @@ class IsolatedBrowserLaunchFenceTests(unittest.TestCase):
         self.assertNotIn(str(self.db), raw)
         self.assertFalse(result.browser_or_model_send_authorized)
 
+    def test_windows_file_lock_released_after_reserve_and_read(self):
+        self.assertEqual("RESERVED", self.reserve().status)
+        self.assertEqual("REVIEW_ONLY", read_attempt_state(**self.arguments).status)
+        renamed = self.db.with_suffix(".bak")
+        self.db.rename(renamed)
+        renamed.rename(self.db)
+        self.assertEqual("RESERVED_NO_EXTERNAL_ACTION",
+                         read_attempt_state(**self.arguments).reason)
+
+    def test_windows_file_lock_released_after_edge_and_review(self):
+        self.reserve()
+        self.edge()
+        self.review("LAUNCH_TIMED_OUT_UNVERIFIED")
+        renamed = self.db.with_suffix(".bak")
+        self.db.rename(renamed)
+        renamed.rename(self.db)
+        self.assertEqual("LAUNCH_TIMED_OUT_UNVERIFIED",
+                         read_attempt_state(**self.arguments).reason)
+
+    def test_denied_replay_also_closes_windows_file_handles(self):
+        self.reserve()
+        self.edge()
+        self.assertEqual("BLOCKED", self.edge().status)
+        self.assertEqual("BLOCKED", self.reserve().status)
+        renamed = self.db.with_suffix(".bak")
+        self.db.rename(renamed)
+        renamed.rename(self.db)
+        self.assertEqual("EXTERNAL_LAUNCH_EDGE_RESERVED",
+                         read_attempt_state(**self.arguments).reason)
+
     def test_no_browser_or_master_send_interfaces_in_module(self):
         import master_a_dynamic_v4.isolated_browser_launch_fence_v4 as module
         for name in ("open_browser", "submit_prompt", "wake_master",
