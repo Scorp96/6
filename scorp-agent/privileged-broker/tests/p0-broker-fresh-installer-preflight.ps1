@@ -15,7 +15,7 @@ $required=@(
     'P0_BROKER_INSTALL_ALL_FOUR_SOURCE_SHA256_REQUIRED',
     'Get-FileHash -LiteralPath $source -Algorithm SHA256',
     'P0_BROKER_INSTALL_SOURCE_SHA256_MISMATCH',
-    "New-Item -ItemType Directory -Path $backupRoot -Force"
+    'New-Item -ItemType Directory -Path $backupRoot -Force'
 )
 $previous=-1
 foreach($k in $required){
