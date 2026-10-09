@@ -559,6 +559,35 @@ class V4GatewayTests(unittest.TestCase):
             finally:
                 gateway.close()
 
+    def test_worker_browser_intent_does_not_refresh_generation_on_concurrent_revision(self):
+        from unittest.mock import patch
+        from master_a_dynamic_v4.state_store import StoreInvariantError
+
+        with tempfile.TemporaryDirectory() as td:
+            gateway, claim, engine = self._gateway_with_one_claim_for_authority_fence(
+                pathlib.Path(td), 'gateway-concurrent-gen-change'
+            )
+            original_prepare = gateway.store.prepare_intent
+            try:
+                def revise_operator_just_before_durable_intent(*args, **kwargs):
+                    with gateway.store._transaction() as conn:
+                        conn.execute(
+                            'UPDATE operator_controls SET operator_generation=operator_generation+1 '
+                            'WHERE project_id=?', (gateway.project_id,)
+                        )
+                    return original_prepare(*args, **kwargs)
+
+                with patch.object(gateway.store, 'prepare_intent', side_effect=revise_operator_just_before_durable_intent):
+                    intent = gateway.prepare_worker_intent(claim, 'safe bounded work')
+                binding = json.loads(intent['payload_json'])
+                self.assertEqual(claim.operator_generation, binding['operator_generation'])
+                self.assertEqual(claim.operator_generation, binding['worker_assignment']['operator_generation'])
+                with self.assertRaisesRegex(StoreInvariantError, 'OPERATOR_GENERATION_FENCED'):
+                    gateway.store.assert_intent_generation(intent['intent_id'])
+                self.assertEqual(0, engine.submits)
+            finally:
+                gateway.close()
+
     def test_two_claims_prepare_distinct_worker_browser_intents(self):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
