@@ -14,6 +14,7 @@ import contextlib
 import datetime as dt
 import json
 import pathlib
+import re
 import sqlite3
 from typing import Any
 
@@ -42,7 +43,7 @@ def _sql(path: pathlib.Path, reader) -> dict[str, Any]:
         with contextlib.closing(sqlite3.connect(uri, uri=True, timeout=2)) as conn:
             conn.execute("PRAGMA query_only=ON")
             return reader(conn)
-    except (sqlite3.Error, ValueError, OSError, TypeError, KeyError, IndexError):
+    except (sqlite3.Error, ValueError, OSError, OverflowError, TypeError, KeyError, IndexError):
         return {"status": "UNREADABLE"}
 
 
@@ -71,7 +72,7 @@ def _observer(conn: sqlite3.Connection) -> dict[str, Any]:
             last[1] / 1000, dt.timezone.utc
         ).isoformat(),
         "last_result": str(last[2]) if str(last[2]) in ("BLOCKED", "READONLY_MATCH_REVIEW_REQUIRED") else "UNCLASSIFIED",
-        "last_reason": str(last[3]) if str(last[3]).isupper() and len(str(last[3])) <= 96 else "REDACTED",
+        "last_reason": str(last[3]) if re.fullmatch(r"[A-Z][A-Z0-9_]{1,95}", str(last[3])) else "REDACTED",
         "last_changed": bool(last[4]),
         "due_interval_minutes": int(row[0]),
         "next_due_utc": dt.datetime.fromtimestamp(
@@ -104,12 +105,12 @@ def _r1(conn: sqlite3.Connection) -> dict[str, Any]:
         "total_intents": int(conn.execute("SELECT COUNT(*) FROM action_intents").fetchone()[0]),
         "browser_binding_count": int(conn.execute("SELECT COUNT(*) FROM browser_bindings").fetchone()[0]),
         "daemon_epoch": int(lease[0]),
-        "daemon_lease_status": str(lease[1]),
+        "daemon_lease_status": str(lease[1]) if lease[1] in ("ACTIVE", "RELEASED") else "OTHER",
         "daemon_lease_heartbeat_utc": _utc(lease[2]),
         "daemon_lease_expires_utc": _utc(lease[3]),
         "daemon_recovery_count": int(sup[0]),
         "daemon_consecutive_failures": int(sup[1]),
-        "daemon_circuit": str(sup[2]),
+        "daemon_circuit": str(sup[2]) if sup[2] in ("CLOSED", "OPEN", "BACKOFF", "BLOCKED") else "OTHER",
         "daemon_last_failure_utc": _utc(sup[3]),
     }
 
