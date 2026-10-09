@@ -538,6 +538,14 @@ class MasterAController:
         prompt = str(worker_prompt_factory(claim) or "").strip()
         if not prompt:
             raise ControllerRejected("WORKER_PROMPT_EMPTY")
+        # A Worker may receive its public assignment identity/scope, not the
+        # bearer lease secret owned by the trusted local scheduler.  Never
+        # persist or submit a prompt containing the raw token.
+        lease_secret = str(getattr(claim, "lease_token", "") or "")
+        if not lease_secret:
+            raise ControllerRejected("WORKER_LEASE_TOKEN_MISSING")
+        if lease_secret in prompt:
+            raise ControllerRejected("WORKER_PROMPT_LEAKS_LEASE_TOKEN")
         intent = self.gateway.prepare_worker_intent(
             claim,
             prompt,
