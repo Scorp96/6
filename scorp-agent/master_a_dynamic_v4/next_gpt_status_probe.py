@@ -47,7 +47,7 @@ def _sql(path: pathlib.Path, reader) -> dict[str, Any]:
         return {"status": "UNREADABLE"}
 
 
-def _observer(conn: sqlite3.Connection) -> dict[str, Any]:
+def _observer(conn: sqlite3.Connection, *, now_utc: dt.datetime) -> dict[str, Any]:
     row = conn.execute(
         "SELECT interval_minutes,last_reserved_ms,next_due_ms,pending_seq "
         "FROM observer_schedule WHERE id=1"
@@ -63,14 +63,26 @@ def _observer(conn: sqlite3.Connection) -> dict[str, Any]:
     if (row[0] not in (15, 25) or not isinstance(row[1], int)
         or not isinstance(row[2], int)):
         return {"status": "INVALID"}
+    # An intact SQLite file is not proof that Task Scheduler is still ticking.
+    # Permit the observer interval plus two scheduler polls (5m each), then
+    # fail closed. Future-dated events beyond one-minute skew are not fresh.
+    try:
+        observed_utc = dt.datetime.fromtimestamp(last[1] / 1000, dt.timezone.utc)
+        age_seconds = (now_utc - observed_utc).total_seconds()
+    except (TypeError, ValueError, OSError, OverflowError):
+        return {"status": "INVALID"}
+    max_age_seconds = (int(row[0]) + 10) * 60
+    freshness = (
+        "STALE" if age_seconds > max_age_seconds
+        else "CLOCK_SKEW" if age_seconds < -60
+        else "OBSERVED"
+    )
     return {
-        "status": "OBSERVED" if check == "ok" else "INTEGRITY_FAILED",
+        "status": freshness if check == "ok" else "INTEGRITY_FAILED",
         "db_integrity": "ok" if check == "ok" else "NOT_OK",
         "event_count": int(count),
         "last_event_seq": int(last[0]),
-        "last_observed_utc": dt.datetime.fromtimestamp(
-            last[1] / 1000, dt.timezone.utc
-        ).isoformat(),
+        "last_observed_utc": observed_utc.isoformat(),
         "last_result": str(last[2]) if str(last[2]) in ("BLOCKED", "READONLY_MATCH_REVIEW_REQUIRED") else "UNCLASSIFIED",
         "last_reason": str(last[3]) if re.fullmatch(r"[A-Z][A-Z0-9_]{1,95}", str(last[3])) else "REDACTED",
         "last_changed": bool(last[4]),
@@ -139,7 +151,7 @@ def observe(root: pathlib.Path, *, now_utc: dt.datetime | None = None) -> dict[s
     r1 = _sql(root / "runtime-v4/active/state.sqlite3", _r1)
     observer = _sql(
         root / "experiments/r2-observer-state-20261009/scorp-readonly-observer.sqlite3",
-        _observer,
+        lambda conn: _observer(conn, now_utc=now),
     )
     gui = _json(root / "chatgpt-gui-bridge-state/health.json")
     driver = _json(root / "state-v3/active/chrome-use-driver-v3.json")
@@ -173,11 +185,25 @@ def observe(root: pathlib.Path, *, now_utc: dt.datetime | None = None) -> dict[s
             "physical_sessions_count": None,
             "live_session_verified": False,
         }
+    # Lease state read from SQLite is historical until independently checked
+    # against its expiration and heartbeat, not evidence of perpetual liveness.
+    if r1.get("status") == "READ_ONLY_OK":
+        lease_until = _utc(r1.get("daemon_lease_expires_utc"))
+        heartbeat = _utc(r1.get("daemon_lease_heartbeat_utc"))
+        r1["daemon_lease_current"] = bool(
+            r1["daemon_lease_status"] == "ACTIVE"
+            and lease_until is not None and heartbeat is not None
+            and dt.datetime.fromisoformat(lease_until) > now
+            and dt.datetime.fromisoformat(heartbeat) <= now + dt.timedelta(seconds=60)
+        )
     blockers = []
     if r1.get("status") != "READ_ONLY_OK":
         blockers.append("R1_AUTHORITY_UNAVAILABLE")
-    elif r1["ambiguous_intents"]:
-        blockers.append("AMBIGUOUS_SUBMIT_UNRESOLVED")
+    else:
+        if not r1["daemon_lease_current"]:
+            blockers.append("R1_DAEMON_LEASE_UNVERIFIED")
+        if r1["ambiguous_intents"]:
+            blockers.append("AMBIGUOUS_SUBMIT_UNRESOLVED")
     # A JSON snapshot, including a non-empty "sessions" mapping, can never
     # independently attest an active physical browser connection.
     if not driver_result["live_session_verified"]:
