@@ -55,6 +55,11 @@ def inspect_untrusted_conversation_record(
         return deny("LIVE_BRANCH_UNAVAILABLE")
     if len(mapping) > 5000:
         return deny("RECORD_TOO_LARGE")
+    # Explicit async/tool activity must defeat an apparently completed text
+    # node. Unknown future states also fail closed rather than guessing.
+    async_status = record.get("async_status")
+    if async_status not in (None, False, "completed", "idle"):
+        return deny("ASYNC_WORK_NOT_CLEARED", "INCOMPLETE")
 
     visited: set[str] = set()
     latest_assistant: Mapping[str, Any] | None = None
