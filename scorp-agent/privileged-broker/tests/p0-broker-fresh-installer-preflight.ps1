@@ -20,7 +20,7 @@ $required=@(
 $previous=-1
 foreach($k in $required){
     $position=$text.IndexOf($k,[StringComparison]::Ordinal)
-    if($position-lt0){throw 'P0_BROKER_PRECHECK_MARKER_MISSING'}
+    if($position-lt0){throw ('P0_BROKER_PRECHECK_MARKER_MISSING: '+$k)}
     if($position-lt$previous){throw 'P0_BROKER_PRECHECK_MARKER_OUT_OF_ORDER'}
     $previous=$position
 }
