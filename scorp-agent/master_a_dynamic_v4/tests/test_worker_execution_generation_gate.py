@@ -41,7 +41,7 @@ class WorkerExecutionGenerationGateTests(unittest.TestCase):
         self.claim = self.scheduler.claim_runnable(master_epoch=0, limit=1)[0]
         self.counter = 0
 
-    def _prepare(self, *, worker_overrides=None, payload_overrides=None, actor=None):
+    def _prepare(self, *, worker_overrides=None, payload_overrides=None, actor=None, remove_payload_fields=()):
         self.counter += 1
         c = self.claim
         control = self.store.get_operator_control(self.project)
@@ -70,6 +70,8 @@ class WorkerExecutionGenerationGateTests(unittest.TestCase):
             "request": {"module": "no-execution-in-this-test"},
         }
         payload.update(payload_overrides or {})
+        for field in remove_payload_fields:
+            payload.pop(field, None)
         intent_id = f"offline-local-worker-{self.counter}"
         self.store.prepare_intent(
             self.project, intent_id,
@@ -166,6 +168,13 @@ class WorkerExecutionGenerationGateTests(unittest.TestCase):
     def test_different_actor_cannot_use_worker_capability(self):
         intent_id = self._prepare(actor="worker-impostor")
         with self.assertRaisesRegex(StoreInvariantError, "WORKER_AUTHORITY_FENCED"):
+            self.store.assert_intent_generation(intent_id)
+
+    def test_missing_root_generations_never_authorize_local_execution(self):
+        intent_id = self._prepare(
+            remove_payload_fields=("operator_generation", "objective_generation")
+        )
+        with self.assertRaisesRegex(StoreInvariantError, "OPERATOR_GENERATION_BINDING_REQUIRED"):
             self.store.assert_intent_generation(intent_id)
 
     def test_root_generation_cannot_self_authorize(self):
