@@ -2130,6 +2130,10 @@ class StateStore:
         payload = json.loads(str(row["payload_json"]))
         if not isinstance(payload, Mapping):
             raise StoreInvariantError("INTENT_PAYLOAD_INVALID")
+        if str(row["action_kind"]) == "LOCAL_EXECUTION" and (
+            "operator_generation" not in payload or "objective_generation" not in payload
+        ):
+            raise StoreInvariantError("OPERATOR_GENERATION_BINDING_REQUIRED")
         if "operator_generation" not in payload and "objective_generation" not in payload:
             return
         if "operator_generation" not in payload or "objective_generation" not in payload:
