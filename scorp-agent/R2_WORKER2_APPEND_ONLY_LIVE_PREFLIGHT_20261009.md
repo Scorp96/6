@@ -19,12 +19,13 @@ It previously prevented same `comment_id` and `assignment_digest` duplicates, bu
 
 The new isolation guard, **inside the same `BEGIN IMMEDIATE` SQLite transaction**, checks all existing project receipts for:
 - one existing slot at most before append; refuses capacity exceeding 2;
+- no unscoped orphan blob-only or text-only receipts lacking any base comment row anywhere in the dedicated isolated review database;
 - exact existing blob SHA256 matching claimed base SHA256;
 - blob status `GIT_BLOB_VERIFIED_FOR_HUMAN_REVIEW`;
 - substantive deliverable SHA256 is valid 64-character lowercase hex, with `SUBSTANTIVE_TEXT_PRESENT_UNREVIEWED`;
 - existing `worker_slot` belongs to the two known slots and differs from the new incoming slot.
 
-Failures return `PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE`, `PROJECT_WORKER_SLOT_ALREADY_FILLED` or `PROJECT_REVIEW_CAPACITY_EXCEEDED`. All failures **ROLL BACK** the attempted new intake; the original evidence remains untouched. The same-transaction guard closes the preflight-to-write race for the history rows. New tests inject missing blob, missing text, altered blob hash, altered text hash, reused slot (all fail closed); prior two-valid-results test continues to pass.
+Failures return `UNSCOPED_LEGACY_REVIEW_ORPHAN_PRESENT`, `PREEXISTING_REVIEW_EVIDENCE_INCOMPLETE`, `PROJECT_WORKER_SLOT_ALREADY_FILLED` or `PROJECT_REVIEW_CAPACITY_EXCEEDED`. All failures **ROLL BACK** the attempted new intake; the original evidence remains untouched. The same-transaction guard closes the preflight-to-write race for the history rows. New tests inject missing blob, missing text, altered blob hash, altered text hash, reused slot, and orphan blob-only/text-only rows (all fail closed); prior two-valid-results test continues to pass.
 
 **This is NOT a retrofit/migration of old orphaned rows.** If history is corrupt, stop and perform read-only forensic audit. Do not delete, repair, reset or rebuild the original review DB automatically.
 
