@@ -137,6 +137,15 @@ def stage_explicit_github_worker_artifact_for_review(
         or actor["id"] != allowlisted_github_author_id
     ):
         return reject("GITHUB_AUTHOR_OR_COMMENT_ID_MISMATCH")
+    # The provider issues/comments deep link must point to the EXACT issue
+    # and immutable comment id. Caller-side issue-number assertions alone
+    # must not let one issue's work artifact masquerade as another.
+    expected_url = (
+        "https://github.com/Scorp96/scorp-control-plane/issues/"
+        + str(verified_issue_number) + "#issuecomment-" + str(ident)
+    )
+    if comment.get("url") != expected_url:
+        return reject("GITHUB_ISSUE_OR_COMMENT_LINK_UNVERIFIED")
     created = _timestamp(comment.get("created_at"))
     updated = _timestamp(comment.get("updated_at"))
     if created is None or updated is None or updated != created:
@@ -179,12 +188,9 @@ def stage_explicit_github_worker_artifact_for_review(
         with contextlib.closing(sqlite3.connect(
             database, isolation_level=None, timeout=4,
         )) as db:
+            db.executescript(_SCHEMA)
             db.execute("BEGIN IMMEDIATE")
             try:
-                db.executescript(_SCHEMA)
-                # executescript can implicitly commit! Explicitly re-enter a
-                # fresh serialized transaction before any authoritative read.
-                db.execute("BEGIN IMMEDIATE")
                 existing = db.execute(
                     "SELECT 1 FROM r2_github_review_artifacts "
                     "WHERE comment_id=? OR assignment_digest=?",
