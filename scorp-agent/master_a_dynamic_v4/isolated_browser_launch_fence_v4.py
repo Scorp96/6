@@ -12,6 +12,7 @@ navigates, stops, kills, stores credentials, or edits the original R1.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import contextlib
 import datetime as dt
 from pathlib import Path
 import re
@@ -108,7 +109,7 @@ def reserve_isolated_browser_launch(
     if target_origin != _ORIGIN:
         return LaunchGate("BLOCKED", "TARGET_ORIGIN_NOT_ALLOWLISTED")
     try:
-        with _connect(database) as db:
+        with contextlib.closing(_connect(database)) as db:
             db.execute("BEGIN IMMEDIATE")
             db.execute(_SCHEMA)
             exists = db.execute(
@@ -150,7 +151,7 @@ def reserve_external_launch_edge_once(
     if not database.is_file():
         return LaunchGate("BLOCKED", "LEDGER_NOT_FOUND")
     try:
-        with _connect(database) as db:
+        with contextlib.closing(_connect(database)) as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
                 "SELECT state,target_origin FROM browser_launch_attempts "
@@ -199,7 +200,7 @@ def record_host_review_only(
     if not database.is_file():
         return LaunchGate("BLOCKED", "LEDGER_NOT_FOUND")
     try:
-        with _connect(database) as db:
+        with contextlib.closing(_connect(database)) as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
                 "SELECT state FROM browser_launch_attempts "
@@ -243,8 +244,9 @@ def read_attempt_state(
     if not database.is_file():
         return LaunchGate("BLOCKED", "LEDGER_NOT_FOUND")
     try:
-        with sqlite3.connect(database.resolve().as_uri()+"?mode=ro",
-                             uri=True, timeout=2) as db:
+        with contextlib.closing(sqlite3.connect(
+                database.resolve().as_uri()+"?mode=ro",
+                uri=True, timeout=2)) as db:
             db.execute("PRAGMA query_only=ON")
             row = db.execute(
                 "SELECT state FROM browser_launch_attempts "
