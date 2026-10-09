@@ -253,6 +253,41 @@ class ChromeUseActorDriverV3Tests(unittest.TestCase):
                 ))
             self.assertEqual([], cli.calls)
 
+    def test_existing_turn_cannot_be_rebound_to_another_conversation(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            url = 'https://chatgpt.com/c/original-conversation'
+            driver.bind_turn('immutable-turn', url, actor_kind='MASTER')
+            with self.assertRaisesRegex(ValueError, 'TURN_CONVERSATION_REBIND_DENIED'):
+                driver.bind_turn(
+                    'immutable-turn', 'https://chatgpt.com/c/different-conversation',
+                    actor_kind='MASTER',
+                )
+            self.assertEqual(url, driver.turn_binding('immutable-turn')['conversation_url'])
+
+    def test_bound_conversation_cannot_revert_to_root_with_same_turn(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            url = 'https://chatgpt.com/c/original-conversation'
+            driver.bind_turn('known-turn', url, actor_kind='MASTER')
+            with self.assertRaisesRegex(ValueError, 'TURN_CONVERSATION_REBIND_DENIED'):
+                driver.bind_turn('known-turn', None, actor_kind='MASTER')
+            self.assertEqual(url, driver.turn_binding('known-turn')['conversation_url'])
+
+    def test_started_root_turn_cannot_be_promoted_by_rebinding(self):
+        with tempfile.TemporaryDirectory() as td:
+            driver = self._driver(td, FakeCli())
+            turn = 'started-root-turn'
+            driver.bind_turn(turn, None, actor_kind='MASTER')
+            driver._mark_turn_browser_io_started(turn)
+            with self.assertRaisesRegex(ValueError, 'TURN_BROWSER_IO_REBIND_DENIED'):
+                driver.bind_turn(
+                    turn, 'https://chatgpt.com/c/arbitrary-conversation',
+                    actor_kind='MASTER',
+                )
+            self.assertIsNone(driver.turn_binding(turn)['conversation_url'])
+            self.assertTrue(driver.turn_binding(turn)['browser_io_started'])
+
     def test_lifecycle_records_roles_and_migrates_legacy_state(self):
         with tempfile.TemporaryDirectory() as td:
             state_path = pathlib.Path(td) / 'chrome-use-driver-v3.json'
