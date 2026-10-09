@@ -12,6 +12,26 @@ import dataclasses
 
 
 class MissingControllerTests(unittest.TestCase):
+    def test_raw_worker_lease_token_is_rejected_before_browser_intent(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start({"objective": "no bearer tokens to browser"}, {"required": ["AC_CONTROLLER"]})
+        controller.apply_plan({
+            "project_id": "controller-project",
+            "master_identity": "A",
+            "tasks": [_task("T1", "a" * 64)],
+        })
+        step = controller.step(
+            lambda claim: f"please use privileged lease {claim.lease_token}",
+            lambda row: _result_for(row),
+        )
+        self.assertEqual("BLOCKED", step.status)
+        self.assertEqual({}, gateway.intents)
+        self.assertEqual(0, gateway.submit_calls)
+        self.assertTrue(any("WORKER_PROMPT_LEAKS_LEASE_TOKEN" in x for x in step.blockers))
+
     def test_worker_result_hash_normalizes_model_scalar_types_before_storage(self):
         from master_a_dynamic_v4.master_controller import normalize_worker_result_envelope
 

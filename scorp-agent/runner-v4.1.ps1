@@ -216,6 +216,49 @@ function Add-NativeEvidence {
     $Evidence.stdout_sha256=$NativeResult.stdout_sha256;$Evidence.stderr_sha256=$NativeResult.stderr_sha256
 }
 
+function Invoke-TypedReadOnlyProbe {
+    param($Payload)
+    if($null-eq$Payload -or $Payload-isnot[pscustomobject]){throw "PRECONDITION: diagnostic payload must be an object"}
+    $keys=@($Payload.PSObject.Properties|ForEach-Object{[string]$_.Name})
+    if($keys.Count-ne1-or$keys[0]-cne"probe"){throw "PRECONDITION: diagnostic payload must contain only probe"}
+    $probe=[string]$Payload.probe
+    switch($probe){
+        "chrome_resource_summary"{
+            # CIM returns an empty list when no Chrome processes exist;
+            # failure to query throws rather than being reported as zero.
+            $chrome=@(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" -ErrorAction Stop)
+            [int64]$total=0
+            foreach($proc in $chrome){$total+=[int64]$proc.WorkingSetSize}
+            return [pscustomobject][ordered]@{
+                probe=$probe;process_count=[int]$chrome.Count
+                working_set_bytes=$total;process_owner_attested=$false
+                observation_scope="all_machine_chrome_processes_no_ownership_inference"
+            }
+        }
+        "broker_service_status"{
+            $svc=Get-CimInstance Win32_Service -Filter "Name='ScorpPrivilegedBroker'" -ErrorAction Stop
+            if($null-eq$svc){throw "PROBE_NOT_AVAILABLE: Broker service absent"}
+            return [pscustomobject][ordered]@{
+                probe=$probe;state=[string]$svc.State
+                start_mode=[string]$svc.StartMode
+                is_local_system=([string]$svc.StartName-ceq"LocalSystem")
+                service_owner_attested=$false
+            }
+        }
+        "executor_task_status"{
+            $task=Get-ScheduledTask -TaskName "ScorpComputerAgent" -ErrorAction Stop
+            if($null-eq$task){throw "PROBE_NOT_AVAILABLE: Executor task absent"}
+            return [pscustomobject][ordered]@{
+                probe=$probe;state=[string]$task.State
+                run_level=[string]$task.Principal.RunLevel
+                logon_type=[string]$task.Principal.LogonType
+                task_binary_attested=$false
+            }
+        }
+        default{throw "PRECONDITION: unsupported diagnostic probe"}
+    }
+}
+
 function Assert-ExpectedPreconditionContract {
     param($Envelope)
     $claims=$Envelope.expected_preconditions
@@ -299,6 +342,10 @@ try{
             $head=Invoke-Native -Executable "git.exe" -Arguments @("rev-parse","HEAD") -WorkingDirectory $cwd -CaptureBase ($LogPath+".git-head")
             $evidence.git_head=($head.stdout_tail-split"`r?`n")[-1].Trim()
             $status=if($exitCode-eq0){"SUCCEEDED"}else{"FAILED"}
+        }
+        "diagnostic_readonly"{
+            $evidence.diagnostic=Invoke-TypedReadOnlyProbe -Payload $envObj.payload
+            $status="SUCCEEDED";$exitCode=0
         }
         "file_read"{
             $path=Assert-ApprovedPath -Path ([string]$envObj.payload.path)

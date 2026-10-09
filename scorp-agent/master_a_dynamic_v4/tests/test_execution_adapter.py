@@ -7,6 +7,51 @@ import unittest
 
 
 class ExecutionAdapterTests(unittest.TestCase):
+    def prepare_bound_local_intent(self, store, root, project_id, intent_id):
+        """Build a real temporary SQLite Worker capability, not an unbound legacy bypass."""
+        from master_a_dynamic_v4.path_policy import PathPolicy
+        from master_a_dynamic_v4.scheduler import Scheduler
+
+        scheduler = Scheduler(store, project_id, PathPolicy([root]), max_workers=2)
+        scheduler.enqueue_graph([{
+            "task_id": "T1",
+            "objective_sha256": "a" * 64,
+            "resource_scope": [str(root)],
+            "access_mode": "read",
+            "dependencies": [],
+        }])
+        claim = scheduler.claim_runnable(master_epoch=0, limit=1)[0]
+        control = store.get_operator_control(project_id)
+        store.prepare_intent(
+            project_id, intent_id,
+            actor_id=claim.worker_id,
+            channel=f"execution/{claim.slot_id}",
+            action_kind="LOCAL_EXECUTION",
+            payload={
+                "assignment_id": claim.assignment_id,
+                "task_id": claim.task_id,
+                "master_epoch": claim.master_epoch,
+                "lease_token": claim.lease_token,
+                "operator_generation": int(control["operator_generation"]),
+                "objective_generation": int(control["objective_generation"]),
+                "worker_assignment": {
+                    "assignment_id": claim.assignment_id,
+                    "task_id": claim.task_id,
+                    "worker_id": claim.worker_id,
+                    "slot_id": claim.slot_id,
+                    "master_epoch": claim.master_epoch,
+                    "base_state_version": claim.base_state_version,
+                    "lease_token": claim.lease_token,
+                    "operator_generation": claim.operator_generation,
+                    "objective_generation": claim.objective_generation,
+                    "resource_scope": list(claim.resource_scope),
+                    "access_mode": claim.access_mode,
+                },
+                "request": {"module": "x"},
+            },
+        )
+        return claim
+
     def make_claim(self, root: pathlib.Path, *, mode: str = "read"):
         from master_a_dynamic_v4.scheduler import AssignmentClaim
 
@@ -226,13 +271,8 @@ class ExecutionAdapterTests(unittest.TestCase):
                     root_contract={"objective": "local"},
                     acceptance_contract={"required": ["AC"]},
                 )
-                store.prepare_intent(
-                    "local-recovery",
-                    "execution-intent-recovery",
-                    actor_id="worker-1",
-                    channel="execution/worker-slot-1",
-                    action_kind="LOCAL_EXECUTION",
-                    payload={"assignment_id": "assignment-recovery", "request": {"module": "x"}},
+                self.prepare_bound_local_intent(
+                    store, root, "local-recovery", "execution-intent-recovery"
                 )
                 store.begin_possible_submit("execution-intent-recovery")
                 outcomes = recover_pending_intents(BrowserAdapter(store, engine))
@@ -260,19 +300,14 @@ class ExecutionAdapterTests(unittest.TestCase):
                     root_contract={"objective": "stage"},
                     acceptance_contract={"required": ["AC"]},
                 )
-                store.prepare_intent(
-                    "local-stage",
-                    "execution-stage",
-                    actor_id="worker-1",
-                    channel="execution/worker-slot-1",
-                    action_kind="LOCAL_EXECUTION",
-                    payload={"assignment_id": "assignment-stage", "request": {"module": "x"}},
+                claim = self.prepare_bound_local_intent(
+                    store, root, "local-stage", "execution-stage"
                 )
                 store.begin_possible_submit("execution-stage")
                 prepared = store.mark_local_execution_stage(
                     "execution-stage",
                     stage="WORKTREE_PREPARED",
-                    observation={"worktree_receipt": {"assignment_id": "assignment-stage"}},
+                    observation={"worktree_receipt": {"assignment_id": claim.assignment_id}},
                 )
                 self.assertEqual("WORKTREE_PREPARED", __import__("json").loads(prepared["observation_json"])["local_execution_stage"])
                 started = store.mark_local_execution_stage(
