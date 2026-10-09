@@ -160,7 +160,11 @@ def stage_explicit_github_worker_artifact_for_review(
         and comment.get("html_url") == expected_url
         and comment.get("issue_url") == rest_issue
     )
-    normalized_form = comment.get("url") == expected_url
+    normalized_form = (
+        "html_url" not in comment
+        and "issue_url" not in comment
+        and comment.get("url") == expected_url
+    )
     if not (rest_form or normalized_form):
         return reject("GITHUB_ISSUE_OR_COMMENT_LINK_UNVERIFIED")
     created = _timestamp(comment.get("created_at"))
