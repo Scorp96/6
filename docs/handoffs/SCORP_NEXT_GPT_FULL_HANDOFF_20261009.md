@@ -158,3 +158,28 @@ NEXT SINGLE SAFE ACTION:
 **安全边界：** 当前 Chrome Use 没有真实可信的 GPT terminal-event 签发器，也没有证据证明 HMAC key 的生产隔离保管。因此不能把测试签名器制造的演示 receipt 写成真实 GPT 事件；本模块没有和现有 Task Scheduler、原 Master 提交适配器连接。若未完成本模块最新 SHA 的全部 CI/Windows 本机测试，状态应记 NOT_RUN，不能称 production accepted。
 
 下一 GPT 必须分离验证：1) event 原产地受信任；2) HMAC 真正持有本机密钥；3) replay ledger 跨崩溃有效；4) 独立续作意图在发送前持久化；5) 单独用户授权的 browser-send adapter。缺任一条件都保持 BLOCKED。
+
+
+## 十二、2026-10-09 08:32–08:33 新增 Windows 异常重启根因证据
+
+只读取证：
+- Issue #2317：https://github.com/Scorp96/scorp-control-plane/issues/2317
+- Issue #2318：https://github.com/Scorp96/scorp-control-plane/issues/2318
+
+核对原 V4 最近一次 LEASE_EXPIRED：2026-10-09 07:20:13 UTC+8。Windows System 日志在其前一分钟同时出现：
+- Kernel-General ID 12 约 07:19:13（Windows 系统启动事件）。
+- Kernel-Power ID 41 约 07:19:16（上一运行期异常关机后出现）。
+- EventLog ID 6008 约 07:19:31（Windows 非正常关闭记录）。
+- EventLog ID 6005 约 07:19:31（事件日志服务启动）。
+- V4 在约 07:20:13 记录 LEASE_EXPIRED，随后恢复到新 epoch。
+
+Kernel-Power 41 事件的安全数值字段为 BugcheckCode=0、PowerButtonTimestamp=0、SleepInProgress=0、BootAppStatus=0；附近未获得明确 BugCheck 1001 事件。**不能据此断言没有 BSOD**，但目前也没有找到明确的 bugcheck 代码。断电、强制复位、硬件/驱动故障仍要另行查证，不能把这次租约过期草率认定为 Daemon 逻辑缺陷。
+
+**验收必须拆分**：
+1. Windows 非计划重启后的 V4 SQLite 一致性、租约重新接管、safe-pause/no-send 恢复。
+2. 真实无主机中断的连续 24 小时运行。
+这两个目标不能互相替代。下一 GPT 应保持系统日志为只读，只汇报 event ID/time/安全数字字段，不披露包含个人信息的事件消息全文，不执行主机重启。
+
+## 十三、最新隔离新增的 HMAC Replay Ledger 与预检测试注意事项
+
+完整手册新增 next_gpt_status_probe.py（只读）和 isolated_host_replay_ledger.py（仅在 experiments/r2-* 内写独立数据库）及其测试。后者状态为 RESERVED_FOR_REVIEW、ALREADY_RESERVED 或 BLOCKED，**绝不授权浏览器发送**。首次 Windows CI 曾暴露测试 SQLite 连接未显式关闭导致的 WinError 32，已经修正；不得把失败的 workflow 当成 PASS。继任者以 PR **最终 SHA** 对应的最新 CI + 本机隔离测试为准，具体测试数应从 CI 日志读取而不是沿用 1,151 的旧版本统计。
