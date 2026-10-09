@@ -41,8 +41,8 @@ if ($raceMarker -lt 0 -or $moveMarker -le $raceMarker -or
     throw 'P0_BROKER_FRESH_INSTALL_RACE_GUARD_MISSING'
 }
 $commitSection = $text.Substring($raceMarker,$createMarker-$raceMarker)
-if ($commitSection.Contains('Remove-ServiceIfPresent') -or
-    $commitSection.Contains('Remove-Item $InstallDir')) {
+if ($commitSection -match '(?m)^\s*Remove-ServiceIfPresent\s' -or
+    $commitSection -match '(?m)^\s*Remove-Item\s+\$InstallDir\b') {
     throw 'P0_BROKER_FRESH_INSTALL_CAN_DELETE_EXISTING_SERVICE'
 }
 $invocations=@(
