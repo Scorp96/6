@@ -104,6 +104,44 @@ class ReplayLedgerTests(unittest.TestCase):
         self.assertEqual("NON_MONOTONIC_HOST_SEQUENCE", stale.reason)
         self.assertFalse(stale.browser_send_authorized)
 
+    def test_same_signed_event_id_cannot_cross_into_another_worker_scope(self):
+        self.assertEqual("RESERVED_FOR_REVIEW", self.call().status)
+        crossing = self.call(
+            event="1"*32, session="host-session-b", intent="intent-another-worker",
+        )
+        self.assertEqual("BLOCKED", crossing.status)
+        self.assertEqual("TERMINAL_EVENT_ID_SCOPE_REPLAY", crossing.reason)
+        with contextlib.closing(sqlite3.connect(self.path)) as db:
+            self.assertEqual(1, db.execute(
+                "SELECT COUNT(*) FROM host_terminal_global_ids"
+            ).fetchone()[0])
+            self.assertEqual(1, db.execute(
+                "SELECT COUNT(*) FROM host_terminal_events"
+            ).fetchone()[0])
+
+    def test_existing_legacy_event_rows_without_global_index_fail_closed(self):
+        with contextlib.closing(sqlite3.connect(self.path)) as db:
+            db.executescript("""
+            CREATE TABLE host_terminal_events(
+                event_key TEXT PRIMARY KEY, scope_key TEXT NOT NULL,
+                event_sequence INTEGER NOT NULL, receipt_sha256 TEXT NOT NULL,
+                reserved_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE host_terminal_scope_cursors(
+                scope_key TEXT PRIMARY KEY, high_sequence INTEGER NOT NULL
+            );
+            INSERT INTO host_terminal_events VALUES(
+                'legacy-event-key', 'old-scope', 2, 'old-digest', CURRENT_TIMESTAMP
+            );
+            """)
+        result=self.call(event="f"*32)
+        self.assertEqual("BLOCKED", result.status)
+        self.assertEqual("LEGACY_EVENT_GLOBAL_INDEX_UNVERIFIED", result.reason)
+        with contextlib.closing(sqlite3.connect(self.path)) as db:
+            self.assertEqual(1, db.execute(
+                "SELECT COUNT(*) FROM host_terminal_events"
+            ).fetchone()[0])
+
     def test_new_event_with_stale_sequence_is_rejected(self):
         self.call()
         old=self.call(event="2"*32,seq1=0,seq2=1)
