@@ -28,7 +28,10 @@ _SLOT = frozenset({"worker-slot-1", "worker-slot-2"})
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS r2_github_review_artifacts (
  comment_id INTEGER PRIMARY KEY CHECK(comment_id > 0),
+ project_digest TEXT NOT NULL,
  assignment_digest TEXT NOT NULL UNIQUE,
+ assignment_sha256 TEXT NOT NULL,
+ expected_state_version INTEGER NOT NULL CHECK(expected_state_version >= 0),
  body_digest TEXT NOT NULL,
  expected_issue_number INTEGER NOT NULL,
  trusted_author_id INTEGER NOT NULL,
@@ -201,6 +204,7 @@ def stage_explicit_github_worker_artifact_for_review(
         or _SHA.fullmatch(document["artifact_sha256"]) is None
     ):
         return reject("WORK_ARTIFACT_SCOPE_OR_DIGEST_INVALID")
+    project_hash = hashlib.sha256(expected_project_id.encode("ascii")).hexdigest()
     assignment_hash = hashlib.sha256(
         (expected_project_id + ":" + expected_assignment_id).encode("ascii")
     ).hexdigest()
@@ -222,14 +226,16 @@ def stage_explicit_github_worker_artifact_for_review(
                     return reject("DURABLE_WORK_ARTIFACT_OR_ASSIGNMENT_ALREADY_SEEN")
                 db.execute(
                     "INSERT INTO r2_github_review_artifacts "
-                    "(comment_id,assignment_digest,body_digest,"
+                    "(comment_id,project_digest,assignment_digest,"
+                    "assignment_sha256,expected_state_version,body_digest,"
                     "expected_issue_number,trusted_author_id,worker_slot,"
-                    "artifact_sha256,status) VALUES(?,?,?,?,?,?,?,?)",
+                    "artifact_sha256,status) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     (
-                        ident, assignment_hash, body_hash,
-                        verified_issue_number, allowlisted_github_author_id,
-                        expected_worker_slot, document["artifact_sha256"],
-                        "STAGED_FOR_REVIEW_ONLY",
+                        ident, project_hash, assignment_hash,
+                        expected_assignment_sha256, expected_state_version,
+                        body_hash, verified_issue_number,
+                        allowlisted_github_author_id, expected_worker_slot,
+                        document["artifact_sha256"], "STAGED_FOR_REVIEW_ONLY",
                     ),
                 )
                 db.commit()
