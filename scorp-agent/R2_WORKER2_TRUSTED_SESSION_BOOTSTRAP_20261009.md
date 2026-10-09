@@ -38,6 +38,21 @@ Outputs include `HISTORICAL_METADATA_ONLY`, `LEGACY_SESSION_REGISTRY_MISSING`, u
 
 This scanner itself can never sign physical identity, send a GPT prompt, rotate the original Master, or wake any Worker.
 
+### Live native Chrome Use inventory — an additional READ-ONLY option
+
+The installed Chrome Use binary's **real** session count must be obtained from `--json session list` with a finite timeout and validated JSON collection, not guessed from the old V3 `conversations` map. Do NOT use unbounded `--help`.
+
+- [Windows #2475](https://github.com/Scorp96/scorp-control-plane/issues/2475) returned one Chrome Use session object and no browser sends.
+- [Independent schema check #2476](https://github.com/Scorp96/scorp-control-plane/issues/2476) confirmed that the payload is an actual root `sessions` **list**, count=1, rather than a PowerShell `@($null)` count bug. Even that one CLI session is not a host-attested GPT Worker.
+- The new `isolated_worker_session_readiness_v4.py` can optionally include a **bounded** native CLI count with `--include-live-cli-sessions`. It only logs counts and fixed status, never session labels/URLs/identifiers and never opens a tab.
+
+```powershell
+$env:PYTHONPATH='C:\ScorpAgent\experiments\r2-worker2-session-readiness-20261009\scorp-agent'
+& 'C:\ScorpAgent\chatgpt-gui-bridge-runtime\Scripts\python.exe' -B -m master_a_dynamic_v4.isolated_worker_session_readiness_v4 --include-live-cli-sessions
+```
+
+This command is allowed **only after pinning an isolated source SHA and verifying the new regression**. It invokes native `chrome-use.exe --json session list` with a 15-second bounded timeout. `OBSERVED_SESSION_OBJECTS_ONLY` never turns into `HOST_VERIFIED`, even if the count later reaches 2. When the CLI times out, exits nonzero or has no collection, it returns `UNAVAILABLE`, **not** a fictitious count.
+
 ## 4. Actual next step to obtain the second real GPT result (without falsely claiming host attestation)
 
 1. A different, genuinely separate ChatGPT conversation must receive [the Worker-2 task #3](https://github.com/Scorp96/6/issues/3) under the user's account authorization. Its instructions read `scorp-agent/r2-work-assignments/real-worker-session-two.json`; it must independently produce meaningful code-specific source review.
