@@ -137,7 +137,12 @@ class UntrustedTurnRecordInspectorTests(unittest.TestCase):
 
     def test_cycle_and_orphan_branch_are_rejected(self):
         x = record()
-        x["mapping"][UID]["parent"] = AID
+        # The cycle must occur BEFORE reaching the latest expected user;
+        # anything older than that user is irrelevant to this reply.
+        x["mapping"][AID]["parent"] = "intermediate-tool"
+        x["mapping"]["intermediate-tool"] = {
+            "parent": AID, "message": {"author": {"role": "tool"}},
+        }
         self.assertEqual("LIVE_BRANCH_CYCLE", inspect(x).reason)
         x = record()
         x["mapping"][AID]["parent"] = "missing-node"
