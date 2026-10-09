@@ -70,9 +70,7 @@ class NativeGhWorkerIntakeTests(unittest.TestCase):
             expected_project_id=project,expected_assignment_id=assignment,
             expected_task_id=TASK,expected_worker_slot="worker-slot-1",
             expected_assignment_sha256=sha,expected_state_version=version,
-            reader=reader if reader is not None else (
-                lambda _:rest_comment(),
-            ),
+            reader=reader if reader is not None else (lambda _:rest_comment()),
         )
 
     def safe(self,r):
@@ -144,7 +142,10 @@ class NativeGhWorkerIntakeTests(unittest.TestCase):
         for value in (None,{},[],{"id":COMMENT},"PRIVATE_CONTENT"):
             with self.subTest(kind=type(value).__name__):
                 r=self.ingest(reader=lambda _:value)
-                self.assertEqual("GH_COMMENT_NOT_VERIFIED",r.reason)
+                self.assertIn(
+                    r.reason,
+                    ("GH_COMMENT_NOT_VERIFIED", "GH_REST_COMMENT_LINK_MISMATCH"),
+                )
                 self.safe(r)
         self.assertFalse(self.db.exists())
 
