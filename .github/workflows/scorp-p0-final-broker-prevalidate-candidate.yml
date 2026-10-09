@@ -1,15 +1,15 @@
-name: SCORP P0 final Broker prevalidator fence plus release audit artifact
+name: SCORP P0 lean integrated offline review
 on:
   push:
     branches:
-      - audit/p0-final-broker-prevalidate-fence-20261010
+      - audit/p0-lean-integrated-review-20261010
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: scorp-p0-final-broker-prevalidate-${{ github.ref }}
+  group: scorp-p0-lean-integrated-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -131,5 +131,5 @@ jobs:
       - name: Check full candidate diff
         shell: bash
         run: |
-          git fetch --no-tags --depth=1 origin audit/p0-release-review-pin-plan-20261010
+          git fetch --no-tags --depth=1 origin audit/p0-integrated-containment-20261010
           git diff --check FETCH_HEAD HEAD
