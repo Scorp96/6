@@ -184,6 +184,19 @@ class ChromeUseCliV3:
         except Exception as exc:
             raise ValueError("CHROME_USE_INVALID_JSON") from exc
 
+    async def list_sessions_readonly(self, *, timeout_seconds=10):
+        """Inventory existing Chrome Use sessions. No session creation/adoption."""
+        return await self._run_argv_json(
+            [self.executable, "--json", "session", "list"],
+            float(timeout_seconds),
+        )
+
+    async def list_tabs_readonly(self, session, *, timeout_seconds=10):
+        """Observe full tab metadata without selecting or navigating tabs."""
+        return await self.run_json(
+            session, "tab", "list", "--full", timeout_seconds=timeout_seconds,
+        )
+
     async def fill_text(self, session, selector, text, *, timeout_seconds=30):
         """Fill a control without putting a large prompt in process argv.
 
