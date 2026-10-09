@@ -159,6 +159,37 @@ class BrokerServiceTests(unittest.TestCase):
                          (root / 'audit.jsonl').read_text(encoding='utf-8').splitlines()]
                 self.assertEqual(audit[-1]['status'], 'REJECTED')
 
+    def test_future_backend_operation_remains_blocked_even_if_validator_allows_it(self):
+        # Simulate a later developer adding a new privileged operation without
+        # updating the Broker gate. The policy MUST default to deny rather
+        # than rely on a complete list of known dangerous commands.
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            backend = FakeBackend()
+            handler = make_handler(root, backend)
+            request = build_signed_request(
+                'future.power.manage', {'scope': 'host'}, SECRET,
+                request_id='future-unknown-op', now=NOW)
+            with patch('broker_service.validate_operation', return_value={'scope': 'host'}):
+                with patch('broker_service.dispatch_operation') as dispatch:
+                    reply = handler.handle(request, now=NOW)
+                    dispatch.assert_not_called()
+            self.assertEqual('ERROR', reply['status'])
+            self.assertEqual(
+                'BROKER_MUTATION_DISABLED_PENDING_TASK_APPROVAL', reply['error'])
+            self.assertFalse((root / 'ledger.json').exists())
+            self.assertEqual([], backend.calls)
+
+    def test_existing_approved_read_only_operations_are_an_exhaustive_positive_set(self):
+        from broker_service import _READ_ONLY_OPERATIONS
+        self.assertEqual(
+            frozenset({'identity.get', 'service.get', 'task.get'}),
+            _READ_ONLY_OPERATIONS,
+        )
+        for op in ('service.restart', 'task.run', 'file.write', 'registry.set'):
+            self.assertNotIn(op, _READ_ONLY_OPERATIONS)
+
     def test_read_only_service_and_task_queries_still_work(self):
         with tempfile.TemporaryDirectory() as td:
             backend = FakeBackend()
