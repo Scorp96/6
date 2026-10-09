@@ -45,6 +45,23 @@ A safe new supervised Worker browser experiment needs all these prerequisites, *
 5. Prove the newly created tab is a fresh ChatGPT workspace under the correct account and independent physical session; old V3 aliases, internal browser tabs, CLI daemon session records and unsigned page state are NOT sufficient identity evidence.
 6. A real GPT Worker task submission requires separate user authorization, a durable exactly-once send gate, a trustworthy browser completion event or artifact-based handoff, and explicit no-replay safeguards around the old Master. **This incident is NOT authorizing any prompt submission.**
 
+## 3A. Correct the Chrome Use transport mode before ANY new Worker browser
+
+Vendor references (current public upstream documentation; the user's pinned installed CLI is **1.5.123**, so each behavior must still be independently checked against that installation):
+
+- https://github.com/leeguooooo/chrome-use
+- https://chrome-use.leeguoo.com/real-chrome.html
+- https://chrome-use.leeguoo.com/sessions.html
+
+The vendor explicitly distinguishes two materially different execution paths:
+
+1. **`--launch` standalone Chrome**: a fresh blank profile **without existing ChatGPT cookies/login or the Chrome extension**. It is useful for isolated browser tests but cannot, merely by navigating to `https://chatgpt.com/`, become an authenticated GPT Worker. This was precisely the failed one-shot mode in #2486 and is now **quarantined** due the 21 lingering roots. Do not retry it.
+2. **Extension/native-messaging mode against the user's real Chrome**: can access an already logged-in user browser; individual `--session` contexts may have command-isolated tab groups within the same browser. This is the preferable *conceptual* route for user-authorized Worker tasks, but a tab-group name alone is NOT an authenticated GPT Worker, a new physical browser instance or a trustworthy completion event. It may share one underlying user's Chrome process and cookies and therefore requires account/permission confirmation and safeguards against the original Master.
+
+**As of Windows #2484/#2485**, extension is installed and one profile is enumerated, but its connection/isolation mode is not verified. Do not silently switch to or navigate the real user's Chrome as a workaround. First perform read-only connected-profile verification on the installed version, then obtain explicit operator-approved session+tab authority and a host-signed binding before any navigation or message.
+
+**Recommended future browser task shape:** dedicated Chrome extension-backed `--session` namespace plus a *new tab owned by that namespace*; confirm tab and account safely, never `tab adopt` the original Master and never select existing user tabs. Use the existing one-shot launch intent latch and a future trusted host process/session witness; run a genuinely separate GPT conversation only with user authorization. A native CLI Session/list or a group/color can prove at most tool isolation metadata, not completion or exact-once browser message transport.
+
 ## 4. Actual next GPT Worker2 task after the host is ready
 
 The independent task remains [Worker-2 GitHub Issue #3](https://github.com/Scorp96/6/issues/3), fixed assignment commit `116556a2d934c9dfe75572b82232f6410d1dc900` and file SHA256 `68ed1c98b5687e7e185c2320db446e76fe2d2720d867b60f220a026dd0b2fa4b`.
