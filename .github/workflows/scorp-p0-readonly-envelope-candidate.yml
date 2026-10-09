@@ -1,0 +1,41 @@
+name: SCORP P0 read-only envelope candidate
+on:
+  push:
+    branches:
+      - audit/p0-readonly-envelope-contract-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-p0-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-windows-contract:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exercise Runner fail-closed policy in isolated TEMP fixture (PowerShell 5.1)
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-readonly-envelope-contract.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'READONLY_ENVELOPE_CONTRACT_FAILED' }
+      - name: Full existing Windows offline candidate validation
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          Set-ExecutionPolicy -Scope Process Bypass
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'SCORP_CANDIDATE_REGRESSION_FAILED' }
+      - name: Diff hygiene
+        shell: bash
+        run: git diff --check HEAD^ HEAD
