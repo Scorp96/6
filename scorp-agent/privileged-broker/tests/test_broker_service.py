@@ -133,5 +133,77 @@ class BrokerServiceTests(unittest.TestCase):
             self.assertTrue(all(x['request_id'] == 'audit-1' for x in audit))
 
 
+    def test_new_mutating_operations_fail_closed_without_backend_or_ledger_reservation(self):
+        operations = {
+            'service.restart': {'name': 'ScorpWorker'},
+            'task.run': {'name': 'ScorpComputerAgent'},
+            'file.write': {'path': 'reports\\a.txt', 'text': 'no writes'},
+            'registry.set': {
+                'path': r'HKLM\Software\ScorpAgent',
+                'name': 'Mode', 'value': 'test', 'value_type': 'string',
+            },
+        }
+        for operation, params in operations.items():
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                backend = FakeBackend()
+                handler = make_handler(root, backend)
+                request = build_signed_request(
+                    operation, params, SECRET, request_id='blocked-' + operation, now=NOW)
+                response = handler.handle(request, now=NOW)
+                self.assertEqual(response['status'], 'ERROR')
+                self.assertEqual(response['error'], 'BROKER_MUTATION_DISABLED_PENDING_TASK_APPROVAL')
+                self.assertEqual(backend.calls, [])
+                self.assertFalse((root / 'ledger.json').exists())
+                audit = [json.loads(line) for line in
+                         (root / 'audit.jsonl').read_text(encoding='utf-8').splitlines()]
+                self.assertEqual(audit[-1]['status'], 'REJECTED')
+
+    def test_read_only_service_and_task_queries_still_work(self):
+        with tempfile.TemporaryDirectory() as td:
+            backend = FakeBackend()
+            handler = make_handler(Path(td), backend)
+            for operation, name in (('service.get', 'ScorpWorker'),
+                                    ('task.get', 'ScorpComputerAgent')):
+                req = build_signed_request(operation, {'name': name}, SECRET,
+                                           request_id='read-' + operation, now=NOW)
+                result = handler.handle(req, now=NOW)
+                self.assertEqual(result['status'], 'OK')
+                self.assertFalse(result['replayed'])
+            self.assertEqual([c[0] for c in backend.calls], ['service.get', 'task.get'])
+
+    def test_previously_completed_mutation_replays_without_new_side_effect(self):
+        # A deployed ledger may already have a DONE record from before containment.
+        # Returning its immutable receipt is safe; re-executing is not.
+        with tempfile.TemporaryDirectory() as td:
+            backend = FakeBackend()
+            handler = make_handler(Path(td), backend)
+            request = build_signed_request(
+                'service.restart', {'name': 'ScorpWorker'}, SECRET,
+                request_id='legacy-complete', now=NOW)
+            old_receipt = {'name': 'ScorpWorker', 'status': 'Running'}
+            handler.ledger.mark_inflight(request)
+            handler.ledger.complete(request, old_receipt)
+            replay = handler.handle(request, now=NOW + dt.timedelta(days=10))
+            self.assertEqual(replay['status'], 'OK')
+            self.assertTrue(replay['replayed'])
+            self.assertEqual(replay['result'], old_receipt)
+            self.assertEqual(backend.calls, [])
+
+    def test_inflight_mutation_remains_ambiguous_not_retried(self):
+        with tempfile.TemporaryDirectory() as td:
+            backend = FakeBackend()
+            handler = make_handler(Path(td), backend)
+            request = build_signed_request(
+                'task.run', {'name': 'ScorpComputerAgent'}, SECRET,
+                request_id='legacy-inflight', now=NOW)
+            handler.ledger.mark_inflight(request)
+            blocked = handler.handle(request, now=NOW)
+            self.assertEqual(blocked['status'], 'ERROR')
+            self.assertEqual(blocked['error'], 'REQUEST_INFLIGHT')
+            self.assertEqual(backend.calls, [])
+
+
+
 if __name__ == '__main__':
     unittest.main()
