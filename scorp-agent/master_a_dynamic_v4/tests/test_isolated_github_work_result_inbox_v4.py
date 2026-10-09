@@ -271,6 +271,51 @@ class ExplicitGitHubWorkReviewTests(unittest.TestCase):
         self.assertEqual("WORK_ARTIFACT_SCOPE_OR_DIGEST_INVALID",r.reason)
         self.assert_no_capability(r)
 
+    def test_real_github_rest_issue_comment_envelope(self):
+        record=provider()
+        record["url"]=(
+            "https://api.github.com/repos/Scorp96/scorp-control-plane/"
+            "issues/comments/" + str(COMMENT)
+        )
+        record["html_url"]=(
+            "https://github.com/Scorp96/scorp-control-plane/issues/"
+            + str(ISSUE) + "#issuecomment-" + str(COMMENT)
+        )
+        record["issue_url"]=(
+            "https://api.github.com/repos/Scorp96/scorp-control-plane/"
+            "issues/" + str(ISSUE)
+        )
+        result=self.stage(record)
+        self.assertEqual("STAGED_FOR_REVIEW",result.status)
+        self.assert_no_capability(result)
+        self.assertEqual(1,self.count())
+
+    def test_github_rest_issue_url_swap_is_blocked(self):
+        record=provider()
+        record["url"]=(
+            "https://api.github.com/repos/Scorp96/scorp-control-plane/"
+            "issues/comments/" + str(COMMENT)
+        )
+        record["html_url"]=record["url"]
+        record["issue_url"]=(
+            "https://api.github.com/repos/Scorp96/scorp-control-plane/issues/"
+            + str(ISSUE+1)
+        )
+        result=self.stage(record)
+        self.assertEqual("GITHUB_ISSUE_OR_COMMENT_LINK_UNVERIFIED",result.reason)
+        self.assertFalse(self.db.exists())
+
+    def test_mixed_normalized_rest_metadata_cannot_bypass_replay_scope(self):
+        record=provider()
+        record["issue_url"]=(
+            "https://api.github.com/repos/Scorp96/scorp-control-plane/issues/"
+            + str(ISSUE+100)
+        )
+        result=self.stage(record)
+        self.assertEqual("GITHUB_ISSUE_OR_COMMENT_LINK_UNVERIFIED",result.reason)
+        self.assertFalse(self.db.exists())
+
+
 
 if __name__=="__main__":
     unittest.main()
