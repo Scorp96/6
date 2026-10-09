@@ -30,6 +30,8 @@ class ImmutableArtifactProof:
     content_digest_verified: bool = False
     git_blob_identity_verified: bool = False
     scope_verified: bool = False
+    substantive_work_product_present: bool = False
+    work_product_sha256: str | None = None
     actual_worker_identity_verified: bool = False
     host_terminal_event_attested: bool = False
     browser_send_authorized: bool = False
@@ -38,6 +40,8 @@ class ImmutableArtifactProof:
     local_execution_authorized: bool = False
 
 def _native_gh_pinned_file(path: str, commit: str) -> object | None:
+    if type(require_substantive_work_product) is not bool:
+        return answer("BLOCKED", "SUBSTANTIVE_REQUIREMENT_INVALID")
     if (not isinstance(path, str) or not _PATH.fullmatch(path)
         or not isinstance(commit, str) or not _COMMIT.fullmatch(commit)):
         return None
@@ -78,13 +82,16 @@ def verify_immutable_github_artifact_for_review(
     expected_project_id: str, expected_assignment_id: str,
     expected_task_id: str, expected_worker_slot: str,
     expected_state_version: int, reader=None,
+    require_substantive_work_product: bool = False,
 ) -> ImmutableArtifactProof:
-    def answer(status, reason, *, verified=False):
+    def answer(status, reason, *, verified=False, substantive=False, digest=None):
         return ImmutableArtifactProof(
             status, reason,
             content_digest_verified=verified,
             git_blob_identity_verified=verified,
             scope_verified=verified,
+            substantive_work_product_present=substantive,
+            work_product_sha256=digest,
         )
     if (not isinstance(path, str) or not _PATH.fullmatch(path)
         or not isinstance(commit_sha, str) or not _COMMIT.fullmatch(commit_sha)
@@ -126,11 +133,17 @@ def verify_immutable_github_artifact_for_review(
         artifact = json.loads(raw.decode("utf-8"))
     except (ValueError, TypeError, binascii.Error, UnicodeError, OverflowError):
         return answer("BLOCKED", "PINNED_ARTIFACT_BODY_INVALID")
-    keys = {"protocol", "project_id", "assignment_id", "task_id",
-            "worker_slot", "state_version", "kind", "evidence_status"}
-    if not isinstance(artifact, dict) or set(artifact) != keys:
+    base_keys = {"protocol", "project_id", "assignment_id", "task_id",
+                 "worker_slot", "state_version", "kind", "evidence_status"}
+    if not isinstance(artifact, dict):
         return answer("BLOCKED", "PINNED_ARTIFACT_SCHEMA_INVALID")
-    if (artifact.get("protocol") != "scorp.r2.immutable-work-artifact/1"
+    is_v2 = artifact.get("protocol") == "scorp.r2.immutable-work-artifact/2"
+    expected_keys = base_keys | ({"work_product"} if is_v2 else set())
+    if set(artifact) != expected_keys:
+        return answer("BLOCKED", "PINNED_ARTIFACT_SCHEMA_INVALID")
+    if (artifact.get("protocol") not in (
+            "scorp.r2.immutable-work-artifact/1",
+            "scorp.r2.immutable-work-artifact/2")
         or artifact.get("kind") != "WORK_PRODUCT_FOR_REVIEW"
         or artifact.get("evidence_status") != "ARTIFACT_PRESENT_NOT_GPT_FINAL"
         or artifact.get("project_id") != expected_project_id
@@ -140,6 +153,36 @@ def verify_immutable_github_artifact_for_review(
         or type(artifact.get("state_version")) is not int
         or artifact["state_version"] != expected_state_version):
         return answer("BLOCKED", "PINNED_ARTIFACT_ASSIGNMENT_SCOPE_INVALID")
-    return answer("IMMUTABLE_ARTIFACT_VERIFIED_FOR_REVIEW",
-                  "GIT_BLOB_AND_SHA256_MATCH_NO_GPT_TERMINAL_PROOF",
-                  verified=True)
+    if not is_v2:
+        if require_substantive_work_product:
+            return answer("BLOCKED", "SUBSTANTIVE_WORK_PRODUCT_V2_REQUIRED")
+        return answer("IMMUTABLE_ARTIFACT_VERIFIED_FOR_REVIEW",
+                      "GIT_BLOB_AND_SHA256_MATCH_NO_GPT_TERMINAL_PROOF",
+                      verified=True)
+    work = artifact.get("work_product")
+    if not isinstance(work, dict) or set(work) != {
+        "title", "deliverable_markdown", "review_checks", "source_refs"
+    }:
+        return answer("BLOCKED", "WORK_PRODUCT_FIELDS_INVALID")
+    title = work["title"]
+    deliverable = work["deliverable_markdown"]
+    checks = work["review_checks"]
+    refs = work["source_refs"]
+    if (not isinstance(title, str) or not 12 <= len(title) <= 160
+        or title.isspace()
+        or not isinstance(deliverable, str)
+        or not 300 <= len(deliverable) <= 24000
+        or len(deliverable.strip()) < 300
+        or not isinstance(checks, list) or not 2 <= len(checks) <= 12
+        or any(not isinstance(i, str) or not 12 <= len(i) <= 400
+               or not i.strip() for i in checks)
+        or not isinstance(refs, list) or len(refs) > 15
+        or any(not isinstance(i, str) or not 8 <= len(i) <= 500
+               or not i.strip() for i in refs)):
+        return answer("BLOCKED", "SUBSTANTIVE_WORK_PRODUCT_INVALID")
+    # Data presence is NOT work quality, model identity, independent
+    # session provenance or the ChatGPT host TURN_FINAL event.
+    work_sha = hashlib.sha256(deliverable.encode("utf-8")).hexdigest()
+    return answer("SUBSTANTIVE_WORK_PRODUCT_FOR_HUMAN_REVIEW",
+                  "PINNED_SUBSTANTIVE_TEXT_PRESENT_NO_GPT_IDENTITY",
+                  verified=True, substantive=True, digest=work_sha)
