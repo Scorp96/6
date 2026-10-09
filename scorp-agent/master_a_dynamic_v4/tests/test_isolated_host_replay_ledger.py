@@ -61,13 +61,14 @@ class ReplayLedgerTests(unittest.TestCase):
 
     def call(self, *, event="1"*32, seq1=1, seq2=2, session="host-session-a",
              generation=3, intent="intent-x", url=URL, key=KEY,
-             root=None, database=None):
+             root=None, database=None, expected_url=None):
         samples,receipts=pair(event=event,seq1=seq1,seq2=seq2,
                               session=session,generation=generation,intent=intent,url=url)
         return reserve_terminal_receipt_for_review(
             database or self.path,allowed_experiments_root=root or self.root,
             samples=samples,receipts=receipts,host_attestation_key=key,
-            expected_session_id=session,expected_conversation_url=url,
+            expected_session_id=session,
+            expected_conversation_url=url if expected_url is None else expected_url,
             expected_binding_generation=generation,expected_intent_id=intent,
         )
 
@@ -83,6 +84,24 @@ class ReplayLedgerTests(unittest.TestCase):
         self.assertEqual("ALREADY_RESERVED",self.call().status)
         with contextlib.closing(sqlite3.connect(self.path)) as db:
             self.assertEqual(1,db.execute("SELECT COUNT(*) FROM host_terminal_events").fetchone()[0])
+
+    def test_canonical_url_alias_cannot_re_reserve_signed_terminal_event(self):
+        self.assertEqual("RESERVED_FOR_REVIEW", self.call().status)
+        # The signed receipt and samples keep their canonical URL. Only the
+        # caller-supplied expected URL varies, as happens across handoffs.
+        padded = self.call(expected_url="  " + URL + "  ")
+        self.assertEqual("ALREADY_RESERVED", padded.status)
+        self.assertFalse(padded.browser_send_authorized)
+        with contextlib.closing(sqlite3.connect(self.path)) as db:
+            self.assertEqual(1, db.execute("SELECT COUNT(*) FROM host_terminal_events").fetchone()[0])
+            self.assertEqual(1, db.execute("SELECT COUNT(*) FROM host_terminal_scope_cursors").fetchone()[0])
+
+    def test_padded_expected_url_does_not_reset_sequence_cursor(self):
+        self.assertEqual("RESERVED_FOR_REVIEW", self.call().status)
+        stale = self.call(event="2"*32, seq1=0, seq2=1, expected_url=" " + URL)
+        self.assertEqual("BLOCKED", stale.status)
+        self.assertEqual("NON_MONOTONIC_HOST_SEQUENCE", stale.reason)
+        self.assertFalse(stale.browser_send_authorized)
 
     def test_new_event_with_stale_sequence_is_rejected(self):
         self.call()
