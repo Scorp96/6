@@ -144,7 +144,24 @@ def stage_explicit_github_worker_artifact_for_review(
         "https://github.com/Scorp96/scorp-control-plane/issues/"
         + str(verified_issue_number) + "#issuecomment-" + str(ident)
     )
-    if comment.get("url") != expected_url:
+    # GitHub's REST issue-comment API uses .url for its REST endpoint and
+    # .html_url for the browser anchor. The connector-normalized shape uses
+    # .url for that browser anchor instead. Both paths bind id+issue exactly.
+    rest_url = (
+        "https://api.github.com/repos/Scorp96/scorp-control-plane/"
+        "issues/comments/" + str(ident)
+    )
+    rest_issue = (
+        "https://api.github.com/repos/Scorp96/scorp-control-plane/"
+        "issues/" + str(verified_issue_number)
+    )
+    rest_form = (
+        comment.get("url") == rest_url
+        and comment.get("html_url") == expected_url
+        and comment.get("issue_url") == rest_issue
+    )
+    normalized_form = comment.get("url") == expected_url
+    if not (rest_form or normalized_form):
         return reject("GITHUB_ISSUE_OR_COMMENT_LINK_UNVERIFIED")
     created = _timestamp(comment.get("created_at"))
     updated = _timestamp(comment.get("updated_at"))
