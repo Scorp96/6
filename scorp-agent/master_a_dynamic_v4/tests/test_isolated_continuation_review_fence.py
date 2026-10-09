@@ -160,6 +160,30 @@ class DurableNoSendReviewFenceTests(unittest.TestCase):
         result = self.claim()
         self.assertEqual("TERMINAL_EVENT_LEDGER_INCOMPLETE", result.reason)
 
+    def test_missing_or_stale_terminal_cursor_never_claims(self):
+        self.seed()
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute(
+                "UPDATE host_terminal_scope_cursors SET high_sequence=1"
+            )
+            db.commit()
+        self.assertEqual(
+            "TERMINAL_EVENT_LEDGER_INCOMPLETE", self.claim().reason
+        )
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute("DELETE FROM host_terminal_scope_cursors")
+            db.commit()
+        self.assertEqual(
+            "TERMINAL_EVENT_LEDGER_INCOMPLETE", self.claim().reason
+        )
+        with contextlib.closing(sqlite3.connect(self.db)) as db:
+            db.execute(
+                "INSERT INTO host_terminal_scope_cursors("
+                "scope_key,high_sequence) VALUES(?,?)", ("s"*64, 2),
+            )
+            db.commit()
+        self.assertEqual("CLAIMED_FOR_REVIEW", self.claim().status)
+
     def test_sqlite_error_rolls_back_claim_without_contaminating_candidate(self):
         self.seed()
         with contextlib.closing(sqlite3.connect(self.db)) as db:
