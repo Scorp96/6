@@ -208,6 +208,10 @@ class DurableNoSendReviewFenceTests(unittest.TestCase):
             self.skipTest("OS does not support hardlinks here")
         result = self.claim(db=alias)
         self.assertEqual("EXPERIMENT_SCOPE_INVALID", result.reason)
+        # Both names must be rejected while a hardlink exists; unlink the
+        # temporary alias before performing an ordinary isolated claim.
+        self.assertEqual("EXPERIMENT_SCOPE_INVALID", self.claim().reason)
+        alias.unlink()
         self.assertEqual("CLAIMED_FOR_REVIEW", self.claim().status)
 
     def test_invalid_keys_fail_closed_without_db_access(self):
