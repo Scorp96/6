@@ -201,6 +201,8 @@ def stage_atomic_pinned_substantive_artifact_for_review(
                     return reply("BLOCKED", "PROJECT_REVIEW_CAPACITY_EXCEEDED")
                 for slot, base_sha, blob_sha, blob_status, text_sha, text_status in existing:
                     if (slot not in ("worker-slot-1", "worker-slot-2")
+                        or not isinstance(base_sha, str) or _SHA.fullmatch(base_sha) is None
+                        or not isinstance(blob_sha, str) or _SHA.fullmatch(blob_sha) is None
                         or blob_sha != base_sha
                         or blob_status != "GIT_BLOB_VERIFIED_FOR_HUMAN_REVIEW"
                         or not isinstance(text_sha, str) or _SHA.fullmatch(text_sha) is None
