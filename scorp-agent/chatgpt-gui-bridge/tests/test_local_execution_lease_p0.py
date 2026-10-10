@@ -60,6 +60,8 @@ class LocalExecutionLiveLeaseTests(unittest.TestCase):
                 "assignment_id": self.claim.assignment_id,
                 "task_id": self.claim.task_id,
                 "master_epoch": self.claim.master_epoch,
+                "operator_generation": self.claim.operator_generation,
+                "objective_generation": self.claim.objective_generation,
                 "lease_token": self.claim.lease_token,
                 "request": {"access_mode": self.claim.access_mode, "module": "no-op"},
             },
@@ -97,6 +99,32 @@ class LocalExecutionLiveLeaseTests(unittest.TestCase):
             self.claim.project_id,
         )
         self.assert_denied_without_side_effect_reservation()
+
+    def test_operator_generation_change_fences_old_work_before_reservation(self):
+        self.change(
+            "UPDATE project_state SET operator_generation=operator_generation+1 WHERE project_id=?",
+            self.claim.project_id,
+        )
+        self.assert_denied_without_side_effect_reservation()
+
+    def test_objective_generation_change_fences_old_work_before_reservation(self):
+        self.change(
+            "UPDATE project_state SET objective_generation=objective_generation+1 WHERE project_id=?",
+            self.claim.project_id,
+        )
+        self.assert_denied_without_side_effect_reservation()
+
+    def test_issued_generations_are_durably_bound_to_active_assignment(self):
+        state = self.store.get_project_state(self.claim.project_id)
+        with self.store._connection() as conn:
+            row = conn.execute(
+                "SELECT operator_generation,objective_generation FROM assignments WHERE assignment_id=?",
+                (self.claim.assignment_id,),
+            ).fetchone()
+        self.assertEqual(int(row["operator_generation"]), self.claim.operator_generation)
+        self.assertEqual(int(row["objective_generation"]), self.claim.objective_generation)
+        self.assertEqual(int(state["operator_generation"]), self.claim.operator_generation)
+        self.assertEqual(int(state["objective_generation"]), self.claim.objective_generation)
 
     def test_graph_version_change_fences_old_local_work(self):
         self.change(

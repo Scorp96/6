@@ -1,8 +1,8 @@
-name: SCORP mainline P0 full security and live Worker lease audit
+name: SCORP P0 generation-bound Worker migration candidate
 on:
   push:
     branches:
-      - audit/mainline-p0-all-safety-live-lease-20261010
+      - audit/p0-generations-fenced-review-20261010
   workflow_dispatch:
 
 permissions:
@@ -23,14 +23,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Exact current production main ancestry, one commit, 29 reviewed paths
+      - name: Exact current production main ancestry, one commit, 33 reviewed paths
         shell: pwsh
         run: |
           git fetch --quiet origin main
           $main = (git rev-parse origin/main).Trim()
           $base = (git merge-base HEAD origin/main).Trim()
           $n = (git rev-list --count origin/main..HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $main -cne $base -or $n -ne '1') {
+          if ($LASTEXITCODE -ne 0 -or $main -cne $base -or $n -ne '2') {
             throw 'P0_PRODUCTION_MAIN_ANCESTRY_DRIFT'
           }
           $allow = @(
@@ -62,10 +62,14 @@ jobs:
             'scorp-agent/master_a_dynamic_v4/tests/test_execution_adapter.py',
             'scorp-agent/chatgpt-gui-bridge/tests/test_local_execution_lease_p0.py',
             'docs/SCORP_MAINLINE_EXECUTION_LEASE_P0_20261010.md',
+            'scorp-agent/master_a_dynamic_v4/schema.sql',
+            'scorp-agent/master_a_dynamic_v4/scheduler.py',
+            'scorp-agent/chatgpt-gui-bridge/tests/test_worker_generation_p0.py',
+            'docs/SCORP_OPERATOR_OBJECTIVE_GENERATION_MIGRATION_P0_20261010.md',
             '.github/workflows/scorp-mainline-p0-security-release-review.yml'
           )
           $changed = @(git diff --name-only origin/main...HEAD)
-          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 29) {
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 33) {
             throw 'P0_MAINLINE_REVIEW_SCOPE_INVALID'
           }
           foreach ($path in $changed) {
@@ -73,7 +77,7 @@ jobs:
           }
           git diff --check origin/main...HEAD
           if ($LASTEXITCODE -ne 0) { throw 'P0_MAINLINE_DIFF_INVALID' }
-          Write-Host 'MAINLINE_P0_ONE_COMMIT_29_FILES_VERIFIED'
+          Write-Host 'MAINLINE_P0_TWO_COMMITS_33_FILES_VERIFIED'
       - name: Bootstrap Limited principal and first-write order check
         shell: pwsh
         run: |
@@ -141,6 +145,11 @@ jobs:
         run: |
           python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p 'test_local_execution_lease_p0.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'P0_LOCAL_EXECUTION_LIVE_LEASE_FENCE_FAILED' }
+      - name: Operator/objective generation revocation and schema-v3 migration negative tests
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p 'test_worker_generation_p0.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_GENERATION_REVOCATION_OR_MIGRATION_TESTS_FAILED' }
       - name: Complete Windows R2 and GUI Bridge offline regression
         shell: pwsh
         env:
