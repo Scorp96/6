@@ -15,6 +15,11 @@ INSTALL_ROOT = Path(r'C:\ScorpAgent\privileged-broker')
 STATE_ROOT = Path(r'C:\ProgramData\ScorpAgent\privileged-broker')
 MAX_MESSAGE_BYTES = 1024 * 1024
 
+# The executor account has read access to the current HMAC key. This
+# authenticates integrity, NOT a separately human-approved privileged action.
+# Explicit capability allowlist: new operations always default to DENY.
+_READ_ONLY_OPERATIONS = frozenset({'identity.get', 'service.get', 'task.get'})
+
 
 def decode_request_message(raw: bytes) -> dict:
     if not isinstance(raw, (bytes, bytearray)) or not raw or len(raw) > MAX_MESSAGE_BYTES:
@@ -84,11 +89,16 @@ class BrokerHandler:
         request_id = request.get('request_id') if isinstance(request, dict) else None
         try:
             validated = validate_request_identity(request, self.secret)
-            validate_operation(validated['operation'], validated['params'])
+            # A prior exact DONE receipt may be returned; ambiguous INFLIGHT
+            # requests stay blocked and must not be attempted again.
             cached = self.ledger.lookup(validated)
             if cached is not None:
                 self._audit(validated, 'REPLAY', result=cached)
                 return self._response(request_id, 'OK', result=cached, replayed=True)
+            # Enforce before invoking any new operation-specific validator.
+            if validated['operation'] not in _READ_ONLY_OPERATIONS:
+                raise ValueError('BROKER_MUTATION_DISABLED_PENDING_TASK_APPROVAL')
+            validate_operation(validated['operation'], validated['params'])
             validated = validate_request_freshness(validated, now=now)
             self.ledger.mark_inflight(validated)
         except Exception as exc:
