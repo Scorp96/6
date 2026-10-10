@@ -138,7 +138,7 @@ class ExecutionAdapterTests(unittest.TestCase):
     def test_recovery_never_replays_unresolved_local_execution_intent(self):
         from master_a_dynamic_v4.browser_adapter import BrowserAdapter
         from master_a_dynamic_v4.recovery import recover_pending_intents
-        from master_a_dynamic_v4.state_store import StateStore
+        from master_a_dynamic_v4.state_store import StateStore, StoreInvariantError
 
         class Engine:
             def __init__(self):
@@ -166,7 +166,23 @@ class ExecutionAdapterTests(unittest.TestCase):
                     action_kind="LOCAL_EXECUTION",
                     payload={"assignment_id": "assignment-recovery", "request": {"module": "x"}},
                 )
-                store.begin_possible_submit("execution-intent-recovery")
+                # New malformed local-execution intents MUST be rejected before
+                # reserving any side effect (the new P0 authority gate).
+                with self.assertRaisesRegex(StoreInvariantError, "LOCAL_EXECUTION_AUTHORITY_FENCED"):
+                    store.begin_possible_submit("execution-intent-recovery")
+                self.assertEqual("PREPARED", store.get_intent("execution-intent-recovery")["state"])
+                # Emulate a *pre-existing* legacy MAY_HAVE_SUBMITTED crash
+                # record directly in the isolated fixture DB. Recovery must
+                # never replay it; this is NOT a production bypass path.
+                with store._transaction() as conn:
+                    conn.execute(
+                        "UPDATE action_intents SET state='MAY_HAVE_SUBMITTED' WHERE intent_id=?",
+                        ("execution-intent-recovery",),
+                    )
+                    conn.execute(
+                        "UPDATE outbox SET state='SUBMITTING' WHERE intent_id=?",
+                        ("execution-intent-recovery",),
+                    )
                 outcomes = recover_pending_intents(BrowserAdapter(store, engine))
                 self.assertEqual(
                     [("execution-intent-recovery", "LOCAL_EXECUTION_RECONCILIATION_REQUIRED")],
