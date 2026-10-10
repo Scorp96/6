@@ -214,7 +214,9 @@ class V4BridgeGateway:
         with self.store._connection() as conn:
             row = conn.execute(
                 """
-                SELECT a.*,l.state AS lease_state,l.expires_at,s.master_epoch AS current_epoch
+                SELECT a.*,l.state AS lease_state,l.expires_at,s.master_epoch AS current_epoch,
+                       s.operator_generation AS active_operator_generation,
+                       s.objective_generation AS active_objective_generation
                 FROM assignments a
                 JOIN leases l ON l.assignment_id=a.assignment_id
                 JOIN project_state s ON s.project_id=a.project_id
@@ -230,6 +232,12 @@ class V4BridgeGateway:
             or str(row["state"]) != "ACTIVE"
             or int(row["master_epoch"]) != int(claim.master_epoch)
             or int(row["current_epoch"]) != int(claim.master_epoch)
+            or int(row["operator_generation"]) < 0
+            or int(row["operator_generation"]) != int(getattr(claim, "operator_generation", -1))
+            or int(row["operator_generation"]) != int(row["active_operator_generation"])
+            or int(row["objective_generation"]) < 0
+            or int(row["objective_generation"]) != int(getattr(claim, "objective_generation", -1))
+            or int(row["objective_generation"]) != int(row["active_objective_generation"])
             or str(row["expires_at"]) <= utc_now()
         ):
             raise WorkerFenceError("WORKER_FENCED")
@@ -243,6 +251,8 @@ class V4BridgeGateway:
                 "worker_id": claim.worker_id,
                 "slot_id": claim.slot_id,
                 "master_epoch": claim.master_epoch,
+                "operator_generation": int(claim.operator_generation),
+                "objective_generation": int(claim.objective_generation),
                 "base_state_version": claim.base_state_version,
                 "objective_sha256": claim.objective_sha256,
                 "resource_scope": list(claim.resource_scope),

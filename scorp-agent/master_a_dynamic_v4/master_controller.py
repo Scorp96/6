@@ -449,6 +449,8 @@ class MasterAController:
             "assignment_id": claim.assignment_id,
             "task_id": claim.task_id,
             "master_epoch": claim.master_epoch,
+            "operator_generation": int(getattr(claim, "operator_generation", -1)),
+            "objective_generation": int(getattr(claim, "objective_generation", -1)),
             "lease_token": claim.lease_token,
             "request": dict(request),
         }
