@@ -19,6 +19,25 @@ class MissingControllerTests(unittest.TestCase):
         self.assertEqual(7, controller.master_epoch)
         self.assertEqual("MASTER_ACTIVE", attached["status"])
 
+    def test_worker_prompt_leaking_raw_lease_is_blocked_before_browser_send(self):
+        from master_a_dynamic_v4.master_controller import MasterAController
+
+        gateway = _FakeGateway("controller-project")
+        controller = MasterAController(gateway, "master-session")
+        controller.start({"objective": "reject bearer leak"}, {"required": ["AC-CONTROLLER"]})
+        controller.apply_plan({
+            "project_id": "controller-project",
+            "master_identity": "A",
+            "tasks": [_task("T1", "a" * 64)],
+        })
+        step = controller.step(
+            lambda claim: "this is a secret lease: " + claim.lease_token,
+            lambda row: {},
+        )
+        self.assertEqual("BLOCKED", step.status)
+        self.assertTrue(any("WORKER_PROMPT_LEAKS_LEASE_TOKEN" in msg for msg in step.blockers))
+        self.assertEqual(0, gateway.submit_calls)
+
     def test_master_identity_is_validated_before_gateway_calls(self):
         from master_a_dynamic_v4.master_controller import ControllerRejected, MasterAController
 
@@ -239,6 +258,11 @@ class _FakeStore:
             },
         )
         return row
+
+    def assert_local_execution_lease(self, intent_id):
+        if self.local_intents[intent_id]["action_kind"] != "LOCAL_EXECUTION":
+            raise AssertionError("fake intent kind invalid")
+        return None
 
     def begin_possible_submit(self, intent_id):
         self.local_intents[intent_id]["state"] = "MAY_HAVE_SUBMITTED"

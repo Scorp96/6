@@ -1,0 +1,157 @@
+name: SCORP mainline P0 security lease and release review
+on:
+  push:
+    branches:
+      - audit/mainline-p0-full-security-local-lease-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-main-p0-authority-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-offline:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exact current production main ancestry, one commit, 29 reviewed paths
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $main = (git rev-parse origin/main).Trim()
+          $base = (git merge-base HEAD origin/main).Trim()
+          $n = (git rev-list --count origin/main..HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $main -cne $base -or $n -ne '1') {
+            throw 'P0_PRODUCTION_MAIN_ANCESTRY_DRIFT'
+          }
+          $allow = @(
+            'scorp-agent/privileged-broker/broker_service.py',
+            'scorp-agent/privileged-broker/install-broker.ps1',
+            'scorp-agent/privileged-broker/tests/test_broker_readonly_p0.py',
+            'scorp-agent/privileged-broker/tests/p0-broker-fresh-installer-preflight.ps1',
+            'docs/SCORP_MAINLINE_BROKER_P0_20261010.md',
+            'docs/SCORP_MAINLINE_BROKER_INSTALLER_P0_20261010.md',
+            'scorp-agent/bootstrap-v4.ps1',
+            'scorp-agent/install.ps1',
+            'scorp-agent/tests/v4-bootstrap-limited-runlevel.ps1',
+            'scorp-agent/tests/v4-bootstrap-preflight-before-writes.ps1',
+            'scorp-agent/tests/v4-fresh-installer-no-clobber.ps1',
+            'docs/SCORP_MAINLINE_BOOTSTRAP_TASK_AUTHORITY_20261010.md',
+            'scorp-agent/master_a_dynamic_v4/master_controller.py'
+            'scorp-agent/chatgpt-gui-bridge/v4_bridge_gateway.py'
+            'scorp-agent/master_a_dynamic_v4/tests/test_master_controller.py'
+            'scorp-agent/chatgpt-gui-bridge/tests/test_v4_bridge_gateway.py'
+            'docs/SCORP_MAINLINE_WORKER_TOKEN_SECRECY_20261010.md'
+                        'scripts/scorp_p0_release_verify.py',
+            'scripts/scorp_p0_release_pin_plan.py',
+            'scripts/tests/test_scorp_p0_release_verify.py',
+            'scripts/tests/test_scorp_p0_release_pin_plan.py',
+            'docs/SCORP_MAINLINE_RELEASE_PREFLIGHT_20261010.md',
+            'scorp-agent/tests/v4-bootstrap-effective-token-gate.ps1',
+            'docs/SCORP_MAINLINE_EFFECTIVE_TOKEN_PRECHECK_20261010.md',
+            'scorp-agent/master_a_dynamic_v4/state_store.py',
+            'scorp-agent/master_a_dynamic_v4/tests/test_execution_adapter.py',
+            'scorp-agent/chatgpt-gui-bridge/tests/test_local_execution_lease_p0.py',
+            'docs/SCORP_MAINLINE_EXECUTION_LEASE_P0_20261010.md',
+            '.github/workflows/scorp-mainline-p0-security-release-review.yml'
+          )
+          $changed = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 29) {
+            throw 'P0_MAINLINE_REVIEW_SCOPE_INVALID'
+          }
+          foreach ($path in $changed) {
+            if ($path -cnotin $allow) { throw ('P0_OUTSIDE_REVIEW_SCOPE:'+ $path) }
+          }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'P0_MAINLINE_DIFF_INVALID' }
+          Write-Host 'MAINLINE_P0_ONE_COMMIT_29_FILES_VERIFIED'
+      - name: Bootstrap Limited principal and first-write order check
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-limited-runlevel.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_BOOTSTRAP_PRINCIPAL_CHECK_FAILED' }
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-preflight-before-writes.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_BOOTSTRAP_NO_EARLY_WRITE_FAILED' }
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-effective-token-gate.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_BOOTSTRAP_ELEVATED_PROCESS_TOKEN_NOT_FENCED' }
+      - name: Task and Broker installers must reject unauthorised invocations before touching host
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-fresh-installer-no-clobber.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_TASK_DEFAULT_DENIAL_FAILED' }
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\privileged-broker\tests\p0-broker-fresh-installer-preflight.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_BROKER_DEFAULT_DENIAL_FAILED' }
+      - name: Broker test-only Windows CI dependency
+        shell: pwsh
+        run: |
+          python -m pip install pywin32==312
+          if ($LASTEXITCODE -ne 0) { throw 'P0_TEST_DEPENDENCY_FAILED' }
+      - name: Complete Broker positive allowlist and all legacy tests
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path 'scorp-agent/privileged-broker').Path
+          python -B -m unittest discover -s scorp-agent/privileged-broker/tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_BROKER_COMBINED_TEST_FAILED' }
+      - name: Signed-content format and exact Git SHA release integrity negatives
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s scripts/tests -p 'test_scorp_p0_release_verify.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_RELEASE_INTEGRITY_TESTS_FAILED' }
+          python -B -m unittest discover -s scripts/tests -p 'test_scorp_p0_release_pin_plan.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_RELEASE_REVIEW_PIN_TESTS_FAILED' }
+      - name: Production release manifest MUST remain blocked, no automatic pin rewriting
+        shell: pwsh
+        run: |
+          $res = @(python scripts/scorp_p0_release_verify.py --repo-root . --source-mode git)
+          $status = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+          if ($status -ne 2) { throw 'P0_RELEASE_BLOCKING_GUARD_BYPASSED' }
+          $report = $res[-1] | ConvertFrom-Json
+          if ($report.result -cne 'BLOCKED' -or $report.release_authorized -or
+              $report.blocked_files -lt 1 -or $report.total_files -ne 7) {
+            throw 'P0_RELEASE_BLOCKED_CONTRACT_INVALID'
+          }
+          Write-Host "P0_UNAPPROVED_RELEASE_BLOCKED_COUNT=$($report.blocked_files)"
+      - name: Generate current exact-head read-only review pin artifact
+        shell: pwsh
+        run: |
+          python scripts/scorp_p0_release_pin_plan.py --repo-root . --expected-head $env:GITHUB_SHA > scorp-p0-main-review-only.json
+          if ($LASTEXITCODE -ne 0) { throw 'P0_PIN_PLAN_GENERATION_FAILED' }
+          $p = Get-Content -LiteralPath scorp-p0-main-review-only.json -Raw | ConvertFrom-Json
+          if ($p.candidate_source_commit_sha -cne $env:GITHUB_SHA -or $p.release_authorized -or
+              $p.operator_signoff_attested -or $p.windows_host_attested -or
+              $p.current_manifest_result -cne 'BLOCKED') { throw 'P0_PIN_ARTIFACT_FALSE_RELEASE' }
+          Write-Host 'P0_REVIEW_ONLY_NOT_AN_APPROVED_RELEASE'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scorp-main-p0-review-only-${{ github.sha }}
+          path: scorp-p0-main-review-only.json
+          retention-days: 7
+      - name: Stale Worker lease 11 SQLite negative tests, no browser sends
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p 'test_local_execution_lease_p0.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_LIVE_WORKER_LEASE_FENCING_TESTS_FAILED' }
+      - name: Complete Windows R2 and GUI Bridge offline regression
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_MAINLINE_FULL_REGRESSION_FAILED' }
+      - name: Explicitly not deployed
+        shell: pwsh
+        run: |
+          Write-Host 'SOURCE_CI_PASS_ONLY'
+          Write-Host 'PRODUCTION_R1_NOT_MODIFIED'
+          Write-Host 'LOCAL_SYSTEM_BROKER_PROVENANCE_UNVERIFIED'
+          Write-Host 'NO_BROWSER_SEND_OR_RELEASE_APPROVAL'
