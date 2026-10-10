@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class StoreInvariantError(RuntimeError):
@@ -101,6 +101,18 @@ class StateStore:
                 conn.execute(
                     "ALTER TABLE assignments ADD COLUMN base_state_version INTEGER NOT NULL DEFAULT 0 CHECK (base_state_version >= 0)"
                 )
+            # Legacy claim generations remain -1 to avoid accidental promotion.
+            for name in ("operator_generation", "objective_generation"):
+                if name not in assignment_columns:
+                    conn.execute(
+                        f"ALTER TABLE assignments ADD COLUMN {name} INTEGER NOT NULL DEFAULT -1 CHECK ({name} >= -1)"
+                    )
+            state_columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(project_state)").fetchall()}
+            for name in ("operator_generation", "objective_generation"):
+                if name not in state_columns:
+                    conn.execute(
+                        f"ALTER TABLE project_state ADD COLUMN {name} INTEGER NOT NULL DEFAULT 0 CHECK ({name} >= 0)"
+                    )
             task_columns = {
                 str(row[1]) for row in conn.execute("PRAGMA table_info(task_nodes)").fetchall()
             }
@@ -150,7 +162,23 @@ class StateStore:
                     conn.rollback()
                     raise
                 versions = [1, 2, 3]
-            valid_versions = {tuple(range(1, SCHEMA_VERSION + 1)), (SCHEMA_VERSION,)}
+            # Earlier fresh v3 databases recorded [3] alone, whereas upgraded
+            # v1/v2 databases recorded [1,2,3]. Both must migrate safely.
+            if versions in ([1, 2, 3], [3]) and SCHEMA_VERSION >= 4:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (4, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = [*versions, 4]
+            valid_versions = {
+                tuple(range(1, SCHEMA_VERSION + 1)), (SCHEMA_VERSION,), (3, 4),
+            }
             if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")
 
@@ -929,6 +957,93 @@ class StateStore:
                 raise StoreInvariantError("OUTBOX_NOT_FOUND")
             return dict(row)
 
+    def _assert_local_execution_authority_in_connection(
+        self, conn: sqlite3.Connection, intent: Mapping[str, Any],
+    ) -> None:
+        """Fence stale local-execution authority using current durable records.
+
+        The check is deliberately tied to the exact action-intent assignment,
+        token, Master epoch, graph version and lease expiry; never authorize
+        an execution by a caller-supplied claim alone.
+        """
+        if str(intent["action_kind"]) != "LOCAL_EXECUTION":
+            raise StoreInvariantError("LOCAL_EXECUTION_INTENT_KIND_INVALID")
+        try:
+            payload = json.loads(str(intent["payload_json"]))
+            if not isinstance(payload, dict):
+                raise ValueError("payload not a mapping")
+            assignment_id = str(payload["assignment_id"])
+            task_id = str(payload["task_id"])
+            epoch = int(payload["master_epoch"])
+            issued_operator = int(payload["operator_generation"])
+            issued_objective = int(payload["objective_generation"])
+            token = str(payload["lease_token"])
+            request = payload["request"]
+            if (not isinstance(request, dict) or not assignment_id
+                    or not task_id or not token or isinstance(payload["master_epoch"], bool)
+                    or isinstance(payload["operator_generation"], bool)
+                    or isinstance(payload["objective_generation"], bool)
+                    or issued_operator < 0 or issued_objective < 0):
+                raise ValueError("invalid local execution identity")
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise StoreInvariantError("LOCAL_EXECUTION_AUTHORITY_FENCED") from exc
+        row = conn.execute(
+            """
+            SELECT a.project_id,a.task_id,a.worker_id,a.slot_id,a.master_epoch,
+                   a.base_state_version,a.operator_generation,a.objective_generation,
+                   a.lease_token,a.access_mode,
+                   a.objective_sha256,a.state AS assignment_state,
+                   l.state AS lease_state,l.expires_at,
+                   s.master_epoch AS current_epoch,s.state_version,
+                   s.operator_generation AS active_operator_generation,
+                   s.objective_generation AS active_objective_generation,
+                   s.status AS project_status,
+                   t.state AS task_state,t.objective_sha256 AS current_objective
+            FROM assignments a
+            JOIN leases l ON l.assignment_id=a.assignment_id
+            JOIN project_state s ON s.project_id=a.project_id
+            JOIN task_nodes t ON t.project_id=a.project_id AND t.task_id=a.task_id
+            WHERE a.assignment_id=? AND a.project_id=?
+            """,
+            (assignment_id, str(intent["project_id"])),
+        ).fetchone()
+        if row is None:
+            raise StoreInvariantError("LOCAL_EXECUTION_AUTHORITY_FENCED")
+        try:
+            until = dt.datetime.fromisoformat(str(row["expires_at"]).replace("Z", "+00:00"))
+            live = until.tzinfo is not None and until > dt.datetime.now(UTC)
+        except (TypeError, ValueError):
+            live = False
+        if not (
+            live
+            and str(intent["actor_id"]) == str(row["worker_id"])
+            and str(row["project_status"]) == "ACTIVE"
+            and str(row["assignment_state"]) == "ACTIVE"
+            and str(row["lease_state"]) == "ACTIVE"
+            and str(row["task_state"]) == "RUNNING"
+            and str(row["project_id"]) == str(intent["project_id"])
+            and str(row["task_id"]) == task_id
+            and str(row["lease_token"]) == token
+            and int(row["master_epoch"]) == epoch == int(row["current_epoch"])
+            and int(row["base_state_version"]) == int(row["state_version"])
+            and int(row["operator_generation"]) == issued_operator == int(row["active_operator_generation"])
+            and int(row["objective_generation"]) == issued_objective == int(row["active_objective_generation"])
+            and str(row["objective_sha256"]) == str(row["current_objective"])
+            and str(request.get("access_mode") or row["access_mode"]).lower()
+                == str(row["access_mode"]).lower()
+        ):
+            raise StoreInvariantError("LOCAL_EXECUTION_AUTHORITY_FENCED")
+
+    def assert_local_execution_lease(self, intent_id: str) -> None:
+        """Read-only late lease check immediately before local side effects."""
+        with self._connection() as conn:
+            intent = conn.execute(
+                "SELECT * FROM action_intents WHERE intent_id=?", (str(intent_id),)
+            ).fetchone()
+            if intent is None:
+                raise StoreInvariantError("INTENT_NOT_FOUND")
+            self._assert_local_execution_authority_in_connection(conn, intent)
+
     def begin_possible_submit(self, intent_id: str) -> dict[str, Any]:
         with self._transaction() as conn:
             row = conn.execute(
@@ -941,6 +1056,10 @@ class StateStore:
                 IntentState.VERIFIED_NOT_SUBMITTED.value,
             }:
                 raise StoreInvariantError(f"INTENT_NOT_SUBMITTABLE state={row['state']}")
+            if str(row["action_kind"]) == "LOCAL_EXECUTION":
+                # Same SQLite transaction as the MAY_HAVE_SUBMITTED transition:
+                # no stale lease may reserve or dispatch new local work.
+                self._assert_local_execution_authority_in_connection(conn, row)
             attempt = int(row["attempt"])
             if row["state"] == IntentState.VERIFIED_NOT_SUBMITTED.value:
                 attempt += 1
