@@ -1,6 +1,7 @@
 """P0 mainline generation-fencing regression; SQLite temporary fixtures only."""
 from __future__ import annotations
 
+import contextlib
 import json
 import pathlib
 import sqlite3
@@ -109,7 +110,7 @@ class WorkerGenerationP0Tests(unittest.TestCase):
         # to simulate an old v3 database; no user/production file is touched.
         path = self.gateway.store.path
         self.gateway.close()
-        with sqlite3.connect(path) as conn:
+        with contextlib.closing(sqlite3.connect(path)) as conn:
             conn.execute("PRAGMA foreign_keys=OFF")
             for table in ("assignments", "project_state"):
                 conn.execute(f"ALTER TABLE {table} DROP COLUMN operator_generation")
