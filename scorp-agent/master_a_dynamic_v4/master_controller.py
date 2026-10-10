@@ -328,6 +328,12 @@ class MasterAController:
         prompt = str(worker_prompt_factory(claim) or "").strip()
         if not prompt:
             raise ControllerRejected("WORKER_PROMPT_EMPTY")
+        # Lease token stays in trusted local scheduler; never serialize it to GPT.
+        secret = str(getattr(claim, "lease_token", "") or "")
+        if not secret:
+            raise ControllerRejected("WORKER_LEASE_TOKEN_MISSING")
+        if secret in prompt:
+            raise ControllerRejected("WORKER_PROMPT_LEAKS_LEASE_TOKEN")
         intent = self.gateway.prepare_worker_intent(
             claim,
             prompt,
@@ -443,6 +449,8 @@ class MasterAController:
             "assignment_id": claim.assignment_id,
             "task_id": claim.task_id,
             "master_epoch": claim.master_epoch,
+            "operator_generation": int(getattr(claim, "operator_generation", -1)),
+            "objective_generation": int(getattr(claim, "objective_generation", -1)),
             "lease_token": claim.lease_token,
             "request": dict(request),
         }
@@ -480,8 +488,12 @@ class MasterAController:
             raise ControllerRejected("LOCAL_EXECUTION_RECONCILIATION_REQUIRED")
         if intent_state not in {"PREPARED", "VERIFIED_NOT_SUBMITTED"}:
             raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_STATE_INVALID:{intent_state}")
+        # Check before any persistent intent transition and immediately again
+        # after MAY_HAVE_SUBMITTED, before worktree creation / execution.
+        self.gateway.store.assert_local_execution_lease(intent_id)
         try:
             self.gateway.store.begin_possible_submit(intent_id)
+            self.gateway.store.assert_local_execution_lease(intent_id)
             worktree_receipt = None
             if is_write:
                 worktree_receipt = self.git_worktree_manager.prepare(
