@@ -1,0 +1,55 @@
+name: SCORP mainline P0 read-only host metadata attestor review
+on:
+  push:
+    branches:
+      - audit/mainline-p0-host-observe-contract-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mainline-host-attestation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-readonly:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Genuine main ancestry and four reviewed source/test/doc files
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $main = (git rev-parse origin/main).Trim()
+          $base = (git merge-base HEAD origin/main).Trim()
+          if ($LASTEXITCODE -ne 0 -or $main -cne $base) { throw 'MAIN_ANCESTRY_UNSAFE' }
+          $allow = @(
+            'scorp-agent/verify-host-p0-readonly.ps1',
+            'scorp-agent/tests/v4-host-p0-readonly-contract.ps1',
+            '.github/workflows/scorp-mainline-p0-host-observe-review.yml',
+            'docs/SCORP_MAINLINE_HOST_OBSERVE_CONTRACT_20261010.md'
+          )
+          $changed = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 4) { throw 'HOST_AUDIT_OUT_OF_SCOPE' }
+          foreach ($x in $changed) { if ($x -cnotin $allow) { throw ('UNREVIEWED_HOST_FILE:' + $x) } }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'HOST_AUDIT_PATCH_HYGIENE_FAILED' }
+      - name: Windows PowerShell 5.1 parser, no-write AST, and matching / unpinned four-source fixtures
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-host-p0-readonly-contract.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'HOST_READONLY_SCRIPT_FALSE_AUTHORITY' }
+      - name: Mainline R2 GUI Bridge offline regression
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'HOST_READONLY_MAINLINE_REGRESSION_FAILED' }
