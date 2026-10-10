@@ -216,6 +216,80 @@ function Add-NativeEvidence {
     $Evidence.stdout_sha256=$NativeResult.stdout_sha256;$Evidence.stderr_sha256=$NativeResult.stderr_sha256
 }
 
+function Invoke-TypedReadOnlyProbe {
+    param($Payload)
+    if($null-eq$Payload -or $Payload-isnot[pscustomobject]){throw "PRECONDITION: diagnostic payload must be an object"}
+    $keys=@($Payload.PSObject.Properties|ForEach-Object{[string]$_.Name})
+    if($keys.Count-ne1-or$keys[0]-cne"probe"){throw "PRECONDITION: diagnostic payload must contain only probe"}
+    $probe=[string]$Payload.probe
+    switch($probe){
+        "chrome_resource_summary"{
+            # CIM returns an empty list when no Chrome processes exist;
+            # failure to query throws rather than being reported as zero.
+            $chrome=@(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" -ErrorAction Stop)
+            [int64]$total=0
+            foreach($proc in $chrome){$total+=[int64]$proc.WorkingSetSize}
+            return [pscustomobject][ordered]@{
+                probe=$probe;process_count=[int]$chrome.Count
+                working_set_bytes=$total;process_owner_attested=$false
+                observation_scope="all_machine_chrome_processes_no_ownership_inference"
+            }
+        }
+        "broker_service_status"{
+            $svc=Get-CimInstance Win32_Service -Filter "Name='ScorpPrivilegedBroker'" -ErrorAction Stop
+            if($null-eq$svc){throw "PROBE_NOT_AVAILABLE: Broker service absent"}
+            return [pscustomobject][ordered]@{
+                probe=$probe;state=[string]$svc.State
+                start_mode=[string]$svc.StartMode
+                is_local_system=([string]$svc.StartName-ceq"LocalSystem")
+                service_owner_attested=$false
+            }
+        }
+        "executor_task_status"{
+            $task=Get-ScheduledTask -TaskName "ScorpComputerAgent" -ErrorAction Stop
+            if($null-eq$task){throw "PROBE_NOT_AVAILABLE: Executor task absent"}
+            return [pscustomobject][ordered]@{
+                probe=$probe;state=[string]$task.State
+                run_level=[string]$task.Principal.RunLevel
+                logon_type=[string]$task.Principal.LogonType
+                task_binary_attested=$false
+            }
+        }
+        default{throw "PRECONDITION: unsupported diagnostic probe"}
+    }
+}
+
+function Assert-ExpectedPreconditionContract {
+    param($Envelope)
+    $claims=$Envelope.expected_preconditions
+    if($null-eq$claims){return}
+    if($claims-isnot[pscustomobject]){throw "PRECONDITION: expected_preconditions must be an object"}
+    $keys=@("read_only","no_production_writes","no_process_kill","no_browser_submit","no_browser_navigation","no_chrome_use_commands")
+    $active=@()
+    foreach($key in $keys){
+        $property=$claims.PSObject.Properties[$key]
+        if($null-ne$property){
+            if($property.Value-isnot[bool]){throw "PRECONDITION: $key must be a JSON boolean"}
+            if($property.Value){$active+= $key}
+        }
+    }
+    $kind=[string]$Envelope.action_kind
+    if($kind-in@("powershell","process","git")-and$active.Count-gt0){
+        throw ("PRECONDITION: {0} not enforceable for unrestricted {1}"-f($active-join","),$kind)
+    }
+    if($kind-in@("file_write","file_replace_exact")-and(
+        $active-ccontains"read_only"-or$active-ccontains"no_production_writes")){
+        throw "PRECONDITION: write action contradicts read_only or no_production_writes"
+    }
+    if($kind-ceq"privileged_broker"-and(
+        $active-ccontains"read_only"-or$active-ccontains"no_production_writes")){
+        $operation=[string]$Envelope.payload.operation
+        if($operation-in@("service.restart","task.run","file.write","registry.set")){
+            throw "PRECONDITION: mutating privileged broker operation contradicts read_only or no_production_writes"
+        }
+    }
+}
+
 $started=[DateTimeOffset]::Now
 $status="FAILED";$exitCode=1;$message=$null
 $evidence=[ordered]@{runner_pid=$PID;runner_started_at=$started.ToString("o")}
@@ -230,6 +304,7 @@ try{
     if([int]$envObj.timeout_seconds-lt1-or[int]$envObj.timeout_seconds-gt1800){throw "invalid timeout_seconds"}
     if([string]$envObj.safety_class-notin@("standard","approved_admin")){throw "invalid safety_class"}
     if([string]$envObj.safety_class-ceq"approved_admin"-and[string]$envObj.authorization-cne"USER_APPROVED_FULL_CONTROL"){throw "approved_admin action missing authorization"}
+    Assert-ExpectedPreconditionContract -Envelope $envObj
     Wait-StartGate -Path $StartGatePath -Seconds $GateWaitSeconds
 
     $kind=[string]$envObj.action_kind
@@ -267,6 +342,10 @@ try{
             $head=Invoke-Native -Executable "git.exe" -Arguments @("rev-parse","HEAD") -WorkingDirectory $cwd -CaptureBase ($LogPath+".git-head")
             $evidence.git_head=($head.stdout_tail-split"`r?`n")[-1].Trim()
             $status=if($exitCode-eq0){"SUCCEEDED"}else{"FAILED"}
+        }
+        "diagnostic_readonly"{
+            $evidence.diagnostic=Invoke-TypedReadOnlyProbe -Payload $envObj.payload
+            $status="SUCCEEDED";$exitCode=0
         }
         "file_read"{
             $path=Assert-ApprovedPath -Path ([string]$envObj.payload.path)

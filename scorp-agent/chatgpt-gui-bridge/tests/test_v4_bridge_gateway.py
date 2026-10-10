@@ -13,7 +13,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from v4_bridge_gateway import QueueConfig, V4BridgeGateway
 from gui_engine import ChatGptGuiEngine
 from master_a_dynamic_v4.models import CommitResult
-from master_a_dynamic_v4.scheduler import SchedulerError
+from master_a_dynamic_v4.scheduler import SchedulerError, WorkerFenceError
 
 
 class FakeEngine:
@@ -421,6 +421,31 @@ class V4GatewayTests(unittest.TestCase):
                 self.assertEqual(2, engine.submits)
                 self.assertEqual({'worker/worker-slot-1', 'worker/worker-slot-2'}, {item['channel'] for item in engine.worker_intents})
                 self.assertEqual(2, len({item['actor_id'] for item in engine.worker_intents}))
+            finally:
+                gateway.close()
+
+    def test_direct_gateway_rejects_raw_worker_lease_before_intent_or_browser_send(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            worktree = root / "worktree"
+            worktree.mkdir()
+            engine = FakeEngine()
+            gateway = V4BridgeGateway(root / "state.sqlite3", "project-token-leak", [worktree], engine)
+            try:
+                gateway.ensure_contract({"objective": "protect worker token"}, {"required": ["AC-SECRET"]})
+                gateway.enqueue_graph([{
+                    "task_id": "T1",
+                    "objective_sha256": "a" * 64,
+                    "resource_scope": [worktree / "a.txt"],
+                    "dependencies": [],
+                }])
+                claim = gateway.claim_workers(master_epoch=0, limit=1)[0]
+                with self.assertRaisesRegex(WorkerFenceError, "WORKER_PROMPT_LEAKS_LEASE_TOKEN"):
+                    gateway.prepare_worker_intent(claim, "raw-token=" + claim.lease_token)
+                self.assertEqual(0, engine.submits)
+                with self.assertRaisesRegex(WorkerFenceError, "WORKER_PROMPT_LEAKS_LEASE_TOKEN"):
+                    gateway.submit_worker_intent(claim, "raw-token=" + claim.lease_token)
+                self.assertEqual(0, engine.submits)
             finally:
                 gateway.close()
 
