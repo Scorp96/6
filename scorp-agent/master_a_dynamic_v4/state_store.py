@@ -15,7 +15,7 @@ from .models import CommitResult, IntentState, canonical_json, sha256_json
 
 
 UTC = dt.timezone.utc
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class StoreInvariantError(RuntimeError):
@@ -101,6 +101,18 @@ class StateStore:
                 conn.execute(
                     "ALTER TABLE assignments ADD COLUMN base_state_version INTEGER NOT NULL DEFAULT 0 CHECK (base_state_version >= 0)"
                 )
+            # Legacy claim generations remain -1 to avoid accidental promotion.
+            for name in ("operator_generation", "objective_generation"):
+                if name not in assignment_columns:
+                    conn.execute(
+                        f"ALTER TABLE assignments ADD COLUMN {name} INTEGER NOT NULL DEFAULT -1 CHECK ({name} >= -1)"
+                    )
+            state_columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(project_state)").fetchall()}
+            for name in ("operator_generation", "objective_generation"):
+                if name not in state_columns:
+                    conn.execute(
+                        f"ALTER TABLE project_state ADD COLUMN {name} INTEGER NOT NULL DEFAULT 0 CHECK ({name} >= 0)"
+                    )
             task_columns = {
                 str(row[1]) for row in conn.execute("PRAGMA table_info(task_nodes)").fetchall()
             }
@@ -150,7 +162,23 @@ class StateStore:
                     conn.rollback()
                     raise
                 versions = [1, 2, 3]
-            valid_versions = {tuple(range(1, SCHEMA_VERSION + 1)), (SCHEMA_VERSION,)}
+            # Earlier fresh v3 databases recorded [3] alone, whereas upgraded
+            # v1/v2 databases recorded [1,2,3]. Both must migrate safely.
+            if versions in ([1, 2, 3], [3]) and SCHEMA_VERSION >= 4:
+                conn.execute("BEGIN IMMEDIATE")
+                try:
+                    conn.execute(
+                        "INSERT INTO schema_migrations(version,applied_at,schema_sha256) VALUES(?,?,?)",
+                        (4, utc_now(), schema_hash),
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                versions = [*versions, 4]
+            valid_versions = {
+                tuple(range(1, SCHEMA_VERSION + 1)), (SCHEMA_VERSION,), (3, 4),
+            }
             if tuple(versions) not in valid_versions:
                 raise StoreInvariantError(f"SCHEMA_VERSION_UNSUPPORTED actual={versions!r}")
 
@@ -947,20 +975,28 @@ class StateStore:
             assignment_id = str(payload["assignment_id"])
             task_id = str(payload["task_id"])
             epoch = int(payload["master_epoch"])
+            issued_operator = int(payload["operator_generation"])
+            issued_objective = int(payload["objective_generation"])
             token = str(payload["lease_token"])
             request = payload["request"]
             if (not isinstance(request, dict) or not assignment_id
-                    or not task_id or not token or isinstance(payload["master_epoch"], bool)):
+                    or not task_id or not token or isinstance(payload["master_epoch"], bool)
+                    or isinstance(payload["operator_generation"], bool)
+                    or isinstance(payload["objective_generation"], bool)
+                    or issued_operator < 0 or issued_objective < 0):
                 raise ValueError("invalid local execution identity")
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise StoreInvariantError("LOCAL_EXECUTION_AUTHORITY_FENCED") from exc
         row = conn.execute(
             """
             SELECT a.project_id,a.task_id,a.worker_id,a.slot_id,a.master_epoch,
-                   a.base_state_version,a.lease_token,a.access_mode,
+                   a.base_state_version,a.operator_generation,a.objective_generation,
+                   a.lease_token,a.access_mode,
                    a.objective_sha256,a.state AS assignment_state,
                    l.state AS lease_state,l.expires_at,
                    s.master_epoch AS current_epoch,s.state_version,
+                   s.operator_generation AS active_operator_generation,
+                   s.objective_generation AS active_objective_generation,
                    s.status AS project_status,
                    t.state AS task_state,t.objective_sha256 AS current_objective
             FROM assignments a
@@ -990,6 +1026,8 @@ class StateStore:
             and str(row["lease_token"]) == token
             and int(row["master_epoch"]) == epoch == int(row["current_epoch"])
             and int(row["base_state_version"]) == int(row["state_version"])
+            and int(row["operator_generation"]) == issued_operator == int(row["active_operator_generation"])
+            and int(row["objective_generation"]) == issued_objective == int(row["active_objective_generation"])
             and str(row["objective_sha256"]) == str(row["current_objective"])
             and str(request.get("access_mode") or row["access_mode"]).lower()
                 == str(row["access_mode"]).lower()
