@@ -1,0 +1,63 @@
+name: SCORP mainline P0 distinct Worker conversation fencing
+on:
+  push:
+    branches:
+      - audit/mainline-p0-worker-conversation-uniqueness-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-p0-worker-url-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-offline:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Confirm one genuine mainline review and exactly five paths
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $main = (git rev-parse origin/main).Trim()
+          $base = (git merge-base HEAD origin/main).Trim()
+          if ($LASTEXITCODE -ne 0 -or $main -cne $base) { throw 'P0_MAINLINE_ANCESTRY_INVALID' }
+          $allowed = @(
+            'scorp-agent/master_a_dynamic_v4/state_store.py',
+            'scorp-agent/chatgpt-gui-bridge/tests/test_v4_bridge_gateway.py',
+            'scorp-agent/chatgpt-gui-bridge/tests/test_worker_conversation_collision_p0.py',
+            '.github/workflows/scorp-mainline-p0-worker-conversation-uniqueness.yml',
+            'docs/SCORP_MAINLINE_WORKER_CONVERSATION_P0_20261010.md'
+          )
+          $actual = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $actual.Count -ne 5) { throw 'P0_SCOPE_ERROR' }
+          foreach ($p in $actual) { if ($p -cnotin $allowed) { throw ('P0_SCOPE_VIOLATION:' + $p) } }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'P0_GIT_PATCH_HYGIENE_FAILED' }
+          Write-Host 'P0_WORKER_SESSION_DISTINCTNESS_FIVE_FILE_SCOPE_PASS'
+      - name: Eight independent SQLite collision and non-collision tests
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p 'test_worker_conversation_collision_p0.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_WORKER_URL_COLLISION_TEST_FAILED' }
+      - name: Full existing R2 and GUI Bridge offline regression
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_FULL_OFFLINE_REGRESSION_FAILED' }
+      - name: No live Worker browser session was opened
+        shell: pwsh
+        run: |
+          Write-Host 'P0_LOGICAL_SESSION_URL_DISTINCTNESS_ONLY'
+          Write-Host 'NO_PHYSICAL_GPT_AUTHENTICATION_ATTESTATION'
+          Write-Host 'NO_BROWSER_SEND_OR_PRODUCTION_MODIFICATION'
