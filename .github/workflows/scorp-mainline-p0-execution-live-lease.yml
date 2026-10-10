@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: One genuine mainline branch and five explicit review files
+      - name: One genuine mainline branch and seven explicit review files
         shell: pwsh
         run: |
           git fetch --quiet origin main
@@ -35,18 +35,19 @@ jobs:
             'scorp-agent/master_a_dynamic_v4/state_store.py',
             'scorp-agent/master_a_dynamic_v4/master_controller.py',
             'scorp-agent/master_a_dynamic_v4/tests/test_master_controller.py',
+            'scorp-agent/master_a_dynamic_v4/tests/test_execution_adapter.py',
             'scorp-agent/chatgpt-gui-bridge/tests/test_local_execution_lease_p0.py',
             '.github/workflows/scorp-mainline-p0-execution-live-lease.yml',
             'docs/SCORP_MAINLINE_EXECUTION_LEASE_P0_20261010.md'
           )
           $changed = @(git diff --name-only origin/main...HEAD)
-          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 6) { throw 'P0_LIVE_LEASE_REVIEW_SCOPE_INVALID' }
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 7) { throw 'P0_LIVE_LEASE_REVIEW_SCOPE_INVALID' }
           foreach ($file in $changed) {
             if ($file -cnotin $allowed) { throw ('P0_LIVE_LEASE_OUT_OF_SCOPE:'+$file) }
           }
           git diff --check origin/main...HEAD
           if ($LASTEXITCODE -ne 0) { throw 'P0_LIVE_LEASE_PATCH_HYGIENE_FAILED' }
-          Write-Host 'P0_LIVE_LEASE_ONLY_SIX_REVIEW_FILES'
+          Write-Host 'P0_LIVE_LEASE_ONLY_SEVEN_REVIEW_FILES'
       - name: Eleven real SQLite local-execution stale lease negative tests
         shell: pwsh
         run: |
