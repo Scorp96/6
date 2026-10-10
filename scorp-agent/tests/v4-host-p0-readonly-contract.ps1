@@ -57,7 +57,7 @@ $args = @(
     '-BrokerOpsSha256',$hashes[2],
     '-BrokerClientSha256',$hashes[3]
 )
-$output = & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $source @args
+$output = @(& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $source @args)
 if ($LASTEXITCODE -ne 0 -or @($output).Count -ne 1) { throw 'P0_HOST_AUDIT_READONLY_EXECUTION_FAILED' }
 $r = $output[-1] | ConvertFrom-Json
 if ($r.protocol -cne 'scorp.host-p0-readonly-attestation/1' -or
