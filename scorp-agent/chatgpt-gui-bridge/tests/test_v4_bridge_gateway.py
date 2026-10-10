@@ -27,7 +27,11 @@ class FakeEngine:
         self.worker_intents.append(dict(intent))
         return {
             'status': 'RESPONSE_CAPTURED',
-            'conversation_url': 'https://chatgpt.com/c/v4-gateway',
+            'conversation_url': (
+                'https://chatgpt.com/c/v4-gateway-' + str(intent['channel']).replace('/', '-')
+                if str(intent['channel']).startswith('worker/')
+                else 'https://chatgpt.com/c/v4-gateway'
+            ),
             'remote_identity': 'turn-v4-gateway',
             'response': {'kind': 'HANDOFF', 'state': 'DONE'},
         }
@@ -65,7 +69,11 @@ class StructuredWorkerEngine(FakeEngine):
         self.worker_intents.append(dict(intent))
         return {
             'status': 'RESPONSE_CAPTURED',
-            'conversation_url': 'https://chatgpt.com/c/v4-controller',
+            'conversation_url': (
+                'https://chatgpt.com/c/v4-controller-' + str(intent['channel']).replace('/', '-')
+                if str(intent['channel']).startswith('worker/')
+                else 'https://chatgpt.com/c/v4-controller'
+            ),
             'remote_identity': 'turn-v4-controller',
             'response': result,
         }

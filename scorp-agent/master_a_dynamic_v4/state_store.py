@@ -988,6 +988,39 @@ class StateStore:
                 conn.execute("SELECT * FROM action_intents WHERE intent_id=?", (intent_id,)).fetchone()
             )
 
+    @staticmethod
+    def _assert_distinct_worker_conversation(
+        conn: sqlite3.Connection, project_id: str, channel: str, conversation_url: str
+    ) -> None:
+        """Reject a second logical Worker slot reusing another slot's URL.
+
+        This only prevents duplicate conversation identity in durable records;
+        it does not attest independent authenticated browser processes.
+        """
+        if not str(channel).startswith("worker/"):
+            return
+        prior = conn.execute(
+            """
+            SELECT intent_id FROM action_intents
+            WHERE project_id=? AND channel LIKE 'worker/%' AND channel<>?
+              AND action_kind='CHATGPT_WORKER_SUBMIT'
+              AND conversation_url=?
+            LIMIT 1
+            """,
+            (project_id, channel, conversation_url),
+        ).fetchone()
+        bound = conn.execute(
+            """
+            SELECT channel FROM browser_bindings
+            WHERE project_id=? AND channel LIKE 'worker/%' AND channel<>?
+              AND conversation_url=?
+            LIMIT 1
+            """,
+            (project_id, channel, conversation_url),
+        ).fetchone()
+        if prior is not None or bound is not None:
+            raise StoreInvariantError("WORKER_CONVERSATION_COLLISION")
+
     def confirm_submitted(
         self,
         intent_id: str,
@@ -1002,7 +1035,7 @@ class StateStore:
             raise StoreInvariantError("SUBMIT_IDENTITY_MISSING")
         with self._transaction() as conn:
             row = conn.execute(
-                "SELECT state FROM action_intents WHERE intent_id=?", (intent_id,)
+                "SELECT state,project_id,channel,action_kind FROM action_intents WHERE intent_id=?", (intent_id,)
             ).fetchone()
             if row is None or row["state"] not in {
                 IntentState.MAY_HAVE_SUBMITTED.value,
@@ -1010,6 +1043,10 @@ class StateStore:
                 IntentState.CONFIRMED_SUBMITTED.value,
             }:
                 raise StoreInvariantError("INTENT_CONFIRM_STATE_INVALID")
+            if str(row["action_kind"]) == "CHATGPT_WORKER_SUBMIT":
+                self._assert_distinct_worker_conversation(
+                    conn, str(row["project_id"]), str(row["channel"]), url
+                )
             conn.execute(
                 """
                 UPDATE action_intents
@@ -1082,7 +1119,7 @@ class StateStore:
         response_value = dict(response)
         with self._transaction() as conn:
             row = conn.execute(
-                "SELECT state FROM action_intents WHERE intent_id=?", (intent_id,)
+                "SELECT state,project_id,channel,action_kind FROM action_intents WHERE intent_id=?", (intent_id,)
             ).fetchone()
             if row is None or row["state"] not in {
                 IntentState.MAY_HAVE_SUBMITTED.value,
@@ -1090,6 +1127,10 @@ class StateStore:
                 IntentState.BLOCKED_AMBIGUOUS.value,
             }:
                 raise StoreInvariantError("INTENT_RESPONSE_STATE_INVALID")
+            if str(row["action_kind"]) == "CHATGPT_WORKER_SUBMIT":
+                self._assert_distinct_worker_conversation(
+                    conn, str(row["project_id"]), str(row["channel"]), url
+                )
             conn.execute(
                 """
                 UPDATE action_intents
@@ -1207,6 +1248,7 @@ class StateStore:
         if not actor or not url.startswith("https://chatgpt.com/c/") or not isinstance(evidence, Mapping) or not evidence:
             raise StoreInvariantError("BROWSER_BINDING_INVALID")
         with self._transaction() as conn:
+            self._assert_distinct_worker_conversation(conn, project_id, channel, url)
             existing = conn.execute(
                 "SELECT * FROM browser_bindings WHERE project_id=? AND channel=?",
                 (project_id, channel),
