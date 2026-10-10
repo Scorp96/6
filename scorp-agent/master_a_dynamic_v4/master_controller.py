@@ -480,8 +480,12 @@ class MasterAController:
             raise ControllerRejected("LOCAL_EXECUTION_RECONCILIATION_REQUIRED")
         if intent_state not in {"PREPARED", "VERIFIED_NOT_SUBMITTED"}:
             raise ControllerRejected(f"LOCAL_EXECUTION_INTENT_STATE_INVALID:{intent_state}")
+        # Check before any persistent intent transition and immediately again
+        # after MAY_HAVE_SUBMITTED, before worktree creation / execution.
+        self.gateway.store.assert_local_execution_lease(intent_id)
         try:
             self.gateway.store.begin_possible_submit(intent_id)
+            self.gateway.store.assert_local_execution_lease(intent_id)
             worktree_receipt = None
             if is_write:
                 worktree_receipt = self.git_worktree_manager.prepare(
