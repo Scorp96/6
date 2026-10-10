@@ -1,0 +1,89 @@
+name: SCORP mainline P0 no-write release manifest integrity
+on:
+  push:
+    branches:
+      - audit/mainline-p0-release-preflight-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-main-release-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify one genuine mainline commit and exactly six files
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $main = (git rev-parse origin/main).Trim()
+          $base = (git merge-base HEAD origin/main).Trim()
+          $ahead = (git rev-list --count origin/main..HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $base -cne $main -or $ahead -ne '1') { throw 'P0_MAINLINE_ANCESTRY_INVALID' }
+          $allow = @(
+            'scripts/scorp_p0_release_verify.py',
+            'scripts/scorp_p0_release_pin_plan.py',
+            'scripts/tests/test_scorp_p0_release_verify.py',
+            'scripts/tests/test_scorp_p0_release_pin_plan.py',
+            'docs/SCORP_MAINLINE_RELEASE_PREFLIGHT_20261010.md',
+            '.github/workflows/scorp-mainline-p0-release-preflight.yml'
+          )
+          $actual = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $actual.Count -ne 6) { throw 'P0_MAINLINE_DIFF_SCOPE_INVALID' }
+          foreach ($f in $actual) { if ($f -cnotin $allow) { throw ('P0_OUT_OF_SCOPE:'+$f) } }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'P0_MAINLINE_DIFF_CHECK_FAILED' }
+      - name: Immutable Git dual hash parser/CRLF/fail-closed tests
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s scripts/tests -p 'test_scorp_p0_release_verify.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_MANIFEST_HASH_REGRESSION' }
+          python -B -m unittest discover -s scripts/tests -p 'test_scorp_p0_release_pin_plan.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_RELEASE_PIN_PLAN_REGRESSION' }
+      - name: Assert existing release pins are NOT approved
+        shell: pwsh
+        run: |
+          $result = @(python scripts/scorp_p0_release_verify.py --repo-root . --source-mode git)
+          $rc = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+          if ($rc -ne 2) { throw 'P0_RELEASE_PREFLIGHT_DID_NOT_BLOCK' }
+          $x = $result[-1] | ConvertFrom-Json
+          if ($x.result -cne 'BLOCKED' -or $x.release_authorized -or $x.blocked_files -lt 1 -or $x.total_files -ne 7) {
+            throw 'P0_RELEASE_PREFLIGHT_FALSE_AUTHORITY'
+          }
+          Write-Host "P0_MAINLINE_RELEASE_BLOCKED_HASH_COUNT=$($x.blocked_files)"
+      - name: Create exact current commit review-only SHA1 and SHA256 manifest
+        shell: pwsh
+        run: |
+          python scripts/scorp_p0_release_pin_plan.py --repo-root . --expected-head $env:GITHUB_SHA > scorp-p0-mainline-review-pins.json
+          if ($LASTEXITCODE -ne 0) { throw 'P0_RELEASE_PIN_PLAN_FAILED' }
+          $x = Get-Content -LiteralPath scorp-p0-mainline-review-pins.json -Raw | ConvertFrom-Json
+          if ($x.release_authorized -or $x.operator_signoff_attested -or $x.windows_host_attested -or
+              $x.candidate_source_commit_sha -cne $env:GITHUB_SHA -or
+              $x.current_manifest_result -cne 'BLOCKED') {
+            throw 'P0_REVIEW_ARTIFACT_FALSE_RELEASE_STATUS'
+          }
+          Write-Host 'P0_RELEASE_PIN_PLAN_REVIEW_ONLY'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scorp-main-review-only-pins-${{ github.sha }}
+          path: scorp-p0-mainline-review-pins.json
+          retention-days: 7
+      - name: Full Windows R2 and GUI Bridge offline suite
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_MAINLINE_FULL_REGRESSION_FAILED' }
