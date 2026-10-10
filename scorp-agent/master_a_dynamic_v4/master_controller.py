@@ -328,6 +328,12 @@ class MasterAController:
         prompt = str(worker_prompt_factory(claim) or "").strip()
         if not prompt:
             raise ControllerRejected("WORKER_PROMPT_EMPTY")
+        # Lease token stays in trusted local scheduler; never serialize it to GPT.
+        secret = str(getattr(claim, "lease_token", "") or "")
+        if not secret:
+            raise ControllerRejected("WORKER_LEASE_TOKEN_MISSING")
+        if secret in prompt:
+            raise ControllerRejected("WORKER_PROMPT_LEAKS_LEASE_TOKEN")
         intent = self.gateway.prepare_worker_intent(
             claim,
             prompt,

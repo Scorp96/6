@@ -206,6 +206,11 @@ class V4BridgeGateway:
         text = str(prompt or "")
         if not text:
             raise ValueError("PROMPT_EMPTY")
+        secret = str(getattr(claim, "lease_token", "") or "")
+        if not secret:
+            raise WorkerFenceError("WORKER_LEASE_TOKEN_MISSING")
+        if secret in text:
+            raise WorkerFenceError("WORKER_PROMPT_LEAKS_LEASE_TOKEN")
         with self.store._connection() as conn:
             row = conn.execute(
                 """
