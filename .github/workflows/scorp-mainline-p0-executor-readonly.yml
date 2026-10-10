@@ -1,0 +1,80 @@
+name: SCORP mainline P0 typed readonly executor and runner fence
+on:
+  push:
+    branches:
+      - audit/mainline-p0-executor-readonly-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-p0-exec-readonly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-guard:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exact main parent and six approved changed files
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $main = (git rev-parse origin/main).Trim()
+          $base = (git merge-base HEAD origin/main).Trim()
+          $ahead = (git rev-list --count origin/main..HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $main -cne $base -or $ahead -ne '1') {
+            throw 'P0_REAL_MAIN_ONE_COMMIT_ANCESTRY_INVALID'
+          }
+          $allow = @(
+            'scorp-agent/executor-v4.1.ps1',
+            'scorp-agent/runner-v4.1.ps1',
+            'scorp-agent/executor-v4.schema.json',
+            'scorp-agent/tests/v4-readonly-envelope-contract.ps1',
+            'docs/SCORP_MAINLINE_TYPED_READONLY_20261010.md',
+            '.github/workflows/scorp-mainline-p0-executor-readonly.yml'
+          )
+          $changed = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 6) { throw 'P0_MAINLINE_EXPLICIT_SCOPE_INVALID' }
+          foreach ($path in $changed) {
+            if ($path -cnotin $allow) { throw ('P0_MAINLINE_OUT_OF_SCOPE:' + $path) }
+          }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'P0_DIFF_HYGIENE_FAILED' }
+          Write-Host 'P0_REAL_MAIN_EXACTLY_SIX_FILES'
+      - name: PowerShell 5.1 actual runner readonly misrepresentation negative canaries
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-readonly-envelope-contract.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_TYPED_READONLY_ENVELOPE_TEST_FAILED' }
+      - name: Windows native parser and schema gate
+        shell: pwsh
+        run: |
+          $paths = @('scorp-agent/executor-v4.1.ps1','scorp-agent/runner-v4.1.ps1')
+          foreach($path in $paths) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw ('P0_PS51_PARSE_FAILED:' + $path) }
+          }
+          $schema=Get-Content -LiteralPath 'scorp-agent/executor-v4.schema.json' -Raw | ConvertFrom-Json
+          if ('diagnostic_readonly' -cnotin @($schema.properties.action_kind.enum)) { throw 'P0_TYPED_READONLY_SCHEMA_MISSING' }
+          Write-Host 'P0_TYPED_READONLY_SCHEMA_AND_PS_PARSE_PASS'
+      - name: Full Windows V4 and GUI Bridge offline validation
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_EXECUTOR_MAINLINE_REGRESSION_FAILED' }
+      - name: Explicitly no Windows production deployment
+        shell: pwsh
+        run: |
+          Write-Host 'NO_REAL_HOST_R1_OR_BROKER_MODIFICATION'
+          Write-Host 'SOURCE_REVIEW_ONLY'
