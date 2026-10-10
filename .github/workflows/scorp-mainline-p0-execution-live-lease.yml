@@ -1,0 +1,65 @@
+name: SCORP mainline P0 local execution live lease fencing
+on:
+  push:
+    branches:
+      - audit/mainline-p0-execution-live-lease-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mainline-local-lease-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: One genuine mainline branch and five explicit review files
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $main = (git rev-parse origin/main).Trim()
+          $base = (git merge-base HEAD origin/main).Trim()
+          $n = (git rev-list --count origin/main..HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $main -cne $base -or $n -lt 1 -or $n -gt 5) { throw 'MAINLINE_EXPERIMENT_ANCESTRY_INVALID' }
+          $allowed = @(
+            'scorp-agent/master_a_dynamic_v4/state_store.py',
+            'scorp-agent/master_a_dynamic_v4/master_controller.py',
+            'scorp-agent/master_a_dynamic_v4/tests/test_master_controller.py',
+            'scorp-agent/chatgpt-gui-bridge/tests/test_local_execution_lease_p0.py',
+            '.github/workflows/scorp-mainline-p0-execution-live-lease.yml',
+            'docs/SCORP_MAINLINE_EXECUTION_LEASE_P0_20261010.md'
+          )
+          $changed = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 6) { throw 'P0_LIVE_LEASE_REVIEW_SCOPE_INVALID' }
+          foreach ($file in $changed) {
+            if ($file -cnotin $allowed) { throw ('P0_LIVE_LEASE_OUT_OF_SCOPE:'+$file) }
+          }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'P0_LIVE_LEASE_PATCH_HYGIENE_FAILED' }
+          Write-Host 'P0_LIVE_LEASE_ONLY_SIX_REVIEW_FILES'
+      - name: Eleven real SQLite local-execution stale lease negative tests
+        shell: pwsh
+        run: |
+          python -B -m unittest discover -s scorp-agent/chatgpt-gui-bridge/tests -p 'test_local_execution_lease_p0.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_LIVE_LEASE_NEGATIVE_TESTS_FAILED' }
+      - name: Full mainline Windows R2 and GUI Bridge regression
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_FULL_MAINLINE_GUI_REGRESSION_FAILED' }
+      - name: No production local execution performed
+        shell: pwsh
+        run: |
+          Write-Host 'NO_BROKER_MUTATIONS_NO_BROWSER_SEND_NO_WINDOWS_HOST_RELEASE'
