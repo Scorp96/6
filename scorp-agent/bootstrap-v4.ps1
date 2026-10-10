@@ -15,7 +15,6 @@ $StagingDir = "$InstallDir.staging.$([guid]::NewGuid().ToString('N'))"
 $BackupDir = "$InstallDir.rollback.$(Get-Date -Format 'yyyyMMddHHmmss')"
 $ManifestRepoPath = "scorp-agent/release-manifest-v4.json"
 $WindowsPowerShell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-New-Item -ItemType Directory -Force -Path $StateDir,$StagingDir | Out-Null
 
 function Write-Utf8NoBom {
     param([string]$Path,[string]$Text)
@@ -188,6 +187,7 @@ function Assert-NoNewCodexProcess {
     if($new.Count-gt0){throw "unexpected new Codex process detected during V4 bootstrap: $($new-join',')"}
 }
 
+$preflightPassed=$false
 $taskMutated=$false
 $installMoved=$false
 $priorInstallExisted=$false
@@ -198,6 +198,29 @@ $artifacts=@()
 $codexBefore=@(Get-Process -Name codex -ErrorAction SilentlyContinue|ForEach-Object{[int]$_.Id})
 
 try {
+    # Reject legacy Highest/SYSTEM/UAC-off principals *before* staging files,
+    # writing failure evidence or executing candidate source.
+    $task=Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
+    $principal=Assert-InteractivePrincipal $task
+    if([string]$task.Principal.RunLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: refusing bootstrap from non-Limited executor task"}
+    # Microsoft: RunLevel is ignored for built-in Administrator / SYSTEM and
+    # service principals and when UAC is disabled. Refuse these before mutation.
+    $taskIdentity=[Security.Principal.WindowsIdentity]::GetCurrent()
+    $sid=[string]$taskIdentity.User.Value
+    if($sid -eq "S-1-5-18" -or $sid -match "\-500$"){
+        throw "P0_UNSAFE_RUNLEVEL: built-in privileged account cannot be certified Limited"
+    }
+    $uac=(Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name EnableLUA -ErrorAction Stop).EnableLUA
+    if([int]$uac -ne 1){throw "P0_UNSAFE_RUNLEVEL: UAC disabled or invalid"}
+    # A Limited *task definition* is insufficient if an admin launched this
+    # Bootstrap directly with a high-integrity, elevated Windows access token.
+    # IsInRole checks the effective token, not only group membership.
+    $effectiveTokenPrincipal=New-Object Security.Principal.WindowsPrincipal($taskIdentity)
+    if($effectiveTokenPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){
+        throw "P0_UNSAFE_EFFECTIVE_TOKEN: elevated administrator process cannot bootstrap Limited task"
+    }
+    $preflightPassed=$true
+    New-Item -ItemType Directory -Force -Path $StateDir,$StagingDir | Out-Null
     if(Test-Path -LiteralPath $ActiveTaskPath -PathType Leaf){throw "refusing deployment while V4 active-task.json exists"}
     if(-not(Get-Command gh.exe -ErrorAction SilentlyContinue)){throw "gh.exe is required"}
     if(-not(Test-Path -LiteralPath $WindowsPowerShell -PathType Leaf)){throw "Windows PowerShell 5.1 executable missing"}
@@ -251,8 +274,6 @@ try {
     if([string]$healthParsed.status-cne"SUCCEEDED" -or [string]$healthParsed.task_id-cne"bootstrap-health" -or [string]$healthParsed.action_id-cne$healthId -or [string]$healthParsed.claim_token-cne$claimId){throw "runner health result identity/status mismatch"}
     Assert-NoNewCodexProcess $codexBefore
 
-    $task=Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
-    $principal=Assert-InteractivePrincipal $task
     $priorXml=Export-ScheduledTask -TaskName $TaskName
     Write-Utf8NoBom $PriorTaskXmlPath $priorXml
     $priorState=[string]$task.State
@@ -280,7 +301,7 @@ try {
     $installedExecutor=Join-Path $InstallDir "executor-v4.1.ps1"
     $action=New-ScheduledTaskAction -Execute $WindowsPowerShell -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Repo "{1}"' -f $installedExecutor,$ControlRepo) -WorkingDirectory $InstallDir
     $runLevel=[string]$task.Principal.RunLevel
-    if($runLevel-notin@("Highest","Limited")){throw "unsupported Scheduled Task RunLevel: $runLevel"}
+    if($runLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: executor run level must remain Limited"}
     $normalizedPrincipal=New-ScheduledTaskPrincipal -UserId $principal.user_name -LogonType Interactive -RunLevel $runLevel
     $logonTrigger=New-ScheduledTaskTrigger -AtLogOn -User $principal.user_name
     $startupTrigger=New-ScheduledTaskTrigger -AtStartup
@@ -292,6 +313,7 @@ try {
 
     $after=Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
     $afterPrincipal=Assert-InteractivePrincipal $after
+    if([string]$after.Principal.RunLevel-cne"Limited"){throw "P0_UNSAFE_RUNLEVEL: installed executor changed elevation level"}
     if([string]$after.State-cne"Running"){throw "Scheduled Task is not Running after V4 switch: $($after.State)"}
     $afterActions=@($after.Actions)
     if($afterActions.Count-ne1 -or [string]$afterActions[0].Execute-cne$WindowsPowerShell -or [string]$afterActions[0].Arguments-notlike"*$installedExecutor*"){throw "Scheduled Task action verification failed"}
@@ -335,6 +357,7 @@ catch {
             if($priorState-ceq"Running"){Start-ScheduledTask -TaskName $TaskName}
         }catch{$rollbackError=$_.Exception.Message}
     }
+    if($preflightPassed){
     try{
         if(Test-Path -LiteralPath $StagingDir -PathType Container){Remove-Item -LiteralPath $StagingDir -Recurse -Force}
         $evidence=if(Test-Path -LiteralPath $EvidencePath -PathType Leaf){Get-Content -LiteralPath $EvidencePath -Raw|ConvertFrom-Json}else{[pscustomobject][ordered]@{protocol_version="scorp.exec/v4-bootstrap-evidence";commit_sha=$CommitSha.ToLowerInvariant();repo=$Repo;control_repo=$ControlRepo;task_name=$TaskName;started_at=(Get-Date -Format o)}}
@@ -345,9 +368,10 @@ catch {
         $evidence|Add-Member -NotePropertyName rollback_error -NotePropertyValue $rollbackError -Force
         Write-Utf8NoBom $EvidencePath ($evidence|ConvertTo-Json -Depth 20)
     }catch{}
+    }
     if($rollbackError){throw "V4 bootstrap failed: $failure; ROLLBACK ALSO FAILED: $rollbackError"}
     throw "V4 bootstrap failed and rollback completed: $failure"
 }
 finally {
-    if(Test-Path -LiteralPath $StagingDir -PathType Container){Remove-Item -LiteralPath $StagingDir -Recurse -Force -ErrorAction SilentlyContinue}
+    if($preflightPassed -and (Test-Path -LiteralPath $StagingDir -PathType Container)){Remove-Item -LiteralPath $StagingDir -Recurse -Force -ErrorAction SilentlyContinue}
 }
