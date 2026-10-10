@@ -1,0 +1,84 @@
+name: SCORP mainline P0 Broker runtime and installer combined
+on:
+  push:
+    branches:
+      - audit/mainline-p0-broker-combined-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mainline-p0-broker-combined-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-broker-no-write:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Mainline-only single commit and exact seven-file allowlist
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $main = (git rev-parse origin/main).Trim()
+          $base = (git merge-base HEAD origin/main).Trim()
+          $ahead = (git rev-list --count origin/main..HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $base -cne $main -or $ahead -ne '1') {
+            throw 'P0_MAIN_ANCESTRY_NOT_ONE_COMMIT'
+          }
+          $allowed = @(
+            'scorp-agent/privileged-broker/broker_service.py',
+            'scorp-agent/privileged-broker/tests/test_broker_readonly_p0.py',
+            'docs/SCORP_MAINLINE_BROKER_P0_20261010.md',
+            'scorp-agent/privileged-broker/install-broker.ps1',
+            'scorp-agent/privileged-broker/tests/p0-broker-fresh-installer-preflight.ps1',
+            'docs/SCORP_MAINLINE_BROKER_INSTALLER_P0_20261010.md',
+            '.github/workflows/scorp-mainline-p0-broker-combined.yml'
+          )
+          $actual = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $actual.Count -ne 7) {
+            throw 'P0_MAINLINE_DIFF_COUNT_INVALID'
+          }
+          foreach ($entry in $actual) {
+            if ($entry -cnotin $allowed) { throw ('P0_MAINLINE_OUT_OF_SCOPE:' + $entry) }
+          }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'P0_MAINLINE_DIFF_CHECK_FAILED' }
+          Write-Host 'P0_MAINLINE_ONE_COMMIT_SEVEN_FILES_VERIFIED'
+      - name: Broker installer two no-authority executable denial canaries
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\privileged-broker\tests\p0-broker-fresh-installer-preflight.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_BROKER_DENIAL_NO_WRITE_FAILED' }
+      - name: Install test-only pywin32 on ephemeral CI Windows runner
+        shell: pwsh
+        run: |
+          python -m pip install pywin32==312
+          if ($LASTEXITCODE -ne 0) { throw 'TEST_ONLY_PYWIN32_FAILED' }
+      - name: Combined old/new Broker security regression
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path 'scorp-agent/privileged-broker').Path
+          python -B -m unittest discover -s scorp-agent/privileged-broker/tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'P0_COMBINED_BROKER_TESTS_FAILED' }
+      - name: Mainline V4 and GUI Bridge full offline validation
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_COMBINED_FULL_OFFLINE_VALIDATION_FAILED' }
+      - name: No actual install or production release from this CI
+        shell: pwsh
+        run: |
+          Write-Host 'NO_REAL_BROKER_SERVICE_INSTALL'
+          Write-Host 'NO_EXISTING_R1_TASK_MODIFICATION'
+          Write-Host 'NO_BROWSER_SEND'
+          Write-Host 'NO_RELEASE_OR_HUMAN_PRIVILEGE_APPROVAL'
