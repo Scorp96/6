@@ -1,0 +1,58 @@
+name: SCORP mainline P0 effective Windows process token preflight
+on:
+  push:
+    branches:
+      - audit/mainline-p0-bootstrap-effective-token-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-branch:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Exactly one production mainline commit and six reviewed paths
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $m = (git rev-parse origin/main).Trim()
+          $ancestor = (git merge-base HEAD origin/main).Trim()
+          $ahead = (git rev-list --count origin/main..HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $m -cne $ancestor -or $ahead -ne '1') { throw 'P0_MAINLINE_ANCESTRY_CHANGED' }
+          $allow = @(
+            'scorp-agent/bootstrap-v4.ps1',
+            'scorp-agent/tests/v4-bootstrap-limited-runlevel.ps1',
+            'scorp-agent/tests/v4-bootstrap-preflight-before-writes.ps1',
+            'scorp-agent/tests/v4-bootstrap-effective-token-gate.ps1',
+            'docs/SCORP_MAINLINE_EFFECTIVE_TOKEN_PRECHECK_20261010.md',
+            '.github/workflows/scorp-mainline-p0-effective-token-preflight.yml'
+          )
+          $actual = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or $actual.Count -ne 6) { throw 'P0_MAINLINE_SCOPE_INVALID' }
+          foreach ($f in $actual) { if ($f -cnotin $allow) { throw ('P0_UNAPPROVED_FILE:'+$f) } }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'P0_DIFF_HYGIENE_FAILED' }
+      - name: Windows Bootstrap Limited, pre-first-write, and process effective token checks
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-limited-runlevel.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_LIMITED_TASK_CHECK_FAILED' }
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-preflight-before-writes.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_FIRST_WRITE_ORDER_FAILED' }
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\tests\v4-bootstrap-effective-token-gate.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_EFFECTIVE_ADMIN_TOKEN_GATE_FAILED' }
+      - name: Full mainline R2 GUI Bridge offline regression
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_FULL_OFFLINE_REGRESSION_FAILED' }
