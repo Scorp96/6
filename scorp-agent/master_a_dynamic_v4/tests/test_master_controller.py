@@ -240,6 +240,11 @@ class _FakeStore:
         )
         return row
 
+    def assert_local_execution_lease(self, intent_id):
+        if self.local_intents[intent_id]["action_kind"] != "LOCAL_EXECUTION":
+            raise AssertionError("fake intent kind invalid")
+        return None
+
     def begin_possible_submit(self, intent_id):
         self.local_intents[intent_id]["state"] = "MAY_HAVE_SUBMITTED"
         return self.local_intents[intent_id]
