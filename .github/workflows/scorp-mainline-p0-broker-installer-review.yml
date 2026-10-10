@@ -1,0 +1,64 @@
+name: SCORP mainline P0 Broker fresh installer no-write review
+on:
+  push:
+    branches:
+      - audit/mainline-broker-installer-deny-p0-20261010
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorp-mainline-broker-installer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-broker-installer:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Gate on current main ancestry and four explicit diff paths
+        shell: pwsh
+        run: |
+          git fetch --quiet origin main
+          $base = (git merge-base HEAD origin/main).Trim()
+          $latestMain = (git rev-parse origin/main).Trim()
+          if ($LASTEXITCODE -ne 0 -or $base -cne $latestMain) { throw 'MAINLINE_BASE_DRIFT' }
+          $paths = @(
+            'scorp-agent/privileged-broker/install-broker.ps1',
+            'scorp-agent/privileged-broker/tests/p0-broker-fresh-installer-preflight.ps1',
+            '.github/workflows/scorp-mainline-p0-broker-installer-review.yml',
+            'docs/SCORP_MAINLINE_BROKER_INSTALLER_P0_20261010.md'
+          )
+          $changed = @(git diff --name-only origin/main...HEAD)
+          if ($LASTEXITCODE -ne 0 -or @($changed).Count -ne 4) { throw 'MAINLINE_REVIEW_SCOPE_NOT_EXACT' }
+          foreach ($path in $changed) {
+            if ($path -cnotin $paths) { throw ('MAINLINE_UNRELATED_FILE:' + $path) }
+          }
+          git diff --check origin/main...HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'MAINLINE_DIFF_INVALID' }
+          Write-Host 'MAINLINE_BROKER_INSTALLER_4_FILES_SCOPE_PASS'
+      - name: Execute only two denied Broker install invocations on isolated runner
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scorp-agent\privileged-broker\tests\p0-broker-fresh-installer-preflight.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_BROKER_INSTALL_DENIAL_FAILED' }
+      - name: Compile and check original Broker contract tests
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = (Resolve-Path 'scorp-agent/privileged-broker').Path
+          python -B -m unittest discover -s scorp-agent/privileged-broker/tests -p 'test_install_contract.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'BROKER_INSTALL_CONTRACT_REGRESSION' }
+      - name: Mainline complete R2 and GUI offline regression
+        shell: pwsh
+        env:
+          SCORP_PYTHON: python
+        run: |
+          .\scripts\run-candidate-validation.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'P0_MAINLINE_R2_OFFLINE_FAILED' }
