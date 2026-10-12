@@ -110,6 +110,14 @@ class Relay:
             raise GateError("REQUEST_NOT_FOUND")
         return dict(row)
 
+    def assert_live_epoch(self, record: dict) -> None:
+        latest = self.db.execute(
+            "SELECT MAX(master_epoch) FROM activations WHERE project_id=?",
+            (record["project_id"],)
+        ).fetchone()[0]
+        if latest is None or record["master_epoch"] != int(latest):
+            raise GateError("MASTER_EPOCH_STALE")
+
     def event(self, request_id: str, event_name: str, detail: dict) -> str:
         recent = self.db.execute(
             "SELECT event_sha256 FROM journal WHERE request_id=? "
@@ -144,6 +152,12 @@ class Relay:
         if type(turn_no) is not int or turn_no <= 0:
             raise GateError("TURN_NUMBER_INVALID")
         with self.tx():
+            current_epoch = self.db.execute(
+                "SELECT MAX(master_epoch) FROM activations WHERE project_id=?",
+                (project,)
+            ).fetchone()[0]
+            if current_epoch is not None and master_epoch < int(current_epoch):
+                raise GateError("MASTER_EPOCH_STALE")
             existing = self.db.execute(
                 "SELECT * FROM activations WHERE request_id=?", (rid,)
             ).fetchone()
@@ -177,6 +191,7 @@ class Relay:
         now = int(time.time())
         with self.tx():
             record = self.row(rid)
+            self.assert_live_epoch(record)
             if record["state"] == "CLAIMED" and record["claimed_by"] == who \
                     and record["lease_until"] > now:
                 return record
@@ -200,6 +215,7 @@ class Relay:
         who = required_id(activator_id, "ACTIVATOR_ID")
         with self.tx():
             record = self.row(rid)
+            self.assert_live_epoch(record)
             if record["state"] != "CLAIMED" or record["claimed_by"] != who:
                 raise GateError("CLAIM_BINDING_INVALID")
             if record["lease_until"] <= int(time.time()):
@@ -227,6 +243,7 @@ class Relay:
         ref = required_id(observation_ref, "OBSERVATION_REF")
         with self.tx():
             record = self.row(rid)
+            self.assert_live_epoch(record)
             if record["state"] != "MAY_HAVE_SUBMITTED":
                 raise GateError("NOT_AWAITING_BROWSER_RESULT")
             if record["claimed_by"] != who:
@@ -261,17 +278,27 @@ class Relay:
         records = self.db.execute(
             "SELECT * FROM journal WHERE request_id=? ORDER BY event_seq", (rid,)
         ).fetchall()
+        if not records:
+            raise GateError("JOURNAL_EMPTY")
         prev = ZERO
         for n, line in enumerate(records, 1):
             try:
                 event = json.loads(line["event_json"])
             except (TypeError, ValueError) as exc:
                 raise GateError(f"JOURNAL_HASH_CHAIN_BROKEN_AT_{n}") from exc
-            if not isinstance(event, dict) or event.get("request_id") != rid or event.get("previous_sha256") != prev or event.get("written_at") != line["written_at"] \
+            if not isinstance(event, dict) or event.get("request_id") != rid or event.get("previous_sha256") != prev or event.get("written_at") != line["written_at"] or event.get("event") != line["event_name"] \
                     or line["previous_sha256"] != prev \
                     or hashlib.sha256(line["event_json"].encode("utf-8")).hexdigest() != line["event_sha256"]:
                 raise GateError(f"JOURNAL_HASH_CHAIN_BROKEN_AT_{n}")
             prev = line["event_sha256"]
+        state = self.row(rid)
+        if event["event"] != state["state"]:
+            raise GateError("JOURNAL_STATE_MISMATCH")
+        if state["state"] == "OBSERVED_UNVERIFIED":
+            if state["receipt_sha256"] != prev or (event.get("details") or {}).get(
+                "response_sha256"
+            ) != state["result_sha256"]:
+                raise GateError("JOURNAL_RECEIPT_MISMATCH")
         return {"request_id": rid, "event_count": len(records),
                 "last_event_sha256": prev, "chain_valid": True}
 
