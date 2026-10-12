@@ -12,14 +12,14 @@
 
 ## Scope
 
-The control plane is in `relay.py` and offline unittest cases in `test_relay.py`.
+The control plane is in `relay.py`; offline tests in `test_relay.py` and `test_relay_restart.py`. The latter uses a fresh Python process per CLI action and fictitious conversation URLs.
 
 ```powershell
 cd C:\Users\scorp\Documents\Codex\isolated-tests\gpt6-codex-activator-20261012
-python -B -m unittest -v test_relay
+python -B -m unittest -v test_relay test_relay_restart
 ```
 
-**Expected:** 11 tests / 11 pass. Tests use isolated SQLite databases under the OS temp directory.
+**Expected baseline:** 11 original tests / 11 pass. Stage 2: 20 combined tests / 20 pass. Tests use isolated SQLite databases under the OS temp directory.
 
 CLI usage: `python -B relay.py --help`. Root flag `--db` must precede subcommand.
 
@@ -43,9 +43,15 @@ Wrong project/session/epoch/turn, stale/duplicate request, mismatched ChatGPT co
 
 ## Local work record
 
-2026-10-12: GPT-6 authored and patched isolated code. Codex was constrained to run the requested local unittest and return hash/exit evidence. Last completed fixed run: `11/11 PASS`, exit `0`. No production files changed.
+2026-10-12 Stage 1: GPT-6 authored/patched isolated code; Codex ran fixed tests and recorded SHA256 (`11/11 PASS`). Stage 2: GPT-6 added master-epoch fencing, end-of-journal-state checks and cross-process tests. Codex ran `python -B -m unittest -v test_relay test_relay_restart`: `20/20 PASS`, exit `0`, 13.253s (unittest). No Chrome/GPT activation occurred. Stage 2 source hashes and durable receipt must be newly generated; Stage 1 hashes no longer describe the edited files. No production files changed.
 
 Current isolated Windows paths:
 - `C:\Users\scorp\Documents\Codex\isolated-tests\gpt6-codex-activator-20261012\relay.py`
 - `C:\Users\scorp\Documents\Codex\isolated-tests\gpt6-codex-activator-20261012\test_relay.py`
 - `C:\Users\scorp\Documents\Codex\isolated-tests\gpt6-codex-activator-20261012\ROLE_CONTRACT.md`
+
+## Stage 2 physical binding blocker
+
+Chrome Use CLI health and process existence are confirmed, but the current live ChatGPT conversation URL and driver-owned session are NOT bound to this experiment. A single real `chrome-use.exe session list` Codex delegation timed out; no trusted session result was returned. Do not guess, re-send or bind an arbitrary Chrome tab.
+
+The physical browser activation adapter is absent. A real GPT auto-wake is **NOT_RUN**, regardless of the 20 passing offline tests. Before physical activation, independently verify a user-approved exact `https://chatgpt.com/c/...` URL, authenticated session, input idle state, and a trusted post-submit observation. Uncertainty blocks sending.
